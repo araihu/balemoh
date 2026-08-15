@@ -1,6 +1,6 @@
 module github.com/araihu/balemoh
 
-go 1.26
+go 1.26.0
 
 require (
 	cel.dev/expr v0.25.1 // indirect
