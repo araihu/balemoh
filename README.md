@@ -25,6 +25,6 @@ Defaults:
 - `BALEMOH_HTTP_ADDR=:8080`
 - `BALEMOH_DATABASE_PATH=./data/balemoh.db`
 
-Runtime configuration is loaded from environment variables. See the [generated
-environment documentation](internal/config/environment.md) for the complete
-configuration reference.
+Runtime configuration is parsed once from environment variables before database
+startup and migrations. See the [generated environment documentation](internal/config/environment.md)
+for the complete configuration reference.
