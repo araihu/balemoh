@@ -25,5 +25,6 @@ Defaults:
 - `BALEMOH_HTTP_ADDR=:8080`
 - `BALEMOH_DATABASE_PATH=./data/balemoh.db`
 
-Generated environment documentation will be linked here when Task 4 creates
-it.
+Runtime configuration is loaded from environment variables. See the [generated
+environment documentation](internal/config/environment.md) for the complete
+configuration reference.
