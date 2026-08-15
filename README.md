@@ -13,12 +13,22 @@ go test ./...
 go vet ./...
 ```
 
-Run the service:
+Run the service in one terminal:
 
 ```sh
 go run ./cmd/balemoh
+```
+
+In a second terminal, check the health endpoint:
+
+```sh
 curl --fail http://127.0.0.1:8080/healthz
 ```
+
+The service creates the parent directory for `BALEMOH_DATABASE_PATH` and
+automatically runs embedded migrations on startup. The bootstrap migration is
+safe to run repeatedly; migration bookkeeping is stored in SQLite's
+`schema_migrations` table.
 
 Defaults:
 
