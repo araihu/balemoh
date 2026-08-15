@@ -7,17 +7,27 @@ import (
 )
 
 func TestRunMigrations(t *testing.T) {
-	db, err := Open(context.Background(), t.TempDir()+"/balemoh.db")
+	databasePath := t.TempDir() + "/balemoh.db"
+	db, err := Open(context.Background(), databasePath)
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}
-	defer db.Close()
 
 	if err := RunMigrations(db); err != nil {
 		t.Fatalf("RunMigrations() first call error = %v", err)
 	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	db, err = Open(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("Open() second call error = %v", err)
+	}
+	defer db.Close()
+
 	if err := RunMigrations(db); err != nil {
-		t.Fatalf("RunMigrations() second call error = %v", err)
+		t.Fatalf("RunMigrations() restart call error = %v", err)
 	}
 
 	var version uint

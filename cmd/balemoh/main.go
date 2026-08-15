@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -32,32 +33,43 @@ func run() error {
 		return fmt.Errorf("load configuration: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(options.DatabasePath), 0o755); err != nil {
-		return fmt.Errorf("create database directory: %w", err)
-	}
-
-	db, err := sqlite.Open(context.Background(), options.DatabasePath)
+	server, db, err := constructServer(context.Background(), options, sqlite.RunMigrations)
 	if err != nil {
-		return fmt.Errorf("open database: %w", err)
+		return err
 	}
 	defer db.Close()
 
-	if err := sqlite.RunMigrations(db); err != nil {
-		return fmt.Errorf("run migrations: %w", err)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	return serve(ctx, server, server.ListenAndServe)
+}
+
+func constructServer(ctx context.Context, options config.Options, migrate func(*sql.DB) error) (*http.Server, *sql.DB, error) {
+	if err := os.MkdirAll(filepath.Dir(options.DatabasePath), 0o755); err != nil {
+		return nil, nil, fmt.Errorf("create database directory: %w", err)
+	}
+
+	db, err := sqlite.Open(ctx, options.DatabasePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open database: %w", err)
+	}
+	if err := migrate(db); err != nil {
+		_ = db.Close()
+		return nil, nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	queries := sqlc.New(db)
 	service := health.NewService(sqlite.NewPinger(queries))
 	handler := httpadapter.NewHandler(service)
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
-	server := &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}
+	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, nil
+}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
+func serve(ctx context.Context, server *http.Server, listen func() error) error {
 	serverErrors := make(chan error, 1)
 	go func() {
-		serverErrors <- server.ListenAndServe()
+		serverErrors <- listen()
 	}()
 
 	select {

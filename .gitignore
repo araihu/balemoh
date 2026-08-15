@@ -2,6 +2,7 @@
 
 # Go
 /bin/
+/balemoh
 /dist/
 *.exe
 *.exe~
