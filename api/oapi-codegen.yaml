@@ -1,0 +1,7 @@
+package: generated
+output: ../../internal/api/generated/balemoh.gen.go
+generate:
+  models: true
+  std-http-server: true
+output-options:
+  skip-prune: true
