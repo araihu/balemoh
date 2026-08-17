@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - codex/balemoh-foundation
-      - dependabot/**
 
 permissions:
   contents: read
