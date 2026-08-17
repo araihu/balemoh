@@ -44,14 +44,19 @@ type Candidate struct {
 }
 
 func StableID(source SourceRef, resource ResourceRef) string {
-	identity := strings.Join([]string{
+	parts := []string{
 		strings.TrimSpace(source.Kind),
 		strings.TrimSpace(source.ID),
 		strings.TrimSpace(resource.Kind),
 		strings.TrimSpace(resource.Namespace),
 		strings.TrimSpace(resource.Name),
-	}, "\x00")
-	digest := sha256.Sum256([]byte(identity))
+	}
+	var identity strings.Builder
+	for _, part := range parts {
+		_, _ = fmt.Fprintf(&identity, "%d:", len(part))
+		identity.WriteString(part)
+	}
+	digest := sha256.Sum256([]byte(identity.String()))
 	return hex.EncodeToString(digest[:])
 }
 
@@ -90,6 +95,12 @@ func (c Candidate) Normalize() Candidate {
 	c.Resource.Name = strings.TrimSpace(c.Resource.Name)
 	c.DisplayName = strings.TrimSpace(c.DisplayName)
 	c.ObservedAt = c.ObservedAt.UTC()
+	for index := range c.Endpoints {
+		c.Endpoints[index].Name = strings.TrimSpace(c.Endpoints[index].Name)
+		c.Endpoints[index].URL = strings.TrimSpace(c.Endpoints[index].URL)
+		c.Endpoints[index].Protocol = strings.TrimSpace(c.Endpoints[index].Protocol)
+		c.Endpoints[index].Provenance = strings.TrimSpace(c.Endpoints[index].Provenance)
+	}
 	return c
 }
 
@@ -100,6 +111,9 @@ func (c Candidate) Validate() error {
 	}
 	if c.Source.ID == "" {
 		return errors.New("source ID must not be empty")
+	}
+	if strings.ContainsRune(c.Source.Kind, '\x00') || strings.ContainsRune(c.Source.ID, '\x00') || strings.ContainsRune(c.Resource.Kind, '\x00') || strings.ContainsRune(c.Resource.Namespace, '\x00') || strings.ContainsRune(c.Resource.Name, '\x00') {
+		return errors.New("source and resource identity must not contain NUL")
 	}
 	if c.Resource.Kind == "" {
 		return errors.New("resource kind must not be empty")

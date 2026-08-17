@@ -96,6 +96,63 @@ func TestCatalogStorePinUnknownCandidateReturnsNotFound(t *testing.T) {
 	}
 }
 
+func TestCatalogStorePinIsIdempotent(t *testing.T) {
+	store := NewCatalogStore(newCatalogTestDatabase(t))
+	candidate := catalogTestCandidate("grafana", time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	if err := store.Upsert(context.Background(), candidate); err != nil {
+		t.Fatalf("Upsert() error = %v", err)
+	}
+
+	first, err := store.SetPinned(context.Background(), candidate.ID, true)
+	if err != nil {
+		t.Fatalf("first SetPinned() error = %v", err)
+	}
+	second, err := store.SetPinned(context.Background(), candidate.ID, true)
+	if err != nil {
+		t.Fatalf("second SetPinned() error = %v", err)
+	}
+	if first.PinnedAt == nil || second.PinnedAt == nil || !first.PinnedAt.Equal(*second.PinnedAt) {
+		t.Fatalf("pin timestamps = %v and %v, want unchanged timestamp", first.PinnedAt, second.PinnedAt)
+	}
+
+	first, err = store.SetPinned(context.Background(), candidate.ID, false)
+	if err != nil {
+		t.Fatalf("first Unpin() error = %v", err)
+	}
+	second, err = store.SetPinned(context.Background(), candidate.ID, false)
+	if err != nil {
+		t.Fatalf("second Unpin() error = %v", err)
+	}
+	if first.PinnedAt != nil || second.PinnedAt != nil {
+		t.Fatalf("unpin timestamps = %v and %v, want nil", first.PinnedAt, second.PinnedAt)
+	}
+}
+
+func TestCatalogStoreIgnoresOlderObservation(t *testing.T) {
+	store := NewCatalogStore(newCatalogTestDatabase(t))
+	newer := catalogTestCandidate("grafana", time.Date(2026, 8, 17, 13, 0, 0, 0, time.UTC))
+	newer.Metadata = map[string]string{"version": "new"}
+	newer.Endpoints = []catalog.Endpoint{{Name: "web", URL: "https://new.example.test/", Port: 443, Protocol: "https", Provenance: "new"}}
+	if err := store.Upsert(context.Background(), newer); err != nil {
+		t.Fatalf("newer Upsert() error = %v", err)
+	}
+
+	older := catalogTestCandidate("grafana", time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	older.Metadata = map[string]string{"version": "old"}
+	older.Endpoints = []catalog.Endpoint{{Name: "web", URL: "https://old.example.test/", Port: 443, Protocol: "https", Provenance: "old"}}
+	if err := store.Upsert(context.Background(), older); err != nil {
+		t.Fatalf("older Upsert() error = %v", err)
+	}
+
+	services, err := store.List(context.Background(), false)
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(services) != 1 || services[0].Metadata["version"] != "new" || services[0].Endpoints[0].URL != "https://new.example.test/" {
+		t.Fatalf("stored observation = %#v, want newer observation", services)
+	}
+}
+
 func TestCatalogStoreSurvivesDatabaseRestart(t *testing.T) {
 	databasePath := t.TempDir() + "/balemoh.db"
 	db, err := Open(context.Background(), databasePath)

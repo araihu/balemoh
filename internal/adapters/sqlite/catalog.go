@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -39,6 +40,24 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 	defer func() { _ = tx.Rollback() }()
 
 	queries := s.queries.WithTx(tx)
+	existing, err := queries.GetDiscoveredService(ctx, candidate.ID)
+	switch {
+	case err == nil:
+		existingObservedAt, parseErr := time.Parse(time.RFC3339Nano, existing.ObservedAt)
+		if parseErr != nil {
+			return fmt.Errorf("decode existing observation time for candidate %q: %w", candidate.ID, parseErr)
+		}
+		if !candidate.ObservedAt.After(existingObservedAt) {
+			if err := tx.Commit(); err != nil {
+				return fmt.Errorf("commit unchanged catalog upsert: %w", err)
+			}
+			return nil
+		}
+	case errors.Is(err, sql.ErrNoRows):
+		// Candidate is new.
+	default:
+		return fmt.Errorf("read existing candidate: %w", err)
+	}
 	if err := queries.UpsertDiscoveredService(ctx, sqlc.UpsertDiscoveredServiceParams{
 		ID:                candidate.ID,
 		SourceKind:        candidate.Source.Kind,
@@ -77,14 +96,18 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 }
 
 func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candidate, error) {
-	var (
-		rows []sqlc.DiscoveredService
-		err  error
-	)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin catalog read: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	queries := s.queries.WithTx(tx)
+
+	var rows []sqlc.DiscoveredService
 	if pinned {
-		rows, err = s.queries.ListPinnedDiscoveredServices(ctx)
+		rows, err = queries.ListPinnedDiscoveredServices(ctx)
 	} else {
-		rows, err = s.queries.ListDiscoveredServices(ctx)
+		rows, err = queries.ListDiscoveredServices(ctx)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list catalog candidates: %w", err)
@@ -92,11 +115,14 @@ func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candida
 
 	result := make([]catalog.Candidate, 0, len(rows))
 	for _, row := range rows {
-		candidate, err := s.candidateFromRow(ctx, s.queries, row)
+		candidate, err := s.candidateFromRow(ctx, queries, row)
 		if err != nil {
 			return nil, err
 		}
 		result = append(result, candidate)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit catalog read: %w", err)
 	}
 	return result, nil
 }
@@ -106,37 +132,52 @@ func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool) (c
 	if id == "" {
 		return catalog.Candidate{}, catalog.ErrNotFound
 	}
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	var (
-		affected int64
-		err      error
-	)
-	if pinned {
-		affected, err = s.queries.PinDiscoveredService(ctx, sqlc.PinDiscoveredServiceParams{
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return catalog.Candidate{}, fmt.Errorf("begin catalog pin update: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	queries := s.queries.WithTx(tx)
+	row, err := queries.GetDiscoveredService(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return catalog.Candidate{}, catalog.ErrNotFound
+	}
+	if err != nil {
+		return catalog.Candidate{}, fmt.Errorf("read candidate pin state: %w", err)
+	}
+
+	if pinned && !row.PinnedAt.Valid {
+		now := time.Now().UTC().Format(time.RFC3339Nano)
+		if _, err := queries.PinDiscoveredService(ctx, sqlc.PinDiscoveredServiceParams{
 			PinnedAt:  sql.NullString{String: now, Valid: true},
 			UpdatedAt: now,
 			ID:        id,
-		})
-	} else {
-		affected, err = s.queries.UnpinDiscoveredService(ctx, sqlc.UnpinDiscoveredServiceParams{
+		}); err != nil {
+			return catalog.Candidate{}, fmt.Errorf("set candidate pin state: %w", err)
+		}
+	}
+	if !pinned && row.PinnedAt.Valid {
+		now := time.Now().UTC().Format(time.RFC3339Nano)
+		if _, err := queries.UnpinDiscoveredService(ctx, sqlc.UnpinDiscoveredServiceParams{
 			UpdatedAt: now,
 			ID:        id,
-		})
-	}
-	if err != nil {
-		return catalog.Candidate{}, fmt.Errorf("set candidate pin state: %w", err)
-	}
-	if affected == 0 {
-		return catalog.Candidate{}, catalog.ErrNotFound
-	}
-	row, err := s.queries.GetDiscoveredService(ctx, id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return catalog.Candidate{}, catalog.ErrNotFound
+		}); err != nil {
+			return catalog.Candidate{}, fmt.Errorf("clear candidate pin state: %w", err)
 		}
-		return catalog.Candidate{}, fmt.Errorf("read pinned candidate: %w", err)
 	}
-	return s.candidateFromRow(ctx, s.queries, row)
+
+	row, err = queries.GetDiscoveredService(ctx, id)
+	if err != nil {
+		return catalog.Candidate{}, fmt.Errorf("read updated candidate pin state: %w", err)
+	}
+	candidate, err := s.candidateFromRow(ctx, queries, row)
+	if err != nil {
+		return catalog.Candidate{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return catalog.Candidate{}, fmt.Errorf("commit catalog pin update: %w", err)
+	}
+	return candidate, nil
 }
 
 func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queries, row sqlc.DiscoveredService) (catalog.Candidate, error) {
@@ -180,6 +221,7 @@ func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queri
 			Provenance: endpoint.Provenance,
 		})
 	}
+	candidate = candidate.Normalize()
 	if err := candidate.Validate(); err != nil {
 		return catalog.Candidate{}, fmt.Errorf("validate stored candidate %q: %w", row.ID, err)
 	}

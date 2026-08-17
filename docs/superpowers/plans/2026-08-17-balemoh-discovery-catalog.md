@@ -208,7 +208,7 @@ git add api go.mod go.sum internal/application/catalog internal/adapters/http in
 git commit -m "feat: add discovery catalog primitives"
 ```
 
-- [ ] **Step 6: Review the committed feature branch.** Compare the implementation commit against its parent, re-read the spec requirements, check error leakage, transaction boundaries, pin preservation, stable identity, generated artifacts, and test coverage. Record findings before any final completion claim.
+- [x] **Step 6: Review the committed feature branch.** Independent review of `3bc9021..47d6671` found pin timestamp mutation, non-snapshot aggregate reads, stale observation overwrite, NUL identity ambiguity, and whitespace URL preservation. Regression tests and follow-up fixes now cover all five findings.
 
 ## Self-review checklist
 

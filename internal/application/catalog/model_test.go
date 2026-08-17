@@ -23,6 +23,9 @@ func TestStableIDIsDeterministicAndIdentityBound(t *testing.T) {
 	if first == StableID(source, ResourceRef{Kind: "container", Namespace: "prod", Name: "whoami"}) {
 		t.Fatal("StableID() did not change when resource namespace changed")
 	}
+	if StableID(SourceRef{Kind: "a", ID: "b\x00c"}, resource) == StableID(SourceRef{Kind: "a\x00b", ID: "c"}, resource) {
+		t.Fatal("StableID() collided for identity fields containing a NUL")
+	}
 }
 
 func TestNewCandidateDefaultsDisplayNameAndCollections(t *testing.T) {
@@ -117,6 +120,15 @@ func TestCandidateValidateRejectsInvalidValues(t *testing.T) {
 			}(),
 			want: "endpoint port",
 		},
+		"NUL in source identity": {
+			candidate: func() Candidate {
+				candidate := base
+				candidate.Source.ID = "host\x00one"
+				candidate.ID = StableID(candidate.Source, candidate.Resource)
+				return candidate
+			}(),
+			want: "NUL",
+		},
 	}
 
 	for name, test := range tests {
@@ -129,5 +141,24 @@ func TestCandidateValidateRejectsInvalidValues(t *testing.T) {
 				t.Fatalf("Validate() error = %q, want mention %q", err, test.want)
 			}
 		})
+	}
+}
+
+func TestCandidateNormalizeTrimsEndpointObservation(t *testing.T) {
+	candidate := NewCandidate(
+		SourceRef{Kind: "docker", ID: "host-1"},
+		ResourceRef{Kind: "container", Name: "whoami"},
+		time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC),
+	)
+	candidate.Endpoints = []Endpoint{{
+		Name:       " web ",
+		URL:        "   ",
+		Protocol:   " http ",
+		Provenance: " plugin ",
+	}}
+
+	normalized := candidate.Normalize()
+	if got := normalized.Endpoints[0]; got.Name != "web" || got.URL != "" || got.Protocol != "http" || got.Provenance != "plugin" {
+		t.Fatalf("normalized endpoint = %#v, want trimmed fields and empty URL", got)
 	}
 }
