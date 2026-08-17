@@ -19,6 +19,103 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/staging/services:
+    get:
+      operationId: GetStagingServices
+      responses:
+        '200':
+          description: Discovered service candidates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListResponse'
+        '503':
+          description: Catalog is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/staging/services/{serviceId}/pin:
+    parameters:
+      - name: serviceId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: PinStagingService
+      responses:
+        '200':
+          description: Updated pinned service candidate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceCandidate'
+        '404':
+          description: Candidate was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Catalog is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: UnpinStagingService
+      responses:
+        '200':
+          description: Updated unpinned service candidate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceCandidate'
+        '404':
+          description: Candidate was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Catalog is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/homepage/services:
+    get:
+      operationId: GetHomepageServices
+      responses:
+        '200':
+          description: Pinned homepage services
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListResponse'
+        '503':
+          description: Catalog is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/discovery/sync:
+    post:
+      operationId: SyncDiscovery
+      responses:
+        '200':
+          description: Discovery synchronization result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoverySyncResponse'
+        '503':
+          description: Discovery synchronization failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     HealthResponse:
@@ -40,3 +137,114 @@ components:
           type: string
         message:
           type: string
+    SourceRef:
+      type: object
+      required:
+        - kind
+        - id
+      properties:
+        kind:
+          type: string
+        id:
+          type: string
+    ResourceRef:
+      type: object
+      required:
+        - kind
+        - name
+      properties:
+        kind:
+          type: string
+        namespace:
+          type: string
+        name:
+          type: string
+    ServiceEndpoint:
+      type: object
+      required:
+        - name
+        - url
+        - port
+        - protocol
+        - provenance
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+          description: Empty when discovery has no exact hostname or route.
+        port:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 65535
+          description: Zero when no port was observed.
+        protocol:
+          type: string
+        provenance:
+          type: string
+          description: Adapter evidence for the endpoint observation.
+    ServiceCandidate:
+      type: object
+      required:
+        - id
+        - source
+        - resource
+        - displayName
+        - description
+        - metadata
+        - endpoints
+        - observedAt
+        - pinned
+        - pinnedAt
+      properties:
+        id:
+          type: string
+        source:
+          $ref: '#/components/schemas/SourceRef'
+        resource:
+          $ref: '#/components/schemas/ResourceRef'
+        displayName:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEndpoint'
+        observedAt:
+          type: string
+          format: date-time
+        pinned:
+          type: boolean
+        pinnedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ServiceListResponse:
+      type: object
+      required:
+        - services
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceCandidate'
+    DiscoverySyncResponse:
+      type: object
+      required:
+        - sources
+        - candidates
+      properties:
+        sources:
+          type: integer
+          format: int32
+          minimum: 0
+        candidates:
+          type: integer
+          format: int32
+          minimum: 0

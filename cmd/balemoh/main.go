@@ -16,6 +16,7 @@ import (
 	httpadapter "github.com/araihu/balemoh/internal/adapters/http"
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
 	"github.com/araihu/balemoh/internal/api/generated"
+	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/application/health"
 	"github.com/araihu/balemoh/internal/config"
 	"github.com/araihu/balemoh/internal/storage/sqlc"
@@ -60,8 +61,9 @@ func constructServer(ctx context.Context, options config.Options, migrate func(*
 	}
 
 	queries := sqlc.New(db)
-	service := health.NewService(sqlite.NewPinger(queries))
-	handler := httpadapter.NewHandler(service)
+	healthService := health.NewService(sqlite.NewPinger(queries))
+	catalogService := catalog.NewService(sqlite.NewCatalogStore(db))
+	handler := httpadapter.NewHandler(healthService, catalogService)
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, nil
 }

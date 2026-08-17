@@ -8,6 +8,9 @@ package generated
 import (
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for HealthResponseStatus.
@@ -25,6 +28,12 @@ func (e HealthResponseStatus) Valid() bool {
 	}
 }
 
+// DiscoverySyncResponse defines model for DiscoverySyncResponse.
+type DiscoverySyncResponse struct {
+	Candidates int32 `json:"candidates"`
+	Sources    int32 `json:"sources"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Code    string `json:"code"`
@@ -39,8 +48,70 @@ type HealthResponse struct {
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
 
+// ResourceRef defines model for ResourceRef.
+type ResourceRef struct {
+	Kind      string  `json:"kind"`
+	Name      string  `json:"name"`
+	Namespace *string `json:"namespace,omitempty"`
+}
+
+// ServiceCandidate defines model for ServiceCandidate.
+type ServiceCandidate struct {
+	Description string            `json:"description"`
+	DisplayName string            `json:"displayName"`
+	Endpoints   []ServiceEndpoint `json:"endpoints"`
+	Id          string            `json:"id"`
+	Metadata    map[string]string `json:"metadata"`
+	ObservedAt  time.Time         `json:"observedAt"`
+	Pinned      bool              `json:"pinned"`
+	PinnedAt    *time.Time        `json:"pinnedAt"`
+	Resource    ResourceRef       `json:"resource"`
+	Source      SourceRef         `json:"source"`
+}
+
+// ServiceEndpoint defines model for ServiceEndpoint.
+type ServiceEndpoint struct {
+	Name string `json:"name"`
+
+	// Port Zero when no port was observed.
+	Port     int32  `json:"port"`
+	Protocol string `json:"protocol"`
+
+	// Provenance Adapter evidence for the endpoint observation.
+	Provenance string `json:"provenance"`
+
+	// Url Empty when discovery has no exact hostname or route.
+	Url string `json:"url"`
+}
+
+// ServiceListResponse defines model for ServiceListResponse.
+type ServiceListResponse struct {
+	Services []ServiceCandidate `json:"services"`
+}
+
+// SourceRef defines model for SourceRef.
+type SourceRef struct {
+	Id   string `json:"id"`
+	Kind string `json:"kind"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (POST /api/v1/discovery/sync)
+	SyncDiscovery(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/v1/homepage/services)
+	GetHomepageServices(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/v1/staging/services)
+	GetStagingServices(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/v1/staging/services/{serviceId}/pin)
+	UnpinStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
+
+	// (POST /api/v1/staging/services/{serviceId}/pin)
+	PinStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
 
 	// (GET /healthz)
 	GetHealthz(w http.ResponseWriter, r *http.Request)
@@ -54,6 +125,100 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// SyncDiscovery operation middleware
+func (siw *ServerInterfaceWrapper) SyncDiscovery(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SyncDiscovery(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHomepageServices operation middleware
+func (siw *ServerInterfaceWrapper) GetHomepageServices(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHomepageServices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetStagingServices operation middleware
+func (siw *ServerInterfaceWrapper) GetStagingServices(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStagingServices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnpinStagingService operation middleware
+func (siw *ServerInterfaceWrapper) UnpinStagingService(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "serviceId" -------------
+	var serviceId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceId", r.PathValue("serviceId"), &serviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "serviceId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnpinStagingService(w, r, serviceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PinStagingService operation middleware
+func (siw *ServerInterfaceWrapper) PinStagingService(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "serviceId" -------------
+	var serviceId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceId", r.PathValue("serviceId"), &serviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "serviceId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PinStagingService(w, r, serviceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetHealthz operation middleware
 func (siw *ServerInterfaceWrapper) GetHealthz(w http.ResponseWriter, r *http.Request) {
@@ -189,6 +354,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/discovery/sync", wrapper.SyncDiscovery)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/homepage/services", wrapper.GetHomepageServices)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.UnpinStagingService)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.PinStagingService)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/healthz", wrapper.GetHealthz)
 
 	return m

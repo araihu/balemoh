@@ -5,15 +5,17 @@ import (
 	"net/http"
 
 	"github.com/araihu/balemoh/internal/api/generated"
+	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/application/health"
 )
 
 type Handler struct {
 	checker health.Checker
+	catalog catalog.UseCase
 }
 
-func NewHandler(checker health.Checker) generated.ServerInterface {
-	return Handler{checker: checker}
+func NewHandler(checker health.Checker, catalogService catalog.UseCase) generated.ServerInterface {
+	return Handler{checker: checker, catalog: catalogService}
 }
 
 func (h Handler) GetHealthz(w http.ResponseWriter, r *http.Request) {

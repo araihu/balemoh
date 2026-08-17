@@ -3,3 +3,33 @@
 //   sqlc v1.31.1
 
 package sqlc
+
+import (
+	"database/sql"
+)
+
+type DiscoveredService struct {
+	ID                string         `json:"id"`
+	SourceKind        string         `json:"source_kind"`
+	SourceID          string         `json:"source_id"`
+	ResourceKind      string         `json:"resource_kind"`
+	ResourceNamespace string         `json:"resource_namespace"`
+	ResourceName      string         `json:"resource_name"`
+	DisplayName       string         `json:"display_name"`
+	Description       string         `json:"description"`
+	MetadataJson      string         `json:"metadata_json"`
+	ObservedAt        string         `json:"observed_at"`
+	PinnedAt          sql.NullString `json:"pinned_at"`
+	CreatedAt         string         `json:"created_at"`
+	UpdatedAt         string         `json:"updated_at"`
+}
+
+type ServiceEndpoint struct {
+	ID         int64  `json:"id"`
+	ServiceID  string `json:"service_id"`
+	Name       string `json:"name"`
+	Url        string `json:"url"`
+	Port       int64  `json:"port"`
+	Protocol   string `json:"protocol"`
+	Provenance string `json:"provenance"`
+}

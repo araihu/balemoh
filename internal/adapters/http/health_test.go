@@ -21,7 +21,7 @@ func (f fakeChecker) Check(context.Context) error { return f.err }
 
 func TestHealthz(t *testing.T) {
 	t.Run("healthy", func(t *testing.T) {
-		handler := generated.HandlerFromMux(adapterhttp.NewHandler(fakeChecker{}), http.NewServeMux())
+		handler := generated.HandlerFromMux(adapterhttp.NewHandler(fakeChecker{}, &fakeCatalog{}), http.NewServeMux())
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 
@@ -45,7 +45,7 @@ func TestHealthz(t *testing.T) {
 
 	t.Run("dependency failure", func(t *testing.T) {
 		dependencyError := errors.New("database password leaked")
-		handler := generated.HandlerFromMux(adapterhttp.NewHandler(fakeChecker{err: dependencyError}), http.NewServeMux())
+		handler := generated.HandlerFromMux(adapterhttp.NewHandler(fakeChecker{err: dependencyError}, &fakeCatalog{}), http.NewServeMux())
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 

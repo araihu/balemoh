@@ -35,8 +35,37 @@ func TestRunMigrations(t *testing.T) {
 	if err := db.QueryRowContext(context.Background(), "SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 1 || dirty {
-		t.Fatalf("schema_migrations = (version %d, dirty %t), want (1, false)", version, dirty)
+	if version != 2 || dirty {
+		t.Fatalf("schema_migrations = (version %d, dirty %t), want (2, false)", version, dirty)
+	}
+}
+
+func TestCatalogSchemaEnforcesServiceForeignKey(t *testing.T) {
+	db, err := Open(context.Background(), t.TempDir()+"/balemoh.db")
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer db.Close()
+
+	if err := RunMigrations(db); err != nil {
+		t.Fatalf("RunMigrations() error = %v", err)
+	}
+
+	for _, table := range []string{"discovered_services", "service_endpoints"} {
+		var name string
+		if err := db.QueryRowContext(context.Background(), "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", table).Scan(&name); err != nil {
+			t.Fatalf("query table %q: %v", table, err)
+		}
+		if name != table {
+			t.Fatalf("table name = %q, want %q", name, table)
+		}
+	}
+
+	if _, err := db.ExecContext(context.Background(), `
+		INSERT INTO service_endpoints (service_id, name, url, port, protocol, provenance)
+		VALUES ('missing', 'web', '', 0, '', '')
+	`); err == nil {
+		t.Fatal("orphan endpoint insert succeeded, want foreign-key error")
 	}
 }
 
