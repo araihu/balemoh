@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	containeradapter "github.com/araihu/balemoh/internal/adapters/container"
 	httpadapter "github.com/araihu/balemoh/internal/adapters/http"
 	kubernetesadapter "github.com/araihu/balemoh/internal/adapters/kubernetes"
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
@@ -75,22 +76,33 @@ func constructServer(ctx context.Context, options config.Options, migrate func(*
 }
 
 func configuredDiscoverers(options config.Options) ([]catalog.Discoverer, error) {
-	if !options.KubernetesEnabled {
-		return nil, nil
+	discoverers := make([]catalog.Discoverer, 0, 2)
+	if options.KubernetesEnabled {
+		restConfig, err := rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("load in-cluster Kubernetes config: %w", err)
+		}
+		discoverer, err := kubernetesadapter.NewDiscovererFromConfig(
+			restConfig,
+			options.KubernetesSourceID,
+			options.KubernetesNamespace,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("configure Kubernetes discoverer: %w", err)
+		}
+		discoverers = append(discoverers, discoverer)
 	}
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("load in-cluster Kubernetes config: %w", err)
+	if options.ContainerEnabled {
+		discoverer, err := containeradapter.NewDiscovererFromConfig(
+			options.ContainerHost,
+			options.ContainerSourceID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("configure container discoverer: %w", err)
+		}
+		discoverers = append(discoverers, discoverer)
 	}
-	discoverer, err := kubernetesadapter.NewDiscovererFromConfig(
-		restConfig,
-		options.KubernetesSourceID,
-		options.KubernetesNamespace,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("configure Kubernetes discoverer: %w", err)
-	}
-	return []catalog.Discoverer{discoverer}, nil
+	return discoverers, nil
 }
 
 func serve(ctx context.Context, server *http.Server, listen func() error) error {

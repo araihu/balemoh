@@ -69,3 +69,20 @@ func TestConstructServerCatalog(t *testing.T) {
 		t.Fatalf("services = %#v, want empty collection", response.Services)
 	}
 }
+
+func TestConfiguredDiscoverersIncludesContainerSource(t *testing.T) {
+	discoverers, err := configuredDiscoverers(config.Options{
+		ContainerEnabled:  true,
+		ContainerSourceID: "docker-local",
+		ContainerHost:     "unix:///tmp/docker.sock",
+	})
+	if err != nil {
+		t.Fatalf("configuredDiscoverers() error = %v", err)
+	}
+	if len(discoverers) != 1 {
+		t.Fatalf("configuredDiscoverers() length = %d, want 1", len(discoverers))
+	}
+	if got := discoverers[0].Name(); got != "container/docker-local" {
+		t.Fatalf("discoverer name = %q, want container/docker-local", got)
+	}
+}

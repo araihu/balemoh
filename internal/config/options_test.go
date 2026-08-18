@@ -13,6 +13,12 @@ func TestParseEnvironmentUsesDefaults(t *testing.T) {
 	if got.DatabasePath != "./data/balemoh.db" {
 		t.Fatalf("DatabasePath = %q", got.DatabasePath)
 	}
+	if got.ContainerEnabled {
+		t.Fatal("ContainerEnabled = true, want false by default")
+	}
+	if got.ContainerHost != "unix:///var/run/docker.sock" {
+		t.Fatalf("ContainerHost = %q, want default Docker socket", got.ContainerHost)
+	}
 }
 
 func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
@@ -22,6 +28,9 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 		"BALEMOH_KUBERNETES_ENABLED":   "true",
 		"BALEMOH_KUBERNETES_SOURCE_ID": "kind-balemoh",
 		"BALEMOH_KUBERNETES_NAMESPACE": "balemoh-dev",
+		"BALEMOH_CONTAINER_ENABLED":    "true",
+		"BALEMOH_CONTAINER_SOURCE_ID":  "docker-desktop",
+		"BALEMOH_CONTAINER_HOST":       "unix:///Users/test/.docker/run/docker.sock",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +43,9 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	}
 	if !got.KubernetesEnabled || got.KubernetesSourceID != "kind-balemoh" || got.KubernetesNamespace != "balemoh-dev" {
 		t.Fatalf("Kubernetes options = %#v, want enabled source and namespace", got)
+	}
+	if !got.ContainerEnabled || got.ContainerSourceID != "docker-desktop" || got.ContainerHost != "unix:///Users/test/.docker/run/docker.sock" {
+		t.Fatalf("Container options = %#v, want enabled source and host", got)
 	}
 }
 
@@ -79,6 +91,35 @@ func TestParseEnvironmentRejectsEnabledKubernetesWithoutIdentityOrNamespace(t *t
 		t.Run(test.name, func(t *testing.T) {
 			if _, err := ParseEnvironment(test.env); err == nil {
 				t.Fatal("ParseEnvironment() error = nil, want Kubernetes validation error")
+			}
+		})
+	}
+}
+
+func TestParseEnvironmentRejectsEnabledContainerWithoutIdentityOrHost(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+	}{
+		{
+			name: "source ID",
+			env: map[string]string{
+				"BALEMOH_CONTAINER_ENABLED": "true",
+			},
+		},
+		{
+			name: "host",
+			env: map[string]string{
+				"BALEMOH_CONTAINER_ENABLED":   "true",
+				"BALEMOH_CONTAINER_SOURCE_ID": "docker-local",
+				"BALEMOH_CONTAINER_HOST":      " \t",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := ParseEnvironment(test.env); err == nil {
+				t.Fatal("ParseEnvironment() error = nil, want container validation error")
 			}
 		})
 	}

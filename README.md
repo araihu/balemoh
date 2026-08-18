@@ -35,6 +35,8 @@ Defaults:
 - `BALEMOH_HTTP_ADDR=:8080`
 - `BALEMOH_DATABASE_PATH=./data/balemoh.db`
 - Kubernetes discovery is disabled unless `BALEMOH_KUBERNETES_ENABLED=true`.
+- Docker/Podman discovery is disabled unless `BALEMOH_CONTAINER_ENABLED=true`.
+- `BALEMOH_CONTAINER_HOST=unix:///var/run/docker.sock`
 
 Runtime configuration is parsed once from environment variables before database
 startup and migrations. See the [generated environment documentation](internal/config/environment.md)
@@ -63,6 +65,33 @@ selected Service actually matches its labels. It does not mutate cluster
 resources. Discovered candidates remain in staging until the user explicitly
 pins them. A port observation is not treated as an exact hostname; endpoint
 provenance records which adapter supplied the evidence.
+
+When `BALEMOH_CONTAINER_ENABLED=true`, the Docker-compatible adapter reads
+running containers from `BALEMOH_CONTAINER_HOST` and stages both individual
+containers and Compose services identified by Compose labels. Images and
+published host ports are retained as evidence. A published binding is exposed
+as a `tcp://IP:port` or `udp://IP:port` observation; `0.0.0.0` means the
+runtime reported all host interfaces. The adapter does not infer a hostname or
+call an extension such as Traefik. The container socket is a privileged
+capability even though this adapter only performs list requests, so configure
+its access deliberately.
+
+## Local Docker/Podman discovery
+
+Run Balemoh on the host with a stable source ID and a Docker-compatible socket
+or endpoint:
+
+```sh
+BALEMOH_CONTAINER_ENABLED=true \
+BALEMOH_CONTAINER_SOURCE_ID=docker-desktop \
+BALEMOH_CONTAINER_HOST=unix:///var/run/docker.sock \
+go run ./cmd/balemoh
+
+curl --fail -X POST http://127.0.0.1:8080/api/v1/discovery/sync
+curl --fail http://127.0.0.1:8080/api/v1/staging/services
+```
+
+For rootless Podman, set `BALEMOH_CONTAINER_HOST` to the user Podman socket.
 
 ## Local Kubernetes development
 

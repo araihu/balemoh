@@ -1,10 +1,10 @@
 # Balemoh Discovery and Homepage Catalog Design
 
-**Status:** Catalog foundation accepted; the concrete Kubernetes adapter and local DevSpace workflow are specified in `docs/superpowers/plans/2026-08-17-balemoh-kubernetes-devspace.md`.
+**Status:** Catalog foundation accepted; concrete Kubernetes and Docker-compatible container adapters are implemented, with the local DevSpace workflow specified in `docs/superpowers/plans/2026-08-17-balemoh-kubernetes-devspace.md`.
 
 ## Goal
 
-Add the first domain slice behind Balemoh's homelab homepage: discoverable service candidates, a persistent staging area, explicit pin/unpin decisions that control the homepage view, and a read-only Kubernetes source for local development.
+Add the first domain slice behind Balemoh's homelab homepage: discoverable service candidates, a persistent staging area, explicit pin/unpin decisions that control the homepage view, and read-only Kubernetes and Docker-compatible container sources.
 
 The slice must make Docker and Kubernetes adapters possible without coupling the application core to either platform. It must also preserve uncertainty: a discovered resource may exist without a known hostname, and a port observation must not be presented as an exact route.
 
@@ -37,7 +37,7 @@ Included:
 
 Excluded:
 
-- Docker socket access, Docker API client, or container mutation;
+- container mutation or lifecycle control;
 - cluster-wide provisioning or deployment automation outside the local DevSpace workflow;
 - Traefik or other discovery extension implementation;
 - background scheduling, queues, or event streaming;
@@ -96,8 +96,8 @@ Discovery does not imply publication. Candidates may have no endpoint, or only a
 
 The API does not invent hostnames. The Kubernetes Ingress/HTTPRoute adapter can
 provide an exact host/path observation and evidence such as
-`kubernetes.ingress` or `kubernetes.httproute`; a Docker port-only observation
-remains visibly incomplete until an extension resolves it.
+`kubernetes.ingress` or `kubernetes.httproute`; a container port-only
+observation remains visibly incomplete until an extension resolves it.
 
 ### Staging and homepage semantics
 
@@ -231,6 +231,34 @@ The composition root activates this adapter only with
 `rest.InClusterConfig` and therefore consumes the pod ServiceAccount rather than
 reading a host kubeconfig or socket.
 
+## Docker-compatible container adapter
+
+`internal/adapters/container` implements `catalog.Discoverer` over the
+Docker-compatible `containers/json` API. It uses the configured socket or
+endpoint and lists running containers without inspecting, starting, stopping,
+or mutating them. Docker Engine and Podman can use the same adapter when their
+compatible API socket is configured.
+
+Each container becomes a candidate with its stable host-scoped source ID,
+runtime name, image reference, state, Compose metadata when present, and only
+the host-published ports returned by the runtime. A binding becomes a generic
+`container.port` endpoint with the public port, protocol, and a `tcp://IP:port`
+or `udp://IP:port` observation. An empty runtime host IP is normalized to
+`0.0.0.0` to make an all-interface binding visible; no HTTP or HTTPS scheme is
+guessed.
+
+Containers carrying the Compose project and service labels are grouped into a
+second `compose-service` candidate. The aggregate deduplicates images and
+published bindings while retaining the project, service, Compose files,
+working directory, and running container count. No Traefik informer or other
+hostname extension is part of this adapter.
+
+The composition root enables it only with
+`BALEMOH_CONTAINER_ENABLED=true`, a stable
+`BALEMOH_CONTAINER_SOURCE_ID`, and a Docker-compatible
+`BALEMOH_CONTAINER_HOST` endpoint. The adapter performs read-only list calls,
+but access to a container socket remains a privileged host capability.
+
 ## Composition
 
 `cmd/balemoh` keeps the current startup sequence and adds:
@@ -238,7 +266,7 @@ reading a host kubeconfig or socket.
 1. sqlc queries from the migrated database;
 2. SQLite catalog store;
 3. catalog service with zero discoverers by default, or the explicitly enabled
-   in-cluster Kubernetes discoverer;
+   in-cluster Kubernetes and/or Docker-compatible container discoverers;
 4. HTTP handler receiving health and catalog use cases;
 5. generated mux.
 
@@ -254,12 +282,14 @@ Required gates for this slice:
 - application tests cover sync/upsert and discoverer error propagation;
 - SQLite tests cover migration version `3`, restart, candidate upsert, image/endpoint replacement, pin preservation, and homepage filtering;
 - Kubernetes fake-client tests cover route/Ingress-to-Service-to-Pod resolution, Service fallback, external Services, Pod image extraction, orphan-Pod filtering, namespace filtering, optional HTTPRoute CRD, and permission errors;
+- container fake-client tests cover running-container selection, image and Compose service aggregation, published host ports, host IPs, wildcard bindings, Podman Compose labels, and daemon errors;
 - DevSpace artifacts cover namespace-scoped RBAC and local KinD/vind setup without creating a cluster during repository verification;
 - HTTP tests cover list, pin, unpin, homepage, sync, 404, 503, and generic error bodies;
 - `go test ./...`, `go vet ./...`, `go test -race ./...`, and `git diff --check` pass;
 - CGO-disabled test/build remains valid.
 
-Acceptance means the API, persistence, Kubernetes adapter, and local Kubernetes
-development path are ready for the next reconciliation/extension work. It does
+Acceptance means the API, persistence, Kubernetes and container adapters, and
+the local Kubernetes development path are ready for the next
+reconciliation/extension work. It does
 not authorize merge, release, deployment outside the explicitly configured local
 DevSpace workflow, or publication.

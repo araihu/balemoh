@@ -19,6 +19,12 @@ type Options struct {
 	KubernetesSourceID string `env:"BALEMOH_KUBERNETES_SOURCE_ID"`
 	// KubernetesNamespace limits Kubernetes discovery to one namespace.
 	KubernetesNamespace string `env:"BALEMOH_KUBERNETES_NAMESPACE"`
+	// ContainerEnabled enables the Docker-compatible Docker or Podman container discovery source.
+	ContainerEnabled bool `env:"BALEMOH_CONTAINER_ENABLED" envDefault:"false"`
+	// ContainerSourceID is the stable identity used to scope container candidates.
+	ContainerSourceID string `env:"BALEMOH_CONTAINER_SOURCE_ID"`
+	// ContainerHost is the Docker-compatible API socket or endpoint.
+	ContainerHost string `env:"BALEMOH_CONTAINER_HOST" envDefault:"unix:///var/run/docker.sock"`
 }
 
 // Load parses the process environment into runtime configuration.
@@ -53,6 +59,14 @@ func (o Options) Validate() error {
 		}
 		if strings.TrimSpace(o.KubernetesNamespace) == "" {
 			return fmt.Errorf("Kubernetes namespace must not be empty when discovery is enabled")
+		}
+	}
+	if o.ContainerEnabled {
+		if strings.TrimSpace(o.ContainerSourceID) == "" {
+			return fmt.Errorf("container source ID must not be empty when discovery is enabled")
+		}
+		if strings.TrimSpace(o.ContainerHost) == "" {
+			return fmt.Errorf("container host must not be empty when discovery is enabled")
 		}
 	}
 	return nil

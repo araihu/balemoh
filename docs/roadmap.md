@@ -29,12 +29,18 @@ Fora desta fase: acesso real a Docker e UI.
 
 ### Fase 1 — Discovery Docker read-only
 
+Status: base implementada neste branch para a API Docker-compatible de Docker/Podman.
+
 - adapter para Docker Engine via socket ou endpoint configurado;
 - identidade estável do host e dos containers;
-- leitura de labels, nomes, estado e portas publicadas;
-- normalização de portas como observações incompletas;
-- limites explícitos para socket, timeout e exposição de metadata;
+- leitura de nomes, estado, imagens e portas publicadas;
+- agrupamento de Compose services pelos labels canônicos, incluindo `podman-compose`;
+- portas publicadas normalizadas com o IP/interface do host como observações incompletas;
+- execução read-only sobre containers em execução;
+- endpoint de socket explícito e metadata limitada a evidências de runtime/Compose;
 - testes com fixtures e cliente fake, sem exigir daemon no CI.
+
+Fora desta base: timeout configurável, resolução de hostname e informer/extensão Traefik.
 
 ### Fase 2 — Extensões de rota Docker
 
