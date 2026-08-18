@@ -16,16 +16,16 @@ Balemoh é uma homepage para homelabs. O produto descobre recursos de forma semi
 
 ### Fase 0 — Fundação API e catálogo inicial
 
-Status: em execução.
+Status: concluída neste branch.
 
 - contrato OpenAPI para staging, homepage e sincronização;
 - domínio `Candidate`, fonte, recurso e endpoint;
 - port `Discoverer` para conectores futuros;
-- SQLite/sqlc para candidatos, endpoints e `pinned_at`;
+- SQLite/sqlc para candidatos, endpoints, imagens e `pinned_at`;
 - pin/unpin idempotente;
 - documentação e testes de contrato, aplicação, storage e HTTP.
 
-Fora desta fase: acesso real a Docker/Kubernetes e UI.
+Fora desta fase: acesso real a Docker e UI.
 
 ### Fase 1 — Discovery Docker read-only
 
@@ -46,12 +46,16 @@ Fora desta fase: acesso real a Docker/Kubernetes e UI.
 
 ### Fase 3 — Discovery Kubernetes read-only
 
-- adapter com client Kubernetes e configuração de contexto/endpoint;
-- RBAC mínimo para ler pods, services, ingresses, Gateway API `HTTPRoutes` e recursos necessários;
-- identidade por cluster UID + namespace + kind + name;
-- associação entre workload, service e route;
-- hostname/path exatos vindos de Ingress ou HTTPRoute;
-- tratamento de namespaces, permissões parciais e recursos removidos.
+Status: em execução.
+
+- adapter read-only com `client-go` typed para Pods/Services/Ingresses e dynamic client para Gateway API `HTTPRoutes`;
+- configuração in-cluster explícita por `BALEMOH_KUBERNETES_ENABLED`, source ID estável e namespace;
+- RBAC mínimo para ler Pods, Services, Ingresses e `HTTPRoutes`;
+- identidade por source ID + namespace + kind + name;
+- imagens de init containers, containers e ephemeral containers como evidência estruturada do Pod;
+- hostname/path vindos de Ingress ou HTTPRoute; HTTPRoute usa URL scheme-relative porque o listener pode ser HTTP ou HTTPS;
+- namespaces, CRD HTTPRoute ausente e erros de permissão tratados sem mutação;
+- desenvolvimento local reproduzível via DevSpace sobre KinD ou vCluster in Docker (vind).
 
 ### Fase 4 — Reconciliação e operação de discovery
 
@@ -82,4 +86,3 @@ Fora desta fase: acesso real a Docker/Kubernetes e UI.
 ## Critério de progresso
 
 Cada fase termina quando tem contrato documentado, implementação isolada, testes reproduzíveis e limites de segurança explícitos. Verde técnico não autoriza merge, release, deploy ou publicação.
-

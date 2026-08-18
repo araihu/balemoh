@@ -22,6 +22,7 @@ type DiscoveredService struct {
 	PinnedAt          sql.NullString `json:"pinned_at"`
 	CreatedAt         string         `json:"created_at"`
 	UpdatedAt         string         `json:"updated_at"`
+	ImagesJson        string         `json:"images_json"`
 }
 
 type ServiceEndpoint struct {

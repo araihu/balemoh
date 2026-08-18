@@ -61,12 +61,15 @@ type ServiceCandidate struct {
 	DisplayName string            `json:"displayName"`
 	Endpoints   []ServiceEndpoint `json:"endpoints"`
 	Id          string            `json:"id"`
-	Metadata    map[string]string `json:"metadata"`
-	ObservedAt  time.Time         `json:"observedAt"`
-	Pinned      bool              `json:"pinned"`
-	PinnedAt    *time.Time        `json:"pinnedAt"`
-	Resource    ResourceRef       `json:"resource"`
-	Source      SourceRef         `json:"source"`
+
+	// Images Container images observed for the candidate, when available.
+	Images     []string          `json:"images"`
+	Metadata   map[string]string `json:"metadata"`
+	ObservedAt time.Time         `json:"observedAt"`
+	Pinned     bool              `json:"pinned"`
+	PinnedAt   *time.Time        `json:"pinnedAt"`
+	Resource   ResourceRef       `json:"resource"`
+	Source     SourceRef         `json:"source"`
 }
 
 // ServiceEndpoint defines model for ServiceEndpoint.
@@ -80,7 +83,7 @@ type ServiceEndpoint struct {
 	// Provenance Adapter evidence for the endpoint observation.
 	Provenance string `json:"provenance"`
 
-	// Url Empty when discovery has no exact hostname or route.
+	// Url Empty when discovery has no exact hostname or route; HTTPRoute observations may be scheme-relative.
 	Url string `json:"url"`
 }
 

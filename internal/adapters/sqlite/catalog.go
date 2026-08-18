@@ -18,6 +18,72 @@ type CatalogStore struct {
 	queries *sqlc.Queries
 }
 
+type discoveredServiceRow struct {
+	ID                string
+	SourceKind        string
+	SourceID          string
+	ResourceKind      string
+	ResourceNamespace string
+	ResourceName      string
+	DisplayName       string
+	Description       string
+	MetadataJson      string
+	ImagesJson        string
+	ObservedAt        string
+	PinnedAt          sql.NullString
+}
+
+func discoveredServiceRowFromGet(row sqlc.GetDiscoveredServiceRow) discoveredServiceRow {
+	return discoveredServiceRow{
+		ID:                row.ID,
+		SourceKind:        row.SourceKind,
+		SourceID:          row.SourceID,
+		ResourceKind:      row.ResourceKind,
+		ResourceNamespace: row.ResourceNamespace,
+		ResourceName:      row.ResourceName,
+		DisplayName:       row.DisplayName,
+		Description:       row.Description,
+		MetadataJson:      row.MetadataJson,
+		ImagesJson:        row.ImagesJson,
+		ObservedAt:        row.ObservedAt,
+		PinnedAt:          row.PinnedAt,
+	}
+}
+
+func discoveredServiceRowFromList(row sqlc.ListDiscoveredServicesRow) discoveredServiceRow {
+	return discoveredServiceRow{
+		ID:                row.ID,
+		SourceKind:        row.SourceKind,
+		SourceID:          row.SourceID,
+		ResourceKind:      row.ResourceKind,
+		ResourceNamespace: row.ResourceNamespace,
+		ResourceName:      row.ResourceName,
+		DisplayName:       row.DisplayName,
+		Description:       row.Description,
+		MetadataJson:      row.MetadataJson,
+		ImagesJson:        row.ImagesJson,
+		ObservedAt:        row.ObservedAt,
+		PinnedAt:          row.PinnedAt,
+	}
+}
+
+func discoveredServiceRowFromPinnedList(row sqlc.ListPinnedDiscoveredServicesRow) discoveredServiceRow {
+	return discoveredServiceRow{
+		ID:                row.ID,
+		SourceKind:        row.SourceKind,
+		SourceID:          row.SourceID,
+		ResourceKind:      row.ResourceKind,
+		ResourceNamespace: row.ResourceNamespace,
+		ResourceName:      row.ResourceName,
+		DisplayName:       row.DisplayName,
+		Description:       row.Description,
+		MetadataJson:      row.MetadataJson,
+		ImagesJson:        row.ImagesJson,
+		ObservedAt:        row.ObservedAt,
+		PinnedAt:          row.PinnedAt,
+	}
+}
+
 func NewCatalogStore(db *sql.DB) catalog.CatalogStore {
 	return &CatalogStore{db: db, queries: sqlc.New(db)}
 }
@@ -30,6 +96,10 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 	metadata, err := json.Marshal(candidate.Metadata)
 	if err != nil {
 		return fmt.Errorf("marshal candidate metadata: %w", err)
+	}
+	images, err := json.Marshal(candidate.Images)
+	if err != nil {
+		return fmt.Errorf("marshal candidate images: %w", err)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339Nano)
@@ -68,6 +138,7 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 		DisplayName:       candidate.DisplayName,
 		Description:       candidate.Description,
 		MetadataJson:      string(metadata),
+		ImagesJson:        string(images),
 		ObservedAt:        candidate.ObservedAt.UTC().Format(time.RFC3339Nano),
 		CreatedAt:         now,
 		UpdatedAt:         now,
@@ -103,11 +174,19 @@ func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candida
 	defer func() { _ = tx.Rollback() }()
 	queries := s.queries.WithTx(tx)
 
-	var rows []sqlc.DiscoveredService
+	var rows []discoveredServiceRow
 	if pinned {
-		rows, err = queries.ListPinnedDiscoveredServices(ctx)
+		pinnedRows, listErr := queries.ListPinnedDiscoveredServices(ctx)
+		err = listErr
+		for _, row := range pinnedRows {
+			rows = append(rows, discoveredServiceRowFromPinnedList(row))
+		}
 	} else {
-		rows, err = queries.ListDiscoveredServices(ctx)
+		allRows, listErr := queries.ListDiscoveredServices(ctx)
+		err = listErr
+		for _, row := range allRows {
+			rows = append(rows, discoveredServiceRowFromList(row))
+		}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list catalog candidates: %w", err)
@@ -170,7 +249,7 @@ func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool) (c
 	if err != nil {
 		return catalog.Candidate{}, fmt.Errorf("read updated candidate pin state: %w", err)
 	}
-	candidate, err := s.candidateFromRow(ctx, queries, row)
+	candidate, err := s.candidateFromRow(ctx, queries, discoveredServiceRowFromGet(row))
 	if err != nil {
 		return catalog.Candidate{}, err
 	}
@@ -180,10 +259,14 @@ func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool) (c
 	return candidate, nil
 }
 
-func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queries, row sqlc.DiscoveredService) (catalog.Candidate, error) {
+func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queries, row discoveredServiceRow) (catalog.Candidate, error) {
 	metadata := make(map[string]string)
 	if err := json.Unmarshal([]byte(row.MetadataJson), &metadata); err != nil {
 		return catalog.Candidate{}, fmt.Errorf("decode metadata for candidate %q: %w", row.ID, err)
+	}
+	images := make([]string, 0)
+	if err := json.Unmarshal([]byte(row.ImagesJson), &images); err != nil {
+		return catalog.Candidate{}, fmt.Errorf("decode images for candidate %q: %w", row.ID, err)
 	}
 	observedAt, err := time.Parse(time.RFC3339Nano, row.ObservedAt)
 	if err != nil {
@@ -198,6 +281,7 @@ func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queri
 		Description: row.Description,
 		Metadata:    metadata,
 		Endpoints:   []catalog.Endpoint{},
+		Images:      images,
 		ObservedAt:  observedAt,
 	}
 	if row.PinnedAt.Valid {

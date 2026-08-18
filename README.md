@@ -34,6 +34,7 @@ Defaults:
 
 - `BALEMOH_HTTP_ADDR=:8080`
 - `BALEMOH_DATABASE_PATH=./data/balemoh.db`
+- Kubernetes discovery is disabled unless `BALEMOH_KUBERNETES_ENABLED=true`.
 
 Runtime configuration is parsed once from environment variables before database
 startup and migrations. See the [generated environment documentation](internal/config/environment.md)
@@ -51,11 +52,45 @@ curl --fail -X POST http://127.0.0.1:8080/api/v1/staging/services/SERVICE_ID/pin
 curl --fail -X DELETE http://127.0.0.1:8080/api/v1/staging/services/SERVICE_ID/pin
 ```
 
-Discovery sync currently has an empty source registry, so it returns zero sources
-until a read-only Docker, Kubernetes, or extension adapter is composed into the
-application. Discovered candidates remain in staging until the user explicitly
-pins them. A port observation is not treated as an exact hostname; endpoint
-provenance records which adapter supplied the evidence.
+Discovery sync has no sources by default. When the process runs inside Kubernetes
+with `BALEMOH_KUBERNETES_ENABLED=true`, the in-cluster ServiceAccount is used to
+read the configured namespace and the Kubernetes discoverer stages HTTPRoutes,
+Ingresses, Services, Pods, container ports, and Pod images. It does not mutate
+cluster resources. Discovered candidates remain in staging until the user
+explicitly pins them. A port observation is not treated as an exact hostname;
+endpoint provenance records which adapter supplied the evidence.
 
-See the [product roadmap](docs/roadmap.md) and [discovery design](docs/superpowers/specs/2026-08-17-balemoh-discovery-design.md)
+## Local Kubernetes development
+
+DevSpace runs Balemoh inside Kubernetes with a namespace-scoped read-only
+ServiceAccount and syncs the repository into a Go development container. The
+local cluster is intentionally separate from the application configuration:
+
+```sh
+# KinD (Docker-backed Kubernetes)
+devspace run-pipeline kind
+
+# vCluster in Docker (vind)
+devspace run-pipeline vind
+
+# API and staging while devspace is running
+curl --fail http://127.0.0.1:8080/api/v1/staging/services
+
+# Optional teardown
+./hack/dev-k8s.sh kind-down
+./hack/dev-k8s.sh vind-down
+```
+
+Install `devspace`, `kubectl`, Docker, and either `kind` or `vcluster` first.
+Override the local cluster names with `BALEMOH_KIND_CLUSTER_NAME` or
+`BALEMOH_VIND_CLUSTER_NAME`. The `HTTPRoute` CRD is optional; install the
+Gateway API standard CRDs in the selected cluster when route fixtures are
+needed. The adapter treats an absent CRD as an empty route source.
+
+The `kind` and `vind` pipelines create or connect the local cluster, then run
+the normal `dev` pipeline. The app's RBAC is limited to `get/list` for Pods,
+Services, Ingresses, and HTTPRoutes in `${BALEMOH_NAMESPACE}`.
+
+See the [product roadmap](docs/roadmap.md), [discovery design](docs/superpowers/specs/2026-08-17-balemoh-discovery-design.md),
+and [Kubernetes/DevSpace plan](docs/superpowers/plans/2026-08-17-balemoh-kubernetes-devspace.md)
 for the adapter sequence and scope boundaries.

@@ -13,6 +13,12 @@ type Options struct {
 	HTTPAddr string `env:"BALEMOH_HTTP_ADDR" envDefault:":8080"`
 	// DatabasePath is the path to Balemoh's SQLite database.
 	DatabasePath string `env:"BALEMOH_DATABASE_PATH" envDefault:"./data/balemoh.db"`
+	// KubernetesEnabled enables the in-cluster Kubernetes discovery source.
+	KubernetesEnabled bool `env:"BALEMOH_KUBERNETES_ENABLED" envDefault:"false"`
+	// KubernetesSourceID is the stable identity used to scope Kubernetes candidates.
+	KubernetesSourceID string `env:"BALEMOH_KUBERNETES_SOURCE_ID"`
+	// KubernetesNamespace limits Kubernetes discovery to one namespace.
+	KubernetesNamespace string `env:"BALEMOH_KUBERNETES_NAMESPACE"`
 }
 
 // Load parses the process environment into runtime configuration.
@@ -40,6 +46,14 @@ func (o Options) Validate() error {
 	}
 	if strings.TrimSpace(o.DatabasePath) == "" {
 		return fmt.Errorf("database path must not be empty")
+	}
+	if o.KubernetesEnabled {
+		if strings.TrimSpace(o.KubernetesSourceID) == "" {
+			return fmt.Errorf("Kubernetes source ID must not be empty when discovery is enabled")
+		}
+		if strings.TrimSpace(o.KubernetesNamespace) == "" {
+			return fmt.Errorf("Kubernetes namespace must not be empty when discovery is enabled")
+		}
 	}
 	return nil
 }

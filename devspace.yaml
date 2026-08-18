@@ -1,0 +1,84 @@
+version: v2beta1
+name: balemoh
+
+vars:
+  BALEMOH_NAMESPACE: balemoh-dev
+  BALEMOH_SOURCE_ID: devspace-local
+
+deployments:
+  rbac:
+    namespace: "${BALEMOH_NAMESPACE}"
+    kubectl:
+      manifests:
+      - ./devspace/rbac.yaml
+  app:
+    namespace: "${BALEMOH_NAMESPACE}"
+    helm:
+      componentChart: true
+      values:
+        containers:
+        - name: balemoh
+          image: golang:1.26-alpine
+          workingDir: /workspace
+          command:
+          - sh
+          - -c
+          - go run ./cmd/balemoh
+          env:
+          - name: BALEMOH_HTTP_ADDR
+            value: 0.0.0.0:8080
+          - name: BALEMOH_DATABASE_PATH
+            value: /tmp/balemoh.db
+          - name: BALEMOH_KUBERNETES_ENABLED
+            value: "true"
+          - name: BALEMOH_KUBERNETES_SOURCE_ID
+            value: "${BALEMOH_SOURCE_ID}"
+          - name: BALEMOH_KUBERNETES_NAMESPACE
+            value: "${BALEMOH_NAMESPACE}"
+        serviceAccountName: balemoh-discoverer
+        automountServiceAccountToken: true
+        service:
+          ports:
+          - name: http
+            port: 8080
+            containerPort: 8080
+
+dev:
+  app:
+    imageSelector: golang:1.26-alpine
+    namespace: "${BALEMOH_NAMESPACE}"
+    workingDir: /workspace
+    ports:
+    - port: 8080:8080
+    sync:
+    - path: ./:/workspace
+      excludePaths:
+      - .git/
+      - .devspace/
+      - data/
+      - vendor/
+      onUpload:
+        restartContainer: true
+
+pipelines:
+  dev:
+    run: |-
+      create_deployments rbac
+      create_deployments app
+      start_dev app
+  deploy:
+    run: |-
+      create_deployments rbac
+      create_deployments app
+  purge:
+    run: |-
+      stop_dev --all
+      purge_deployments --all
+  kind:
+    run: |-
+      ./hack/dev-k8s.sh kind
+      run_pipelines dev
+  vind:
+    run: |-
+      ./hack/dev-k8s.sh vind
+      run_pipelines dev

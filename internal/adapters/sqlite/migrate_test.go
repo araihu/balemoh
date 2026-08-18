@@ -35,8 +35,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := db.QueryRowContext(context.Background(), "SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 2 || dirty {
-		t.Fatalf("schema_migrations = (version %d, dirty %t), want (2, false)", version, dirty)
+	if version != 3 || dirty {
+		t.Fatalf("schema_migrations = (version %d, dirty %t), want (3, false)", version, dirty)
 	}
 }
 
@@ -59,6 +59,14 @@ func TestCatalogSchemaEnforcesServiceForeignKey(t *testing.T) {
 		if name != table {
 			t.Fatalf("table name = %q, want %q", name, table)
 		}
+	}
+
+	var columnName string
+	if err := db.QueryRowContext(context.Background(), "SELECT name FROM pragma_table_info('discovered_services') WHERE name = 'images_json'").Scan(&columnName); err != nil {
+		t.Fatalf("query images_json column: %v", err)
+	}
+	if columnName != "images_json" {
+		t.Fatalf("column name = %q, want images_json", columnName)
 	}
 
 	if _, err := db.ExecContext(context.Background(), `

@@ -172,7 +172,7 @@ components:
           type: string
         url:
           type: string
-          description: Empty when discovery has no exact hostname or route.
+          description: Empty when discovery has no exact hostname or route; HTTPRoute observations may be scheme-relative.
         port:
           type: integer
           format: int32
@@ -194,6 +194,7 @@ components:
         - description
         - metadata
         - endpoints
+        - images
         - observedAt
         - pinned
         - pinnedAt
@@ -216,6 +217,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ServiceEndpoint'
+        images:
+          type: array
+          description: Container images observed for the candidate, when available.
+          items:
+            type: string
         observedAt:
           type: string
           format: date-time

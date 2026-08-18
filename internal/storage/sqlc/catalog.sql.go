@@ -31,6 +31,7 @@ SELECT
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     pinned_at,
     created_at,
@@ -40,9 +41,26 @@ WHERE id = ?1
 LIMIT 1
 `
 
-func (q *Queries) GetDiscoveredService(ctx context.Context, id string) (DiscoveredService, error) {
+type GetDiscoveredServiceRow struct {
+	ID                string         `json:"id"`
+	SourceKind        string         `json:"source_kind"`
+	SourceID          string         `json:"source_id"`
+	ResourceKind      string         `json:"resource_kind"`
+	ResourceNamespace string         `json:"resource_namespace"`
+	ResourceName      string         `json:"resource_name"`
+	DisplayName       string         `json:"display_name"`
+	Description       string         `json:"description"`
+	MetadataJson      string         `json:"metadata_json"`
+	ImagesJson        string         `json:"images_json"`
+	ObservedAt        string         `json:"observed_at"`
+	PinnedAt          sql.NullString `json:"pinned_at"`
+	CreatedAt         string         `json:"created_at"`
+	UpdatedAt         string         `json:"updated_at"`
+}
+
+func (q *Queries) GetDiscoveredService(ctx context.Context, id string) (GetDiscoveredServiceRow, error) {
 	row := q.db.QueryRowContext(ctx, getDiscoveredService, id)
-	var i DiscoveredService
+	var i GetDiscoveredServiceRow
 	err := row.Scan(
 		&i.ID,
 		&i.SourceKind,
@@ -53,6 +71,7 @@ func (q *Queries) GetDiscoveredService(ctx context.Context, id string) (Discover
 		&i.DisplayName,
 		&i.Description,
 		&i.MetadataJson,
+		&i.ImagesJson,
 		&i.ObservedAt,
 		&i.PinnedAt,
 		&i.CreatedAt,
@@ -111,6 +130,7 @@ SELECT
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     pinned_at,
     created_at,
@@ -119,15 +139,32 @@ FROM discovered_services
 ORDER BY lower(display_name), id
 `
 
-func (q *Queries) ListDiscoveredServices(ctx context.Context) ([]DiscoveredService, error) {
+type ListDiscoveredServicesRow struct {
+	ID                string         `json:"id"`
+	SourceKind        string         `json:"source_kind"`
+	SourceID          string         `json:"source_id"`
+	ResourceKind      string         `json:"resource_kind"`
+	ResourceNamespace string         `json:"resource_namespace"`
+	ResourceName      string         `json:"resource_name"`
+	DisplayName       string         `json:"display_name"`
+	Description       string         `json:"description"`
+	MetadataJson      string         `json:"metadata_json"`
+	ImagesJson        string         `json:"images_json"`
+	ObservedAt        string         `json:"observed_at"`
+	PinnedAt          sql.NullString `json:"pinned_at"`
+	CreatedAt         string         `json:"created_at"`
+	UpdatedAt         string         `json:"updated_at"`
+}
+
+func (q *Queries) ListDiscoveredServices(ctx context.Context) ([]ListDiscoveredServicesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDiscoveredServices)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []DiscoveredService
+	var items []ListDiscoveredServicesRow
 	for rows.Next() {
-		var i DiscoveredService
+		var i ListDiscoveredServicesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.SourceKind,
@@ -138,6 +175,7 @@ func (q *Queries) ListDiscoveredServices(ctx context.Context) ([]DiscoveredServi
 			&i.DisplayName,
 			&i.Description,
 			&i.MetadataJson,
+			&i.ImagesJson,
 			&i.ObservedAt,
 			&i.PinnedAt,
 			&i.CreatedAt,
@@ -167,6 +205,7 @@ SELECT
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     pinned_at,
     created_at,
@@ -176,15 +215,32 @@ WHERE pinned_at IS NOT NULL
 ORDER BY lower(display_name), id
 `
 
-func (q *Queries) ListPinnedDiscoveredServices(ctx context.Context) ([]DiscoveredService, error) {
+type ListPinnedDiscoveredServicesRow struct {
+	ID                string         `json:"id"`
+	SourceKind        string         `json:"source_kind"`
+	SourceID          string         `json:"source_id"`
+	ResourceKind      string         `json:"resource_kind"`
+	ResourceNamespace string         `json:"resource_namespace"`
+	ResourceName      string         `json:"resource_name"`
+	DisplayName       string         `json:"display_name"`
+	Description       string         `json:"description"`
+	MetadataJson      string         `json:"metadata_json"`
+	ImagesJson        string         `json:"images_json"`
+	ObservedAt        string         `json:"observed_at"`
+	PinnedAt          sql.NullString `json:"pinned_at"`
+	CreatedAt         string         `json:"created_at"`
+	UpdatedAt         string         `json:"updated_at"`
+}
+
+func (q *Queries) ListPinnedDiscoveredServices(ctx context.Context) ([]ListPinnedDiscoveredServicesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listPinnedDiscoveredServices)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []DiscoveredService
+	var items []ListPinnedDiscoveredServicesRow
 	for rows.Next() {
-		var i DiscoveredService
+		var i ListPinnedDiscoveredServicesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.SourceKind,
@@ -195,6 +251,7 @@ func (q *Queries) ListPinnedDiscoveredServices(ctx context.Context) ([]Discovere
 			&i.DisplayName,
 			&i.Description,
 			&i.MetadataJson,
+			&i.ImagesJson,
 			&i.ObservedAt,
 			&i.PinnedAt,
 			&i.CreatedAt,
@@ -310,6 +367,7 @@ INSERT INTO discovered_services (
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     created_at,
     updated_at
@@ -325,7 +383,8 @@ INSERT INTO discovered_services (
     ?9,
     ?10,
     ?11,
-    ?12
+    ?12,
+    ?13
 )
 ON CONFLICT (id) DO UPDATE SET
     source_kind = excluded.source_kind,
@@ -336,6 +395,7 @@ ON CONFLICT (id) DO UPDATE SET
     display_name = excluded.display_name,
     description = excluded.description,
     metadata_json = excluded.metadata_json,
+    images_json = excluded.images_json,
     observed_at = excluded.observed_at,
     updated_at = excluded.updated_at
 `
@@ -350,6 +410,7 @@ type UpsertDiscoveredServiceParams struct {
 	DisplayName       string `json:"display_name"`
 	Description       string `json:"description"`
 	MetadataJson      string `json:"metadata_json"`
+	ImagesJson        string `json:"images_json"`
 	ObservedAt        string `json:"observed_at"`
 	CreatedAt         string `json:"created_at"`
 	UpdatedAt         string `json:"updated_at"`
@@ -366,6 +427,7 @@ func (q *Queries) UpsertDiscoveredService(ctx context.Context, arg UpsertDiscove
 		arg.DisplayName,
 		arg.Description,
 		arg.MetadataJson,
+		arg.ImagesJson,
 		arg.ObservedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,

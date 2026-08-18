@@ -17,8 +17,11 @@ func TestParseEnvironmentUsesDefaults(t *testing.T) {
 
 func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	got, err := ParseEnvironment(map[string]string{
-		"BALEMOH_HTTP_ADDR":     "127.0.0.1:9090",
-		"BALEMOH_DATABASE_PATH": "/tmp/balemoh.db",
+		"BALEMOH_HTTP_ADDR":            "127.0.0.1:9090",
+		"BALEMOH_DATABASE_PATH":        "/tmp/balemoh.db",
+		"BALEMOH_KUBERNETES_ENABLED":   "true",
+		"BALEMOH_KUBERNETES_SOURCE_ID": "kind-balemoh",
+		"BALEMOH_KUBERNETES_NAMESPACE": "balemoh-dev",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -28,6 +31,9 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	}
 	if got.DatabasePath != "/tmp/balemoh.db" {
 		t.Fatalf("DatabasePath = %q", got.DatabasePath)
+	}
+	if !got.KubernetesEnabled || got.KubernetesSourceID != "kind-balemoh" || got.KubernetesNamespace != "balemoh-dev" {
+		t.Fatalf("Kubernetes options = %#v, want enabled source and namespace", got)
 	}
 }
 
@@ -44,6 +50,35 @@ func TestParseEnvironmentRejectsWhitespaceOnlyValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if _, err := ParseEnvironment(tt.env); err == nil {
 				t.Fatal("expected validation error")
+			}
+		})
+	}
+}
+
+func TestParseEnvironmentRejectsEnabledKubernetesWithoutIdentityOrNamespace(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+	}{
+		{
+			name: "source ID",
+			env: map[string]string{
+				"BALEMOH_KUBERNETES_ENABLED":   "true",
+				"BALEMOH_KUBERNETES_NAMESPACE": "balemoh-dev",
+			},
+		},
+		{
+			name: "namespace",
+			env: map[string]string{
+				"BALEMOH_KUBERNETES_ENABLED":   "true",
+				"BALEMOH_KUBERNETES_SOURCE_ID": "kind-balemoh",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := ParseEnvironment(test.env); err == nil {
+				t.Fatal("ParseEnvironment() error = nil, want Kubernetes validation error")
 			}
 		})
 	}

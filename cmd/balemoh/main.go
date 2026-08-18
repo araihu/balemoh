@@ -14,12 +14,14 @@ import (
 	"time"
 
 	httpadapter "github.com/araihu/balemoh/internal/adapters/http"
+	kubernetesadapter "github.com/araihu/balemoh/internal/adapters/kubernetes"
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/application/health"
 	"github.com/araihu/balemoh/internal/config"
 	"github.com/araihu/balemoh/internal/storage/sqlc"
+	"k8s.io/client-go/rest"
 )
 
 func main() {
@@ -33,8 +35,12 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
 	}
+	discoverers, err := configuredDiscoverers(options)
+	if err != nil {
+		return err
+	}
 
-	server, db, err := constructServer(context.Background(), options, sqlite.RunMigrations)
+	server, db, err := constructServer(context.Background(), options, sqlite.RunMigrations, discoverers...)
 	if err != nil {
 		return err
 	}
@@ -46,7 +52,7 @@ func run() error {
 	return serve(ctx, server, server.ListenAndServe)
 }
 
-func constructServer(ctx context.Context, options config.Options, migrate func(*sql.DB) error) (*http.Server, *sql.DB, error) {
+func constructServer(ctx context.Context, options config.Options, migrate func(*sql.DB) error, discoverers ...catalog.Discoverer) (*http.Server, *sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(options.DatabasePath), 0o755); err != nil {
 		return nil, nil, fmt.Errorf("create database directory: %w", err)
 	}
@@ -62,10 +68,29 @@ func constructServer(ctx context.Context, options config.Options, migrate func(*
 
 	queries := sqlc.New(db)
 	healthService := health.NewService(sqlite.NewPinger(queries))
-	catalogService := catalog.NewService(sqlite.NewCatalogStore(db))
+	catalogService := catalog.NewService(sqlite.NewCatalogStore(db), discoverers...)
 	handler := httpadapter.NewHandler(healthService, catalogService)
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, nil
+}
+
+func configuredDiscoverers(options config.Options) ([]catalog.Discoverer, error) {
+	if !options.KubernetesEnabled {
+		return nil, nil
+	}
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("load in-cluster Kubernetes config: %w", err)
+	}
+	discoverer, err := kubernetesadapter.NewDiscovererFromConfig(
+		restConfig,
+		options.KubernetesSourceID,
+		options.KubernetesNamespace,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("configure Kubernetes discoverer: %w", err)
+	}
+	return []catalog.Discoverer{discoverer}, nil
 }
 
 func serve(ctx context.Context, server *http.Server, listen func() error) error {

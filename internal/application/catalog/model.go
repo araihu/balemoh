@@ -39,6 +39,7 @@ type Candidate struct {
 	Description string
 	Metadata    map[string]string
 	Endpoints   []Endpoint
+	Images      []string
 	ObservedAt  time.Time
 	PinnedAt    *time.Time
 }
@@ -77,6 +78,7 @@ func NewCandidate(source SourceRef, resource ResourceRef, observedAt time.Time) 
 		DisplayName: resource.Name,
 		Metadata:    map[string]string{},
 		Endpoints:   []Endpoint{},
+		Images:      []string{},
 		ObservedAt:  observedAt.UTC(),
 	}
 }
@@ -87,6 +89,9 @@ func (c Candidate) Normalize() Candidate {
 	}
 	if c.Endpoints == nil {
 		c.Endpoints = []Endpoint{}
+	}
+	if c.Images == nil {
+		c.Images = []string{}
 	}
 	c.Source.Kind = strings.TrimSpace(c.Source.Kind)
 	c.Source.ID = strings.TrimSpace(c.Source.ID)
@@ -100,6 +105,9 @@ func (c Candidate) Normalize() Candidate {
 		c.Endpoints[index].URL = strings.TrimSpace(c.Endpoints[index].URL)
 		c.Endpoints[index].Protocol = strings.TrimSpace(c.Endpoints[index].Protocol)
 		c.Endpoints[index].Provenance = strings.TrimSpace(c.Endpoints[index].Provenance)
+	}
+	for index := range c.Images {
+		c.Images[index] = strings.TrimSpace(c.Images[index])
 	}
 	return c
 }
@@ -138,6 +146,14 @@ func (c Candidate) Validate() error {
 			return errors.New("metadata key must not be empty")
 		}
 	}
+	for index, image := range c.Images {
+		if image == "" {
+			return fmt.Errorf("image at index %d must not be empty", index)
+		}
+		if strings.ContainsRune(image, '\x00') {
+			return fmt.Errorf("image at index %d must not contain NUL", index)
+		}
+	}
 	for index, endpoint := range c.Endpoints {
 		if endpoint.Port < 0 || endpoint.Port > 65535 {
 			return fmt.Errorf("endpoint port at index %d must be between 0 and 65535", index)
@@ -146,7 +162,7 @@ func (c Candidate) Validate() error {
 			continue
 		}
 		parsed, err := url.Parse(endpoint.URL)
-		if err != nil || !parsed.IsAbs() || parsed.Host == "" {
+		if err != nil || parsed.Host == "" || (!parsed.IsAbs() && !strings.HasPrefix(endpoint.URL, "//")) {
 			return fmt.Errorf("endpoint URL at index %d is invalid", index)
 		}
 	}

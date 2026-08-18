@@ -58,6 +58,7 @@ func httpTestCandidate(pinned bool) catalog.Candidate {
 	)
 	candidate.Description = "Grafana dashboard"
 	candidate.Metadata = map[string]string{"team": "platform"}
+	candidate.Images = []string{"grafana/grafana:11"}
 	candidate.Endpoints = []catalog.Endpoint{{
 		Name:       "web",
 		URL:        "https://grafana.example.test/",
@@ -111,6 +112,9 @@ func TestCatalogListRoutesProjectCandidates(t *testing.T) {
 			}
 			if response.Services[0].PinnedAt == nil || response.Services[0].Endpoints[0].Url != "https://grafana.example.test/" {
 				t.Fatalf("candidate projection = %#v", response.Services[0])
+			}
+			if len(response.Services[0].Images) != 1 || response.Services[0].Images[0] != "grafana/grafana:11" {
+				t.Fatalf("images projection = %#v", response.Services[0].Images)
 			}
 		})
 	}

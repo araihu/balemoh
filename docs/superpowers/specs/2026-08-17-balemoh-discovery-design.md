@@ -1,10 +1,10 @@
 # Balemoh Discovery and Homepage Catalog Design
 
-**Status:** Proposed implementation design; architecture approved in chat, pending written-spec review.
+**Status:** Catalog foundation accepted; the concrete Kubernetes adapter and local DevSpace workflow are specified in `docs/superpowers/plans/2026-08-17-balemoh-kubernetes-devspace.md`.
 
 ## Goal
 
-Add the first domain slice behind Balemoh's homelab homepage: discoverable service candidates, a persistent staging area, and explicit pin/unpin decisions that control the homepage view.
+Add the first domain slice behind Balemoh's homelab homepage: discoverable service candidates, a persistent staging area, explicit pin/unpin decisions that control the homepage view, and a read-only Kubernetes source for local development.
 
 The slice must make Docker and Kubernetes adapters possible without coupling the application core to either platform. It must also preserve uncertainty: a discovered resource may exist without a known hostname, and a port observation must not be presented as an exact route.
 
@@ -18,7 +18,9 @@ Balemoh already has an API-first Go foundation:
 - SQLite/sqlc provide local persistence.
 - embedded `golang-migrate` migrations run during startup.
 
-The current API only exposes `/healthz`. This design adds the first business resource without changing the health composition or introducing a platform client.
+The initial API exposed only `/healthz`. This design adds the first business
+resource; the companion Kubernetes adapter keeps platform code outside the
+application core and is enabled only from the composition root.
 
 ## Scope
 
@@ -36,7 +38,7 @@ Included:
 Excluded:
 
 - Docker socket access, Docker API client, or container mutation;
-- Kubernetes client, RBAC setup, or cluster mutation;
+- cluster-wide provisioning or deployment automation outside the local DevSpace workflow;
 - Traefik or other discovery extension implementation;
 - background scheduling, queues, or event streaming;
 - authentication, authorization, rate limiting, and multi-user ownership;
@@ -92,7 +94,10 @@ Discovery does not imply publication. Candidates may have no endpoint, or only a
 - optional port, zero when no port was observed;
 - protocol/evidence text for adapter-provided context.
 
-The first API does not invent hostnames. A future Traefik or HTTPRoute adapter can provide an exact URL and evidence such as `traefik` or `kubernetes.httproute`; a Docker port-only observation remains visibly incomplete until an extension resolves it.
+The API does not invent hostnames. The Kubernetes Ingress/HTTPRoute adapter can
+provide an exact host/path observation and evidence such as
+`kubernetes.ingress` or `kubernetes.httproute`; a Docker port-only observation
+remains visibly incomplete until an extension resolves it.
 
 ### Staging and homepage semantics
 
@@ -137,6 +142,7 @@ type Candidate struct {
     Description string
     Metadata    map[string]string
     Endpoints   []Endpoint
+    Images      []string
     ObservedAt  time.Time
     PinnedAt    *time.Time
 }
@@ -175,7 +181,7 @@ OpenAPI adds these routes under `/api/v1`:
 | `GET` | `/homepage/services` | List pinned candidates only. |
 | `POST` | `/discovery/sync` | Run registered discoverers and return source/candidate counts. |
 
-List responses use an object containing `services`, so pagination and additional catalog metadata can be added without changing the top-level response shape. Candidate JSON includes source/resource references, metadata, endpoint observations, observation time, and pin state.
+List responses use an object containing `services`, so pagination and additional catalog metadata can be added without changing the top-level response shape. Candidate JSON includes source/resource references, metadata, endpoint observations, Pod image observations, observation time, and pin state.
 
 HTTP behavior:
 
@@ -186,12 +192,13 @@ HTTP behavior:
 
 ## Persistence
 
-Migration `000002_catalog` adds:
+Migration `000002_catalog` adds the candidate and endpoint tables. Migration
+`000003_catalog_images` adds the structured image observations:
 
 ```text
 discovered_services
   id, source_kind, source_id, resource_kind, resource_namespace,
-  resource_name, display_name, description, metadata_json,
+  resource_name, display_name, description, metadata_json, images_json,
   observed_at, pinned_at, created_at, updated_at
 
 service_endpoints
@@ -202,17 +209,36 @@ service_endpoints
 
 The storage adapter converts timestamps to RFC3339Nano strings and metadata to JSON. Invalid persisted metadata is returned as an internal error rather than silently discarded.
 
+## Kubernetes adapter
+
+`internal/adapters/kubernetes` implements `catalog.Discoverer` with typed
+`client-go` reads for Pods, Services, and Ingresses, and a dynamic client for
+Gateway API `gateway.networking.k8s.io/v1` HTTPRoutes. Each observed resource
+becomes a candidate. Services and Pods contribute port observations; Pods also
+contribute deduplicated init, regular, and ephemeral container images. Ingress
+TLS rules produce absolute URLs. HTTPRoute host/path observations use
+scheme-relative URLs because the route object does not identify the parent
+listener's HTTP/TLS scheme. An absent HTTPRoute CRD is an empty optional source;
+other read errors are propagated to the sync boundary.
+
+The composition root activates this adapter only with
+`BALEMOH_KUBERNETES_ENABLED=true`, a stable source ID, and a namespace. It uses
+`rest.InClusterConfig` and therefore consumes the pod ServiceAccount rather than
+reading a host kubeconfig or socket.
+
 ## Composition
 
 `cmd/balemoh` keeps the current startup sequence and adds:
 
 1. sqlc queries from the migrated database;
 2. SQLite catalog store;
-3. catalog service with an empty discoverer registry;
+3. catalog service with zero discoverers by default, or the explicitly enabled
+   in-cluster Kubernetes discoverer;
 4. HTTP handler receiving health and catalog use cases;
 5. generated mux.
 
-The empty registry is intentional. It makes the API and sync lifecycle available now without pretending that a platform connection exists. Future adapters are added at the composition root, one read-only source at a time.
+The empty registry remains the default for a plain local process. Future
+adapters are added at the composition root, one read-only source at a time.
 
 ## Verification
 
@@ -221,10 +247,14 @@ Required gates for this slice:
 - `go generate ./...` leaves generated API and sqlc output stable;
 - domain tests cover stable identity, default display name, validation, and idempotent pin behavior;
 - application tests cover sync/upsert and discoverer error propagation;
-- SQLite tests cover migration version `2`, restart, candidate upsert, endpoint replacement, pin preservation, and homepage filtering;
+- SQLite tests cover migration version `3`, restart, candidate upsert, image/endpoint replacement, pin preservation, and homepage filtering;
+- Kubernetes fake-client tests cover resource discovery, Pod images, namespace filtering, optional HTTPRoute CRD, and permission errors;
+- DevSpace artifacts cover namespace-scoped RBAC and local KinD/vind setup without creating a cluster during repository verification;
 - HTTP tests cover list, pin, unpin, homepage, sync, 404, 503, and generic error bodies;
 - `go test ./...`, `go vet ./...`, `go test -race ./...`, and `git diff --check` pass;
 - CGO-disabled test/build remains valid.
 
-Acceptance means the API and persistent domain primitives are ready for a real adapter. It does not mean Docker or Kubernetes discovery is implemented.
-
+Acceptance means the API, persistence, Kubernetes adapter, and local Kubernetes
+development path are ready for the next reconciliation/extension work. It does
+not authorize merge, release, deployment outside the explicitly configured local
+DevSpace workflow, or publication.

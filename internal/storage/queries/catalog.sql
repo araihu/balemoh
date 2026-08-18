@@ -9,6 +9,7 @@ INSERT INTO discovered_services (
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     created_at,
     updated_at
@@ -22,6 +23,7 @@ INSERT INTO discovered_services (
     sqlc.arg(display_name),
     sqlc.arg(description),
     sqlc.arg(metadata_json),
+    sqlc.arg(images_json),
     sqlc.arg(observed_at),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
@@ -35,6 +37,7 @@ ON CONFLICT (id) DO UPDATE SET
     display_name = excluded.display_name,
     description = excluded.description,
     metadata_json = excluded.metadata_json,
+    images_json = excluded.images_json,
     observed_at = excluded.observed_at,
     updated_at = excluded.updated_at;
 
@@ -49,6 +52,7 @@ SELECT
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     pinned_at,
     created_at,
@@ -68,6 +72,7 @@ SELECT
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     pinned_at,
     created_at,
@@ -86,6 +91,7 @@ SELECT
     display_name,
     description,
     metadata_json,
+    images_json,
     observed_at,
     pinned_at,
     created_at,

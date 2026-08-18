@@ -48,6 +48,9 @@ func TestNewCandidateDefaultsDisplayNameAndCollections(t *testing.T) {
 	if candidate.Endpoints == nil {
 		t.Fatal("Endpoints is nil, want initialized slice")
 	}
+	if candidate.Images == nil {
+		t.Fatal("Images is nil, want initialized slice")
+	}
 	if !candidate.ObservedAt.Equal(observedAt.UTC()) {
 		t.Fatalf("ObservedAt = %v, want %v", candidate.ObservedAt, observedAt.UTC())
 	}
@@ -120,6 +123,14 @@ func TestCandidateValidateRejectsInvalidValues(t *testing.T) {
 			}(),
 			want: "endpoint port",
 		},
+		"empty image": {
+			candidate: func() Candidate {
+				candidate := base
+				candidate.Images = []string{" "}
+				return candidate
+			}(),
+			want: "image",
+		},
 		"NUL in source identity": {
 			candidate: func() Candidate {
 				candidate := base
@@ -160,5 +171,19 @@ func TestCandidateNormalizeTrimsEndpointObservation(t *testing.T) {
 	normalized := candidate.Normalize()
 	if got := normalized.Endpoints[0]; got.Name != "web" || got.URL != "" || got.Protocol != "http" || got.Provenance != "plugin" {
 		t.Fatalf("normalized endpoint = %#v, want trimmed fields and empty URL", got)
+	}
+}
+
+func TestCandidateNormalizeTrimsImages(t *testing.T) {
+	candidate := NewCandidate(
+		SourceRef{Kind: "kubernetes", ID: "cluster-1"},
+		ResourceRef{Kind: "pod", Namespace: "apps", Name: "grafana"},
+		time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC),
+	)
+	candidate.Images = []string{" grafana:latest ", "ghcr.io/example/grafana:v1"}
+
+	normalized := candidate.Normalize()
+	if got := normalized.Images; len(got) != 2 || got[0] != "grafana:latest" || got[1] != "ghcr.io/example/grafana:v1" {
+		t.Fatalf("normalized images = %#v, want trimmed image references", got)
 	}
 }

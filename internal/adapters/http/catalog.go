@@ -80,6 +80,7 @@ func serviceCandidate(candidate catalog.Candidate) generated.ServiceCandidate {
 			Provenance: endpoint.Provenance,
 		})
 	}
+	images := append([]string(nil), candidate.Images...)
 	resource := generated.ResourceRef{Kind: candidate.Resource.Kind, Name: candidate.Resource.Name}
 	if candidate.Resource.Namespace != "" {
 		namespace := candidate.Resource.Namespace
@@ -98,6 +99,7 @@ func serviceCandidate(candidate catalog.Candidate) generated.ServiceCandidate {
 		Description: candidate.Description,
 		Metadata:    metadata,
 		Endpoints:   endpoints,
+		Images:      images,
 		ObservedAt:  candidate.ObservedAt.UTC(),
 		Pinned:      candidate.PinnedAt != nil,
 		PinnedAt:    pinnedAt,
