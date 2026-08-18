@@ -47,11 +47,18 @@ dev:
   app:
     imageSelector: golang:1.26-alpine
     namespace: "${BALEMOH_NAMESPACE}"
+    command:
+    - sh
+    - -c
+    - go run ./cmd/balemoh
+    restartHelper:
+      inject: true
     workingDir: /workspace
     ports:
     - port: 8080:8080
     sync:
     - path: ./:/workspace
+      startContainer: true
       excludePaths:
       - .git/
       - .devspace/

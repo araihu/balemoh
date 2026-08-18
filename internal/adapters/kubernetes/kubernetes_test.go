@@ -197,6 +197,25 @@ func TestDiscovererPropagatesHTTPRoutePermissionErrors(t *testing.T) {
 	}
 }
 
+func TestHostIsTLSWildcardMatchesOneDNSLabel(t *testing.T) {
+	tlsHosts := map[string]struct{}{"*.example.test": {}}
+	for _, test := range []struct {
+		host string
+		want bool
+	}{
+		{host: "app.example.test", want: true},
+		{host: "APP.EXAMPLE.TEST", want: true},
+		{host: "app.internal.example.test", want: false},
+		{host: "example.test", want: false},
+	} {
+		t.Run(test.host, func(t *testing.T) {
+			if got := hostIsTLS(test.host, tlsHosts); got != test.want {
+				t.Fatalf("hostIsTLS(%q) = %v, want %v", test.host, got, test.want)
+			}
+		})
+	}
+}
+
 func TestNewDiscovererRejectsMissingDependencies(t *testing.T) {
 	if _, err := NewDiscoverer(nil, nil, "cluster-1", ""); err == nil {
 		t.Fatal("NewDiscoverer(nil, nil) error = nil, want dependency error")

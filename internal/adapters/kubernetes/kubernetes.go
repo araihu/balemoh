@@ -337,7 +337,15 @@ func hostIsTLS(host string, tlsHosts map[string]struct{}) bool {
 		return true
 	}
 	for tlsHost := range tlsHosts {
-		if strings.HasPrefix(tlsHost, "*.") && strings.HasSuffix(host, tlsHost[1:]) {
+		if !strings.HasPrefix(tlsHost, "*.") {
+			continue
+		}
+		suffix := tlsHost[1:]
+		if !strings.HasSuffix(host, suffix) {
+			continue
+		}
+		label := strings.TrimSuffix(host, suffix)
+		if label != "" && !strings.Contains(label, ".") {
 			return true
 		}
 	}
