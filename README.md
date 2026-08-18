@@ -54,11 +54,15 @@ curl --fail -X DELETE http://127.0.0.1:8080/api/v1/staging/services/SERVICE_ID/p
 
 Discovery sync has no sources by default. When the process runs inside Kubernetes
 with `BALEMOH_KUBERNETES_ENABLED=true`, the in-cluster ServiceAccount is used to
-read the configured namespace and the Kubernetes discoverer stages HTTPRoutes,
-Ingresses, Services, Pods, container ports, and Pod images. It does not mutate
-cluster resources. Discovered candidates remain in staging until the user
-explicitly pins them. A port observation is not treated as an exact hostname;
-endpoint provenance records which adapter supplied the evidence.
+read the configured namespace. The Kubernetes discoverer resolves
+`HTTPRoute`/Ingress backends to Services first, then Services to Pods through
+label selectors. If no route/Ingress resolves a Service it falls back to all
+Services; `ExternalName` Services, Services without selectors, and externally
+addressed Services are staged even without a Pod. A Pod is staged only when a
+selected Service actually matches its labels. It does not mutate cluster
+resources. Discovered candidates remain in staging until the user explicitly
+pins them. A port observation is not treated as an exact hostname; endpoint
+provenance records which adapter supplied the evidence.
 
 ## Local Kubernetes development
 

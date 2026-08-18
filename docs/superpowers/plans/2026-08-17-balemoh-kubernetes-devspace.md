@@ -11,6 +11,7 @@
 - The process does not read a host kubeconfig or mount a Docker socket. In-cluster credentials are supplied by Kubernetes ServiceAccount projection.
 - HTTPRoute is queried through `gateway.networking.k8s.io/v1` with the dynamic client. A missing CRD is an optional empty source; permission and malformed-resource errors fail sync.
 - HTTPRoute URL observations are scheme-relative (`//host/path`) because the route object does not identify the parent listener's HTTP/TLS scheme. Ingress TLS state produces absolute `http`/`https` URLs.
+- Discovery follows `HTTPRoute/Ingress -> Service -> Pod`; when no route/Ingress resolves a Service it falls back to `Service -> Pod`. External or selector-less Services remain candidates, while unmatched standalone Pods are omitted.
 - Pod images include init, regular, and ephemeral containers, deduplicated in declaration order.
 - DevSpace uses the component chart and `golang:1.26-alpine` for repository sync and `go run`; it does not build or push an application image during local development.
 - `devspace run-pipeline kind` provisions/connects KinD; `devspace run-pipeline vind` provisions/connects vCluster in Docker. Teardown is explicit through `hack/dev-k8s.sh`.
@@ -28,7 +29,7 @@ The pipeline creates the `balemoh-dev` namespace, applies `devspace/rbac.yaml`, 
 ## Verification
 
 - `go generate ./...` keeps API, sqlc, and environment documentation stable.
-- Fake typed/dynamic clients cover all four resource kinds, Pod image extraction, namespace filtering, optional HTTPRoute CRD, and permission errors.
+- Fake typed/dynamic clients cover route/Ingress-to-Service-to-Pod resolution, Service fallback, external Services, orphan-Pod filtering, Pod image extraction, namespace filtering, optional HTTPRoute CRD, and permission errors.
 - Config tests cover disabled defaults and enabled cross-field requirements.
 - `bash -n hack/dev-k8s.sh` and a YAML parser validate the local-dev artifacts without creating a cluster.
 - `CGO_ENABLED=0 go test ./...`, `go vet ./...`, `go test -race ./...`, and a CGO-disabled build remain required.

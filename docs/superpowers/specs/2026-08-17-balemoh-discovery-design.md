@@ -213,13 +213,18 @@ The storage adapter converts timestamps to RFC3339Nano strings and metadata to J
 
 `internal/adapters/kubernetes` implements `catalog.Discoverer` with typed
 `client-go` reads for Pods, Services, and Ingresses, and a dynamic client for
-Gateway API `gateway.networking.k8s.io/v1` HTTPRoutes. Each observed resource
-becomes a candidate. Services and Pods contribute port observations; Pods also
-contribute deduplicated init, regular, and ephemeral container images. Ingress
-TLS rules produce absolute URLs. HTTPRoute host/path observations use
-scheme-relative URLs because the route object does not identify the parent
-listener's HTTP/TLS scheme. An absent HTTPRoute CRD is an empty optional source;
-other read errors are propagated to the sync boundary.
+Gateway API `gateway.networking.k8s.io/v1` HTTPRoutes. Route and Ingress
+backend references are resolved to Services first, and Service selectors are
+then matched against Pods. When no HTTPRoute or Ingress resolves a Service,
+all Services are eligible for the fallback; Services without selectors,
+`ExternalName`, or external addresses remain eligible in either mode. Pods are candidates only
+when a selected Service matches their labels, so standalone Pods do not enter
+staging. Services and Pods contribute port observations; Pods also contribute
+deduplicated init, regular, and ephemeral container images. Ingress TLS rules
+produce absolute URLs. HTTPRoute host/path observations use scheme-relative URLs
+because the route object does not identify the parent listener's HTTP/TLS
+scheme. An absent HTTPRoute CRD is an empty optional source; other read errors
+are propagated to the sync boundary.
 
 The composition root activates this adapter only with
 `BALEMOH_KUBERNETES_ENABLED=true`, a stable source ID, and a namespace. It uses
@@ -248,7 +253,7 @@ Required gates for this slice:
 - domain tests cover stable identity, default display name, validation, and idempotent pin behavior;
 - application tests cover sync/upsert and discoverer error propagation;
 - SQLite tests cover migration version `3`, restart, candidate upsert, image/endpoint replacement, pin preservation, and homepage filtering;
-- Kubernetes fake-client tests cover resource discovery, Pod images, namespace filtering, optional HTTPRoute CRD, and permission errors;
+- Kubernetes fake-client tests cover route/Ingress-to-Service-to-Pod resolution, Service fallback, external Services, Pod image extraction, orphan-Pod filtering, namespace filtering, optional HTTPRoute CRD, and permission errors;
 - DevSpace artifacts cover namespace-scoped RBAC and local KinD/vind setup without creating a cluster during repository verification;
 - HTTP tests cover list, pin, unpin, homepage, sync, 404, 503, and generic error bodies;
 - `go test ./...`, `go vet ./...`, `go test -race ./...`, and `git diff --check` pass;

@@ -29,7 +29,8 @@ func TestDiscovererDiscoversRoutesServicesPodsAndImages(t *testing.T) {
 				Labels:    map[string]string{"app": "grafana"},
 			},
 			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{Name: "web", Port: 3000, Protocol: corev1.ProtocolTCP}},
+				Selector: map[string]string{"app": "grafana"},
+				Ports:    []corev1.ServicePort{{Name: "web", Port: 3000, Protocol: corev1.ProtocolTCP}},
 			},
 		},
 		&corev1.Pod{
@@ -150,6 +151,141 @@ func TestDiscovererDiscoversRoutesServicesPodsAndImages(t *testing.T) {
 	}
 	if routeCandidate.Endpoints[0].Provenance != "kubernetes.httproute" {
 		t.Fatalf("HTTPRoute provenance = %q, want kubernetes.httproute", routeCandidate.Endpoints[0].Provenance)
+	}
+	if routeCandidate.Metadata["kubernetes.services"] != "apps/grafana" || ingress.Metadata["kubernetes.services"] != "apps/grafana" || pod.Metadata["kubernetes.services"] != "apps/grafana" {
+		t.Fatalf("service cross references = route %q ingress %q pod %q, want apps/grafana", routeCandidate.Metadata["kubernetes.services"], ingress.Metadata["kubernetes.services"], pod.Metadata["kubernetes.services"])
+	}
+}
+
+func TestDiscovererPrioritizesHTTPRouteBackendsAndKeepsExternalServices(t *testing.T) {
+	typedClient := kubernetesfake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "routed", Namespace: "apps"},
+			Spec: corev1.ServiceSpec{
+				Selector: map[string]string{"app": "routed"},
+				Ports:    []corev1.ServicePort{{Name: "http", Port: 8080, Protocol: corev1.ProtocolTCP}},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "unreferenced", Namespace: "apps"},
+			Spec: corev1.ServiceSpec{
+				Selector: map[string]string{"app": "unreferenced"},
+				Ports:    []corev1.ServicePort{{Name: "http", Port: 8081, Protocol: corev1.ProtocolTCP}},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "external", Namespace: "apps"},
+			Spec: corev1.ServiceSpec{
+				Type:         corev1.ServiceTypeExternalName,
+				ExternalName: "outside.example.test",
+				Ports:        []corev1.ServicePort{{Name: "https", Port: 443, Protocol: corev1.ProtocolTCP}},
+			},
+		},
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: "routed-ingress", Namespace: "apps"},
+			Spec: networkingv1.IngressSpec{Rules: []networkingv1.IngressRule{{
+				Host: "routed.example.test",
+				IngressRuleValue: networkingv1.IngressRuleValue{HTTP: &networkingv1.HTTPIngressRuleValue{Paths: []networkingv1.HTTPIngressPath{{
+					Path:    "/",
+					Backend: networkingv1.IngressBackend{Service: &networkingv1.IngressServiceBackend{Name: "routed", Port: networkingv1.ServiceBackendPort{Number: 8080}}},
+				}}}},
+			}}},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "routed-0", Namespace: "apps", Labels: map[string]string{"app": "routed"}},
+			Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app", Image: "example/routed:1"}}},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "unreferenced-0", Namespace: "apps", Labels: map[string]string{"app": "unreferenced"}},
+			Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app", Image: "example/unreferenced:1"}}},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "orphan-0", Namespace: "apps", Labels: map[string]string{"app": "orphan"}},
+			Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app", Image: "example/orphan:1"}}},
+		},
+	)
+	route := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "gateway.networking.k8s.io/v1",
+		"kind":       "HTTPRoute",
+		"metadata": map[string]interface{}{
+			"name":      "routed-route",
+			"namespace": "apps",
+		},
+		"spec": map[string]interface{}{
+			"hostnames": []interface{}{"routed.example.test"},
+			"rules": []interface{}{map[string]interface{}{
+				"backendRefs": []interface{}{map[string]interface{}{"name": "routed", "port": int64(8080)}},
+			}},
+		},
+	}}
+	dynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), route)
+	discoverer, err := NewDiscoverer(typedClient, dynamicClient, "cluster-1", "apps")
+	if err != nil {
+		t.Fatalf("NewDiscoverer() error = %v", err)
+	}
+
+	candidates, err := discoverer.Discover(context.Background())
+	if err != nil {
+		t.Fatalf("Discover() error = %v", err)
+	}
+	if len(candidates) != 5 {
+		t.Fatalf("Discover() candidates = %d, want route/ingress + routed/external services + routed pod: %#v", len(candidates), candidates)
+	}
+
+	byIdentity := make(map[string]catalog.Candidate, len(candidates))
+	for _, candidate := range candidates {
+		byIdentity[candidate.Resource.Kind+"/"+candidate.Resource.Name] = candidate
+	}
+	for _, identity := range []string{"httproute/routed-route", "ingress/routed-ingress", "service/routed", "service/external", "pod/routed-0"} {
+		if _, ok := byIdentity[identity]; !ok {
+			t.Fatalf("missing staged candidate %q: %#v", identity, byIdentity)
+		}
+	}
+	for _, identity := range []string{"service/unreferenced", "pod/unreferenced-0", "pod/orphan-0"} {
+		if _, ok := byIdentity[identity]; ok {
+			t.Fatalf("unexpected unreferenced candidate %q: %#v", identity, byIdentity[identity])
+		}
+	}
+	if got := byIdentity["service/external"].Metadata["service.externalName"]; got != "outside.example.test" {
+		t.Fatalf("external service name = %q, want outside.example.test", got)
+	}
+}
+
+func TestDiscovererFallsBackFromServicesToMatchingPods(t *testing.T) {
+	typedClient := kubernetesfake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "web", Namespace: "apps"},
+			Spec: corev1.ServiceSpec{
+				Selector: map[string]string{"app": "web"},
+				Ports:    []corev1.ServicePort{{Port: 80, Protocol: corev1.ProtocolTCP}},
+			},
+		},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "external", Namespace: "apps"}, Spec: corev1.ServiceSpec{Type: corev1.ServiceTypeExternalName, ExternalName: "outside.example.test"}},
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "web-0", Namespace: "apps", Labels: map[string]string{"app": "web"}}, Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "web", Image: "example/web:1"}}}},
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "orphan-0", Namespace: "apps", Labels: map[string]string{"app": "orphan"}}, Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "orphan", Image: "example/orphan:1"}}}},
+	)
+	dynamicClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
+		httpRouteGVR: "HTTPRouteList",
+	})
+	dynamicClient.PrependReactor("list", "httproutes", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apiNotFoundError()
+	})
+	discoverer, err := NewDiscoverer(typedClient, dynamicClient, "cluster-1", "apps")
+	if err != nil {
+		t.Fatalf("NewDiscoverer() error = %v", err)
+	}
+
+	candidates, err := discoverer.Discover(context.Background())
+	if err != nil {
+		t.Fatalf("Discover() error = %v", err)
+	}
+	if len(candidates) != 3 {
+		t.Fatalf("Discover() candidates = %d, want two services + matched pod: %#v", len(candidates), candidates)
+	}
+	for _, candidate := range candidates {
+		if candidate.Resource.Kind == "pod" && candidate.Resource.Name == "orphan-0" {
+			t.Fatalf("orphan Pod was staged: %#v", candidate)
+		}
 	}
 }
 
