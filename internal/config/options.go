@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -25,6 +26,14 @@ type Options struct {
 	ContainerSourceID string `env:"BALEMOH_CONTAINER_SOURCE_ID"`
 	// ContainerHost is the Docker-compatible API socket or endpoint.
 	ContainerHost string `env:"BALEMOH_CONTAINER_HOST" envDefault:"unix:///var/run/docker.sock"`
+	// FederationGatewayURL is the remote Balemoh gateway receiving local snapshots.
+	FederationGatewayURL string `env:"BALEMOH_FEDERATION_GATEWAY_URL"`
+	// FederationToken authenticates this instance when publishing snapshots.
+	FederationToken string `env:"BALEMOH_FEDERATION_TOKEN"`
+	// FederationIngestToken authenticates remote agents sending snapshots here.
+	FederationIngestToken string `env:"BALEMOH_FEDERATION_INGEST_TOKEN"`
+	// FederationAllowedSources registers source identities accepted by this gateway, formatted as kind/id entries.
+	FederationAllowedSources []string `env:"BALEMOH_FEDERATION_ALLOWED_SOURCES" envSeparator:","`
 }
 
 // Load parses the process environment into runtime configuration.
@@ -67,6 +76,33 @@ func (o Options) Validate() error {
 		}
 		if strings.TrimSpace(o.ContainerHost) == "" {
 			return fmt.Errorf("container host must not be empty when discovery is enabled")
+		}
+	}
+
+	gatewayURLSet := strings.TrimSpace(o.FederationGatewayURL) != ""
+	if gatewayURLSet != (strings.TrimSpace(o.FederationToken) != "") {
+		return fmt.Errorf("federation gateway URL and federation token must be configured together")
+	}
+	if gatewayURLSet {
+		parsed, err := url.Parse(strings.TrimSpace(o.FederationGatewayURL))
+		if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+			return fmt.Errorf("federation gateway URL must be an absolute HTTP(S) URL without credentials, query, or fragment")
+		}
+	}
+
+	ingestTokenSet := strings.TrimSpace(o.FederationIngestToken) != ""
+	if ingestTokenSet != (len(o.FederationAllowedSources) > 0) {
+		return fmt.Errorf("federation ingest token and allowed sources must be configured together")
+	}
+	for _, rawSource := range o.FederationAllowedSources {
+		source := strings.TrimSpace(rawSource)
+		parts := strings.SplitN(source, "/", 2)
+		normalizedSource := ""
+		if len(parts) == 2 {
+			normalizedSource = strings.TrimSpace(parts[0]) + "/" + strings.TrimSpace(parts[1])
+		}
+		if source == "" || len(parts) != 2 || normalizedSource != source || strings.ContainsRune(source, '\x00') {
+			return fmt.Errorf("federation allowed source %q must use kind/id format", source)
 		}
 	}
 	return nil

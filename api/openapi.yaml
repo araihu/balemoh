@@ -116,7 +116,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/federation/snapshots:
+    post:
+      operationId: ImportFederationSnapshot
+      security:
+        - FederationBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationSnapshot'
+      responses:
+        '200':
+          description: Federated discovery snapshot imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoverySyncResponse'
+        '400':
+          description: Snapshot is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Federation credentials are invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Source is not registered at this gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Federation ingestion is not enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Snapshot could not be stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
+  securitySchemes:
+    FederationBearer:
+      type: http
+      scheme: bearer
   schemas:
     HealthResponse:
       type: object
@@ -254,3 +306,57 @@ components:
           type: integer
           format: int32
           minimum: 0
+    FederationSnapshot:
+      type: object
+      required:
+        - source
+        - candidates
+        - observedAt
+      properties:
+        source:
+          $ref: '#/components/schemas/SourceRef'
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/FederatedCandidate'
+        observedAt:
+          type: string
+          format: date-time
+    FederatedCandidate:
+      type: object
+      required:
+        - id
+        - source
+        - resource
+        - displayName
+        - description
+        - metadata
+        - endpoints
+        - images
+        - observedAt
+      properties:
+        id:
+          type: string
+        source:
+          $ref: '#/components/schemas/SourceRef'
+        resource:
+          $ref: '#/components/schemas/ResourceRef'
+        displayName:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEndpoint'
+        images:
+          type: array
+          items:
+            type: string
+        observedAt:
+          type: string
+          format: date-time

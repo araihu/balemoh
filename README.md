@@ -93,6 +93,37 @@ curl --fail http://127.0.0.1:8080/api/v1/staging/services
 
 For rootless Podman, set `BALEMOH_CONTAINER_HOST` to the user Podman socket.
 
+## Federação entre instâncias
+
+Uma instância pode ser agente, gateway ou ambos. O agente executa discovery
+local e, após `POST /api/v1/discovery/sync`, envia um snapshot autenticado para
+o gateway. O gateway não precisa de acesso ao socket Docker nem ao RBAC do
+cluster remoto; mantém uma visão única no próprio staging.
+
+Configure o gateway com token de ingestão e registro explícito das fontes:
+
+```sh
+BALEMOH_FEDERATION_INGEST_TOKEN=gateway-secret \
+BALEMOH_FEDERATION_ALLOWED_SOURCES=container/docker-local,kubernetes/cluster-1 \
+go run ./cmd/balemoh
+```
+
+Configure cada agente com a URL e o token emitido pelo gateway:
+
+```sh
+BALEMOH_FEDERATION_GATEWAY_URL=https://balemoh-gateway.example.test \
+BALEMOH_FEDERATION_TOKEN=agent-secret \
+BALEMOH_CONTAINER_ENABLED=true \
+BALEMOH_CONTAINER_SOURCE_ID=docker-local \
+go run ./cmd/balemoh
+```
+
+O snapshot preserva fonte, recurso, imagens, endpoints e provenance. Pins não
+são enviados: cada gateway controla seus próprios pins. A importação reconcilia
+a fonte: remove candidatos remotos ausentes que ainda não foram pinados e
+preserva pins locais. O MVP ainda não faz sync reverso de pins, federação
+transitiva ou execução periódica; use o endpoint de sync manual.
+
 ## Local Kubernetes development
 
 DevSpace runs Balemoh inside Kubernetes with a namespace-scoped read-only

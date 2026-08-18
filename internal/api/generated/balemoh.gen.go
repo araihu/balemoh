@@ -6,11 +6,16 @@
 package generated
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+)
+
+const (
+	FederationBearerScopes federationBearerContextKey = "FederationBearer.Scopes"
 )
 
 // Defines values for HealthResponseStatus.
@@ -38,6 +43,26 @@ type DiscoverySyncResponse struct {
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// FederatedCandidate defines model for FederatedCandidate.
+type FederatedCandidate struct {
+	Description string            `json:"description"`
+	DisplayName string            `json:"displayName"`
+	Endpoints   []ServiceEndpoint `json:"endpoints"`
+	Id          string            `json:"id"`
+	Images      []string          `json:"images"`
+	Metadata    map[string]string `json:"metadata"`
+	ObservedAt  time.Time         `json:"observedAt"`
+	Resource    ResourceRef       `json:"resource"`
+	Source      SourceRef         `json:"source"`
+}
+
+// FederationSnapshot defines model for FederationSnapshot.
+type FederationSnapshot struct {
+	Candidates []FederatedCandidate `json:"candidates"`
+	ObservedAt time.Time            `json:"observedAt"`
+	Source     SourceRef            `json:"source"`
 }
 
 // HealthResponse defines model for HealthResponse.
@@ -98,11 +123,20 @@ type SourceRef struct {
 	Kind string `json:"kind"`
 }
 
+// federationBearerContextKey is the context key for FederationBearer security scheme
+type federationBearerContextKey string
+
+// ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
+type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
 	// (POST /api/v1/discovery/sync)
 	SyncDiscovery(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/v1/federation/snapshots)
+	ImportFederationSnapshot(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/v1/homepage/services)
 	GetHomepageServices(w http.ResponseWriter, r *http.Request)
@@ -134,6 +168,26 @@ func (siw *ServerInterfaceWrapper) SyncDiscovery(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SyncDiscovery(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ImportFederationSnapshot operation middleware
+func (siw *ServerInterfaceWrapper) ImportFederationSnapshot(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, FederationBearerScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ImportFederationSnapshot(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -358,6 +412,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/discovery/sync", wrapper.SyncDiscovery)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/snapshots", wrapper.ImportFederationSnapshot)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/homepage/services", wrapper.GetHomepageServices)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.UnpinStagingService)

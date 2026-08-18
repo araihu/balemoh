@@ -28,6 +28,17 @@ type fakeCatalog struct {
 	unpinnedID string
 }
 
+type fakeSnapshotImporter struct {
+	snapshot catalog.Snapshot
+	result   catalog.SyncResult
+	err      error
+}
+
+func (f *fakeSnapshotImporter) ImportSnapshot(_ context.Context, snapshot catalog.Snapshot) (catalog.SyncResult, error) {
+	f.snapshot = snapshot
+	return f.result, f.err
+}
+
 func (f *fakeCatalog) ListStaging(context.Context) ([]catalog.Candidate, error) {
 	return f.staging, f.listErr
 }
@@ -214,5 +225,125 @@ func TestCatalogErrorsAreSanitized(t *testing.T) {
 				t.Fatalf("error code = %q, want %q", response.Code, test.wantCode)
 			}
 		})
+	}
+}
+
+func TestFederationImportRequiresAuthenticationAndRegistration(t *testing.T) {
+	catalogService := &fakeCatalog{}
+	importer := &fakeSnapshotImporter{}
+	handler := generated.HandlerFromMux(
+		adapterhttp.NewHandlerWithFederation(fakeChecker{}, catalogService, importer, "gateway-secret", []string{"container/docker-local"}),
+		http.NewServeMux(),
+	)
+	payload := federationPayload(httpTestCandidate(false))
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+
+	unauthorized := httptest.NewRecorder()
+	handler.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodPost, "/api/v1/federation/snapshots", strings.NewReader(string(body))))
+	if unauthorized.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized status = %d, want %d", unauthorized.Code, http.StatusUnauthorized)
+	}
+
+	forbiddenPayload := payload
+	forbiddenPayload.Source.Id = "other-host"
+	forbiddenPayload.Candidates[0].Source.Id = "other-host"
+	forbiddenPayload.Candidates[0].Id = catalog.StableID(
+		catalog.SourceRef{Kind: "kubernetes", ID: "other-host"},
+		catalog.ResourceRef{Kind: "httproute", Namespace: "apps", Name: "grafana"},
+	)
+	forbiddenBody, err := json.Marshal(forbiddenPayload)
+	if err != nil {
+		t.Fatalf("marshal forbidden payload: %v", err)
+	}
+	forbidden := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/federation/snapshots", strings.NewReader(string(forbiddenBody)))
+	request.Header.Set("Authorization", "Bearer gateway-secret")
+	handler.ServeHTTP(forbidden, request)
+	if forbidden.Code != http.StatusForbidden {
+		t.Fatalf("forbidden status = %d, want %d", forbidden.Code, http.StatusForbidden)
+	}
+}
+
+func TestFederationImportStoresSnapshotAndDoesNotImportPins(t *testing.T) {
+	catalogService := &fakeCatalog{}
+	importer := &fakeSnapshotImporter{result: catalog.SyncResult{Sources: 1, Candidates: 1}}
+	handler := generated.HandlerFromMux(
+		adapterhttp.NewHandlerWithFederation(fakeChecker{}, catalogService, importer, "gateway-secret", []string{"kubernetes/cluster-1"}),
+		http.NewServeMux(),
+	)
+	payload := federationPayload(httpTestCandidate(true))
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/federation/snapshots", strings.NewReader(string(body)))
+	request.Header.Set("Authorization", "Bearer gateway-secret")
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+	if importer.snapshot.Source != (catalog.SourceRef{Kind: "kubernetes", ID: "cluster-1"}) || len(importer.snapshot.Candidates) != 1 {
+		t.Fatalf("imported snapshot = %#v, want source and one candidate", importer.snapshot)
+	}
+	if importer.snapshot.Candidates[0].PinnedAt != nil {
+		t.Fatal("imported candidate has remote pin state")
+	}
+	var response generated.DiscoverySyncResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.Sources != 1 || response.Candidates != 1 {
+		t.Fatalf("response = %#v, want sources=1 candidates=1", response)
+	}
+}
+
+func TestFederationImportDisabledReturnsNotFound(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	payload, err := json.Marshal(federationPayload(httpTestCandidate(false)))
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/federation/snapshots", strings.NewReader(string(payload)))
+	catalogHandler(&fakeCatalog{}).ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNotFound)
+	}
+}
+
+func federationPayload(candidate catalog.Candidate) generated.FederationSnapshot {
+	resource := generated.ResourceRef{Kind: candidate.Resource.Kind, Name: candidate.Resource.Name}
+	if candidate.Resource.Namespace != "" {
+		namespace := candidate.Resource.Namespace
+		resource.Namespace = &namespace
+	}
+	endpoints := make([]generated.ServiceEndpoint, 0, len(candidate.Endpoints))
+	for _, endpoint := range candidate.Endpoints {
+		endpoints = append(endpoints, generated.ServiceEndpoint{
+			Name:       endpoint.Name,
+			Url:        endpoint.URL,
+			Port:       int32(endpoint.Port),
+			Protocol:   endpoint.Protocol,
+			Provenance: endpoint.Provenance,
+		})
+	}
+	return generated.FederationSnapshot{
+		Source: generated.SourceRef{Kind: candidate.Source.Kind, Id: candidate.Source.ID},
+		Candidates: []generated.FederatedCandidate{{
+			Id:          candidate.ID,
+			Source:      generated.SourceRef{Kind: candidate.Source.Kind, Id: candidate.Source.ID},
+			Resource:    resource,
+			DisplayName: candidate.DisplayName,
+			Description: candidate.Description,
+			Metadata:    candidate.Metadata,
+			Endpoints:   endpoints,
+			Images:      candidate.Images,
+			ObservedAt:  candidate.ObservedAt,
+		}},
+		ObservedAt: candidate.ObservedAt,
 	}
 }

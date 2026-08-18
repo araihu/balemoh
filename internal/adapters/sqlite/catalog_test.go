@@ -160,6 +160,58 @@ func TestCatalogStoreIgnoresOlderObservation(t *testing.T) {
 	}
 }
 
+func TestCatalogServiceImportSnapshotReconcilesSQLiteSourceAndPreservesPins(t *testing.T) {
+	db := newCatalogTestDatabase(t)
+	store := NewCatalogStore(db)
+	source := catalog.SourceRef{Kind: "container", ID: "remote-host"}
+	stale := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "gone"}, time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	pinned := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "pinned"}, time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	unrelated := catalogTestCandidate("unrelated", time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	for _, candidate := range []catalog.Candidate{stale, pinned, unrelated} {
+		if err := store.Upsert(context.Background(), candidate); err != nil {
+			t.Fatalf("Upsert(%q) error = %v", candidate.Resource.Name, err)
+		}
+	}
+	if _, err := store.SetPinned(context.Background(), pinned.ID, true); err != nil {
+		t.Fatalf("SetPinned() error = %v", err)
+	}
+
+	current := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "current"}, time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC))
+	service := catalog.NewService(store)
+	result, err := service.ImportSnapshot(context.Background(), catalog.Snapshot{
+		Source:     source,
+		Candidates: []catalog.Candidate{current},
+		ObservedAt: current.ObservedAt,
+	})
+	if err != nil {
+		t.Fatalf("ImportSnapshot() error = %v", err)
+	}
+	if result.Sources != 1 || result.Candidates != 1 {
+		t.Fatalf("ImportSnapshot() result = %#v, want sources=1 candidates=1", result)
+	}
+
+	services, err := store.List(context.Background(), false)
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	byID := make(map[string]catalog.Candidate, len(services))
+	for _, service := range services {
+		byID[service.ID] = service
+	}
+	if _, ok := byID[stale.ID]; ok {
+		t.Fatal("stale unpinned candidate remains in SQLite")
+	}
+	if got, ok := byID[pinned.ID]; !ok || got.PinnedAt == nil {
+		t.Fatalf("pinned candidate = %#v, want preserved pin", got)
+	}
+	if _, ok := byID[current.ID]; !ok {
+		t.Fatal("current candidate missing from SQLite")
+	}
+	if _, ok := byID[unrelated.ID]; !ok {
+		t.Fatal("unrelated source candidate was deleted")
+	}
+}
+
 func TestCatalogStoreSurvivesDatabaseRestart(t *testing.T) {
 	databasePath := t.TempDir() + "/balemoh.db"
 	db, err := Open(context.Background(), databasePath)

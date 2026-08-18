@@ -1,6 +1,6 @@
 # Balemoh Discovery and Homepage Catalog Design
 
-**Status:** Catalog foundation accepted; concrete Kubernetes and Docker-compatible container adapters are implemented, with the local DevSpace workflow specified in `docs/superpowers/plans/2026-08-17-balemoh-kubernetes-devspace.md`.
+**Status:** Catalog foundation accepted; concrete Kubernetes, Docker-compatible container, and agent-to-gateway federation primitives are implemented, with the local DevSpace workflow specified in `docs/superpowers/plans/2026-08-17-balemoh-kubernetes-devspace.md`.
 
 ## Goal
 
@@ -33,6 +33,7 @@ Included:
 - generated OpenAPI routes for staging, homepage, and discovery sync;
 - HTTP translation and error mapping;
 - tests for domain behavior, persistence, and HTTP behavior;
+- authenticated agent-to-gateway discovery snapshots with static source registration;
 - roadmap documentation for Docker, Kubernetes, reconciliation, UI, and hardening phases.
 
 Excluded:
@@ -41,7 +42,8 @@ Excluded:
 - cluster-wide provisioning or deployment automation outside the local DevSpace workflow;
 - Traefik or other discovery extension implementation;
 - background scheduling, queues, or event streaming;
-- authentication, authorization, rate limiting, and multi-user ownership;
+- general authentication, authorization, rate limiting, and multi-user ownership;
+- dynamic federation registration, credential rotation, stale-pin policy, retries, and pin synchronization;
 - UI implementation, while keeping the API usable by a future Goshtoso-based UI;
 - deployment, release, push, merge, or external publication.
 
@@ -108,7 +110,32 @@ One persisted candidate represents both views:
 - `POST .../{id}/pin` sets the pin timestamp;
 - `DELETE .../{id}/pin` clears it.
 
-Pinning is explicit and idempotent. Repeating pin or unpin requests leaves the desired state unchanged. A candidate disappearing from a later discovery run is not deleted by this slice; reconciliation and stale-resource policy belong to a later roadmap phase.
+Pinning is explicit and idempotent. Repeating pin or unpin requests leaves the desired state unchanged. Local discovery still keeps candidates across runs; a complete federated snapshot reconciles only its remote source by removing absent unpinned candidates while preserving pinned candidates. A future stale-resource policy can expose or retire preserved pins explicitly.
+
+### Federation topology
+
+Balemoh instances are composable. A process may run as a standalone local
+catalog, an agent that publishes local observations, a gateway that imports
+remote observations, or both agent and gateway at once:
+
+```text
+gateway instance
+  ├─ local Kubernetes source
+  ├─ local Docker/Podman source
+  ├─ remote Balemoh Kubernetes agent
+  └─ remote Balemoh Docker/Podman agent
+```
+
+The MVP uses an outbound agent-to-gateway HTTP POST after a manual discovery
+sync. The gateway has no remote socket or Kubernetes RBAC dependency. Each
+snapshot carries its stable `SourceRef`; the gateway validates that every
+candidate belongs to that source and accepts it only when the source is in the
+configured `kind/id` allowlist. A shared Bearer token protects ingestion.
+Remote pins are omitted from the wire contract and never overwrite gateway
+pins. After upserting the complete snapshot, absent unpinned candidates from
+that source are removed; pinned candidates remain available for an explicit
+user decision. The first version does not forward imported snapshots to another
+gateway, so federation remains non-transitive.
 
 ## Domain contracts
 
@@ -156,6 +183,7 @@ Application ports:
 type CatalogStore interface {
     Upsert(context.Context, Candidate) error
     List(context.Context, bool) ([]Candidate, error)
+    DeleteUnpinned(context.Context, string) error
     SetPinned(context.Context, string, bool) (Candidate, error)
 }
 
@@ -180,6 +208,7 @@ OpenAPI adds these routes under `/api/v1`:
 | `DELETE` | `/staging/services/{serviceId}/pin` | Unpin candidate; return updated candidate. |
 | `GET` | `/homepage/services` | List pinned candidates only. |
 | `POST` | `/discovery/sync` | Run registered discoverers and return source/candidate counts. |
+| `POST` | `/federation/snapshots` | Authenticated gateway ingestion of one remote source snapshot. |
 
 List responses use an object containing `services`, so pagination and additional catalog metadata can be added without changing the top-level response shape. Candidate JSON includes source/resource references, metadata, endpoint observations, Pod image observations, observation time, and pin state.
 
@@ -189,6 +218,14 @@ HTTP behavior:
 - unknown candidate IDs return `404` with the existing `ErrorResponse` shape;
 - storage or discovery failures return `503` with a generic message;
 - platform/database error details never reach the client.
+- federation ingestion returns `401` for invalid Bearer credentials, `403` for
+  an unregistered source, `400` for an invalid snapshot, and `404` when
+  ingestion is disabled.
+
+`BALEMOH_FEDERATION_GATEWAY_URL` plus `BALEMOH_FEDERATION_TOKEN` enables the
+agent publisher. `BALEMOH_FEDERATION_INGEST_TOKEN` plus
+`BALEMOH_FEDERATION_ALLOWED_SOURCES` enables gateway ingestion. Configuration
+requires each pair together; production deployments should use HTTPS.
 
 ## Persistence
 
@@ -267,11 +304,14 @@ but access to a container socket remains a privileged host capability.
 2. SQLite catalog store;
 3. catalog service with zero discoverers by default, or the explicitly enabled
    in-cluster Kubernetes and/or Docker-compatible container discoverers;
-4. HTTP handler receiving health and catalog use cases;
-5. generated mux.
+4. optional federation publisher attached to discovery sync;
+5. HTTP handler receiving health, catalog, and optional federation ingestion;
+6. generated mux.
 
 The empty registry remains the default for a plain local process. Future
 adapters are added at the composition root, one read-only source at a time.
+Remote source observations enter through the federation port, preserving the
+same catalog storage and staging semantics as local discovery.
 
 ## Verification
 
@@ -285,6 +325,8 @@ Required gates for this slice:
 - container fake-client tests cover running-container selection, image and Compose service aggregation, published host ports, host IPs, wildcard bindings, Podman Compose labels, and daemon errors;
 - DevSpace artifacts cover namespace-scoped RBAC and local KinD/vind setup without creating a cluster during repository verification;
 - HTTP tests cover list, pin, unpin, homepage, sync, 404, 503, and generic error bodies;
+- federation tests cover snapshot validation, source allowlisting, Bearer auth,
+-  pin-state omission, source reconciliation, and publisher failure sanitization;
 - `go test ./...`, `go vet ./...`, `go test -race ./...`, and `git diff --check` pass;
 - CGO-disabled test/build remains valid.
 

@@ -65,7 +65,23 @@ Status: em execução.
 - namespaces, CRD HTTPRoute ausente e erros de permissão tratados sem mutação;
 - desenvolvimento local reproduzível via DevSpace sobre KinD ou vCluster in Docker (vind).
 
-### Fase 4 — Reconciliação e operação de discovery
+### Fase 4 — Federação entre instâncias
+
+Status: MVP implementado para snapshots agente → gateway.
+
+- uma instância pode combinar discovery local e receber fontes remotas;
+- publisher HTTP com Bearer token para snapshots completos;
+- gateway com token de ingestão e allowlist estática `kind/id`;
+- fonte original preservada na identidade e no staging unificado;
+- suporte a topologias mistas com vários clusters Kubernetes e hosts Docker/Podman;
+- snapshots reconciliam a fonte, removendo candidatos remotos ausentes não pinados;
+- pins continuam locais ao gateway para evitar sobrescrita de decisão do usuário;
+- sem acesso remoto direto a socket/RBAC, sem sync reverso de pins e sem federação transitiva.
+
+Fora desta base: registro dinâmico, rotação de credenciais, retries persistentes,
+status explícito para pins stale, scheduler e deduplicação lógica entre fontes.
+
+### Fase 5 — Reconciliação e operação de discovery
 
 - sincronização periódica e execução manual;
 - status por fonte, duração, último sucesso e erro sanitizado;
@@ -74,7 +90,7 @@ Status: em execução.
 - histórico de observações quando necessário;
 - métricas, logs estruturados e limites de custo.
 
-### Fase 5 — UI Goshtoso
+### Fase 6 — UI Goshtoso
 
 - tela de staging com filtros por fonte, namespace e estado de endpoint;
 - preview de card antes do pin;
@@ -83,7 +99,7 @@ Status: em execução.
 - indicação clara de endpoint exato versus observação incompleta;
 - acessibilidade e composição genérica via componentes Goshtoso.
 
-### Fase 6 — Segurança e distribuição
+### Fase 7 — Segurança e distribuição
 
 - autenticação e autorização da API/UI;
 - proteção de segredos e socket Docker;

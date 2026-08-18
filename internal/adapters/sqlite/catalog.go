@@ -206,6 +206,17 @@ func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candida
 	return result, nil
 }
 
+func (s *CatalogStore) DeleteUnpinned(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil
+	}
+	if err := s.queries.DeleteUnpinnedCandidate(ctx, id); err != nil {
+		return fmt.Errorf("delete unpinned candidate %q: %w", id, err)
+	}
+	return nil
+}
+
 func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool) (catalog.Candidate, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {

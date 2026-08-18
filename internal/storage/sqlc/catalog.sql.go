@@ -20,6 +20,17 @@ func (q *Queries) DeleteServiceEndpoints(ctx context.Context, serviceID string) 
 	return err
 }
 
+const deleteUnpinnedCandidate = `-- name: DeleteUnpinnedCandidate :exec
+DELETE FROM discovered_services
+WHERE id = ?1
+  AND pinned_at IS NULL
+`
+
+func (q *Queries) DeleteUnpinnedCandidate(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteUnpinnedCandidate, id)
+	return err
+}
+
 const getDiscoveredService = `-- name: GetDiscoveredService :one
 SELECT
     id,

@@ -100,6 +100,11 @@ FROM discovered_services
 WHERE pinned_at IS NOT NULL
 ORDER BY lower(display_name), id;
 
+-- name: DeleteUnpinnedCandidate :exec
+DELETE FROM discovered_services
+WHERE id = sqlc.arg(id)
+  AND pinned_at IS NULL;
+
 -- name: DeleteServiceEndpoints :exec
 DELETE FROM service_endpoints
 WHERE service_id = sqlc.arg(service_id);

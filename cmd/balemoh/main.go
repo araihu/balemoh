@@ -14,6 +14,7 @@ import (
 	"time"
 
 	containeradapter "github.com/araihu/balemoh/internal/adapters/container"
+	federationadapter "github.com/araihu/balemoh/internal/adapters/federation"
 	httpadapter "github.com/araihu/balemoh/internal/adapters/http"
 	kubernetesadapter "github.com/araihu/balemoh/internal/adapters/kubernetes"
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
@@ -69,10 +70,32 @@ func constructServer(ctx context.Context, options config.Options, migrate func(*
 
 	queries := sqlc.New(db)
 	healthService := health.NewService(sqlite.NewPinger(queries))
-	catalogService := catalog.NewService(sqlite.NewCatalogStore(db), discoverers...)
-	handler := httpadapter.NewHandler(healthService, catalogService)
+	publisher, err := configuredPublisher(options)
+	if err != nil {
+		_ = db.Close()
+		return nil, nil, err
+	}
+	catalogService := catalog.NewServiceWithPublisher(sqlite.NewCatalogStore(db), publisher, discoverers...)
+	handler := httpadapter.NewHandlerWithFederation(
+		healthService,
+		catalogService,
+		catalogService,
+		options.FederationIngestToken,
+		options.FederationAllowedSources,
+	)
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, nil
+}
+
+func configuredPublisher(options config.Options) (catalog.SnapshotPublisher, error) {
+	if options.FederationGatewayURL == "" {
+		return nil, nil
+	}
+	publisher, err := federationadapter.NewPublisher(options.FederationGatewayURL, options.FederationToken)
+	if err != nil {
+		return nil, fmt.Errorf("configure federation publisher: %w", err)
+	}
+	return publisher, nil
 }
 
 func configuredDiscoverers(options config.Options) ([]catalog.Discoverer, error) {

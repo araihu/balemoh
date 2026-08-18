@@ -44,6 +44,58 @@ type Candidate struct {
 	PinnedAt    *time.Time
 }
 
+// Snapshot is one complete observation from a remote Balemoh source.
+// PinnedAt is deliberately not part of the federation contract: pin state is
+// owned by the gateway that presents the homepage.
+type Snapshot struct {
+	Source     SourceRef
+	Candidates []Candidate
+	ObservedAt time.Time
+}
+
+func (s Snapshot) Normalize() Snapshot {
+	s.Source.Kind = strings.TrimSpace(s.Source.Kind)
+	s.Source.ID = strings.TrimSpace(s.Source.ID)
+	s.ObservedAt = s.ObservedAt.UTC()
+	if s.Candidates == nil {
+		s.Candidates = []Candidate{}
+	}
+	for index := range s.Candidates {
+		s.Candidates[index] = s.Candidates[index].Normalize()
+	}
+	return s
+}
+
+func (s Snapshot) Validate() error {
+	s = s.Normalize()
+	if s.Source.Kind == "" {
+		return errors.New("snapshot source kind must not be empty")
+	}
+	if s.Source.ID == "" {
+		return errors.New("snapshot source ID must not be empty")
+	}
+	if strings.ContainsRune(s.Source.Kind, '\x00') || strings.ContainsRune(s.Source.ID, '\x00') {
+		return errors.New("snapshot source identity must not contain NUL")
+	}
+	if s.ObservedAt.IsZero() {
+		return errors.New("snapshot observed at must not be zero")
+	}
+	seen := make(map[string]struct{}, len(s.Candidates))
+	for index, candidate := range s.Candidates {
+		if candidate.Source != s.Source {
+			return fmt.Errorf("candidate at index %d source does not match snapshot source", index)
+		}
+		if err := candidate.Validate(); err != nil {
+			return fmt.Errorf("candidate at index %d: %w", index, err)
+		}
+		if _, ok := seen[candidate.ID]; ok {
+			return fmt.Errorf("candidate at index %d duplicates candidate ID %q", index, candidate.ID)
+		}
+		seen[candidate.ID] = struct{}{}
+	}
+	return nil
+}
+
 func StableID(source SourceRef, resource ResourceRef) string {
 	parts := []string{
 		strings.TrimSpace(source.Kind),

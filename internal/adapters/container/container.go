@@ -92,6 +92,10 @@ func (d *Discoverer) Name() string {
 	return sourceKind + "/" + d.sourceID
 }
 
+func (d *Discoverer) Source() catalog.SourceRef {
+	return catalog.SourceRef{Kind: sourceKind, ID: d.sourceID}
+}
+
 func (d *Discoverer) Discover(ctx context.Context) ([]catalog.Candidate, error) {
 	containers, err := d.client.ContainerList(ctx, dockertypes.ListOptions{})
 	if err != nil {

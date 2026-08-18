@@ -12,3 +12,7 @@ Options contains Balemoh's runtime environment configuration.
  - `BALEMOH_CONTAINER_ENABLED` (default: `false`) - ContainerEnabled enables the Docker-compatible Docker or Podman container discovery source.
  - `BALEMOH_CONTAINER_SOURCE_ID` - ContainerSourceID is the stable identity used to scope container candidates.
  - `BALEMOH_CONTAINER_HOST` (default: `unix:///var/run/docker.sock`) - ContainerHost is the Docker-compatible API socket or endpoint.
+ - `BALEMOH_FEDERATION_GATEWAY_URL` - FederationGatewayURL is the remote Balemoh gateway receiving local snapshots.
+ - `BALEMOH_FEDERATION_TOKEN` - FederationToken authenticates this instance when publishing snapshots.
+ - `BALEMOH_FEDERATION_INGEST_TOKEN` - FederationIngestToken authenticates remote agents sending snapshots here.
+ - `BALEMOH_FEDERATION_ALLOWED_SOURCES` - FederationAllowedSources registers source identities accepted by this gateway, formatted as kind/id entries.

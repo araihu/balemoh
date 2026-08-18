@@ -13,10 +13,21 @@ type fakeStore struct {
 	candidates map[string]Candidate
 	listPinned []bool
 	upserts    []Candidate
+	deletions  []string
 	setPins    []struct {
 		id     string
 		pinned bool
 	}
+}
+
+func (f *fakeStore) DeleteUnpinned(_ context.Context, id string) error {
+	f.deletions = append(f.deletions, id)
+	candidate, ok := f.candidates[id]
+	if !ok || candidate.PinnedAt != nil {
+		return nil
+	}
+	delete(f.candidates, id)
+	return nil
 }
 
 func (f *fakeStore) Upsert(_ context.Context, candidate Candidate) error {
@@ -63,6 +74,23 @@ type fakeDiscoverer struct {
 	name       string
 	candidates []Candidate
 	err        error
+}
+
+type fakeSourceDiscoverer struct {
+	fakeDiscoverer
+	source SourceRef
+}
+
+func (f fakeSourceDiscoverer) Source() SourceRef { return f.source }
+
+type fakePublisher struct {
+	snapshots []Snapshot
+	err       error
+}
+
+func (f *fakePublisher) Publish(_ context.Context, snapshot Snapshot) error {
+	f.snapshots = append(f.snapshots, snapshot)
+	return f.err
 }
 
 func (f fakeDiscoverer) Name() string { return f.name }
@@ -164,5 +192,118 @@ func TestServiceSyncReturnsNamedDiscovererError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "docker-local") {
 		t.Fatalf("Sync() error = %q, want discoverer name", err)
+	}
+}
+
+func TestServiceSyncPublishesSourceSnapshotIncludingEmptySource(t *testing.T) {
+	first := testCandidate("whoami")
+	publisher := &fakePublisher{}
+	service := NewServiceWithPublisher(&fakeStore{}, publisher,
+		fakeSourceDiscoverer{
+			fakeDiscoverer: fakeDiscoverer{name: "docker-local", candidates: []Candidate{first}},
+			source:         first.Source,
+		},
+		fakeSourceDiscoverer{
+			fakeDiscoverer: fakeDiscoverer{name: "kubernetes-local"},
+			source:         SourceRef{Kind: "kubernetes", ID: "cluster-1"},
+		},
+	)
+
+	result, err := service.Sync(context.Background())
+	if err != nil {
+		t.Fatalf("Sync() error = %v", err)
+	}
+	if result.Sources != 2 || result.Candidates != 1 {
+		t.Fatalf("Sync() result = %#v, want sources=2 candidates=1", result)
+	}
+	if len(publisher.snapshots) != 2 {
+		t.Fatalf("published snapshots = %d, want 2", len(publisher.snapshots))
+	}
+	if publisher.snapshots[0].Source != first.Source || len(publisher.snapshots[0].Candidates) != 1 {
+		t.Fatalf("first snapshot = %#v, want source and one candidate", publisher.snapshots[0])
+	}
+	if publisher.snapshots[1].Source != (SourceRef{Kind: "kubernetes", ID: "cluster-1"}) || len(publisher.snapshots[1].Candidates) != 0 {
+		t.Fatalf("empty snapshot = %#v, want registered empty source", publisher.snapshots[1])
+	}
+}
+
+func TestServiceImportSnapshotDropsRemotePinState(t *testing.T) {
+	candidate := testCandidate("remote")
+	pinnedAt := time.Date(2026, 8, 17, 13, 0, 0, 0, time.UTC)
+	candidate.PinnedAt = &pinnedAt
+	store := &fakeStore{}
+	service := NewService(store)
+
+	result, err := service.ImportSnapshot(context.Background(), Snapshot{
+		Source:     candidate.Source,
+		Candidates: []Candidate{candidate},
+		ObservedAt: candidate.ObservedAt,
+	})
+	if err != nil {
+		t.Fatalf("ImportSnapshot() error = %v", err)
+	}
+	if result.Sources != 1 || result.Candidates != 1 {
+		t.Fatalf("ImportSnapshot() result = %#v, want sources=1 candidates=1", result)
+	}
+	if len(store.upserts) != 1 || store.upserts[0].PinnedAt != nil {
+		t.Fatalf("imported upsert = %#v, want local unpinned state", store.upserts)
+	}
+}
+
+func TestServiceImportSnapshotReconcilesSourceWithoutDeletingPins(t *testing.T) {
+	source := SourceRef{Kind: "container", ID: "remote-host"}
+	stale := NewCandidate(source, ResourceRef{Kind: "container", Name: "gone"}, time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	pinned := NewCandidate(source, ResourceRef{Kind: "container", Name: "pinned"}, time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	pinnedAt := time.Date(2026, 8, 17, 13, 0, 0, 0, time.UTC)
+	pinned.PinnedAt = &pinnedAt
+	unrelated := testCandidate("unrelated")
+	current := NewCandidate(source, ResourceRef{Kind: "container", Name: "current"}, time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC))
+	store := &fakeStore{candidates: map[string]Candidate{
+		stale.ID:     stale,
+		pinned.ID:    pinned,
+		unrelated.ID: unrelated,
+	}}
+	service := NewService(store)
+
+	_, err := service.ImportSnapshot(context.Background(), Snapshot{
+		Source:     source,
+		Candidates: []Candidate{current},
+		ObservedAt: current.ObservedAt,
+	})
+	if err != nil {
+		t.Fatalf("ImportSnapshot() error = %v", err)
+	}
+	if _, ok := store.candidates[stale.ID]; ok {
+		t.Fatal("stale unpinned candidate remains")
+	}
+	if _, ok := store.candidates[pinned.ID]; !ok {
+		t.Fatal("pinned candidate was deleted")
+	}
+	if _, ok := store.candidates[unrelated.ID]; !ok {
+		t.Fatal("candidate from unrelated source was deleted")
+	}
+	if len(store.deletions) != 1 || store.deletions[0] != stale.ID {
+		t.Fatalf("deletions = %#v, want only stale candidate %q", store.deletions, stale.ID)
+	}
+}
+
+func TestServiceImportSnapshotRejectsMixedSourcesBeforeWriting(t *testing.T) {
+	first := testCandidate("first")
+	second := testCandidate("second")
+	second.Source = SourceRef{Kind: "kubernetes", ID: "other"}
+	second.ID = StableID(second.Source, second.Resource)
+	store := &fakeStore{}
+	service := NewService(store)
+
+	_, err := service.ImportSnapshot(context.Background(), Snapshot{
+		Source:     first.Source,
+		Candidates: []Candidate{first, second},
+		ObservedAt: first.ObservedAt,
+	})
+	if !errors.Is(err, ErrInvalidSnapshot) {
+		t.Fatalf("ImportSnapshot() error = %v, want invalid snapshot", err)
+	}
+	if len(store.upserts) != 0 {
+		t.Fatalf("upserts = %d, want no writes for invalid snapshot", len(store.upserts))
 	}
 }
