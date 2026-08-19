@@ -5,8 +5,11 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/a-h/templ"
 	"github.com/araihu/goshtoso/components/table"
 )
+
+const pinSelectionSubmit = `const selected = $el.querySelectorAll("input[id^='user']:checked"); selected.forEach((checkbox) => { const field = document.createElement("input"); field.type = "hidden"; field.name = "service_id"; field.value = checkbox.id.slice(4); $el.appendChild(field); });`
 
 // PageData is the presentation model for the two operator-facing catalog
 // pages. It deliberately contains no generated API types.
@@ -43,6 +46,10 @@ type Endpoint struct {
 func serviceTableRows(services []Service, staging bool) []table.Row {
 	rows := make([]table.Row, 0, len(services))
 	for _, service := range services {
+		var actions templ.Component
+		if !staging {
+			actions = ServiceActions(service)
+		}
 		rows = append(rows, table.Row{
 			ID: service.ID,
 			Cells: map[string]table.Cell{
@@ -53,7 +60,7 @@ func serviceTableRows(services []Service, staging bool) []table.Row {
 				"images":   {Component: ServiceImages(service)},
 				"status":   {Component: ServiceStatus(service)},
 			},
-			Actions: ServiceActions(service, staging),
+			Actions: actions,
 		})
 	}
 	return rows

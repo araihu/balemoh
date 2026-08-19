@@ -64,7 +64,7 @@ templ StagingContent(data PageData) {
 	@panel.Panel(panel.Config{
 		Density: panel.DensityCompact,
 		Header: PanelHeader("Discovered candidates", "Review the resource and endpoint evidence before pinning a service."),
-		Body: ServiceTable(data),
+		Body: StagingTable(data),
 	})
 	if len(data.Services) == 0 && data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
@@ -74,6 +74,16 @@ templ StagingContent(data PageData) {
 			RootClass: "balemoh-empty-state",
 		})
 	}
+}
+
+templ StagingTable(data PageData) {
+	<form method="post" action="/staging/pin" x-data="{}" x-on:submit={ pinSelectionSubmit }>
+		<div class="balemoh-staging-selection">
+			<p>Select the candidates to show on the homepage.</p>
+			@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary), button.WithSize(button.SizeSmall)) { Pin selected }
+		</div>
+		@ServiceTable(data)
+	</form>
 }
 
 templ SyncAction() {
@@ -108,6 +118,7 @@ templ ServiceTable(data PageData) {
 					{Key: "status", Label: "Status"},
 				},
 				Rows: serviceTableRows(data.Services, data.Staging),
+				ShowCheckbox: data.Staging,
 				RootClass: "balemoh-service-table",
 			})
 		</div>
@@ -165,16 +176,10 @@ templ ServiceStatus(service Service) {
 	}
 }
 
-templ ServiceActions(service Service, staging bool) {
+templ ServiceActions(service Service) {
 	<div class="balemoh-service-actions">
-		if service.Pinned || !staging {
-			<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "unpin")) }>
-				@button.Button(button.WithType("submit"), button.WithTone(button.ToneSecondary), button.WithSize(button.SizeSmall)) { Unpin }
-			</form>
-		} else {
-			<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "pin")) }>
-				@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary), button.WithSize(button.SizeSmall)) { Pin to homepage }
-			</form>
-		}
+		<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "unpin")) }>
+			@button.Button(button.WithType("submit"), button.WithTone(button.ToneSecondary), button.WithSize(button.SizeSmall)) { Unpin }
+		</form>
 	</div>
 }

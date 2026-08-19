@@ -25,10 +25,20 @@ Configuration is documented in
 - `BALEMOH_UI_API_BASE_URL` defaults to `http://127.0.0.1:8080`.
 - request and shutdown timeouts default to `5s`.
 
+## Pin selection contract
+
+| State | Request | Expected result | Effect |
+|---|---|---|---|
+| Candidates selected | `POST /staging/pin` with one or more `service_id` values | `303 /staging?notice=pinned` | Each unique candidate is pinned once |
+| No candidates selected | `POST /staging/pin` without IDs | `303 /staging?notice=none-selected` | No mutation |
+| Repeated candidate ID | Same POST with duplicate IDs | Same success redirect | Duplicate values are deduplicated |
+| Upstream pin failure | Same POST with a failing candidate | In-shell mutation error | The failure is not silently swallowed |
+
 The BFF exposes document routes for `/` and `/staging`, and native HTML form
-actions for staging sync, pin, and unpin. Mutations use POST/Redirect/GET;
-HTMX is intentionally disabled for this first slice so links and forms remain
-usable without JavaScript.
+actions for staging sync, bulk pin, and unpin. The staging table uses
+Goshtoso's checkbox selection and Alpine to serialize selected candidate IDs
+before the native pin POST. Mutations use POST/Redirect/GET; HTMX is
+intentionally disabled for this first slice.
 
 ## Design brief
 

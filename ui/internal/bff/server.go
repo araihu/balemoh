@@ -39,6 +39,7 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("POST /staging/sync", server.sync)
+	mux.HandleFunc("POST /staging/pin", server.pinSelected)
 	mux.HandleFunc("POST /staging/services/{serviceID}/pin", server.pin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/unpin", server.unpin)
 	mux.HandleFunc("GET /", server.homepage)
@@ -98,6 +99,29 @@ func (s *server) pin(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(ctx context.Context, id string) error {
 		return s.catalog.Pin(ctx, id)
 	}, "pinned")
+}
+
+func (s *server) pinSelected(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		s.renderStaging(w, r, "", pageMutationError)
+		return
+	}
+
+	ids := uniqueServiceIDs(r.Form["service_id"])
+	if len(ids) == 0 {
+		redirect(w, r, "/staging?notice=none-selected")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	for _, id := range ids {
+		if err := s.catalog.Pin(ctx, id); err != nil {
+			s.renderStaging(w, r, "", pageMutationError)
+			return
+		}
+	}
+	redirect(w, r, "/staging?notice=pinned")
 }
 
 func (s *server) unpin(w http.ResponseWriter, r *http.Request) {
@@ -174,8 +198,10 @@ func redirect(w http.ResponseWriter, _ *http.Request, location string) {
 
 func noticeText(value string) string {
 	switch value {
+	case "none-selected":
+		return "Select at least one candidate before pinning."
 	case "pinned":
-		return "The service is now visible on the homepage."
+		return "The selected services are now visible on the homepage."
 	case "unpinned":
 		return "The service was removed from the homepage."
 	case "synced":
@@ -183,6 +209,23 @@ func noticeText(value string) string {
 	default:
 		return ""
 	}
+}
+
+func uniqueServiceIDs(values []string) []string {
+	ids := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		id := strings.TrimSpace(value)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 func mapServices(services []api.ServiceCandidate) []view.Service {

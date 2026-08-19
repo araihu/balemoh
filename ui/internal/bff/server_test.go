@@ -86,10 +86,70 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 	if staging.Code != http.StatusOK {
 		t.Fatalf("GET /staging status = %d, want 200", staging.Code)
 	}
-	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/services/svc-stage/pin"`} {
+	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/pin"`, `id="usersvc-stage"`, `x-on:submit`} {
 		if !strings.Contains(staging.Body.String(), want) {
 			t.Errorf("GET /staging body missing %q", want)
 		}
+	}
+}
+
+func TestHandlerPinsSelectedServices(t *testing.T) {
+	t.Parallel()
+
+	catalog := &fakeCatalog{}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	response := request(t, handler, http.MethodPost, "/staging/pin", "service_id=svc-1&service_id=svc-2&service_id=svc-1")
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("POST /staging/pin status = %d, want 303", response.Code)
+	}
+	if got := response.Header().Get("Location"); got != "/staging?notice=pinned" {
+		t.Fatalf("POST /staging/pin Location = %q, want pinned redirect", got)
+	}
+	if got := strings.Join(catalog.pinnedIDs, ","); got != "svc-1,svc-2" {
+		t.Fatalf("pinned IDs = %q, want unique selected IDs", got)
+	}
+}
+
+func TestHandlerPinsSelectedServicesRequiresSelection(t *testing.T) {
+	t.Parallel()
+
+	handler, err := New(&fakeCatalog{}, time.Second)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	response := request(t, handler, http.MethodPost, "/staging/pin", "")
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("POST /staging/pin without selection status = %d, want 303", response.Code)
+	}
+	if got := response.Header().Get("Location"); got != "/staging?notice=none-selected" {
+		t.Fatalf("POST /staging/pin without selection Location = %q", got)
+	}
+}
+
+func TestHandlerReportsSelectedPinFailureInShell(t *testing.T) {
+	t.Parallel()
+
+	catalog := &fakeCatalog{mutationErr: errors.New("upstream token=secret")}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	response := request(t, handler, http.MethodPost, "/staging/pin", "service_id=svc-1")
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("POST /staging/pin failure status = %d, want 503", response.Code)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, "Não foi possível atualizar o serviço") {
+		t.Fatalf("failure response missing safe mutation message")
+	}
+	if strings.Contains(body, "secret") {
+		t.Fatalf("failure response leaked upstream error")
 	}
 }
 
@@ -238,6 +298,9 @@ func TestHandlerRejectsInvalidConfiguration(t *testing.T) {
 func request(t *testing.T, handler http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if body != "" {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, req)
 	return response
