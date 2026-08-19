@@ -268,7 +268,9 @@ deduplicated init, regular, and ephemeral container images. Ingress TLS rules
 produce absolute URLs. HTTPRoute host/path observations use scheme-relative URLs
 because the route object does not identify the parent listener's HTTP/TLS
 scheme. An absent HTTPRoute CRD is an empty optional source; other read errors
-are propagated to the sync boundary.
+are propagated to the sync boundary. Exact route and Ingress endpoint
+observations are copied to their referenced Service and matched Pod candidates,
+so staging keeps the public host visible across the resolved resource chain.
 
 The composition root activates this adapter only with
 `BALEMOH_KUBERNETES_ENABLED=true` and a stable source ID. An optional namespace

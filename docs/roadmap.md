@@ -60,6 +60,7 @@ Status: em execução.
 - identidade por source ID + namespace + kind + name;
 - imagens de init containers, containers e ephemeral containers como evidência estruturada do Pod;
 - hostname/path vindos de Ingress ou HTTPRoute; HTTPRoute usa URL scheme-relative porque o listener pode ser HTTP ou HTTPS;
+- observações de hostname/path propagadas aos Services referenciados e Pods correspondentes;
 - resolução preferencial `HTTPRoute/Ingress -> Service -> Pod`; sem rotas, fallback `Service -> Pod`;
 - Pods órfãos ficam fora do staging; Services sem selector, `ExternalName` ou endereço externo continuam elegíveis;
 - namespaces, CRD HTTPRoute ausente e erros de permissão tratados sem mutação;

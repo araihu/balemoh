@@ -42,6 +42,8 @@ type serviceRef struct {
 
 type serviceSet map[serviceRef]struct{}
 
+type serviceEndpointMap map[serviceRef][]catalog.Endpoint
+
 // Discoverer reads Kubernetes resources without mutating the cluster. The
 // sourceID must be stable for the lifetime of a cluster, preferably its UID.
 type Discoverer struct {
@@ -102,26 +104,27 @@ func (d *Discoverer) Discover(ctx context.Context) ([]catalog.Candidate, error) 
 	observedAt := time.Now().UTC()
 	candidates := make([]catalog.Candidate, 0)
 
-	httpRoutes, httpRouteServices, err := d.discoverHTTPRoutes(ctx, observedAt)
+	httpRoutes, httpRouteServices, httpRouteEndpoints, err := d.discoverHTTPRoutes(ctx, observedAt)
 	if err != nil {
 		return nil, err
 	}
 	candidates = append(candidates, httpRoutes...)
 
-	ingresses, ingressServices, err := d.discoverIngresses(ctx, observedAt)
+	ingresses, ingressServices, ingressEndpoints, err := d.discoverIngresses(ctx, observedAt)
 	if err != nil {
 		return nil, err
 	}
 	candidates = append(candidates, ingresses...)
 
 	routedServices := mergeServiceSets(httpRouteServices, ingressServices)
-	services, selectedServices, err := d.discoverServices(ctx, observedAt, routedServices, len(routedServices) > 0)
+	routedEndpoints := mergeServiceEndpointMaps(httpRouteEndpoints, ingressEndpoints)
+	services, selectedServices, err := d.discoverServices(ctx, observedAt, routedServices, routedEndpoints, len(routedServices) > 0)
 	if err != nil {
 		return nil, err
 	}
 	candidates = append(candidates, services...)
 
-	pods, err := d.discoverPods(ctx, observedAt, selectedServices)
+	pods, err := d.discoverPods(ctx, observedAt, selectedServices, routedEndpoints)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +134,7 @@ func (d *Discoverer) Discover(ctx context.Context) ([]catalog.Candidate, error) 
 	return candidates, nil
 }
 
-func (d *Discoverer) discoverServices(ctx context.Context, observedAt time.Time, routedServices serviceSet, routingPresent bool) ([]catalog.Candidate, map[serviceRef]corev1.Service, error) {
+func (d *Discoverer) discoverServices(ctx context.Context, observedAt time.Time, routedServices serviceSet, routedEndpoints serviceEndpointMap, routingPresent bool) ([]catalog.Candidate, map[serviceRef]corev1.Service, error) {
 	list, err := d.coreClient.Services(d.namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("list Kubernetes Services: %w", err)
@@ -155,13 +158,13 @@ func (d *Discoverer) discoverServices(ctx context.Context, observedAt time.Time,
 				candidate.Metadata["service.externalName"] = externalName
 			}
 		}
-		candidate.Endpoints = serviceEndpoints(service)
+		candidate.Endpoints = combineEndpoints(routedEndpoints[ref], serviceEndpoints(service))
 		candidates = append(candidates, candidate)
 	}
 	return candidates, selected, nil
 }
 
-func (d *Discoverer) discoverPods(ctx context.Context, observedAt time.Time, selectedServices map[serviceRef]corev1.Service) ([]catalog.Candidate, error) {
+func (d *Discoverer) discoverPods(ctx context.Context, observedAt time.Time, selectedServices map[serviceRef]corev1.Service, routedEndpoints serviceEndpointMap) ([]catalog.Candidate, error) {
 	list, err := d.coreClient.Pods(d.namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list Kubernetes Pods: %w", err)
@@ -177,59 +180,69 @@ func (d *Discoverer) discoverPods(ctx context.Context, observedAt time.Time, sel
 		if pod.Status.Phase != "" {
 			candidate.Metadata["pod.phase"] = string(pod.Status.Phase)
 		}
-		candidate.Images, candidate.Endpoints = podObservations(pod)
+		images, podEndpoints := podObservations(pod)
+		candidate.Images = images
+		publicEndpoints := make([]catalog.Endpoint, 0)
+		for _, ref := range matchedServices {
+			publicEndpoints = append(publicEndpoints, routedEndpoints[ref]...)
+		}
+		candidate.Endpoints = combineEndpoints(publicEndpoints, podEndpoints)
 		candidates = append(candidates, candidate)
 	}
 	return candidates, nil
 }
 
-func (d *Discoverer) discoverIngresses(ctx context.Context, observedAt time.Time) ([]catalog.Candidate, serviceSet, error) {
+func (d *Discoverer) discoverIngresses(ctx context.Context, observedAt time.Time) ([]catalog.Candidate, serviceSet, serviceEndpointMap, error) {
 	list, err := d.networkingClient.Ingresses(d.namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("list Kubernetes Ingresses: %w", err)
+		return nil, nil, nil, fmt.Errorf("list Kubernetes Ingresses: %w", err)
 	}
 	candidates := make([]catalog.Candidate, 0, len(list.Items))
 	services := make(serviceSet)
+	serviceEndpoints := make(serviceEndpointMap)
 	for _, ingress := range list.Items {
 		candidate := d.newCandidate("ingress", ingress.Namespace, ingress.Name, "Kubernetes Ingress", ingress.Labels, observedAt)
-		endpoints, refs := ingressEndpoints(ingress)
+		endpoints, refs, endpointsByService := ingressEndpointsByService(ingress)
 		candidate.Endpoints = endpoints
 		for ref := range refs {
 			services[ref] = struct{}{}
 		}
+		serviceEndpoints = mergeServiceEndpointMaps(serviceEndpoints, endpointsByService)
 		addServiceRefsMetadata(candidate.Metadata, refs)
 		candidates = append(candidates, candidate)
 	}
-	return candidates, services, nil
+	return candidates, services, serviceEndpoints, nil
 }
 
-func (d *Discoverer) discoverHTTPRoutes(ctx context.Context, observedAt time.Time) ([]catalog.Candidate, serviceSet, error) {
+func (d *Discoverer) discoverHTTPRoutes(ctx context.Context, observedAt time.Time) ([]catalog.Candidate, serviceSet, serviceEndpointMap, error) {
 	list, err := d.dynamicClient.Resource(httpRouteGVR).Namespace(d.namespace).List(ctx, metav1.ListOptions{})
 	if apierrors.IsNotFound(err) {
 		// Gateway API is optional. A cluster without the HTTPRoute CRD still
 		// yields the core Kubernetes candidates.
-		return []catalog.Candidate{}, make(serviceSet), nil
+		return []catalog.Candidate{}, make(serviceSet), make(serviceEndpointMap), nil
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("list Kubernetes HTTPRoutes: %w", err)
+		return nil, nil, nil, fmt.Errorf("list Kubernetes HTTPRoutes: %w", err)
 	}
 	candidates := make([]catalog.Candidate, 0, len(list.Items))
 	services := make(serviceSet)
+	serviceEndpoints := make(serviceEndpointMap)
 	for index := range list.Items {
 		route := &list.Items[index]
 		candidate := d.newCandidate("httproute", route.GetNamespace(), route.GetName(), "Kubernetes HTTPRoute", route.GetLabels(), observedAt)
-		endpoints, refs, err := httpRouteEndpoints(route)
+		endpoints, refs, endpointsByService, err := httpRouteEndpointsByService(route)
 		if err != nil {
-			return nil, nil, fmt.Errorf("read Kubernetes HTTPRoute %s/%s: %w", route.GetNamespace(), route.GetName(), err)
+			return nil, nil, nil, fmt.Errorf("read Kubernetes HTTPRoute %s/%s: %w", route.GetNamespace(), route.GetName(), err)
 		}
 		candidate.Endpoints = endpoints
 		for ref := range refs {
 			services[ref] = struct{}{}
 		}
+		serviceEndpoints = mergeServiceEndpointMaps(serviceEndpoints, endpointsByService)
 		addServiceRefsMetadata(candidate.Metadata, refs)
 		candidates = append(candidates, candidate)
 	}
-	return candidates, services, nil
+	return candidates, services, serviceEndpoints, nil
 }
 
 func (d *Discoverer) newCandidate(kind, namespace, name, description string, labels map[string]string, observedAt time.Time) catalog.Candidate {
@@ -266,6 +279,76 @@ func mergeServiceSets(sets ...serviceSet) serviceSet {
 		}
 	}
 	return merged
+}
+
+func mergeServiceEndpointMaps(maps ...serviceEndpointMap) serviceEndpointMap {
+	merged := make(serviceEndpointMap)
+	refs := make(serviceSet)
+	for _, endpointMap := range maps {
+		for ref := range endpointMap {
+			refs[ref] = struct{}{}
+		}
+	}
+	for _, ref := range sortedServiceRefs(refs) {
+		for _, endpointMap := range maps {
+			for _, endpoint := range endpointMap[ref] {
+				merged[ref] = appendUniqueEndpoint(merged[ref], endpoint)
+			}
+		}
+	}
+	return merged
+}
+
+func sortedServiceRefs(refs serviceSet) []serviceRef {
+	result := make([]serviceRef, 0, len(refs))
+	for ref := range refs {
+		result = append(result, ref)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].namespace != result[j].namespace {
+			return result[i].namespace < result[j].namespace
+		}
+		return result[i].name < result[j].name
+	})
+	return result
+}
+
+type endpointKey struct {
+	name     string
+	url      string
+	port     int
+	protocol string
+}
+
+func appendUniqueEndpoint(endpoints []catalog.Endpoint, endpoint catalog.Endpoint) []catalog.Endpoint {
+	wanted := endpointKey{
+		name:     endpoint.Name,
+		url:      endpoint.URL,
+		port:     endpoint.Port,
+		protocol: endpoint.Protocol,
+	}
+	for _, existing := range endpoints {
+		if (endpointKey{
+			name:     existing.Name,
+			url:      existing.URL,
+			port:     existing.Port,
+			protocol: existing.Protocol,
+		} == wanted) {
+			return endpoints
+		}
+	}
+	return append(endpoints, endpoint)
+}
+
+func combineEndpoints(primary, secondary []catalog.Endpoint) []catalog.Endpoint {
+	endpoints := make([]catalog.Endpoint, 0, len(primary)+len(secondary))
+	for _, endpoint := range primary {
+		endpoints = appendUniqueEndpoint(endpoints, endpoint)
+	}
+	for _, endpoint := range secondary {
+		endpoints = appendUniqueEndpoint(endpoints, endpoint)
+	}
+	return endpoints
 }
 
 func isExternalService(service corev1.Service) bool {
@@ -378,6 +461,11 @@ func podObservations(pod corev1.Pod) ([]string, []catalog.Endpoint) {
 }
 
 func ingressEndpoints(ingress networkingv1.Ingress) ([]catalog.Endpoint, serviceSet) {
+	endpoints, services, _ := ingressEndpointsByService(ingress)
+	return endpoints, services
+}
+
+func ingressEndpointsByService(ingress networkingv1.Ingress) ([]catalog.Endpoint, serviceSet, serviceEndpointMap) {
 	tlsHosts := make(map[string]struct{})
 	tlsAnyHost := false
 	for _, tls := range ingress.Spec.TLS {
@@ -391,6 +479,7 @@ func ingressEndpoints(ingress networkingv1.Ingress) ([]catalog.Endpoint, service
 
 	endpoints := make([]catalog.Endpoint, 0)
 	services := make(serviceSet)
+	endpointsByService := make(serviceEndpointMap)
 	for _, rule := range ingress.Spec.Rules {
 		if rule.HTTP == nil {
 			continue
@@ -401,37 +490,51 @@ func ingressEndpoints(ingress networkingv1.Ingress) ([]catalog.Endpoint, service
 		}
 		for _, path := range rule.HTTP.Paths {
 			name, port := ingressBackend(path.Backend)
-			if path.Backend.Service != nil && strings.TrimSpace(path.Backend.Service.Name) != "" {
-				services[serviceRef{namespace: ingress.Namespace, name: strings.TrimSpace(path.Backend.Service.Name)}] = struct{}{}
+			var ref serviceRef
+			backendIsService := path.Backend.Service != nil && strings.TrimSpace(path.Backend.Service.Name) != ""
+			if backendIsService {
+				ref = serviceRef{namespace: ingress.Namespace, name: strings.TrimSpace(path.Backend.Service.Name)}
+				services[ref] = struct{}{}
 			}
 			if name == "" {
 				name = "route"
 			}
-			endpoints = append(endpoints, catalog.Endpoint{
+			endpoint := catalog.Endpoint{
 				Name:       name,
 				URL:        absoluteRouteURL(scheme, rule.Host, path.Path),
 				Port:       port,
 				Protocol:   scheme,
 				Provenance: "kubernetes.ingress",
-			})
+			}
+			endpoints = append(endpoints, endpoint)
+			if backendIsService {
+				endpointsByService[ref] = appendUniqueEndpoint(endpointsByService[ref], endpoint)
+			}
 		}
 	}
 	if ingress.Spec.DefaultBackend != nil {
 		name, port := ingressBackend(*ingress.Spec.DefaultBackend)
-		if ingress.Spec.DefaultBackend.Service != nil && strings.TrimSpace(ingress.Spec.DefaultBackend.Service.Name) != "" {
-			services[serviceRef{namespace: ingress.Namespace, name: strings.TrimSpace(ingress.Spec.DefaultBackend.Service.Name)}] = struct{}{}
+		var ref serviceRef
+		backendIsService := ingress.Spec.DefaultBackend.Service != nil && strings.TrimSpace(ingress.Spec.DefaultBackend.Service.Name) != ""
+		if backendIsService {
+			ref = serviceRef{namespace: ingress.Namespace, name: strings.TrimSpace(ingress.Spec.DefaultBackend.Service.Name)}
+			services[ref] = struct{}{}
 		}
 		if name == "" {
 			name = "default-backend"
 		}
-		endpoints = append(endpoints, catalog.Endpoint{
+		endpoint := catalog.Endpoint{
 			Name:       name,
 			Port:       port,
 			Protocol:   "http",
 			Provenance: "kubernetes.ingress",
-		})
+		}
+		endpoints = append(endpoints, endpoint)
+		if backendIsService {
+			endpointsByService[ref] = appendUniqueEndpoint(endpointsByService[ref], endpoint)
+		}
 	}
-	return endpoints, services
+	return endpoints, services, endpointsByService
 }
 
 func ingressBackend(backend networkingv1.IngressBackend) (string, int) {
@@ -466,16 +569,21 @@ func hostIsTLS(host string, tlsHosts map[string]struct{}) bool {
 }
 
 func httpRouteEndpoints(route *unstructured.Unstructured) ([]catalog.Endpoint, serviceSet, error) {
+	endpoints, services, _, err := httpRouteEndpointsByService(route)
+	return endpoints, services, err
+}
+
+func httpRouteEndpointsByService(route *unstructured.Unstructured) ([]catalog.Endpoint, serviceSet, serviceEndpointMap, error) {
 	hostnames, found, err := unstructured.NestedStringSlice(route.Object, "spec", "hostnames")
 	if err != nil {
-		return nil, nil, fmt.Errorf("read hostnames: %w", err)
+		return nil, nil, nil, fmt.Errorf("read hostnames: %w", err)
 	}
 	if !found || len(hostnames) == 0 {
 		hostnames = []string{""}
 	}
 	rules, found, err := unstructured.NestedSlice(route.Object, "spec", "rules")
 	if err != nil {
-		return nil, nil, fmt.Errorf("read rules: %w", err)
+		return nil, nil, nil, fmt.Errorf("read rules: %w", err)
 	}
 	if !found {
 		rules = nil
@@ -483,37 +591,44 @@ func httpRouteEndpoints(route *unstructured.Unstructured) ([]catalog.Endpoint, s
 
 	endpoints := make([]catalog.Endpoint, 0)
 	services := make(serviceSet)
+	endpointsByService := make(serviceEndpointMap)
 	for ruleIndex, rawRule := range rules {
 		rule, ok := rawRule.(map[string]interface{})
 		if !ok {
-			return nil, nil, fmt.Errorf("rule %d has invalid shape", ruleIndex)
+			return nil, nil, nil, fmt.Errorf("rule %d has invalid shape", ruleIndex)
 		}
 		paths, err := httpRoutePaths(rule)
 		if err != nil {
-			return nil, nil, fmt.Errorf("read rule %d paths: %w", ruleIndex, err)
+			return nil, nil, nil, fmt.Errorf("read rule %d paths: %w", ruleIndex, err)
 		}
 		backends, err := httpRouteBackends(rule, route.GetNamespace(), ruleIndex)
 		if err != nil {
-			return nil, nil, fmt.Errorf("read rule %d backends: %w", ruleIndex, err)
+			return nil, nil, nil, fmt.Errorf("read rule %d backends: %w", ruleIndex, err)
 		}
 		for _, hostname := range hostnames {
 			for _, path := range paths {
 				for _, backend := range backends {
+					var ref serviceRef
 					if backend.service {
-						services[serviceRef{namespace: backend.namespace, name: backend.name}] = struct{}{}
+						ref = serviceRef{namespace: backend.namespace, name: backend.name}
+						services[ref] = struct{}{}
 					}
-					endpoints = append(endpoints, catalog.Endpoint{
+					endpoint := catalog.Endpoint{
 						Name:       backend.name,
 						URL:        schemeRelativeRouteURL(hostname, path),
 						Port:       backend.port,
 						Protocol:   "http",
 						Provenance: "kubernetes.httproute",
-					})
+					}
+					endpoints = append(endpoints, endpoint)
+					if backend.service {
+						endpointsByService[ref] = appendUniqueEndpoint(endpointsByService[ref], endpoint)
+					}
 				}
 			}
 		}
 	}
-	return endpoints, services, nil
+	return endpoints, services, endpointsByService, nil
 }
 
 func httpRoutePaths(rule map[string]interface{}) ([]string, error) {

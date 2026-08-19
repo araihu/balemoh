@@ -125,8 +125,8 @@ func TestDiscovererDiscoversRoutesServicesPodsAndImages(t *testing.T) {
 	}
 
 	service := byKind["service"]
-	if service.Metadata["label.app"] != "grafana" || len(service.Endpoints) != 1 || service.Endpoints[0].Port != 3000 || service.Endpoints[0].Provenance != "kubernetes.service" {
-		t.Fatalf("service candidate = %#v, want label and port observation", service)
+	if service.Metadata["label.app"] != "grafana" || !hasEndpointURL(service, "https://grafana.example.test/") || !hasEndpointURL(service, "//route.example.test/grafana") || !hasEndpointProvenance(service, "kubernetes.service") {
+		t.Fatalf("service candidate = %#v, want route URLs and service port observation", service)
 	}
 	if len(service.Images) != 0 {
 		t.Fatalf("service images = %#v, want empty", service.Images)
@@ -136,8 +136,8 @@ func TestDiscovererDiscoversRoutesServicesPodsAndImages(t *testing.T) {
 	if !reflect.DeepEqual(pod.Images, []string{"busybox:1.36", "grafana/grafana:11"}) {
 		t.Fatalf("pod images = %#v, want init/container images without duplicates", pod.Images)
 	}
-	if len(pod.Endpoints) != 1 || pod.Endpoints[0].Port != 3000 || pod.Endpoints[0].Protocol != "TCP" {
-		t.Fatalf("pod endpoints = %#v, want container port observation", pod.Endpoints)
+	if !hasEndpointURL(pod, "https://grafana.example.test/") || !hasEndpointURL(pod, "//route.example.test/grafana") || !hasEndpointProvenance(pod, "kubernetes.pod") {
+		t.Fatalf("pod endpoints = %#v, want route URLs and container port observation", pod.Endpoints)
 	}
 
 	ingress := byKind["ingress"]
@@ -248,6 +248,11 @@ func TestDiscovererPrioritizesHTTPRouteBackendsAndKeepsExternalServices(t *testi
 	}
 	if got := byIdentity["service/external"].Metadata["service.externalName"]; got != "outside.example.test" {
 		t.Fatalf("external service name = %q, want outside.example.test", got)
+	}
+	for _, identity := range []string{"service/routed", "pod/routed-0"} {
+		if !hasEndpointURL(byIdentity[identity], "//routed.example.test/") || !hasEndpointURL(byIdentity[identity], "http://routed.example.test/") {
+			t.Fatalf("%s endpoints = %#v, want HTTPRoute and Ingress host observations", identity, byIdentity[identity].Endpoints)
+		}
 	}
 }
 
@@ -365,4 +370,22 @@ func TestNewDiscovererRejectsMissingDependencies(t *testing.T) {
 
 func apiNotFoundError() error {
 	return apierrors.NewNotFound(schema.GroupResource{Group: httpRouteGVR.Group, Resource: httpRouteGVR.Resource}, "httproutes")
+}
+
+func hasEndpointURL(candidate catalog.Candidate, want string) bool {
+	for _, endpoint := range candidate.Endpoints {
+		if endpoint.URL == want {
+			return true
+		}
+	}
+	return false
+}
+
+func hasEndpointProvenance(candidate catalog.Candidate, want string) bool {
+	for _, endpoint := range candidate.Endpoints {
+		if endpoint.Provenance == want {
+			return true
+		}
+	}
+	return false
 }
