@@ -43,7 +43,7 @@ func run() error {
 		return err
 	}
 
-	server, db, err := constructServer(context.Background(), options, sqlite.RunMigrations, discoverers...)
+	server, db, catalogService, err := constructServerWithCatalog(context.Background(), options, sqlite.RunMigrations, discoverers...)
 	if err != nil {
 		return err
 	}
@@ -51,22 +51,28 @@ func run() error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go runDiscoverySync(ctx, catalogService, options.DiscoverySyncInterval)
 
 	return serve(ctx, server, server.ListenAndServe)
 }
 
 func constructServer(ctx context.Context, options config.Options, migrate func(*sql.DB) error, discoverers ...catalog.Discoverer) (*http.Server, *sql.DB, error) {
+	server, db, _, err := constructServerWithCatalog(ctx, options, migrate, discoverers...)
+	return server, db, err
+}
+
+func constructServerWithCatalog(ctx context.Context, options config.Options, migrate func(*sql.DB) error, discoverers ...catalog.Discoverer) (*http.Server, *sql.DB, *catalog.Service, error) {
 	if err := os.MkdirAll(filepath.Dir(options.DatabasePath), 0o755); err != nil {
-		return nil, nil, fmt.Errorf("create database directory: %w", err)
+		return nil, nil, nil, fmt.Errorf("create database directory: %w", err)
 	}
 
 	db, err := sqlite.Open(ctx, options.DatabasePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("open database: %w", err)
+		return nil, nil, nil, fmt.Errorf("open database: %w", err)
 	}
 	if err := migrate(db); err != nil {
 		_ = db.Close()
-		return nil, nil, fmt.Errorf("run migrations: %w", err)
+		return nil, nil, nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	queries := sqlc.New(db)
@@ -74,12 +80,12 @@ func constructServer(ctx context.Context, options config.Options, migrate func(*
 	publisher, err := configuredPublisher(options)
 	if err != nil {
 		_ = db.Close()
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	sourceTokens, err := configuredFederationSourceTokens(options)
 	if err != nil {
 		_ = db.Close()
-		return nil, nil, fmt.Errorf("configure federation source tokens: %w", err)
+		return nil, nil, nil, fmt.Errorf("configure federation source tokens: %w", err)
 	}
 	catalogService := catalog.NewServiceWithPublisher(sqlite.NewCatalogStore(db), publisher, discoverers...)
 	handler := httpadapter.NewHandlerWithFederation(
@@ -89,7 +95,45 @@ func constructServer(ctx context.Context, options config.Options, migrate func(*
 		sourceTokens,
 	)
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
-	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, nil
+	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, nil
+}
+
+type discoverySyncer interface {
+	Sync(context.Context) (catalog.SyncResult, error)
+}
+
+const discoverySyncTimeout = 30 * time.Second
+
+func runDiscoverySync(ctx context.Context, syncer discoverySyncer, interval time.Duration) {
+	if syncer == nil || interval <= 0 {
+		return
+	}
+
+	syncOnce := func() {
+		if ctx.Err() != nil {
+			return
+		}
+		syncContext, cancel := context.WithTimeout(ctx, discoverySyncTimeout)
+		defer cancel()
+		result, err := syncer.Sync(syncContext)
+		if err != nil {
+			log.Printf("discovery sync failed: %v", err)
+			return
+		}
+		log.Printf("discovery sync complete: sources=%d candidates=%d", result.Sources, result.Candidates)
+	}
+
+	syncOnce()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			syncOnce()
+		}
+	}
 }
 
 func configuredPublisher(options config.Options) (catalog.SnapshotPublisher, error) {

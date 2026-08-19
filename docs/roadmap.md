@@ -55,7 +55,7 @@ Fora desta base: timeout configurável, resolução de hostname e informer/exten
 Status: em execução.
 
 - adapter read-only com `client-go` typed para Pods/Services/Ingresses e dynamic client para Gateway API `HTTPRoutes`;
-- configuração in-cluster explícita por `BALEMOH_KUBERNETES_ENABLED`, source ID estável e namespace;
+- configuração in-cluster explícita por `BALEMOH_KUBERNETES_ENABLED` e source ID estável; namespace vazio permite escopo cluster-wide;
 - RBAC mínimo para ler Pods, Services, Ingresses e `HTTPRoutes`;
 - identidade por source ID + namespace + kind + name;
 - imagens de init containers, containers e ephemeral containers como evidência estruturada do Pod;
@@ -76,12 +76,15 @@ Status: MVP implementado para snapshots agente → gateway.
 - suporte a topologias mistas com vários clusters Kubernetes e hosts Docker/Podman;
 - snapshots reconciliam a fonte, removendo candidatos remotos ausentes não pinados;
 - pins continuam locais ao gateway para evitar sobrescrita de decisão do usuário;
+- sincronização automática inicial e periódica, além do endpoint manual;
 - sem acesso remoto direto a socket/RBAC, sem sync reverso de pins e sem federação transitiva.
 
 Fora desta base: registro dinâmico, rotação de credenciais, retries persistentes,
-status explícito para pins stale, scheduler e deduplicação lógica entre fontes.
+status explícito para pins stale, scheduler avançado e deduplicação lógica entre fontes.
 
 ### Fase 5 — Reconciliação e operação de discovery
+
+Status: sincronização inicial/periódica implementada; observabilidade operacional pendente.
 
 - sincronização periódica e execução manual;
 - status por fonte, duração, último sucesso e erro sanitizado;

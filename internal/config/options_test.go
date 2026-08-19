@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestParseEnvironmentUsesDefaults(t *testing.T) {
 	got, err := ParseEnvironment(map[string]string{})
@@ -12,6 +15,9 @@ func TestParseEnvironmentUsesDefaults(t *testing.T) {
 	}
 	if got.DatabasePath != "./data/balemoh.db" {
 		t.Fatalf("DatabasePath = %q", got.DatabasePath)
+	}
+	if got.DiscoverySyncInterval != 5*time.Minute {
+		t.Fatalf("DiscoverySyncInterval = %s, want 5m", got.DiscoverySyncInterval)
 	}
 	if got.ContainerEnabled {
 		t.Fatal("ContainerEnabled = true, want false by default")
@@ -28,6 +34,7 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	got, err := ParseEnvironment(map[string]string{
 		"BALEMOH_HTTP_ADDR":                  "127.0.0.1:9090",
 		"BALEMOH_DATABASE_PATH":              "/tmp/balemoh.db",
+		"BALEMOH_DISCOVERY_SYNC_INTERVAL":    "45s",
 		"BALEMOH_KUBERNETES_ENABLED":         "true",
 		"BALEMOH_KUBERNETES_SOURCE_ID":       "kind-balemoh",
 		"BALEMOH_KUBERNETES_NAMESPACE":       "balemoh-dev",
@@ -47,6 +54,9 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	}
 	if got.DatabasePath != "/tmp/balemoh.db" {
 		t.Fatalf("DatabasePath = %q", got.DatabasePath)
+	}
+	if got.DiscoverySyncInterval != 45*time.Second {
+		t.Fatalf("DiscoverySyncInterval = %s, want 45s", got.DiscoverySyncInterval)
 	}
 	if !got.KubernetesEnabled || got.KubernetesSourceID != "kind-balemoh" || got.KubernetesNamespace != "balemoh-dev" {
 		t.Fatalf("Kubernetes options = %#v, want enabled source and namespace", got)
@@ -80,32 +90,33 @@ func TestParseEnvironmentRejectsWhitespaceOnlyValues(t *testing.T) {
 	}
 }
 
-func TestParseEnvironmentRejectsEnabledKubernetesWithoutIdentityOrNamespace(t *testing.T) {
-	tests := []struct {
-		name string
-		env  map[string]string
-	}{
-		{
-			name: "source ID",
-			env: map[string]string{
-				"BALEMOH_KUBERNETES_ENABLED":   "true",
-				"BALEMOH_KUBERNETES_NAMESPACE": "balemoh-dev",
-			},
-		},
-		{
-			name: "namespace",
-			env: map[string]string{
-				"BALEMOH_KUBERNETES_ENABLED":   "true",
-				"BALEMOH_KUBERNETES_SOURCE_ID": "kind-balemoh",
-			},
-		},
+func TestParseEnvironmentRejectsEnabledKubernetesWithoutIdentity(t *testing.T) {
+	if _, err := ParseEnvironment(map[string]string{
+		"BALEMOH_KUBERNETES_ENABLED":   "true",
+		"BALEMOH_KUBERNETES_NAMESPACE": "balemoh-dev",
+	}); err == nil {
+		t.Fatal("ParseEnvironment() error = nil, want Kubernetes source ID validation error")
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if _, err := ParseEnvironment(test.env); err == nil {
-				t.Fatal("ParseEnvironment() error = nil, want Kubernetes validation error")
-			}
-		})
+}
+
+func TestParseEnvironmentAllowsClusterWideKubernetesDiscovery(t *testing.T) {
+	got, err := ParseEnvironment(map[string]string{
+		"BALEMOH_KUBERNETES_ENABLED":   "true",
+		"BALEMOH_KUBERNETES_SOURCE_ID": "homelab",
+	})
+	if err != nil {
+		t.Fatalf("ParseEnvironment() error = %v, want cluster-wide discovery to be valid", err)
+	}
+	if got.KubernetesNamespace != "" {
+		t.Fatalf("KubernetesNamespace = %q, want empty cluster-wide namespace", got.KubernetesNamespace)
+	}
+}
+
+func TestParseEnvironmentRejectsNegativeDiscoverySyncInterval(t *testing.T) {
+	if _, err := ParseEnvironment(map[string]string{
+		"BALEMOH_DISCOVERY_SYNC_INTERVAL": "-1s",
+	}); err == nil {
+		t.Fatal("ParseEnvironment() error = nil, want negative sync interval validation error")
 	}
 }
 

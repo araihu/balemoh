@@ -28,6 +28,8 @@ jobs:
       - name: Verify generated files
         run: |
           go generate ./...
+          (cd client && GOWORK=off go generate ./...)
+          (cd ui && GOWORK=off go generate ./...)
           git diff --exit-code
 
       - name: Test
@@ -38,10 +40,25 @@ jobs:
       - name: Build
         env:
           CGO_ENABLED: "0"
-        run: go build -o /tmp/balemoh ./cmd/balemoh
+        run: |
+          go build -o /tmp/balemoh ./cmd/balemoh
+          (cd ui && GOWORK=off go build -o /tmp/balemoh-ui ./cmd/balemoh-ui)
 
       - name: Vet
-        run: go vet ./...
+        run: |
+          go vet ./...
+          (cd client && GOWORK=off go vet ./...)
+          (cd ui && GOWORK=off go vet ./...)
 
       - name: Race test
-        run: go test -race ./...
+        run: |
+          go test -race ./...
+          (cd client && GOWORK=off go test -race ./...)
+          (cd ui && GOWORK=off go test -race ./...)
+
+      - name: Test nested modules
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          (cd client && GOWORK=off go test ./...)
+          (cd ui && GOWORK=off go test ./...)

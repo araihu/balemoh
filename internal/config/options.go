@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 )
@@ -15,11 +16,13 @@ type Options struct {
 	HTTPAddr string `env:"BALEMOH_HTTP_ADDR" envDefault:":8080"`
 	// DatabasePath is the path to Balemoh's SQLite database.
 	DatabasePath string `env:"BALEMOH_DATABASE_PATH" envDefault:"./data/balemoh.db"`
+	// DiscoverySyncInterval controls the initial and periodic discovery sync. Zero disables background synchronization.
+	DiscoverySyncInterval time.Duration `env:"BALEMOH_DISCOVERY_SYNC_INTERVAL" envDefault:"5m"`
 	// KubernetesEnabled enables the in-cluster Kubernetes discovery source.
 	KubernetesEnabled bool `env:"BALEMOH_KUBERNETES_ENABLED" envDefault:"false"`
 	// KubernetesSourceID is the stable identity used to scope Kubernetes candidates.
 	KubernetesSourceID string `env:"BALEMOH_KUBERNETES_SOURCE_ID"`
-	// KubernetesNamespace limits Kubernetes discovery to one namespace.
+	// KubernetesNamespace limits Kubernetes discovery to one namespace; empty discovers all namespaces.
 	KubernetesNamespace string `env:"BALEMOH_KUBERNETES_NAMESPACE"`
 	// ContainerEnabled enables the Docker-compatible Docker or Podman container discovery source.
 	ContainerEnabled bool `env:"BALEMOH_CONTAINER_ENABLED" envDefault:"false"`
@@ -65,12 +68,12 @@ func (o Options) Validate() error {
 	if strings.TrimSpace(o.DatabasePath) == "" {
 		return fmt.Errorf("database path must not be empty")
 	}
+	if o.DiscoverySyncInterval < 0 {
+		return fmt.Errorf("discovery sync interval must not be negative")
+	}
 	if o.KubernetesEnabled {
 		if strings.TrimSpace(o.KubernetesSourceID) == "" {
 			return fmt.Errorf("Kubernetes source ID must not be empty when discovery is enabled")
-		}
-		if strings.TrimSpace(o.KubernetesNamespace) == "" {
-			return fmt.Errorf("Kubernetes namespace must not be empty when discovery is enabled")
 		}
 	}
 	if o.ContainerEnabled {

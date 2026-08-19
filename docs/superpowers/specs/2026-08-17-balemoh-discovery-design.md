@@ -126,11 +126,12 @@ gateway instance
   └─ remote Balemoh Docker/Podman agent
 ```
 
-The MVP uses an outbound agent-to-gateway HTTP POST after a manual discovery
-sync. The gateway has no remote socket or Kubernetes RBAC dependency. Each
-snapshot carries its stable `SourceRef`; the gateway validates that every
-candidate belongs to that source and accepts it only when the source is in the
-configured `kind/id` allowlist. A shared Bearer token protects ingestion.
+The MVP uses an outbound agent-to-gateway HTTP POST after an initial and
+periodic discovery sync (with a manual endpoint for explicit refresh). The
+gateway has no remote socket or Kubernetes RBAC dependency. Each snapshot
+carries its stable `SourceRef`; the gateway validates that every candidate
+belongs to that source and accepts it only when the source is in the configured
+`kind/id` allowlist. Each registered source has its own Bearer token.
 Remote pins are omitted from the wire contract and never overwrite gateway
 pins. After upserting the complete snapshot, absent unpinned candidates from
 that source are removed; pinned candidates remain available for an explicit
@@ -270,7 +271,8 @@ scheme. An absent HTTPRoute CRD is an empty optional source; other read errors
 are propagated to the sync boundary.
 
 The composition root activates this adapter only with
-`BALEMOH_KUBERNETES_ENABLED=true`, a stable source ID, and a namespace. It uses
+`BALEMOH_KUBERNETES_ENABLED=true` and a stable source ID. An optional namespace
+limits reads to one namespace; an empty namespace enables cluster-wide reads. It uses
 `rest.InClusterConfig` and therefore consumes the pod ServiceAccount rather than
 reading a host kubeconfig or socket.
 

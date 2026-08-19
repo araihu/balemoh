@@ -1,0 +1,34 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: balemoh
+  labels:
+    app.kubernetes.io/name: balemoh
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: internal-gateway
+      namespace: default
+      sectionName: https
+  hostnames:
+    - balemoh.decastro.me
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: X-Forwarded-Proto
+                value: https
+              - name: X-Forwarded-Host
+                value: balemoh.decastro.me
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: ui
+          port: 8081
+          weight: 1

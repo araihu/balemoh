@@ -44,10 +44,48 @@ deployments:
           - name: http
             port: 8080
             containerPort: 8080
+  ui:
+    namespace: "${BALEMOH_NAMESPACE}"
+    helm:
+      chart:
+        name: component-chart
+        repo: https://charts.devspace.sh
+      values:
+        containers:
+        - name: balemoh-ui
+          image: golang:1.26-alpine
+          workingDir: /workspace
+          command:
+          - sh
+          - -c
+          - cd ui && go run ./cmd/balemoh-ui
+          env:
+          - name: BALEMOH_UI_HTTP_ADDR
+            value: 0.0.0.0:8081
+          - name: BALEMOH_UI_API_BASE_URL
+            value: http://app:8080
+          - name: BALEMOH_UI_REQUEST_TIMEOUT
+            value: 5s
+          - name: BALEMOH_UI_SHUTDOWN_TIMEOUT
+            value: 5s
+        automountServiceAccountToken: false
+        service:
+          ports:
+          - name: http
+            port: 8081
+            containerPort: 8081
+  route:
+    namespace: "${BALEMOH_NAMESPACE}"
+    kubectl:
+      manifests:
+      - ./devspace/httproute.yaml
 
 dev:
   app:
-    imageSelector: golang:1.26-alpine
+    labelSelector:
+      app.kubernetes.io/name: devspace-app
+      app.kubernetes.io/component: app
+    container: balemoh
     namespace: "${BALEMOH_NAMESPACE}"
     command:
     - sh
@@ -68,17 +106,51 @@ dev:
       - vendor/
       onUpload:
         restartContainer: true
+  ui:
+    labelSelector:
+      app.kubernetes.io/name: devspace-app
+      app.kubernetes.io/component: ui
+    container: balemoh-ui
+    namespace: "${BALEMOH_NAMESPACE}"
+    command:
+    - sh
+    - -c
+    - cd ui && go run ./cmd/balemoh-ui
+    restartHelper:
+      inject: true
+    workingDir: /workspace
+    ports:
+    - port: 8081:8081
+    sync:
+    - path: ./:/workspace
+      startContainer: true
+      excludePaths:
+      - .git/
+      - .devspace/
+      - data/
+      - vendor/
+      onUpload:
+        restartContainer: true
 
 pipelines:
   dev:
     run: |-
       create_deployments rbac
-      create_deployments app
-      start_dev app
+      create_deployments app ui
+      start_dev app ui
   deploy:
     run: |-
       create_deployments rbac
-      create_deployments app
+      create_deployments app ui
+  homelab:
+    run: |-
+      run_pipelines homelab-deploy
+      start_dev app ui
+  homelab-deploy:
+    run: |-
+      create_deployments rbac
+      create_deployments app ui
+      create_deployments route
   purge:
     run: |-
       stop_dev --all

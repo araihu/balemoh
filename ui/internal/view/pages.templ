@@ -1,0 +1,180 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/alert"
+	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/emptystate"
+	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/panel"
+	"github.com/araihu/goshtoso/components/table"
+)
+
+templ PageContent(data PageData) {
+	<section class="balemoh-content" aria-labelledby="balemoh-page-heading">
+		@pageheader.PageHeader(pageheader.Config{
+			Title: data.Title,
+			Description: data.Description,
+			TitleAttrs: templ.Attributes{"id": "balemoh-page-heading"},
+			Actions: PageActions(data),
+		})
+		if data.Error != "" {
+			@alert.Alert(alert.Config{Title: "Catálogo indisponível", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
+		}
+		if data.Notice != "" {
+			@alert.Alert(alert.Config{Title: "Atualização concluída", Description: data.Notice, Tone: alert.ToneSuccess, RootClass: "balemoh-alert"})
+		}
+		if data.Staging {
+			@StagingContent(data)
+		} else {
+			@HomepageContent(data)
+		}
+	</section>
+}
+
+templ PageActions(data PageData) {
+	if data.Staging {
+		<form method="post" action="/staging/sync">
+			@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary), button.WithSize(button.SizeSmall)) { Sync discovery }
+		</form>
+		@link.Link("/", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Homepage }
+	} else {
+		@link.Link("/staging", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Review staging }
+	}
+}
+
+templ HomepageContent(data PageData) {
+	@panel.Panel(panel.Config{
+		Density: panel.DensityCompact,
+		Header: PanelHeader("Pinned services", "Services currently visible on the Balemoh homepage."),
+		Body: ServiceTable(data),
+	})
+	if len(data.Services) == 0 && data.Error == "" {
+		@emptystate.EmptyState(emptystate.Config{
+			Title: "No pinned services",
+			Description: "Review discovered candidates in staging and pin the services you want to keep on the homepage.",
+			Action: ReviewStagingAction(),
+			RootClass: "balemoh-empty-state",
+		})
+	}
+}
+
+templ StagingContent(data PageData) {
+	@panel.Panel(panel.Config{
+		Density: panel.DensityCompact,
+		Header: PanelHeader("Discovered candidates", "Review the resource and endpoint evidence before pinning a service."),
+		Body: ServiceTable(data),
+	})
+	if len(data.Services) == 0 && data.Error == "" {
+		@emptystate.EmptyState(emptystate.Config{
+			Title: "No candidates yet",
+			Description: "Run discovery again when a cluster or host is connected to this Balemoh instance.",
+			Action: SyncAction(),
+			RootClass: "balemoh-empty-state",
+		})
+	}
+}
+
+templ SyncAction() {
+	<form method="post" action="/staging/sync">
+		@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary)) { Sync discovery }
+	</form>
+}
+
+templ ReviewStagingAction() {
+	@link.Link("/staging", link.WithAppearance(link.AppearanceButton)) { Review staging }
+}
+
+templ PanelHeader(title, description string) {
+	<div class="balemoh-panel-header">
+		<h2>{ title }</h2>
+		<p>{ description }</p>
+	</div>
+}
+
+templ ServiceTable(data PageData) {
+	if len(data.Services) > 0 {
+		<div class="balemoh-table-scroll">
+			@table.Table(table.Config{
+				ID: "balemoh-services",
+				Caption: "Discovered Balemoh services",
+				Columns: []table.Column{
+					{Key: "service", Label: "Service"},
+					{Key: "source", Label: "Source"},
+					{Key: "resource", Label: "Resource"},
+					{Key: "endpoint", Label: "Endpoints"},
+					{Key: "images", Label: "Images"},
+					{Key: "status", Label: "Status"},
+				},
+				Rows: serviceTableRows(data.Services, data.Staging),
+				RootClass: "balemoh-service-table",
+			})
+		</div>
+	} else if data.Error == "" {
+		<div class="balemoh-table-placeholder">No services in this view.</div>
+	}
+}
+
+templ ServiceIdentity(service Service) {
+	<div class="balemoh-service-identity">
+		<strong>{ service.DisplayName }</strong>
+		if service.Description != "" {
+			<span>{ service.Description }</span>
+		}
+		<code>{ service.ID }</code>
+	</div>
+}
+
+templ ServiceEndpoints(service Service) {
+	<div class="balemoh-endpoint-list">
+		if len(service.Endpoints) == 0 {
+			<span class="balemoh-muted">No endpoint</span>
+		} else {
+			for _, endpoint := range service.Endpoints {
+				if href := endpointHref(endpoint.URL); href != "" {
+					<a href={ templ.SafeURL(href) }>{ endpointSummary(endpoint) }</a>
+				} else {
+					<span>{ endpointSummary(endpoint) }</span>
+				}
+				if endpoint.Provenance != "" {
+					<small>{ endpoint.Provenance }</small>
+				}
+			}
+		}
+	</div>
+}
+
+templ ServiceImages(service Service) {
+	<div class="balemoh-image-list">
+		if len(service.Images) == 0 {
+			<span class="balemoh-muted">Not observed</span>
+		} else {
+			for _, image := range service.Images {
+				<code>{ image }</code>
+			}
+		}
+	</div>
+}
+
+templ ServiceStatus(service Service) {
+	if service.Pinned {
+		@badge.Badge(badge.Config{Label: "Pinned", Tone: badge.ToneSuccess, Appearance: badge.AppearanceSoft, Size: badge.SizeSM})
+	} else {
+		@badge.Badge(badge.Config{Label: "Staging", Tone: badge.ToneWarning, Appearance: badge.AppearanceSoft, Size: badge.SizeSM})
+	}
+}
+
+templ ServiceActions(service Service, staging bool) {
+	<div class="balemoh-service-actions">
+		if service.Pinned || !staging {
+			<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "unpin")) }>
+				@button.Button(button.WithType("submit"), button.WithTone(button.ToneSecondary), button.WithSize(button.SizeSmall)) { Unpin }
+			</form>
+		} else {
+			<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "pin")) }>
+				@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary), button.WithSize(button.SizeSmall)) { Pin to homepage }
+			</form>
+		}
+	</div>
+}

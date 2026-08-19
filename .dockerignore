@@ -1,0 +1,9 @@
+.git
+.github
+.devspace
+.data
+data
+*.db
+*.db-shm
+*.db-wal
+vendor

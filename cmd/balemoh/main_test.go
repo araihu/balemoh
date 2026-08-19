@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
 	"github.com/araihu/balemoh/internal/api/generated"
+	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/config"
 )
 
@@ -84,5 +86,52 @@ func TestConfiguredDiscoverersIncludesContainerSource(t *testing.T) {
 	}
 	if got := discoverers[0].Name(); got != "container/docker-local" {
 		t.Fatalf("discoverer name = %q, want container/docker-local", got)
+	}
+}
+
+type recordingSyncService struct {
+	calls chan struct{}
+}
+
+func (s *recordingSyncService) Sync(context.Context) (catalog.SyncResult, error) {
+	select {
+	case s.calls <- struct{}{}:
+	default:
+	}
+	return catalog.SyncResult{Sources: 1, Candidates: 1}, nil
+}
+
+func TestRunDiscoverySyncPerformsInitialAndPeriodicSync(t *testing.T) {
+	service := &recordingSyncService{calls: make(chan struct{}, 4)}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		runDiscoverySync(ctx, service, 5*time.Millisecond)
+		close(done)
+	}()
+
+	for call := 0; call < 2; call++ {
+		select {
+		case <-service.calls:
+		case <-time.After(250 * time.Millisecond):
+			t.Fatalf("timed out waiting for discovery sync call %d", call+1)
+		}
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(250 * time.Millisecond):
+		t.Fatal("runDiscoverySync() did not stop after context cancellation")
+	}
+}
+
+func TestRunDiscoverySyncDoesNothingWhenDisabled(t *testing.T) {
+	service := &recordingSyncService{calls: make(chan struct{}, 1)}
+	runDiscoverySync(context.Background(), service, 0)
+	select {
+	case <-service.calls:
+		t.Fatal("runDiscoverySync() called service with disabled interval")
+	default:
 	}
 }
