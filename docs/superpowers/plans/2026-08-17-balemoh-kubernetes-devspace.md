@@ -16,6 +16,7 @@
 - DevSpace uses the component chart and `golang:1.26-alpine` for repository sync and `go run`; it does not build or push an application image during local development.
 - `devspace run-pipeline kind` provisions/connects KinD; `devspace run-pipeline vind` provisions/connects vCluster in Docker. Teardown is explicit through `hack/dev-k8s.sh`.
 - `devspace run-pipeline homelab` reuses the existing homelab Gateway API and Pi-hole ExternalDNS setup, exposing the UI at `https://balemoh.decastro.me`; `homelab-deploy` performs the same resource deployment without starting DevSpace sync/port-forwarding. Both are separate from the `kind`/`vind` pipelines because those clusters do not provision the homelab Gateway.
+- DevSpace applies a read-only `ClusterRole`/`ClusterRoleBinding` by default and leaves `BALEMOH_KUBERNETES_NAMESPACE` empty, so all DevSpace environments discover across namespaces. The discoverer still stages Pods only when a Service, Ingress, or HTTPRoute cross-references them.
 
 ## Local workflow
 
@@ -25,7 +26,7 @@ devspace run-pipeline kind
 devspace run-pipeline vind
 ```
 
-The pipeline creates the `balemoh-dev` namespace, applies `devspace/rbac.yaml`, deploys the API and UI components, forwards `8080` and `8081`, and syncs the repository to `/workspace`. The `homelab` pipeline also applies `devspace/httproute.yaml` after both Services exist. Gateway API CRDs are not installed automatically in local clusters; the adapter remains useful when they are absent.
+The pipeline creates the `balemoh-dev` namespace, applies the cluster-wide read-only `devspace/rbac.yaml`, deploys the API and UI components, forwards `8080` and `8081`, and syncs the repository to `/workspace`. The `homelab` pipeline also applies `devspace/httproute.yaml`. Gateway API CRDs are not installed automatically in local clusters; the adapter remains useful when they are absent.
 
 ## Verification
 

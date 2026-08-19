@@ -4,7 +4,7 @@ metadata:
   name: balemoh-discoverer
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: balemoh-discoverer
 rules:
@@ -32,13 +32,14 @@ rules:
   - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: balemoh-discoverer
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: ClusterRole
   name: balemoh-discoverer
 subjects:
 - kind: ServiceAccount
   name: balemoh-discoverer
+  namespace: balemoh-dev

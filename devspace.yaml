@@ -3,6 +3,7 @@ name: balemoh
 
 vars:
   BALEMOH_NAMESPACE: balemoh-dev
+  BALEMOH_KUBERNETES_NAMESPACE: ""
   BALEMOH_SOURCE_ID: devspace-local
 
 deployments:
@@ -36,7 +37,7 @@ deployments:
           - name: BALEMOH_KUBERNETES_SOURCE_ID
             value: "${BALEMOH_SOURCE_ID}"
           - name: BALEMOH_KUBERNETES_NAMESPACE
-            value: "${BALEMOH_NAMESPACE}"
+            value: "${BALEMOH_KUBERNETES_NAMESPACE}"
         serviceAccountName: balemoh-discoverer
         automountServiceAccountToken: true
         service:

@@ -189,8 +189,11 @@ The `kind` and `vind` pipelines create or connect the local cluster, then run
 the normal `dev` pipeline. The `homelab` pipeline additionally applies
 `devspace/httproute.yaml`, which binds the UI to the existing
 `default/internal-gateway` HTTPS listener at `balemoh.decastro.me`. The app's
-RBAC is limited to `get/list` for Pods, Services, Ingresses, and HTTPRoutes in
-`${BALEMOH_NAMESPACE}`; the UI does not receive a Kubernetes token.
+RBAC is read-only cluster-wide for Pods, Services, Ingresses, and HTTPRoutes;
+the UI does not receive a Kubernetes token. `BALEMOH_KUBERNETES_NAMESPACE` is
+empty by default, so discovery lists those resources across all namespaces.
+Pod candidates are still emitted only when a Service, Ingress, or HTTPRoute
+cross-references them.
 
 The homelab pipeline expects the Gateway API CRD, Envoy Gateway's `internal`
 GatewayClass, the `default/internal-gateway`, and the internal TLS certificate
