@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,6 +28,12 @@ type Publisher struct {
 }
 
 func NewPublisher(gatewayURL, token string) (*Publisher, error) {
+	return NewPublisherWithOptions(gatewayURL, token, false)
+}
+
+// NewPublisherWithOptions constructs a publisher. Plain HTTP is accepted only
+// when explicitly enabled for a loopback development gateway.
+func NewPublisherWithOptions(gatewayURL, token string, allowInsecureHTTP bool) (*Publisher, error) {
 	gatewayURL = strings.TrimSpace(gatewayURL)
 	token = strings.TrimSpace(token)
 	if token == "" {
@@ -34,6 +42,14 @@ func NewPublisher(gatewayURL, token string) (*Publisher, error) {
 	parsed, err := url.Parse(gatewayURL)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return nil, errors.New("federation gateway URL must be an absolute HTTP(S) URL without credentials, query, or fragment")
+	}
+	if parsed.Scheme == "http" {
+		if !allowInsecureHTTP {
+			return nil, errors.New("federation gateway URL must use HTTPS unless insecure HTTP is explicitly enabled")
+		}
+		if !isLoopbackHost(parsed.Hostname()) {
+			return nil, errors.New("insecure federation HTTP is restricted to a loopback gateway")
+		}
 	}
 	parsed.Path = strings.TrimRight(parsed.Path, "/") + snapshotPath
 	return &Publisher{
@@ -46,6 +62,14 @@ func NewPublisher(gatewayURL, token string) (*Publisher, error) {
 			},
 		},
 	}, nil
+}
+
+func isLoopbackHost(hostname string) bool {
+	if strings.EqualFold(strings.TrimSpace(hostname), "localhost") {
+		return true
+	}
+	ip := net.ParseIP(strings.Trim(hostname, "[]"))
+	return ip != nil && ip.IsLoopback()
 }
 
 func (p *Publisher) Publish(ctx context.Context, snapshot catalog.Snapshot) error {
@@ -73,8 +97,15 @@ func (p *Publisher) Publish(ctx context.Context, snapshot catalog.Snapshot) erro
 		return fmt.Errorf("send federation snapshot: %w", err)
 	}
 	defer response.Body.Close()
-	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("federation gateway returned HTTP status %d", response.StatusCode)
+	}
+	var result generated.DiscoverySyncResponse
+	if err := json.NewDecoder(io.LimitReader(response.Body, 64<<10)).Decode(&result); err != nil {
+		return errors.New("federation gateway returned an invalid synchronization response")
+	}
+	if result.Sources != 1 || result.Candidates != int32(len(snapshot.Candidates)) {
+		return fmt.Errorf("federation gateway acknowledged sources=%d candidates=%d, want sources=1 candidates=%d", result.Sources, result.Candidates, len(snapshot.Candidates))
 	}
 	return nil
 }

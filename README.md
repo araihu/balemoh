@@ -100,11 +100,12 @@ local e, após `POST /api/v1/discovery/sync`, envia um snapshot autenticado para
 o gateway. O gateway não precisa de acesso ao socket Docker nem ao RBAC do
 cluster remoto; mantém uma visão única no próprio staging.
 
-Configure o gateway com token de ingestão e registro explícito das fontes:
+Configure o gateway com registro explícito das fontes e um Bearer token
+independente para cada fonte:
 
 ```sh
-BALEMOH_FEDERATION_INGEST_TOKEN=gateway-secret \
 BALEMOH_FEDERATION_ALLOWED_SOURCES=container/docker-local,kubernetes/cluster-1 \
+BALEMOH_FEDERATION_SOURCE_TOKENS=container/docker-local=container-secret,kubernetes/cluster-1=kubernetes-secret \
 go run ./cmd/balemoh
 ```
 
@@ -112,7 +113,7 @@ Configure cada agente com a URL e o token emitido pelo gateway:
 
 ```sh
 BALEMOH_FEDERATION_GATEWAY_URL=https://balemoh-gateway.example.test \
-BALEMOH_FEDERATION_TOKEN=agent-secret \
+BALEMOH_FEDERATION_TOKEN=container-secret \
 BALEMOH_CONTAINER_ENABLED=true \
 BALEMOH_CONTAINER_SOURCE_ID=docker-local \
 go run ./cmd/balemoh
@@ -121,8 +122,11 @@ go run ./cmd/balemoh
 O snapshot preserva fonte, recurso, imagens, endpoints e provenance. Pins não
 são enviados: cada gateway controla seus próprios pins. A importação reconcilia
 a fonte: remove candidatos remotos ausentes que ainda não foram pinados e
-preserva pins locais. O MVP ainda não faz sync reverso de pins, federação
-transitiva ou execução periódica; use o endpoint de sync manual.
+preserva pins locais. Cada fonte remota tem credencial própria; fontes locais e
+remotas com a mesma identidade são rejeitadas na configuração. O MVP ainda não
+faz sync reverso de pins, federação transitiva ou execução periódica; use o
+endpoint de sync manual. Produção deve usar HTTPS; HTTP só é aceito com opt-in
+explícito para gateway loopback local.
 
 ## Local Kubernetes development
 

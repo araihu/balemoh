@@ -19,7 +19,7 @@ func TestParseEnvironmentUsesDefaults(t *testing.T) {
 	if got.ContainerHost != "unix:///var/run/docker.sock" {
 		t.Fatalf("ContainerHost = %q, want default Docker socket", got.ContainerHost)
 	}
-	if got.FederationGatewayURL != "" || got.FederationToken != "" || got.FederationIngestToken != "" || len(got.FederationAllowedSources) != 0 {
+	if got.FederationGatewayURL != "" || got.FederationToken != "" || got.FederationAllowInsecureHTTP || len(got.FederationAllowedSources) != 0 || len(got.FederationSourceTokens) != 0 {
 		t.Fatalf("federation options = %#v, want disabled by default", got)
 	}
 }
@@ -36,8 +36,8 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 		"BALEMOH_CONTAINER_HOST":             "unix:///Users/test/.docker/run/docker.sock",
 		"BALEMOH_FEDERATION_GATEWAY_URL":     "https://gateway.example.test/balemoh",
 		"BALEMOH_FEDERATION_TOKEN":           "agent-secret",
-		"BALEMOH_FEDERATION_INGEST_TOKEN":    "gateway-secret",
 		"BALEMOH_FEDERATION_ALLOWED_SOURCES": "kubernetes/cluster-1,container/docker-local",
+		"BALEMOH_FEDERATION_SOURCE_TOKENS":   "kubernetes/cluster-1=kubernetes-secret,container/docker-local=container-secret",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -57,7 +57,7 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	if got.FederationGatewayURL != "https://gateway.example.test/balemoh" || got.FederationToken != "agent-secret" {
 		t.Fatalf("federation publisher options = %#v", got)
 	}
-	if got.FederationIngestToken != "gateway-secret" || len(got.FederationAllowedSources) != 2 || got.FederationAllowedSources[1] != "container/docker-local" {
+	if len(got.FederationAllowedSources) != 2 || got.FederationAllowedSources[1] != "container/docker-local" || len(got.FederationSourceTokens) != 2 {
 		t.Fatalf("federation gateway options = %#v", got)
 	}
 }
@@ -142,15 +142,29 @@ func TestParseEnvironmentRejectsPartialFederationConfiguration(t *testing.T) {
 	tests := []map[string]string{
 		{"BALEMOH_FEDERATION_GATEWAY_URL": "https://gateway.example.test"},
 		{"BALEMOH_FEDERATION_TOKEN": "agent-secret"},
-		{"BALEMOH_FEDERATION_INGEST_TOKEN": "gateway-secret"},
 		{"BALEMOH_FEDERATION_ALLOWED_SOURCES": "container/docker-local"},
+		{"BALEMOH_FEDERATION_SOURCE_TOKENS": "container/docker-local=secret"},
 		{"BALEMOH_FEDERATION_GATEWAY_URL": "ftp://gateway.example.test", "BALEMOH_FEDERATION_TOKEN": "agent-secret"},
 		{"BALEMOH_FEDERATION_GATEWAY_URL": "https://gateway.example.test?token=secret", "BALEMOH_FEDERATION_TOKEN": "agent-secret"},
-		{"BALEMOH_FEDERATION_INGEST_TOKEN": "gateway-secret", "BALEMOH_FEDERATION_ALLOWED_SOURCES": "docker-local"},
+		{"BALEMOH_FEDERATION_ALLOWED_SOURCES": "container/docker-local"},
+		{"BALEMOH_FEDERATION_ALLOWED_SOURCES": "container/docker-local", "BALEMOH_FEDERATION_SOURCE_TOKENS": "container/docker-local=secret,container/docker-local=other"},
+		{"BALEMOH_CONTAINER_ENABLED": "true", "BALEMOH_CONTAINER_SOURCE_ID": "docker-local", "BALEMOH_FEDERATION_ALLOWED_SOURCES": "container/docker-local", "BALEMOH_FEDERATION_SOURCE_TOKENS": "container/docker-local=secret"},
+		{"BALEMOH_FEDERATION_GATEWAY_URL": "http://gateway.example.test", "BALEMOH_FEDERATION_TOKEN": "agent-secret", "BALEMOH_FEDERATION_ALLOW_INSECURE_HTTP": "true"},
 	}
 	for index, environment := range tests {
 		if _, err := ParseEnvironment(environment); err == nil {
 			t.Fatalf("case %d: ParseEnvironment() error = nil, want federation validation error", index)
 		}
+	}
+}
+
+func TestParseEnvironmentAllowsLoopbackHTTPOnlyWithExplicitOptIn(t *testing.T) {
+	valid := map[string]string{
+		"BALEMOH_FEDERATION_GATEWAY_URL":         "http://127.0.0.1:8080",
+		"BALEMOH_FEDERATION_TOKEN":               "agent-secret",
+		"BALEMOH_FEDERATION_ALLOW_INSECURE_HTTP": "true",
+	}
+	if _, err := ParseEnvironment(valid); err != nil {
+		t.Fatalf("ParseEnvironment() error = %v, want loopback HTTP to be allowed with opt-in", err)
 	}
 }

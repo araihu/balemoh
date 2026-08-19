@@ -32,11 +32,12 @@ func TestPublisherPostsSnapshotWithoutPinState(t *testing.T) {
 			t.Fatalf("marshal raw payload: %v", err)
 		}
 		receivedJSON = string(encoded)
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"sources":1,"candidates":1}`))
 	}))
 	defer server.Close()
 
-	publisher, err := NewPublisher(server.URL, token)
+	publisher, err := NewPublisherWithOptions(server.URL, token, true)
 	if err != nil {
 		t.Fatalf("NewPublisher() error = %v", err)
 	}
@@ -68,10 +69,36 @@ func TestNewPublisherRejectsUnsafeGatewayURL(t *testing.T) {
 		"ftp://gateway.example.test",
 		"https://user:pass@gateway.example.test",
 		"https://gateway.example.test/?token=secret",
+		"http://127.0.0.1:8080",
 	} {
 		if _, err := NewPublisher(gatewayURL, "token"); err == nil {
 			t.Fatalf("NewPublisher(%q) error = nil, want validation error", gatewayURL)
 		}
+	}
+}
+
+func TestPublisherRequiresExactAcknowledgementStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	publisher, err := NewPublisherWithOptions(server.URL, "token", true)
+	if err != nil {
+		t.Fatalf("NewPublisherWithOptions() error = %v", err)
+	}
+	candidate := catalog.NewCandidate(
+		catalog.SourceRef{Kind: "container", ID: "docker-local"},
+		catalog.ResourceRef{Kind: "container", Name: "whoami"},
+		time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC),
+	)
+	err = publisher.Publish(context.Background(), catalog.Snapshot{
+		Source:     candidate.Source,
+		Candidates: []catalog.Candidate{candidate},
+		ObservedAt: candidate.ObservedAt,
+	})
+	if err == nil || !strings.Contains(err.Error(), "HTTP status 204") {
+		t.Fatalf("Publish() error = %v, want exact-status failure", err)
 	}
 }
 
@@ -81,7 +108,7 @@ func TestPublisherSanitizesGatewayFailure(t *testing.T) {
 	}))
 	defer server.Close()
 
-	publisher, err := NewPublisher(server.URL, "token")
+	publisher, err := NewPublisherWithOptions(server.URL, "token", true)
 	if err != nil {
 		t.Fatalf("NewPublisher() error = %v", err)
 	}

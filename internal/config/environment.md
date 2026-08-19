@@ -14,5 +14,6 @@ Options contains Balemoh's runtime environment configuration.
  - `BALEMOH_CONTAINER_HOST` (default: `unix:///var/run/docker.sock`) - ContainerHost is the Docker-compatible API socket or endpoint.
  - `BALEMOH_FEDERATION_GATEWAY_URL` - FederationGatewayURL is the remote Balemoh gateway receiving local snapshots.
  - `BALEMOH_FEDERATION_TOKEN` - FederationToken authenticates this instance when publishing snapshots.
- - `BALEMOH_FEDERATION_INGEST_TOKEN` - FederationIngestToken authenticates remote agents sending snapshots here.
+ - `BALEMOH_FEDERATION_ALLOW_INSECURE_HTTP` (default: `false`) - FederationAllowInsecureHTTP permits an explicitly configured loopback HTTP gateway for local development.
  - `BALEMOH_FEDERATION_ALLOWED_SOURCES` - FederationAllowedSources registers source identities accepted by this gateway, formatted as kind/id entries.
+ - `BALEMOH_FEDERATION_SOURCE_TOKENS` - FederationSourceTokens maps registered source identities to Bearer credentials, formatted as kind/id=token entries.

@@ -100,10 +100,28 @@ FROM discovered_services
 WHERE pinned_at IS NOT NULL
 ORDER BY lower(display_name), id;
 
--- name: DeleteUnpinnedCandidate :exec
-DELETE FROM discovered_services
-WHERE id = sqlc.arg(id)
-  AND pinned_at IS NULL;
+-- name: GetDiscoverySourceSnapshot :one
+SELECT
+    source_kind,
+    source_id,
+    observed_at
+FROM discovery_source_snapshots
+WHERE source_kind = sqlc.arg(source_kind)
+  AND source_id = sqlc.arg(source_id)
+LIMIT 1;
+
+-- name: UpsertDiscoverySourceSnapshot :exec
+INSERT INTO discovery_source_snapshots (
+    source_kind,
+    source_id,
+    observed_at
+) VALUES (
+    sqlc.arg(source_kind),
+    sqlc.arg(source_id),
+    sqlc.arg(observed_at)
+)
+ON CONFLICT (source_kind, source_id) DO UPDATE SET
+    observed_at = excluded.observed_at;
 
 -- name: DeleteServiceEndpoints :exec
 DELETE FROM service_endpoints

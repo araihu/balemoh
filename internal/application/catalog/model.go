@@ -74,6 +74,9 @@ func (s Snapshot) Validate() error {
 	if s.Source.ID == "" {
 		return errors.New("snapshot source ID must not be empty")
 	}
+	if strings.ContainsRune(s.Source.Kind, '/') {
+		return errors.New("snapshot source kind must not contain /")
+	}
 	if strings.ContainsRune(s.Source.Kind, '\x00') || strings.ContainsRune(s.Source.ID, '\x00') {
 		return errors.New("snapshot source identity must not contain NUL")
 	}
@@ -171,6 +174,9 @@ func (c Candidate) Validate() error {
 	}
 	if c.Source.ID == "" {
 		return errors.New("source ID must not be empty")
+	}
+	if strings.ContainsRune(c.Source.Kind, '/') {
+		return errors.New("source kind must not contain /")
 	}
 	if strings.ContainsRune(c.Source.Kind, '\x00') || strings.ContainsRune(c.Source.ID, '\x00') || strings.ContainsRune(c.Resource.Kind, '\x00') || strings.ContainsRune(c.Resource.Namespace, '\x00') || strings.ContainsRune(c.Resource.Name, '\x00') {
 		return errors.New("source and resource identity must not contain NUL")

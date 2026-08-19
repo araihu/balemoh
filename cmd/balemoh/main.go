@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -75,13 +76,17 @@ func constructServer(ctx context.Context, options config.Options, migrate func(*
 		_ = db.Close()
 		return nil, nil, err
 	}
+	sourceTokens, err := configuredFederationSourceTokens(options)
+	if err != nil {
+		_ = db.Close()
+		return nil, nil, fmt.Errorf("configure federation source tokens: %w", err)
+	}
 	catalogService := catalog.NewServiceWithPublisher(sqlite.NewCatalogStore(db), publisher, discoverers...)
 	handler := httpadapter.NewHandlerWithFederation(
 		healthService,
 		catalogService,
 		catalogService,
-		options.FederationIngestToken,
-		options.FederationAllowedSources,
+		sourceTokens,
 	)
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, nil
@@ -91,11 +96,31 @@ func configuredPublisher(options config.Options) (catalog.SnapshotPublisher, err
 	if options.FederationGatewayURL == "" {
 		return nil, nil
 	}
-	publisher, err := federationadapter.NewPublisher(options.FederationGatewayURL, options.FederationToken)
+	publisher, err := federationadapter.NewPublisherWithOptions(options.FederationGatewayURL, options.FederationToken, options.FederationAllowInsecureHTTP)
 	if err != nil {
 		return nil, fmt.Errorf("configure federation publisher: %w", err)
 	}
 	return publisher, nil
+}
+
+func configuredFederationSourceTokens(options config.Options) (map[catalog.SourceRef]string, error) {
+	tokens := make(map[catalog.SourceRef]string, len(options.FederationSourceTokens))
+	for _, raw := range options.FederationSourceTokens {
+		parts := strings.SplitN(strings.TrimSpace(raw), "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("source token must use kind/id=token format")
+		}
+		sourceParts := strings.SplitN(strings.TrimSpace(parts[0]), "/", 2)
+		if len(sourceParts) != 2 || strings.TrimSpace(sourceParts[0]) == "" || strings.TrimSpace(sourceParts[1]) == "" || strings.TrimSpace(parts[1]) == "" {
+			return nil, fmt.Errorf("source token must use kind/id=token format")
+		}
+		source := catalog.SourceRef{Kind: strings.TrimSpace(sourceParts[0]), ID: strings.TrimSpace(sourceParts[1])}
+		if _, exists := tokens[source]; exists {
+			return nil, fmt.Errorf("source tokens must not contain duplicates")
+		}
+		tokens[source] = strings.TrimSpace(parts[1])
+	}
+	return tokens, nil
 }
 
 func configuredDiscoverers(options config.Options) ([]catalog.Discoverer, error) {

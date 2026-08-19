@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -209,6 +210,131 @@ func TestCatalogServiceImportSnapshotReconcilesSQLiteSourceAndPreservesPins(t *t
 	}
 	if _, ok := byID[unrelated.ID]; !ok {
 		t.Fatal("unrelated source candidate was deleted")
+	}
+}
+
+func TestCatalogServiceImportSnapshotIgnoresOlderCompleteSnapshot(t *testing.T) {
+	store := NewCatalogStore(newCatalogTestDatabase(t))
+	source := catalog.SourceRef{Kind: "container", ID: "remote-host"}
+	newerAt := time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC)
+	first := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "first"}, newerAt)
+	second := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "second"}, newerAt)
+	second.Endpoints = []catalog.Endpoint{{Name: "web", URL: "https://second.example.test/", Port: 443, Protocol: "https", Provenance: "snapshot"}}
+	service := catalog.NewService(store)
+	if _, err := service.ImportSnapshot(context.Background(), catalog.Snapshot{
+		Source:     source,
+		Candidates: []catalog.Candidate{first, second},
+		ObservedAt: newerAt,
+	}); err != nil {
+		t.Fatalf("newer ImportSnapshot() error = %v", err)
+	}
+
+	olderAt := newerAt.Add(-time.Hour)
+	if _, err := service.ImportSnapshot(context.Background(), catalog.Snapshot{
+		Source:     source,
+		Candidates: nil,
+		ObservedAt: olderAt,
+	}); err != nil {
+		t.Fatalf("older ImportSnapshot() error = %v", err)
+	}
+	services, err := store.List(context.Background(), false)
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	byID := make(map[string]catalog.Candidate, len(services))
+	for _, candidate := range services {
+		byID[candidate.ID] = candidate
+	}
+	if len(byID) != 2 {
+		t.Fatalf("candidates after older snapshot = %#v, want both newer candidates", byID)
+	}
+	if len(byID[second.ID].Endpoints) != 1 {
+		t.Fatalf("second endpoints after older snapshot = %#v, want preserved", byID[second.ID].Endpoints)
+	}
+}
+
+func TestCatalogStoreSourceReplacementRollsBackOnEndpointFailure(t *testing.T) {
+	db := newCatalogTestDatabase(t)
+	store := NewCatalogStore(db)
+	source := catalog.SourceRef{Kind: "container", ID: "remote-host"}
+	candidate := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "new"}, time.Date(2026, 8, 17, 15, 0, 0, 0, time.UTC))
+	candidate.Endpoints = []catalog.Endpoint{{Name: "web", URL: "https://new.example.test/", Port: 443, Protocol: "https", Provenance: "fail"}}
+	if _, err := db.ExecContext(context.Background(), `
+		CREATE TRIGGER fail_snapshot_endpoint
+		BEFORE INSERT ON service_endpoints
+		WHEN NEW.provenance = 'fail'
+		BEGIN
+			SELECT RAISE(ABORT, 'forced endpoint failure');
+		END;
+	`); err != nil {
+		t.Fatalf("create failure trigger: %v", err)
+	}
+
+	_, err := store.ReplaceSourceSnapshot(context.Background(), catalog.Snapshot{
+		Source:     source,
+		Candidates: []catalog.Candidate{candidate},
+		ObservedAt: candidate.ObservedAt,
+	})
+	if err == nil {
+		t.Fatal("ReplaceSourceSnapshot() error = nil, want rollback failure")
+	}
+	services, listErr := store.List(context.Background(), false)
+	if listErr != nil {
+		t.Fatalf("List() after rollback error = %v", listErr)
+	}
+	for _, service := range services {
+		if service.ID == candidate.ID {
+			t.Fatal("failed source replacement left the candidate committed")
+		}
+	}
+	var watermarkCount int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM discovery_source_snapshots WHERE source_kind = ? AND source_id = ?`, source.Kind, source.ID).Scan(&watermarkCount); err != nil {
+		t.Fatalf("query source watermark after rollback: %v", err)
+	}
+	if watermarkCount != 0 {
+		t.Fatalf("source watermark count = %d, want 0 after rollback", watermarkCount)
+	}
+}
+
+func TestCatalogStoreConcurrentSourceReplacementsDoNotMixSnapshots(t *testing.T) {
+	store := NewCatalogStore(newCatalogTestDatabase(t))
+	source := catalog.SourceRef{Kind: "container", ID: "remote-host"}
+	observedAt := time.Date(2026, 8, 17, 16, 0, 0, 0, time.UTC)
+	first := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "first"}, observedAt)
+	second := catalog.NewCandidate(source, catalog.ResourceRef{Kind: "container", Name: "second"}, observedAt)
+
+	start := make(chan struct{})
+	errorsCh := make(chan error, 2)
+	var waitGroup sync.WaitGroup
+	for _, candidate := range []catalog.Candidate{first, second} {
+		candidate := candidate
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			<-start
+			_, err := store.ReplaceSourceSnapshot(context.Background(), catalog.Snapshot{
+				Source:     source,
+				Candidates: []catalog.Candidate{candidate},
+				ObservedAt: observedAt,
+			})
+			errorsCh <- err
+		}()
+	}
+	close(start)
+	waitGroup.Wait()
+	close(errorsCh)
+	for err := range errorsCh {
+		if err != nil {
+			t.Fatalf("concurrent ReplaceSourceSnapshot() error = %v", err)
+		}
+	}
+
+	services, err := store.List(context.Background(), false)
+	if err != nil {
+		t.Fatalf("List() after concurrent replacements error = %v", err)
+	}
+	if len(services) != 1 || (services[0].ID != first.ID && services[0].ID != second.ID) {
+		t.Fatalf("concurrent replacement result = %#v, want exactly one complete snapshot", services)
 	}
 }
 

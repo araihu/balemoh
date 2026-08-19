@@ -32,9 +32,11 @@ type fakeSnapshotImporter struct {
 	snapshot catalog.Snapshot
 	result   catalog.SyncResult
 	err      error
+	called   bool
 }
 
 func (f *fakeSnapshotImporter) ImportSnapshot(_ context.Context, snapshot catalog.Snapshot) (catalog.SyncResult, error) {
+	f.called = true
 	f.snapshot = snapshot
 	return f.result, f.err
 }
@@ -232,7 +234,7 @@ func TestFederationImportRequiresAuthenticationAndRegistration(t *testing.T) {
 	catalogService := &fakeCatalog{}
 	importer := &fakeSnapshotImporter{}
 	handler := generated.HandlerFromMux(
-		adapterhttp.NewHandlerWithFederation(fakeChecker{}, catalogService, importer, "gateway-secret", []string{"container/docker-local"}),
+		adapterhttp.NewHandlerWithFederation(fakeChecker{}, catalogService, importer, map[catalog.SourceRef]string{{Kind: "container", ID: "docker-local"}: "gateway-secret"}),
 		http.NewServeMux(),
 	)
 	payload := federationPayload(httpTestCandidate(false))
@@ -271,7 +273,7 @@ func TestFederationImportStoresSnapshotAndDoesNotImportPins(t *testing.T) {
 	catalogService := &fakeCatalog{}
 	importer := &fakeSnapshotImporter{result: catalog.SyncResult{Sources: 1, Candidates: 1}}
 	handler := generated.HandlerFromMux(
-		adapterhttp.NewHandlerWithFederation(fakeChecker{}, catalogService, importer, "gateway-secret", []string{"kubernetes/cluster-1"}),
+		adapterhttp.NewHandlerWithFederation(fakeChecker{}, catalogService, importer, map[catalog.SourceRef]string{{Kind: "kubernetes", ID: "cluster-1"}: "gateway-secret"}),
 		http.NewServeMux(),
 	)
 	payload := federationPayload(httpTestCandidate(true))
@@ -299,6 +301,81 @@ func TestFederationImportStoresSnapshotAndDoesNotImportPins(t *testing.T) {
 	}
 	if response.Sources != 1 || response.Candidates != 1 {
 		t.Fatalf("response = %#v, want sources=1 candidates=1", response)
+	}
+}
+
+func TestFederationImportRejectsOmittedCandidates(t *testing.T) {
+	importer := &fakeSnapshotImporter{}
+	handler := generated.HandlerFromMux(
+		adapterhttp.NewHandlerWithFederation(fakeChecker{}, &fakeCatalog{}, importer, map[catalog.SourceRef]string{{Kind: "kubernetes", ID: "cluster-1"}: "gateway-secret"}),
+		http.NewServeMux(),
+	)
+	body, err := json.Marshal(map[string]any{
+		"source":     map[string]string{"kind": "kubernetes", "id": "cluster-1"},
+		"observedAt": "2026-08-17T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/federation/snapshots", strings.NewReader(string(body)))
+	request.Header.Set("Authorization", "Bearer gateway-secret")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+	}
+	if importer.called {
+		t.Fatal("importer was called for a payload without candidates")
+	}
+}
+
+func TestFederationImportRejectsOversizedTrailingPayload(t *testing.T) {
+	handler := generated.HandlerFromMux(
+		adapterhttp.NewHandlerWithFederation(fakeChecker{}, &fakeCatalog{}, &fakeSnapshotImporter{}, map[catalog.SourceRef]string{{Kind: "kubernetes", ID: "cluster-1"}: "gateway-secret"}),
+		http.NewServeMux(),
+	)
+	payload, err := json.Marshal(federationPayload(httpTestCandidate(false)))
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	body := append(payload, []byte(strings.Repeat(" ", (2<<20)+1))...)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/federation/snapshots", strings.NewReader(string(body)))
+	request.Header.Set("Authorization", "Bearer gateway-secret")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusRequestEntityTooLarge)
+	}
+}
+
+func TestFederationImportBindsCredentialsToSource(t *testing.T) {
+	first := catalog.SourceRef{Kind: "kubernetes", ID: "cluster-1"}
+	second := catalog.SourceRef{Kind: "container", ID: "docker-local"}
+	importer := &fakeSnapshotImporter{result: catalog.SyncResult{Sources: 1, Candidates: 1}}
+	handler := generated.HandlerFromMux(
+		adapterhttp.NewHandlerWithFederation(fakeChecker{}, &fakeCatalog{}, importer, map[catalog.SourceRef]string{
+			first:  "cluster-secret",
+			second: "container-secret",
+		}),
+		http.NewServeMux(),
+	)
+	candidate := catalog.NewCandidate(second, catalog.ResourceRef{Kind: "container", Name: "whoami"}, time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC))
+	payload, err := json.Marshal(federationPayload(candidate))
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/federation/snapshots", strings.NewReader(string(payload)))
+	request.Header.Set("Authorization", "Bearer cluster-secret")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusUnauthorized)
+	}
+	if importer.called {
+		t.Fatal("importer was called with a credential for another source")
 	}
 }
 

@@ -20,17 +20,6 @@ func (q *Queries) DeleteServiceEndpoints(ctx context.Context, serviceID string) 
 	return err
 }
 
-const deleteUnpinnedCandidate = `-- name: DeleteUnpinnedCandidate :exec
-DELETE FROM discovered_services
-WHERE id = ?1
-  AND pinned_at IS NULL
-`
-
-func (q *Queries) DeleteUnpinnedCandidate(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteUnpinnedCandidate, id)
-	return err
-}
-
 const getDiscoveredService = `-- name: GetDiscoveredService :one
 SELECT
     id,
@@ -88,6 +77,29 @@ func (q *Queries) GetDiscoveredService(ctx context.Context, id string) (GetDisco
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
+	return i, err
+}
+
+const getDiscoverySourceSnapshot = `-- name: GetDiscoverySourceSnapshot :one
+SELECT
+    source_kind,
+    source_id,
+    observed_at
+FROM discovery_source_snapshots
+WHERE source_kind = ?1
+  AND source_id = ?2
+LIMIT 1
+`
+
+type GetDiscoverySourceSnapshotParams struct {
+	SourceKind string `json:"source_kind"`
+	SourceID   string `json:"source_id"`
+}
+
+func (q *Queries) GetDiscoverySourceSnapshot(ctx context.Context, arg GetDiscoverySourceSnapshotParams) (DiscoverySourceSnapshot, error) {
+	row := q.db.QueryRowContext(ctx, getDiscoverySourceSnapshot, arg.SourceKind, arg.SourceID)
+	var i DiscoverySourceSnapshot
+	err := row.Scan(&i.SourceKind, &i.SourceID, &i.ObservedAt)
 	return i, err
 }
 
@@ -443,5 +455,30 @@ func (q *Queries) UpsertDiscoveredService(ctx context.Context, arg UpsertDiscove
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
+	return err
+}
+
+const upsertDiscoverySourceSnapshot = `-- name: UpsertDiscoverySourceSnapshot :exec
+INSERT INTO discovery_source_snapshots (
+    source_kind,
+    source_id,
+    observed_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3
+)
+ON CONFLICT (source_kind, source_id) DO UPDATE SET
+    observed_at = excluded.observed_at
+`
+
+type UpsertDiscoverySourceSnapshotParams struct {
+	SourceKind string `json:"source_kind"`
+	SourceID   string `json:"source_id"`
+	ObservedAt string `json:"observed_at"`
+}
+
+func (q *Queries) UpsertDiscoverySourceSnapshot(ctx context.Context, arg UpsertDiscoverySourceSnapshotParams) error {
+	_, err := q.db.ExecContext(ctx, upsertDiscoverySourceSnapshot, arg.SourceKind, arg.SourceID, arg.ObservedAt)
 	return err
 }

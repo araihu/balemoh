@@ -1,0 +1,1 @@
+DROP TABLE discovery_source_snapshots;

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -30,10 +31,12 @@ type Options struct {
 	FederationGatewayURL string `env:"BALEMOH_FEDERATION_GATEWAY_URL"`
 	// FederationToken authenticates this instance when publishing snapshots.
 	FederationToken string `env:"BALEMOH_FEDERATION_TOKEN"`
-	// FederationIngestToken authenticates remote agents sending snapshots here.
-	FederationIngestToken string `env:"BALEMOH_FEDERATION_INGEST_TOKEN"`
+	// FederationAllowInsecureHTTP permits an explicitly configured loopback HTTP gateway for local development.
+	FederationAllowInsecureHTTP bool `env:"BALEMOH_FEDERATION_ALLOW_INSECURE_HTTP" envDefault:"false"`
 	// FederationAllowedSources registers source identities accepted by this gateway, formatted as kind/id entries.
 	FederationAllowedSources []string `env:"BALEMOH_FEDERATION_ALLOWED_SOURCES" envSeparator:","`
+	// FederationSourceTokens maps registered source identities to Bearer credentials, formatted as kind/id=token entries.
+	FederationSourceTokens []string `env:"BALEMOH_FEDERATION_SOURCE_TOKENS" envSeparator:","`
 }
 
 // Load parses the process environment into runtime configuration.
@@ -88,22 +91,82 @@ func (o Options) Validate() error {
 		if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 			return fmt.Errorf("federation gateway URL must be an absolute HTTP(S) URL without credentials, query, or fragment")
 		}
+		if parsed.Scheme == "http" {
+			if !o.FederationAllowInsecureHTTP {
+				return fmt.Errorf("federation gateway URL must use HTTPS unless insecure HTTP is explicitly enabled")
+			}
+			if !isLoopbackHost(parsed.Hostname()) {
+				return fmt.Errorf("insecure federation HTTP is restricted to a loopback gateway")
+			}
+		}
 	}
 
-	ingestTokenSet := strings.TrimSpace(o.FederationIngestToken) != ""
-	if ingestTokenSet != (len(o.FederationAllowedSources) > 0) {
-		return fmt.Errorf("federation ingest token and allowed sources must be configured together")
-	}
+	allowed := make(map[string]struct{}, len(o.FederationAllowedSources))
 	for _, rawSource := range o.FederationAllowedSources {
-		source := strings.TrimSpace(rawSource)
-		parts := strings.SplitN(source, "/", 2)
-		normalizedSource := ""
-		if len(parts) == 2 {
-			normalizedSource = strings.TrimSpace(parts[0]) + "/" + strings.TrimSpace(parts[1])
+		source, err := parseFederationSource(rawSource)
+		if err != nil {
+			return err
 		}
-		if source == "" || len(parts) != 2 || normalizedSource != source || strings.ContainsRune(source, '\x00') {
-			return fmt.Errorf("federation allowed source %q must use kind/id format", source)
+		if _, exists := allowed[source]; exists {
+			return fmt.Errorf("federation allowed sources must not contain duplicates")
+		}
+		allowed[source] = struct{}{}
+	}
+	if len(o.FederationSourceTokens) != len(allowed) {
+		if len(allowed) == 0 {
+			if len(o.FederationSourceTokens) > 0 {
+				return fmt.Errorf("federation source tokens require allowed sources")
+			}
+		} else {
+			return fmt.Errorf("federation source tokens must provide one credential per allowed source")
+		}
+	}
+	seenTokens := make(map[string]struct{}, len(o.FederationSourceTokens))
+	for _, rawToken := range o.FederationSourceTokens {
+		parts := strings.SplitN(strings.TrimSpace(rawToken), "=", 2)
+		if len(parts) != 2 || strings.TrimSpace(parts[1]) == "" {
+			return fmt.Errorf("federation source tokens must use kind/id=token format")
+		}
+		source, err := parseFederationSource(parts[0])
+		if err != nil {
+			return fmt.Errorf("federation source token has invalid source: %w", err)
+		}
+		if _, ok := allowed[source]; !ok {
+			return fmt.Errorf("federation source token references an unregistered source")
+		}
+		if _, exists := seenTokens[source]; exists {
+			return fmt.Errorf("federation source tokens must not contain duplicates")
+		}
+		seenTokens[source] = struct{}{}
+	}
+	localSources := make(map[string]struct{}, 2)
+	if o.KubernetesEnabled {
+		localSources["kubernetes/"+strings.TrimSpace(o.KubernetesSourceID)] = struct{}{}
+	}
+	if o.ContainerEnabled {
+		localSources["container/"+strings.TrimSpace(o.ContainerSourceID)] = struct{}{}
+	}
+	for source := range allowed {
+		if _, overlaps := localSources[source]; overlaps {
+			return fmt.Errorf("federation source %q cannot be both local and remote", source)
 		}
 	}
 	return nil
+}
+
+func parseFederationSource(raw string) (string, error) {
+	source := strings.TrimSpace(raw)
+	parts := strings.SplitN(source, "/", 2)
+	if source == "" || len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" || strings.TrimSpace(parts[0]) != parts[0] || strings.TrimSpace(parts[1]) != parts[1] || strings.ContainsRune(parts[0], '\x00') || strings.ContainsRune(parts[1], '\x00') || strings.ContainsRune(parts[0], '=') || strings.ContainsRune(parts[1], '=') {
+		return "", fmt.Errorf("federation allowed source %q must use kind/id format", source)
+	}
+	return parts[0] + "/" + parts[1], nil
+}
+
+func isLoopbackHost(hostname string) bool {
+	if strings.EqualFold(strings.TrimSpace(hostname), "localhost") {
+		return true
+	}
+	ip := net.ParseIP(strings.Trim(hostname, "[]"))
+	return ip != nil && ip.IsLoopback()
 }

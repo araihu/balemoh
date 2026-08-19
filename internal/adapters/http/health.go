@@ -14,28 +14,28 @@ type Handler struct {
 	checker          health.Checker
 	catalog          catalog.UseCase
 	federation       catalog.SnapshotImporter
-	federationToken  string
-	allowedFederated map[string]struct{}
+	federationTokens map[catalog.SourceRef]string
 }
 
 func NewHandler(checker health.Checker, catalogService catalog.UseCase) generated.ServerInterface {
 	return Handler{checker: checker, catalog: catalogService}
 }
 
-func NewHandlerWithFederation(checker health.Checker, catalogService catalog.UseCase, importer catalog.SnapshotImporter, token string, allowedSources []string) generated.ServerInterface {
-	allowed := make(map[string]struct{}, len(allowedSources))
-	for _, source := range allowedSources {
-		source = strings.TrimSpace(source)
-		if source != "" {
-			allowed[source] = struct{}{}
+func NewHandlerWithFederation(checker health.Checker, catalogService catalog.UseCase, importer catalog.SnapshotImporter, sourceTokens map[catalog.SourceRef]string) generated.ServerInterface {
+	tokens := make(map[catalog.SourceRef]string, len(sourceTokens))
+	for source, token := range sourceTokens {
+		source.Kind = strings.TrimSpace(source.Kind)
+		source.ID = strings.TrimSpace(source.ID)
+		token = strings.TrimSpace(token)
+		if source.Kind != "" && source.ID != "" && token != "" {
+			tokens[source] = token
 		}
 	}
 	return Handler{
 		checker:          checker,
 		catalog:          catalogService,
 		federation:       importer,
-		federationToken:  strings.TrimSpace(token),
-		allowedFederated: allowed,
+		federationTokens: tokens,
 	}
 }
 

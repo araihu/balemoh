@@ -11,8 +11,8 @@ import (
 
 type CatalogStore interface {
 	Upsert(context.Context, Candidate) error
+	ReplaceSourceSnapshot(context.Context, Snapshot) (SnapshotApplyResult, error)
 	List(context.Context, bool) ([]Candidate, error)
-	DeleteUnpinned(context.Context, string) error
 	SetPinned(context.Context, string, bool) (Candidate, error)
 }
 
@@ -45,6 +45,13 @@ type UseCase interface {
 
 type SyncResult struct {
 	Sources    int
+	Candidates int
+}
+
+// SnapshotApplyResult reports the result of an atomic source replacement.
+// Replayed snapshots are acknowledged but do not mutate the catalog.
+type SnapshotApplyResult struct {
+	Applied    bool
 	Candidates int
 }
 
@@ -116,32 +123,16 @@ func (s *Service) ImportSnapshot(ctx context.Context, snapshot Snapshot) (SyncRe
 	if err := snapshot.Validate(); err != nil {
 		return SyncResult{}, fmt.Errorf("%w: %v", ErrInvalidSnapshot, err)
 	}
-	keep := make(map[string]struct{}, len(snapshot.Candidates))
-	for _, candidate := range snapshot.Candidates {
+	for index := range snapshot.Candidates {
 		// Gateway pin state is local. SQLite upsert preserves an existing local
 		// pin, while a new imported candidate starts unpinned.
-		candidate.PinnedAt = nil
-		if err := s.store.Upsert(ctx, candidate); err != nil {
-			return SyncResult{}, fmt.Errorf("store imported candidate: %w", err)
-		}
-		keep[candidate.ID] = struct{}{}
+		snapshot.Candidates[index].PinnedAt = nil
 	}
-	known, err := s.store.List(ctx, false)
+	result, err := s.store.ReplaceSourceSnapshot(ctx, snapshot)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("list candidates for imported source reconciliation: %w", err)
+		return SyncResult{}, fmt.Errorf("replace imported source snapshot: %w", err)
 	}
-	for _, candidate := range known {
-		if candidate.Source != snapshot.Source || candidate.PinnedAt != nil {
-			continue
-		}
-		if _, ok := keep[candidate.ID]; ok {
-			continue
-		}
-		if err := s.store.DeleteUnpinned(ctx, candidate.ID); err != nil {
-			return SyncResult{}, fmt.Errorf("remove stale imported candidate: %w", err)
-		}
-	}
-	return SyncResult{Sources: 1, Candidates: len(snapshot.Candidates)}, nil
+	return SyncResult{Sources: 1, Candidates: result.Candidates}, nil
 }
 
 var ErrInvalidSnapshot = errors.New("invalid federation snapshot")

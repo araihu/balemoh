@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/catalog"
@@ -15,30 +16,16 @@ import (
 const maxFederationSnapshotBytes = 2 << 20
 
 func (h Handler) ImportFederationSnapshot(w http.ResponseWriter, r *http.Request) {
-	if h.federation == nil || h.federationToken == "" {
+	if h.federation == nil || len(h.federationTokens) == 0 {
 		writeJSON(w, http.StatusNotFound, generated.ErrorResponse{
 			Code:    "federation_disabled",
 			Message: "federation ingestion is not enabled",
 		})
 		return
 	}
-	if !validBearerToken(r.Header.Get("Authorization"), h.federationToken) {
-		writeJSON(w, http.StatusUnauthorized, generated.ErrorResponse{
-			Code:    "unauthorized",
-			Message: "invalid federation credentials",
-		})
-		return
-	}
 
-	var payload generated.FederationSnapshot
-	decoder := json.NewDecoder(io.LimitReader(r.Body, maxFederationSnapshotBytes))
-	if err := decoder.Decode(&payload); err != nil {
-		writeInvalidFederationSnapshot(w)
-		return
-	}
-	var extra any
-	if err := decoder.Decode(&extra); err != io.EOF {
-		writeInvalidFederationSnapshot(w)
+	payload, ok := decodeFederationSnapshot(w, r)
+	if !ok {
 		return
 	}
 	snapshot, err := federationSnapshot(payload)
@@ -46,10 +33,25 @@ func (h Handler) ImportFederationSnapshot(w http.ResponseWriter, r *http.Request
 		writeInvalidFederationSnapshot(w)
 		return
 	}
-	if _, ok := h.allowedFederated[sourceKey(snapshot.Source)]; !ok {
+	expectedToken, registered := h.federationTokens[snapshot.Source]
+	if !registered {
+		if strings.TrimSpace(r.Header.Get("Authorization")) == "" {
+			writeJSON(w, http.StatusUnauthorized, generated.ErrorResponse{
+				Code:    "unauthorized",
+				Message: "invalid federation credentials",
+			})
+			return
+		}
 		writeJSON(w, http.StatusForbidden, generated.ErrorResponse{
 			Code:    "source_not_registered",
 			Message: "federation source is not registered",
+		})
+		return
+	}
+	if !validBearerToken(r.Header.Get("Authorization"), expectedToken) {
+		writeJSON(w, http.StatusUnauthorized, generated.ErrorResponse{
+			Code:    "unauthorized",
+			Message: "invalid federation credentials",
 		})
 		return
 	}
@@ -70,6 +72,49 @@ func (h Handler) ImportFederationSnapshot(w http.ResponseWriter, r *http.Request
 		Sources:    int32(result.Sources),
 		Candidates: int32(result.Candidates),
 	})
+}
+
+type federationSnapshotEnvelope struct {
+	Source     *generated.SourceRef            `json:"source"`
+	Candidates *[]generated.FederatedCandidate `json:"candidates"`
+	ObservedAt *time.Time                      `json:"observedAt"`
+}
+
+func decodeFederationSnapshot(w http.ResponseWriter, r *http.Request) (generated.FederationSnapshot, bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxFederationSnapshotBytes)
+	decoder := json.NewDecoder(r.Body)
+	var envelope federationSnapshotEnvelope
+	if err := decoder.Decode(&envelope); err != nil {
+		if isRequestTooLarge(err) {
+			writeFederationPayloadTooLarge(w)
+		} else {
+			writeInvalidFederationSnapshot(w)
+		}
+		return generated.FederationSnapshot{}, false
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if isRequestTooLarge(err) {
+			writeFederationPayloadTooLarge(w)
+		} else {
+			writeInvalidFederationSnapshot(w)
+		}
+		return generated.FederationSnapshot{}, false
+	}
+	if envelope.Source == nil || envelope.Candidates == nil || envelope.ObservedAt == nil {
+		writeInvalidFederationSnapshot(w)
+		return generated.FederationSnapshot{}, false
+	}
+	return generated.FederationSnapshot{
+		Source:     *envelope.Source,
+		Candidates: *envelope.Candidates,
+		ObservedAt: *envelope.ObservedAt,
+	}, true
+}
+
+func isRequestTooLarge(err error) bool {
+	var maxBytesError *http.MaxBytesError
+	return errors.As(err, &maxBytesError)
 }
 
 func federationSnapshot(payload generated.FederationSnapshot) (catalog.Snapshot, error) {
@@ -107,14 +152,11 @@ func federationSnapshot(payload generated.FederationSnapshot) (catalog.Snapshot,
 		Candidates: candidates,
 		ObservedAt: payload.ObservedAt,
 	}
+	snapshot = snapshot.Normalize()
 	if err := snapshot.Validate(); err != nil {
 		return catalog.Snapshot{}, err
 	}
 	return snapshot, nil
-}
-
-func sourceKey(source catalog.SourceRef) string {
-	return strings.TrimSpace(source.Kind) + "/" + strings.TrimSpace(source.ID)
 }
 
 func validBearerToken(header, expected string) bool {
@@ -131,6 +173,13 @@ func writeInvalidFederationSnapshot(w http.ResponseWriter) {
 	writeJSON(w, http.StatusBadRequest, generated.ErrorResponse{
 		Code:    "invalid_snapshot",
 		Message: "invalid federation snapshot",
+	})
+}
+
+func writeFederationPayloadTooLarge(w http.ResponseWriter) {
+	writeJSON(w, http.StatusRequestEntityTooLarge, generated.ErrorResponse{
+		Code:    "payload_too_large",
+		Message: "federation snapshot exceeds the maximum size",
 	})
 }
 

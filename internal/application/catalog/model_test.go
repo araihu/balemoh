@@ -140,6 +140,15 @@ func TestCandidateValidateRejectsInvalidValues(t *testing.T) {
 			}(),
 			want: "NUL",
 		},
+		"slash in source kind": {
+			candidate: func() Candidate {
+				candidate := base
+				candidate.Source.Kind = "container/host"
+				candidate.ID = StableID(candidate.Source, candidate.Resource)
+				return candidate
+			}(),
+			want: "source kind",
+		},
 	}
 
 	for name, test := range tests {

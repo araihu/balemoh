@@ -182,8 +182,8 @@ Application ports:
 ```go
 type CatalogStore interface {
     Upsert(context.Context, Candidate) error
+    ReplaceSourceSnapshot(context.Context, Snapshot) (SnapshotApplyResult, error)
     List(context.Context, bool) ([]Candidate, error)
-    DeleteUnpinned(context.Context, string) error
     SetPinned(context.Context, string, bool) (Candidate, error)
 }
 
@@ -220,17 +220,20 @@ HTTP behavior:
 - platform/database error details never reach the client.
 - federation ingestion returns `401` for invalid Bearer credentials, `403` for
   an unregistered source, `400` for an invalid snapshot, and `404` when
-  ingestion is disabled.
+  ingestion is disabled; payloads above the bounded request limit return `413`.
 
 `BALEMOH_FEDERATION_GATEWAY_URL` plus `BALEMOH_FEDERATION_TOKEN` enables the
-agent publisher. `BALEMOH_FEDERATION_INGEST_TOKEN` plus
-`BALEMOH_FEDERATION_ALLOWED_SOURCES` enables gateway ingestion. Configuration
-requires each pair together; production deployments should use HTTPS.
+agent publisher. `BALEMOH_FEDERATION_ALLOWED_SOURCES` plus
+`BALEMOH_FEDERATION_SOURCE_TOKENS` enables gateway ingestion, with one
+credential per registered `kind/id` source. Configuration rejects duplicate or
+overlapping local/remote identities; production deployments should use HTTPS.
+Plain HTTP is restricted to explicitly opted-in loopback development gateways.
 
 ## Persistence
 
 Migration `000002_catalog` adds the candidate and endpoint tables. Migration
-`000003_catalog_images` adds the structured image observations:
+`000003_catalog_images` adds the structured image observations, and migration
+`000004_federation_snapshots` stores the per-source federation watermark:
 
 ```text
 discovered_services
@@ -240,6 +243,9 @@ discovered_services
 
 service_endpoints
   id, service_id, name, url, port, protocol, provenance
+
+discovery_source_snapshots
+  source_kind, source_id, observed_at
 ```
 
 `service_endpoints.service_id` references `discovered_services.id` with cascading delete. Upsert runs in one transaction: write the candidate, replace its endpoint rows, and commit. Pin state is updated separately and survives candidate upserts.
@@ -320,13 +326,15 @@ Required gates for this slice:
 - `go generate ./...` leaves generated API and sqlc output stable;
 - domain tests cover stable identity, default display name, validation, and idempotent pin behavior;
 - application tests cover sync/upsert and discoverer error propagation;
-- SQLite tests cover migration version `3`, restart, candidate upsert, image/endpoint replacement, pin preservation, and homepage filtering;
+- SQLite tests cover migration version `4`, restart, candidate upsert, image/endpoint replacement, pin preservation, atomic source replacement, watermark replay protection, and homepage filtering;
 - Kubernetes fake-client tests cover route/Ingress-to-Service-to-Pod resolution, Service fallback, external Services, Pod image extraction, orphan-Pod filtering, namespace filtering, optional HTTPRoute CRD, and permission errors;
 - container fake-client tests cover running-container selection, image and Compose service aggregation, published host ports, host IPs, wildcard bindings, Podman Compose labels, and daemon errors;
 - DevSpace artifacts cover namespace-scoped RBAC and local KinD/vind setup without creating a cluster during repository verification;
 - HTTP tests cover list, pin, unpin, homepage, sync, 404, 503, and generic error bodies;
-- federation tests cover snapshot validation, source allowlisting, Bearer auth,
--  pin-state omission, source reconciliation, and publisher failure sanitization;
+- federation tests cover presence-aware payload validation, source allowlisting,
+  per-source Bearer auth, payload limits, pin-state omission, source
+  reconciliation, watermark replay protection, transactional replacement, and
+  publisher failure sanitization;
 - `go test ./...`, `go vet ./...`, `go test -race ./...`, and `git diff --check` pass;
 - CGO-disabled test/build remains valid.
 

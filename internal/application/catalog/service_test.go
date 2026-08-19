@@ -10,24 +10,15 @@ import (
 )
 
 type fakeStore struct {
-	candidates map[string]Candidate
-	listPinned []bool
-	upserts    []Candidate
-	deletions  []string
-	setPins    []struct {
+	candidates   map[string]Candidate
+	listPinned   []bool
+	upserts      []Candidate
+	replacements []Snapshot
+	replaceErr   error
+	setPins      []struct {
 		id     string
 		pinned bool
 	}
-}
-
-func (f *fakeStore) DeleteUnpinned(_ context.Context, id string) error {
-	f.deletions = append(f.deletions, id)
-	candidate, ok := f.candidates[id]
-	if !ok || candidate.PinnedAt != nil {
-		return nil
-	}
-	delete(f.candidates, id)
-	return nil
 }
 
 func (f *fakeStore) Upsert(_ context.Context, candidate Candidate) error {
@@ -37,6 +28,33 @@ func (f *fakeStore) Upsert(_ context.Context, candidate Candidate) error {
 	f.upserts = append(f.upserts, candidate)
 	f.candidates[candidate.ID] = candidate
 	return nil
+}
+
+func (f *fakeStore) ReplaceSourceSnapshot(_ context.Context, snapshot Snapshot) (SnapshotApplyResult, error) {
+	if f.replaceErr != nil {
+		return SnapshotApplyResult{}, f.replaceErr
+	}
+	if f.candidates == nil {
+		f.candidates = make(map[string]Candidate)
+	}
+	f.replacements = append(f.replacements, snapshot)
+	keep := make(map[string]struct{}, len(snapshot.Candidates))
+	for _, candidate := range snapshot.Candidates {
+		if existing, ok := f.candidates[candidate.ID]; ok && existing.PinnedAt != nil {
+			candidate.PinnedAt = existing.PinnedAt
+		}
+		f.candidates[candidate.ID] = candidate
+		keep[candidate.ID] = struct{}{}
+	}
+	for id, candidate := range f.candidates {
+		if candidate.Source != snapshot.Source || candidate.PinnedAt != nil {
+			continue
+		}
+		if _, ok := keep[id]; !ok {
+			delete(f.candidates, id)
+		}
+	}
+	return SnapshotApplyResult{Applied: true, Candidates: len(snapshot.Candidates)}, nil
 }
 
 func (f *fakeStore) List(_ context.Context, pinned bool) ([]Candidate, error) {
@@ -245,8 +263,8 @@ func TestServiceImportSnapshotDropsRemotePinState(t *testing.T) {
 	if result.Sources != 1 || result.Candidates != 1 {
 		t.Fatalf("ImportSnapshot() result = %#v, want sources=1 candidates=1", result)
 	}
-	if len(store.upserts) != 1 || store.upserts[0].PinnedAt != nil {
-		t.Fatalf("imported upsert = %#v, want local unpinned state", store.upserts)
+	if len(store.replacements) != 1 || store.replacements[0].Candidates[0].PinnedAt != nil {
+		t.Fatalf("imported replacement = %#v, want local unpinned state", store.replacements)
 	}
 }
 
@@ -282,8 +300,8 @@ func TestServiceImportSnapshotReconcilesSourceWithoutDeletingPins(t *testing.T) 
 	if _, ok := store.candidates[unrelated.ID]; !ok {
 		t.Fatal("candidate from unrelated source was deleted")
 	}
-	if len(store.deletions) != 1 || store.deletions[0] != stale.ID {
-		t.Fatalf("deletions = %#v, want only stale candidate %q", store.deletions, stale.ID)
+	if len(store.replacements) != 1 || len(store.replacements[0].Candidates) != 1 || store.replacements[0].Candidates[0].ID != current.ID {
+		t.Fatalf("replacements = %#v, want only current candidate", store.replacements)
 	}
 }
 

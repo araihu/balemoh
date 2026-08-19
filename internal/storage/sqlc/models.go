@@ -25,6 +25,12 @@ type DiscoveredService struct {
 	ImagesJson        string         `json:"images_json"`
 }
 
+type DiscoverySourceSnapshot struct {
+	SourceKind string `json:"source_kind"`
+	SourceID   string `json:"source_id"`
+	ObservedAt string `json:"observed_at"`
+}
+
 type ServiceEndpoint struct {
 	ID         int64  `json:"id"`
 	ServiceID  string `json:"service_id"`

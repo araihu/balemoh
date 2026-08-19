@@ -93,23 +93,22 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 	if err := candidate.Validate(); err != nil {
 		return fmt.Errorf("validate candidate: %w", err)
 	}
-	metadata, err := json.Marshal(candidate.Metadata)
-	if err != nil {
-		return fmt.Errorf("marshal candidate metadata: %w", err)
-	}
-	images, err := json.Marshal(candidate.Images)
-	if err != nil {
-		return fmt.Errorf("marshal candidate images: %w", err)
-	}
-
-	now := time.Now().UTC().Format(time.RFC3339Nano)
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin catalog upsert: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	queries := s.queries.WithTx(tx)
+	if err := s.upsertCandidate(ctx, s.queries.WithTx(tx), candidate); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit catalog upsert: %w", err)
+	}
+	return nil
+}
+
+func (s *CatalogStore) upsertCandidate(ctx context.Context, queries *sqlc.Queries, candidate catalog.Candidate) error {
 	existing, err := queries.GetDiscoveredService(ctx, candidate.ID)
 	switch {
 	case err == nil:
@@ -118,9 +117,6 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 			return fmt.Errorf("decode existing observation time for candidate %q: %w", candidate.ID, parseErr)
 		}
 		if !candidate.ObservedAt.After(existingObservedAt) {
-			if err := tx.Commit(); err != nil {
-				return fmt.Errorf("commit unchanged catalog upsert: %w", err)
-			}
 			return nil
 		}
 	case errors.Is(err, sql.ErrNoRows):
@@ -128,6 +124,16 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 	default:
 		return fmt.Errorf("read existing candidate: %w", err)
 	}
+
+	metadata, err := json.Marshal(candidate.Metadata)
+	if err != nil {
+		return fmt.Errorf("marshal candidate metadata: %w", err)
+	}
+	images, err := json.Marshal(candidate.Images)
+	if err != nil {
+		return fmt.Errorf("marshal candidate images: %w", err)
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
 	if err := queries.UpsertDiscoveredService(ctx, sqlc.UpsertDiscoveredServiceParams{
 		ID:                candidate.ID,
 		SourceKind:        candidate.Source.Kind,
@@ -160,8 +166,76 @@ func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) 
 			return fmt.Errorf("insert candidate endpoint: %w", err)
 		}
 	}
+	return nil
+}
+
+func (s *CatalogStore) ReplaceSourceSnapshot(ctx context.Context, snapshot catalog.Snapshot) (catalog.SnapshotApplyResult, error) {
+	snapshot = snapshot.Normalize()
+	if err := snapshot.Validate(); err != nil {
+		return catalog.SnapshotApplyResult{}, fmt.Errorf("validate source snapshot: %w", err)
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return catalog.SnapshotApplyResult{}, fmt.Errorf("begin source snapshot replacement: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	queries := s.queries.WithTx(tx)
+
+	existing, err := queries.GetDiscoverySourceSnapshot(ctx, sqlc.GetDiscoverySourceSnapshotParams{
+		SourceKind: snapshot.Source.Kind,
+		SourceID:   snapshot.Source.ID,
+	})
+	if err == nil {
+		existingObservedAt, parseErr := time.Parse(time.RFC3339Nano, existing.ObservedAt)
+		if parseErr != nil {
+			return catalog.SnapshotApplyResult{}, fmt.Errorf("decode source watermark: %w", parseErr)
+		}
+		if !snapshot.ObservedAt.After(existingObservedAt) {
+			if err := tx.Commit(); err != nil {
+				return catalog.SnapshotApplyResult{}, fmt.Errorf("commit unchanged source snapshot: %w", err)
+			}
+			return catalog.SnapshotApplyResult{Candidates: len(snapshot.Candidates)}, nil
+		}
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return catalog.SnapshotApplyResult{}, fmt.Errorf("read source watermark: %w", err)
+	}
+
+	keepIDs := make([]string, 0, len(snapshot.Candidates))
+	for _, candidate := range snapshot.Candidates {
+		candidate.PinnedAt = nil
+		if err := s.upsertCandidate(ctx, queries, candidate); err != nil {
+			return catalog.SnapshotApplyResult{}, fmt.Errorf("upsert source candidate: %w", err)
+		}
+		keepIDs = append(keepIDs, candidate.ID)
+	}
+	if err := deleteAbsentUnpinnedCandidates(ctx, tx, snapshot.Source, keepIDs); err != nil {
+		return catalog.SnapshotApplyResult{}, err
+	}
+	if err := queries.UpsertDiscoverySourceSnapshot(ctx, sqlc.UpsertDiscoverySourceSnapshotParams{
+		SourceKind: snapshot.Source.Kind,
+		SourceID:   snapshot.Source.ID,
+		ObservedAt: snapshot.ObservedAt.UTC().Format(time.RFC3339Nano),
+	}); err != nil {
+		return catalog.SnapshotApplyResult{}, fmt.Errorf("store source watermark: %w", err)
+	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit catalog upsert: %w", err)
+		return catalog.SnapshotApplyResult{}, fmt.Errorf("commit source snapshot replacement: %w", err)
+	}
+	return catalog.SnapshotApplyResult{Applied: true, Candidates: len(snapshot.Candidates)}, nil
+}
+
+func deleteAbsentUnpinnedCandidates(ctx context.Context, tx *sql.Tx, source catalog.SourceRef, keepIDs []string) error {
+	query := `DELETE FROM discovered_services WHERE source_kind = ? AND source_id = ? AND pinned_at IS NULL`
+	args := []any{source.Kind, source.ID}
+	if len(keepIDs) > 0 {
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(keepIDs)), ",")
+		query += " AND id NOT IN (" + placeholders + ")"
+		for _, id := range keepIDs {
+			args = append(args, id)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("remove stale source candidates: %w", err)
 	}
 	return nil
 }
@@ -204,17 +278,6 @@ func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candida
 		return nil, fmt.Errorf("commit catalog read: %w", err)
 	}
 	return result, nil
-}
-
-func (s *CatalogStore) DeleteUnpinned(ctx context.Context, id string) error {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return nil
-	}
-	if err := s.queries.DeleteUnpinnedCandidate(ctx, id); err != nil {
-		return fmt.Errorf("delete unpinned candidate %q: %w", id, err)
-	}
-	return nil
 }
 
 func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool) (catalog.Candidate, error) {

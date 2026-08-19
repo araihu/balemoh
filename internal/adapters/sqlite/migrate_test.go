@@ -35,8 +35,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := db.QueryRowContext(context.Background(), "SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 3 || dirty {
-		t.Fatalf("schema_migrations = (version %d, dirty %t), want (3, false)", version, dirty)
+	if version != 4 || dirty {
+		t.Fatalf("schema_migrations = (version %d, dirty %t), want (4, false)", version, dirty)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestCatalogSchemaEnforcesServiceForeignKey(t *testing.T) {
 		t.Fatalf("RunMigrations() error = %v", err)
 	}
 
-	for _, table := range []string{"discovered_services", "service_endpoints"} {
+	for _, table := range []string{"discovered_services", "service_endpoints", "discovery_source_snapshots"} {
 		var name string
 		if err := db.QueryRowContext(context.Background(), "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", table).Scan(&name); err != nil {
 			t.Fatalf("query table %q: %v", table, err)
