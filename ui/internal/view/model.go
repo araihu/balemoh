@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/a-h/templ"
+	"github.com/araihu/goshtoso/components/card"
 	"github.com/araihu/goshtoso/components/table"
 )
 
@@ -108,6 +109,49 @@ func serviceHostnameURL(service Service) string {
 		}
 	}
 	return ""
+}
+
+func servicePrimaryEndpointHref(service Service) string {
+	return serviceHostnameURL(service)
+}
+
+func serviceCardInteraction(clickable bool) card.Interaction {
+	if clickable {
+		return card.InteractionPressed
+	}
+	return card.InteractionDefault
+}
+
+func serviceCardTag(service Service) string {
+	if description := strings.TrimSpace(service.Description); description != "" {
+		return description
+	}
+	return service.Source
+}
+
+func serviceCardTitle(service Service) string {
+	if hostname := serviceHostname(service); hostname != "" {
+		return hostname
+	}
+	return service.DisplayName
+}
+
+func serviceCardDescription(service Service) string {
+	parts := make([]string, 0, 2)
+	if displayName := strings.TrimSpace(service.DisplayName); displayName != "" && displayName != serviceCardTitle(service) {
+		parts = append(parts, displayName)
+	}
+	if resource := resourceLabel(service); resource != "" {
+		parts = append(parts, resource)
+	}
+	if len(parts) == 0 {
+		return "Pinned service"
+	}
+	return strings.Join(parts, " · ")
+}
+
+func serviceCardOpenLabel(service Service) string {
+	return "Open " + serviceCardTitle(service) + " in new tab"
 }
 
 func endpointHostname(raw string) string {

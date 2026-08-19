@@ -56,6 +56,7 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 			Id:          "svc-home",
 			DisplayName: "Homepage service",
 			Pinned:      true,
+			Endpoints:   []client.ServiceEndpoint{{Name: "homepage", Url: "//home.example.test/", Protocol: "http"}},
 			Source:      client.SourceRef{Kind: "kubernetes", Id: "cluster-a"},
 			Resource:    client.ResourceRef{Kind: "HTTPRoute", Name: "homepage", Namespace: stringPtr("apps")},
 		}},
@@ -77,7 +78,7 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 	if home.Code != http.StatusOK {
 		t.Fatalf("GET / status = %d, want 200", home.Code)
 	}
-	for _, want := range []string{"Balemoh", "Homepage service", "Staging"} {
+	for _, want := range []string{"Balemoh", "Homepage service", "home.example.test", `target="_blank"`, `rel="noopener noreferrer"`, "Open in new tab", "Unpin", "Staging"} {
 		if !strings.Contains(home.Body.String(), want) {
 			t.Errorf("GET / body missing %q", want)
 		}
@@ -91,6 +92,34 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 		if !strings.Contains(staging.Body.String(), want) {
 			t.Errorf("GET /staging body missing %q", want)
 		}
+	}
+}
+
+func TestHandlerKeepsPinnedCandidateVisibleWithoutPublicEndpoint(t *testing.T) {
+	t.Parallel()
+
+	catalog := &fakeCatalog{homepage: []client.ServiceCandidate{{
+		Id:          "svc-no-endpoint",
+		DisplayName: "Internal candidate",
+		Pinned:      true,
+		Source:      client.SourceRef{Kind: "kubernetes", Id: "cluster-a"},
+		Resource:    client.ResourceRef{Kind: "Service", Name: "internal", Namespace: stringPtr("apps")},
+	}}}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	response := request(t, handler, http.MethodGet, "/", "")
+	if response.Code != http.StatusOK {
+		t.Fatalf("GET / status = %d, want 200", response.Code)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, "No public endpoint observed") {
+		t.Fatalf("homepage missing no-endpoint state")
+	}
+	if strings.Contains(body, `target="_blank"`) {
+		t.Fatalf("candidate without endpoint rendered as external link")
 	}
 }
 

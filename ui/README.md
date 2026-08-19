@@ -45,6 +45,10 @@ hostname as a prominent link beside the resource name. Endpoint cells retain
 the complete URL/path, while Kubernetes namespace, kind, and resource name
 remain provenance context rather than the only operator-facing label.
 
+The homepage renders pinned candidates as cards. Cards with an HTTP(S) endpoint
+are full-card links that open the service in a new tab; pinned candidates
+without a public endpoint remain visible with an explicit unavailable state.
+
 ## Design brief
 
 The primary task is an operator scanning discovered candidates and deciding

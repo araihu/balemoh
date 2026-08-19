@@ -4,6 +4,7 @@ import (
 	"github.com/araihu/goshtoso/components/alert"
 	"github.com/araihu/goshtoso/components/badge"
 	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/card"
 	"github.com/araihu/goshtoso/components/emptystate"
 	"github.com/araihu/goshtoso/components/link"
 	"github.com/araihu/goshtoso/components/pageheader"
@@ -48,7 +49,7 @@ templ HomepageContent(data PageData) {
 	@panel.Panel(panel.Config{
 		Density: panel.DensityCompact,
 		Header: PanelHeader("Pinned services", "Services currently visible on the Balemoh homepage."),
-		Body: ServiceTable(data),
+		Body: HomepageCards(data),
 	})
 	if len(data.Services) == 0 && data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
@@ -58,6 +59,55 @@ templ HomepageContent(data PageData) {
 			RootClass: "balemoh-empty-state",
 		})
 	}
+}
+
+templ HomepageCards(data PageData) {
+	if len(data.Services) > 0 {
+		<div class="balemoh-service-card-grid">
+			for _, service := range data.Services {
+				@ServiceCard(service)
+			}
+		</div>
+	} else if data.Error == "" {
+		<div class="balemoh-table-placeholder">No pinned services in this view.</div>
+	}
+}
+
+templ ServiceCard(service Service) {
+	@ServiceCardContent(service, servicePrimaryEndpointHref(service) != "")
+}
+
+templ ServiceCardContent(service Service, clickable bool) {
+	@card.Card(card.Config{
+		Tag:         serviceCardTag(service),
+		Title:       serviceCardTitle(service),
+		Description: serviceCardDescription(service),
+		Body:        ServiceCardBody(service, clickable),
+		Footer:      ServiceCardFooter(service, clickable),
+		Interaction: serviceCardInteraction(clickable),
+		RootClass:   "balemoh-service-card",
+	})
+}
+
+templ ServiceCardBody(service Service, clickable bool) {
+	<div class="balemoh-service-card-meta">
+		if clickable {
+			@link.Link(servicePrimaryEndpointHref(service), link.WithTarget("_blank"), link.WithRootClass("balemoh-service-card-link"), link.WithAttrs(templ.Attributes{"aria-label": serviceCardOpenLabel(service)}))
+		}
+		<span>{ service.Source }</span>
+		<code>{ resourceLabel(service) }</code>
+	</div>
+}
+
+templ ServiceCardFooter(service Service, clickable bool) {
+	<div class="balemoh-service-card-footer">
+		if clickable {
+			<span>Open in new tab <span aria-hidden="true">↗</span></span>
+		} else {
+			<span class="balemoh-muted">No public endpoint observed</span>
+		}
+		@ServiceActions(service)
+	</div>
 }
 
 templ StagingContent(data PageData) {

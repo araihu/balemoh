@@ -64,6 +64,68 @@ body {
 	min-width: 62rem;
 }
 
+.balemoh-service-card-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+	gap: 1rem;
+}
+
+.balemoh-service-card {
+	position: relative;
+	height: 100%;
+	max-width: none;
+}
+
+.balemoh-service-card-link {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	display: block;
+	max-width: none;
+	color: transparent;
+	font-weight: inherit;
+	text-decoration: none;
+}
+
+.balemoh-service-card-link:hover {
+	text-decoration: none;
+}
+
+.balemoh-service-card-link:focus-visible {
+	border-radius: inherit;
+	outline: 2px solid var(--color-primary);
+	outline-offset: -2px;
+}
+
+.balemoh-service-card-meta,
+.balemoh-service-card-footer {
+	display: grid;
+	gap: 0.3rem;
+}
+
+.balemoh-service-card-meta {
+	color: var(--balemoh-muted);
+	font-size: 0.85rem;
+}
+
+.balemoh-service-card-meta code {
+	overflow-wrap: anywhere;
+}
+
+.balemoh-service-card-footer {
+	position: relative;
+	z-index: 2;
+	pointer-events: none;
+	color: var(--color-primary);
+	font-weight: 600;
+}
+
+.balemoh-service-card-footer .balemoh-service-actions {
+	position: relative;
+	z-index: 3;
+	pointer-events: auto;
+}
+
 .balemoh-service-identity,
 .balemoh-endpoint-list,
 .balemoh-image-list,
