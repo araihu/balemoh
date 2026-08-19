@@ -40,6 +40,11 @@ Goshtoso's checkbox selection and Alpine to serialize selected candidate IDs
 before the native pin POST. Mutations use POST/Redirect/GET; HTMX is
 intentionally disabled for this first slice.
 
+When discovery provides an HTTP or HTTPS endpoint, the table renders its
+hostname as a prominent link beside the resource name. Endpoint cells retain
+the complete URL/path, while Kubernetes namespace, kind, and resource name
+remain provenance context rather than the only operator-facing label.
+
 ## Design brief
 
 The primary task is an operator scanning discovered candidates and deciding

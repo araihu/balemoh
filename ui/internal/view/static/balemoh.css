@@ -76,6 +76,12 @@ body {
 	overflow-wrap: anywhere;
 }
 
+.balemoh-service-hostname {
+	color: var(--color-primary);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
 .balemoh-service-identity span,
 .balemoh-service-identity code,
 .balemoh-endpoint-list small {

@@ -130,6 +130,9 @@ templ ServiceTable(data PageData) {
 templ ServiceIdentity(service Service) {
 	<div class="balemoh-service-identity">
 		<strong>{ service.DisplayName }</strong>
+		if hostname := serviceHostname(service); hostname != "" {
+			<a class="balemoh-service-hostname" href={ templ.SafeURL(serviceHostnameURL(service)) }>{ hostname }</a>
+		}
 		if service.Description != "" {
 			<span>{ service.Description }</span>
 		}

@@ -81,11 +81,11 @@ func resourceLabel(service Service) string {
 }
 
 func endpointLabel(endpoint Endpoint) string {
-	if endpoint.Name != "" {
-		return endpoint.Name
-	}
 	if endpoint.URL != "" {
 		return endpoint.URL
+	}
+	if endpoint.Name != "" {
+		return endpoint.Name
 	}
 	if endpoint.Port != 0 {
 		return fmt.Sprintf("%s:%d", endpoint.Protocol, endpoint.Port)
@@ -94,6 +94,32 @@ func endpointLabel(endpoint Endpoint) string {
 		return endpoint.Protocol
 	}
 	return "observed endpoint"
+}
+
+func serviceHostname(service Service) string {
+	return endpointHostname(serviceHostnameURL(service))
+}
+
+func serviceHostnameURL(service Service) string {
+	for _, endpoint := range service.Endpoints {
+		href := endpointHref(endpoint.URL)
+		if href != "" && endpointHostname(href) != "" {
+			return href
+		}
+	}
+	return ""
+}
+
+func endpointHostname(raw string) string {
+	href := endpointHref(raw)
+	if href == "" {
+		return ""
+	}
+	parsed, err := url.Parse(href)
+	if err != nil {
+		return ""
+	}
+	return parsed.Host
 }
 
 func endpointHref(raw string) string {

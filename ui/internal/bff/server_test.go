@@ -63,6 +63,7 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 			Id:          "svc-stage",
 			DisplayName: "Staging service",
 			Images:      []string{"ghcr.io/example/app:v1"},
+			Endpoints:   []client.ServiceEndpoint{{Name: "staging", Url: "//staging.example.test/", Protocol: "http"}},
 			Source:      client.SourceRef{Kind: "docker", Id: "raspi"},
 			Resource:    client.ResourceRef{Kind: "Service", Name: "staging", Namespace: stringPtr("apps")},
 		}},
@@ -86,7 +87,7 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 	if staging.Code != http.StatusOK {
 		t.Fatalf("GET /staging status = %d, want 200", staging.Code)
 	}
-	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/pin"`, `id="usersvc-stage"`, `x-on:submit`} {
+	for _, want := range []string{"Staging service", "staging.example.test", "//staging.example.test/", "ghcr.io/example/app:v1", `action="/staging/pin"`, `id="usersvc-stage"`, `x-on:submit`} {
 		if !strings.Contains(staging.Body.String(), want) {
 			t.Errorf("GET /staging body missing %q", want)
 		}
