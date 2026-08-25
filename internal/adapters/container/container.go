@@ -5,14 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/araihu/balemoh/internal/application/catalog"
-	dockertypes "github.com/docker/docker/api/types/container"
-	dockerclient "github.com/docker/docker/client"
+	dockertypes "github.com/moby/moby/api/types/container"
+	dockerclient "github.com/moby/moby/client"
 )
 
 const sourceKind = "container"
@@ -34,7 +35,7 @@ const (
 // by the discoverer. Podman exposes the same API over its Docker-compatible
 // socket.
 type Client interface {
-	ContainerList(context.Context, dockertypes.ListOptions) ([]dockertypes.Summary, error)
+	ContainerList(context.Context, dockerclient.ContainerListOptions) (dockerclient.ContainerListResult, error)
 }
 
 // Discoverer reads running Docker or Podman containers without mutating the
@@ -97,10 +98,11 @@ func (d *Discoverer) Source() catalog.SourceRef {
 }
 
 func (d *Discoverer) Discover(ctx context.Context) ([]catalog.Candidate, error) {
-	containers, err := d.client.ContainerList(ctx, dockertypes.ListOptions{})
+	result, err := d.client.ContainerList(ctx, dockerclient.ContainerListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list running containers: %w", err)
 	}
+	containers := result.Items
 
 	observedAt := time.Now().UTC()
 	candidates := make([]catalog.Candidate, 0, len(containers)*2)
@@ -241,7 +243,7 @@ func containerName(summary dockertypes.Summary) string {
 	return strings.TrimSpace(summary.ID)
 }
 
-func publishedPorts(ports []dockertypes.Port) ([]catalog.Endpoint, []string) {
+func publishedPorts(ports []dockertypes.PortSummary) ([]catalog.Endpoint, []string) {
 	endpoints := make(map[catalog.Endpoint]struct{})
 	hostIPs := make(map[string]struct{})
 	for _, port := range ports {
@@ -265,21 +267,18 @@ func publishedPorts(ports []dockertypes.Port) ([]catalog.Endpoint, []string) {
 	return sortedEndpoints(endpoints), sortedSet(hostIPs)
 }
 
-func publishedPortName(protocol string, port dockertypes.Port) string {
+func publishedPortName(protocol string, port dockertypes.PortSummary) string {
 	if port.PrivatePort > 0 && port.PrivatePort != port.PublicPort {
 		return fmt.Sprintf("%s/%d->%d", protocol, port.PublicPort, port.PrivatePort)
 	}
 	return fmt.Sprintf("%s/%d", protocol, port.PublicPort)
 }
 
-func normalizeHostIP(ip string) string {
-	ip = strings.TrimSpace(ip)
-	ip = strings.TrimPrefix(ip, "[")
-	ip = strings.TrimSuffix(ip, "]")
-	if ip == "" {
+func normalizeHostIP(ip netip.Addr) string {
+	if !ip.IsValid() {
 		return "0.0.0.0"
 	}
-	return ip
+	return ip.String()
 }
 
 func setPublishedIPs(metadata map[string]string, hostIPs []string) {

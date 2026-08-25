@@ -3,23 +3,25 @@ package container
 import (
 	"context"
 	"errors"
+	"net/netip"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/araihu/balemoh/internal/application/catalog"
-	dockertypes "github.com/docker/docker/api/types/container"
+	dockertypes "github.com/moby/moby/api/types/container"
+	dockerclient "github.com/moby/moby/client"
 )
 
 type fakeClient struct {
 	containers []dockertypes.Summary
 	err        error
-	options    dockertypes.ListOptions
+	options    dockerclient.ContainerListOptions
 }
 
-func (f *fakeClient) ContainerList(_ context.Context, options dockertypes.ListOptions) ([]dockertypes.Summary, error) {
+func (f *fakeClient) ContainerList(_ context.Context, options dockerclient.ContainerListOptions) (dockerclient.ContainerListResult, error) {
 	f.options = options
-	return f.containers, f.err
+	return dockerclient.ContainerListResult{Items: f.containers}, f.err
 }
 
 func TestDiscovererStagesContainersAndComposeServices(t *testing.T) {
@@ -30,10 +32,10 @@ func TestDiscovererStagesContainersAndComposeServices(t *testing.T) {
 			Image:  "ghcr.io/example/web:1.2",
 			State:  dockertypes.StateRunning,
 			Labels: dockerComposeLabels("homelab", "web"),
-			Ports: []dockertypes.Port{
-				{IP: "127.0.0.1", PrivatePort: 8080, PublicPort: 18080, Type: "tcp"},
+			Ports: []dockertypes.PortSummary{
+				{IP: netip.MustParseAddr("127.0.0.1"), PrivatePort: 8080, PublicPort: 18080, Type: "tcp"},
 				{PrivatePort: 8443, PublicPort: 18443, Type: "tcp"},
-				{IP: "127.0.0.1", PrivatePort: 53, Type: "udp"},
+				{IP: netip.MustParseAddr("127.0.0.1"), PrivatePort: 53, Type: "udp"},
 			},
 		},
 		{
@@ -42,8 +44,8 @@ func TestDiscovererStagesContainersAndComposeServices(t *testing.T) {
 			Image:  "ghcr.io/example/web:1.2",
 			State:  dockertypes.StateRunning,
 			Labels: podmanComposeLabels("homelab", "web"),
-			Ports: []dockertypes.Port{
-				{IP: "::1", PrivatePort: 8080, PublicPort: 28080, Type: "tcp"},
+			Ports: []dockertypes.PortSummary{
+				{IP: netip.MustParseAddr("::1"), PrivatePort: 8080, PublicPort: 28080, Type: "tcp"},
 			},
 		},
 		{
