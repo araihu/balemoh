@@ -52,13 +52,10 @@ body {
 	overflow-wrap: anywhere;
 }
 
-.balemoh-service-card-icon {
-	height: auto;
-	padding: 1.5rem 1.5rem 0;
-}
-
+.balemoh-service-card-icon { display: flex; }
 .balemoh-service-card-icon svg { width: 2rem; height: 2rem; }
-.balemoh-service-card .balemoh-resource-list { min-width: 0; max-width: none; }
+.balemoh-card-addresses { display: flex; align-items: center; gap: .5rem; }
+.balemoh-card-addresses > a { min-width: 0; overflow-wrap: anywhere; }
 
 @media (min-width: 640px) {
 	.balemoh-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

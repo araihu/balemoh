@@ -6,9 +6,22 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/araihu/goshtoso/components/dropdown"
 	"github.com/araihu/goshtoso/components/table"
 	"github.com/araihu/goshtoso/components/tooltip"
 )
+
+func addressLabel(address string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://"), "//")
+}
+
+func addressMenuItems(addresses []string) []dropdown.Item {
+	items := make([]dropdown.Item, 0, len(addresses))
+	for _, address := range addresses {
+		items = append(items, dropdown.Item{Label: addressLabel(address), Href: address, Target: "_blank"})
+	}
+	return items
+}
 
 // PageData is the presentation model for the two operator-facing catalog
 // pages. It deliberately contains no generated API types.

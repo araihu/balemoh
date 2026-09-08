@@ -7,6 +7,7 @@ import (
 	"github.com/araihu/goshtoso/components/card"
 	"github.com/araihu/goshtoso/components/checkbox"
 	"github.com/araihu/goshtoso/components/drawer"
+	"github.com/araihu/goshtoso/components/dropdown"
 	"github.com/araihu/goshtoso/components/emptystate"
 	"github.com/araihu/goshtoso/components/icon"
 	"github.com/araihu/goshtoso/components/icon/heroicons"
@@ -15,7 +16,6 @@ import (
 	"github.com/araihu/goshtoso/components/table"
 	"github.com/araihu/goshtoso/components/toast"
 	"github.com/araihu/goshtoso/components/tooltip"
-	"strings"
 )
 
 templ PageContent(data PageData) {
@@ -66,11 +66,9 @@ templ HomepageContent(data PageData) {
 			for _, service := range data.Services {
 				@card.Card(card.Config{
 					Title:       service.DisplayName,
-					Description: service.Namespace,
-					Media:       ServiceCardIcon(service),
-					MediaClass:  "balemoh-service-card-icon",
-					Body:        GroupAddresses(service),
-					Footer:      ServiceResources(service),
+					Description: service.Description,
+					TitlePrefix: ServiceCardIcon(service),
+					Body:        ServiceCardAddresses(service),
 					RootClass:   "balemoh-service-card",
 				})
 			}
@@ -87,8 +85,32 @@ templ HomepageContent(data PageData) {
 
 templ ServiceCardIcon(service Service) {
 	if isKubernetes(service) {
-		@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Label: "Kubernetes"})
+		<span class="balemoh-service-card-icon">
+			@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Label: "Kubernetes"})
+		</span>
 	}
+}
+
+templ ServiceCardAddresses(service Service) {
+	<div class="balemoh-card-addresses">
+		if addresses := groupAddresses(service); len(addresses) > 0 {
+			@link.Link(addresses[0], link.WithTarget("_blank")) {
+				{ addressLabel(addresses[0]) }
+			}
+			if len(addresses) > 1 {
+				@dropdown.Dropdown(dropdown.Config{
+					ID:              "service-addresses-" + service.ID,
+					Label:           "More addresses for " + service.DisplayName,
+					TriggerIcon:     icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidEllipsisHorizontal, Decorative: true}),
+					TriggerIconOnly: true,
+					MenuAlign:       dropdown.AlignEnd,
+					Sections:        []dropdown.Section{{Items: addressMenuItems(addresses[1:])}},
+				})
+			}
+		} else {
+			<span class="balemoh-muted">No public address</span>
+		}
+	</div>
 }
 
 templ StagingContent(data PageData) {
@@ -242,7 +264,7 @@ templ GroupAddresses(service Service) {
 		if addresses := groupAddresses(service); len(addresses) > 0 {
 			for _, address := range addresses {
 				@link.Link(address, link.WithTarget("_blank")) {
-					{ strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://"), "//") }
+					{ addressLabel(address) }
 				}
 			}
 		} else {
