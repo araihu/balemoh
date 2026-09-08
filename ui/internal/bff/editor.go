@@ -51,6 +51,13 @@ func (s *server) saveEdit(w http.ResponseWriter, r *http.Request) {
 	service.DisplayName = strings.TrimSpace(r.PostForm.Get("displayName"))
 	service.Description = strings.TrimSpace(r.PostForm.Get("description"))
 	service.Address = strings.TrimSpace(r.PostForm.Get("address"))
+	if values, ok := r.PostForm["icon"]; ok && len(values) == 1 {
+		service.IconRef = values[0]
+		service.Icon = resolveIcon(values[0])
+		if values[0] == "" {
+			service.Icon = service.DefaultIcon
+		}
+	}
 	if service.DisplayName == "" || utf8.RuneCountInString(service.DisplayName) > 200 || utf8.RuneCountInString(service.Description) > 2000 || len(service.Address) > 2048 {
 		service.EditError = "Enter a name up to 200 characters, a description up to 2000 characters, and an address up to 2048 bytes."
 	}
@@ -64,7 +71,7 @@ func (s *server) saveEdit(w http.ResponseWriter, r *http.Request) {
 		s.renderEditor(w, r, service, http.StatusBadRequest)
 		return
 	}
-	if err := s.catalog.Edit(ctx, service.ID, api.ServiceEdit{DisplayName: service.DisplayName, Description: service.Description, Address: service.Address}); err != nil {
+	if err := s.catalog.Edit(ctx, service.ID, api.ServiceEdit{DisplayName: service.DisplayName, Description: service.Description, Address: service.Address, Icon: &service.IconRef}); err != nil {
 		service.EditError = "Changes could not be saved. Your draft is still here; try again."
 		s.renderEditor(w, r, service, http.StatusServiceUnavailable)
 		return

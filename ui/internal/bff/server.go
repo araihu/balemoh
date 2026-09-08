@@ -35,6 +35,7 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 	}
 
 	server := &server{catalog: catalog, timeout: requestTimeout}
+	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
 	mux.Handle("GET /assets/", assets.Handler())
 	mux.Handle("GET /consoleshell/assets/", shellassets.Handler())
@@ -47,6 +48,14 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 		w.Header().Set("Content-Type", "image/png")
 		_, _ = w.Write(view.SocialPreview())
 	})
+	mux.Handle("GET /ui/icon-library/selfhst/", bundledIconsHandler())
+	mux.HandleFunc("GET /icons", server.iconsPage)
+	mux.HandleFunc("GET /icons/picker", server.iconsPage)
+	mux.HandleFunc("POST /icons/upload", server.uploadIcon)
+	mux.HandleFunc("GET /icons/{iconID}/edit", server.editIcon)
+	mux.HandleFunc("POST /icons/{iconID}/edit", server.uploadIcon)
+	mux.HandleFunc("POST /icons/{iconID}/delete", server.deleteIcon)
+	mux.HandleFunc("GET /icons/{iconID}/image", server.iconImage)
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("GET /staging/services/{serviceID}/edit", server.edit)
@@ -60,6 +69,7 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 }
 
 type server struct {
+	icons   IconCatalog
 	catalog Catalog
 	timeout time.Duration
 }
@@ -325,7 +335,9 @@ func mapService(service api.ServiceCandidate) view.Service {
 			resources = append(resources, mapService(api.ServiceCandidate{Resource: member.Resource, Source: service.Source, DisplayName: member.Resource.Name, Endpoints: member.Endpoints, Images: member.Images}))
 		}
 	}
+	iconRef, selected, defaultIcon := serviceIcon(service)
 	return view.Service{
+		IconRef: iconRef, Icon: selected, DefaultIcon: defaultIcon,
 		Resources:   resources,
 		ID:          service.Id,
 		DisplayName: displayName,

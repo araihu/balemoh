@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/a-h/templ v0.3.1020
 	github.com/araihu/balemoh/client v0.0.0
-	github.com/araihu/goshtoso v0.2.9-0.20260908225644-ce77bca1fab2
+	github.com/araihu/goshtoso v0.2.9-0.20260908234554-ac23ceae75d9
 	github.com/araihu/goshtoso-app-shells v0.1.9-0.20260908213236-a76b2b77163f
 	github.com/caarlos0/env/v11 v11.4.1
 )
@@ -25,11 +25,12 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/oapi-codegen/runtime v1.7.0 // indirect
-	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/image v0.46.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/tools v0.48.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/tools v0.49.0 // indirect
 )
 
 tool (

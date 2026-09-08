@@ -21,7 +21,7 @@ deployments:
       values:
         containers:
         - name: balemoh
-          image: golang:1.26-alpine
+          image: golang:1.27-alpine
           workingDir: /workspace
           command:
           - sh

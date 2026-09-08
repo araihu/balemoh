@@ -1,0 +1,12 @@
+schemaVersion: 1
+sources:
+  - id: selfhst
+    url: https://github.com/selfhst/icons/tree/4798f7b385ce4d9b18520e4f2091635be6370bc4
+    packName: selfhst
+    license: CC-BY-4.0
+    licensePath: LICENSE
+    metadataPath: index.json
+    metadataFormat: selfhst
+    formats: [png]
+    maxDownloadSize: 1GiB
+    include: ["png/**", "index.json", "LICENSE"]

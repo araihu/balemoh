@@ -104,7 +104,7 @@ func (q *Queries) GetDiscoverySourceSnapshot(ctx context.Context, arg GetDiscove
 }
 
 const getServiceEdit = `-- name: GetServiceEdit :one
-SELECT service_id, display_name, description, address FROM service_edits WHERE service_id = ?
+SELECT service_id, display_name, description, address, icon_ref FROM service_edits WHERE service_id = ?
 `
 
 func (q *Queries) GetServiceEdit(ctx context.Context, serviceID string) (ServiceEdit, error) {
@@ -115,6 +115,7 @@ func (q *Queries) GetServiceEdit(ctx context.Context, serviceID string) (Service
 		&i.DisplayName,
 		&i.Description,
 		&i.Address,
+		&i.IconRef,
 	)
 	return i, err
 }

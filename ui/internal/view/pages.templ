@@ -36,7 +36,9 @@ templ PageContent(data PageData) {
 		if data.Error != "" {
 			@alert.Alert(alert.Config{Title: "Catálogo indisponível", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
 		}
-		if data.Editor != nil {
+		if data.IconPage != nil {
+ @IconsContent(*data.IconPage)
+ } else if data.Editor != nil {
 			@ServiceEditor(*data.Editor)
 		} else if data.Staging {
 			@StagingContent(data)
@@ -89,7 +91,9 @@ templ ServiceCard(service Service, serviceIcon templ.Component) {
 }
 
 templ ServiceCardIcon(service Service) {
-	if isKubernetes(service) {
+ if service.Icon.ID != "" {
+ <span class="balemoh-service-card-icon">@LibraryImage(service.Icon)</span>
+ } else if isKubernetes(service) {
 		<span class="balemoh-service-card-icon">
 			@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Label: "Kubernetes"})
 		</span>
@@ -168,9 +172,7 @@ templ ServiceTable(data PageData) {
 templ ServiceIdentity(service Service) {
 	<div class="balemoh-service-identity">
 		<div class="balemoh-service-name">
-			if isKubernetes(service) {
-				@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Label: "Kubernetes"})
-			}
+			@ServiceCardIcon(service)
 			<strong>{ service.DisplayName }</strong>
 		</div>
 		<small class="balemoh-muted">{ service.Namespace }</small>

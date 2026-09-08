@@ -49,7 +49,7 @@ func TestServiceEditorCardAndDiscoveredPlaceholder(t *testing.T) {
 	if err := ServiceEditor(service).Render(context.Background(), &html); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`placeholder="https://discovered.example/"`, `value="https://custom.example/"`, `aria-label="Homepage card preview"`, `balemoh-service-card`, `Team workspace`, `href="https://custom.example/"`, `x-bind:src="iconPreview"`} {
+	for _, want := range []string{`placeholder="https://discovered.example/"`, `value="https://custom.example/"`, `aria-label="Homepage card preview"`, `balemoh-service-card`, `Team workspace`, `href="https://custom.example/"`, `x-bind:src="iconURL"`} {
 		if !strings.Contains(html.String(), want) {
 			t.Errorf("editor missing %s", want)
 		}

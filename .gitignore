@@ -43,3 +43,10 @@ coverage.html
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 .fseventsd
+
+# Locked icon acquisition cache and temporary workspace
+.iconpack-cache/
+.iconpack-engine*
+go.work
+go.work.sum
+*.goshtoso-iconpack.lock

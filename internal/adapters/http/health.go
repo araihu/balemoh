@@ -11,17 +11,18 @@ import (
 )
 
 type Handler struct {
+	icons            IconStore
 	checker          health.Checker
 	catalog          catalog.UseCase
 	federation       catalog.SnapshotImporter
 	federationTokens map[catalog.SourceRef]string
 }
 
-func NewHandler(checker health.Checker, catalogService catalog.UseCase) generated.ServerInterface {
+func NewHandler(checker health.Checker, catalogService catalog.UseCase) Handler {
 	return Handler{checker: checker, catalog: catalogService}
 }
 
-func NewHandlerWithFederation(checker health.Checker, catalogService catalog.UseCase, importer catalog.SnapshotImporter, sourceTokens map[catalog.SourceRef]string) generated.ServerInterface {
+func NewHandlerWithFederation(checker health.Checker, catalogService catalog.UseCase, importer catalog.SnapshotImporter, sourceTokens map[catalog.SourceRef]string) Handler {
 	tokens := make(map[catalog.SourceRef]string, len(sourceTokens))
 	for source, token := range sourceTokens {
 		source.Kind = strings.TrimSpace(source.Kind)

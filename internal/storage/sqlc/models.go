@@ -36,6 +36,7 @@ type ServiceEdit struct {
 	DisplayName string `json:"display_name"`
 	Description string `json:"description"`
 	Address     string `json:"address"`
+	IconRef     string `json:"icon_ref"`
 }
 
 type ServiceEndpoint struct {
@@ -46,4 +47,13 @@ type ServiceEndpoint struct {
 	Port       int64  `json:"port"`
 	Protocol   string `json:"protocol"`
 	Provenance string `json:"provenance"`
+}
+
+type UploadedIcon struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Tags   string `json:"tags"`
+	Mime   string `json:"mime"`
+	Digest string `json:"digest"`
+	Data   []byte `json:"data"`
 }

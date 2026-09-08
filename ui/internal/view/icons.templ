@@ -1,0 +1,162 @@
+package view
+
+import (
+ "fmt"
+ "strings"
+ "github.com/araihu/goshtoso/components/button"
+ "github.com/araihu/goshtoso/components/card"
+ "github.com/araihu/goshtoso/components/fileinput"
+ "github.com/araihu/goshtoso/components/icon"
+ "github.com/araihu/goshtoso/components/link"
+ "github.com/araihu/goshtoso/components/pageheader"
+ "github.com/araihu/goshtoso/components/textinput"
+)
+
+templ LibraryImage(i LibraryIcon) {
+ if i.Symbol != "" {
+  @icon.Icon(icon.Config{SpriteURL:i.SpriteURL, Symbol:icon.Symbol(i.Symbol), Decorative:true})
+ } else if i.URL != "" {
+  <img class="balemoh-library-image" src={i.URL} alt="" width="40" height="40" loading="lazy"/>
+ }
+}
+
+templ IconsContent(data IconPage) {
+ @pageheader.PageHeader(pageheader.Config{Title:"Icons"})
+ if data.Error != "" {
+  <p role="alert">{data.Error}</p>
+ }
+ if data.Editing != nil {
+  @IconUploadForm(*data.Editing)
+ } else {
+  <details class="balemoh-icon-upload">
+   <summary>Upload icon</summary>
+   @IconUploadForm(LibraryIcon{})
+  </details>
+  <form action="/icons" method="get" class="balemoh-icon-search">
+   @textinput.TextInput(textinput.Config{ID:"icon-search",Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
+   <input type="hidden" name="source" value={data.Source}/>
+   @button.Button(button.WithType("submit"),button.WithSize(button.SizeSmall)) {
+    Search
+   }
+  </form>
+  @IconResults(data)
+ }
+}
+
+templ IconUploadForm(i LibraryIcon) {
+ <form class="balemoh-editor balemoh-upload-form" method="post" action={templ.SafeURL(iconSaveURL(i.ID))} enctype="multipart/form-data">
+  if i.ID != "" {
+   @LibraryImage(i)
+   <p>{iconUsageLabel(len(i.UsedBy))}</p>
+   if len(i.UsedBy)>0 {
+    <p>{strings.Join(i.UsedBy,", ")}. Replacing this image updates these services.</p>
+   }
+  }
+  <input type="hidden" name="digest" value={i.Digest}/>
+  @textinput.TextInput(textinput.Config{ID:"icon-name",Name:"name",Label:"Name",Value:i.Name,Required:true,MaxLength:200})
+  @textinput.TextInput(textinput.Config{ID:"icon-tags",Name:"tags",Label:"Tags",Value:i.Tags,MaxLength:1000,Placeholder:"Comma-separated tags"})
+  @fileinput.FileInput(fileinput.Config{ID:"icon-upload",Name:"image",Label:"Image",Appearance:fileinput.AppearanceUpload,Required:i.ID=="",Accept:"image/png,image/jpeg,image/webp,image/svg+xml",HelperText:"PNG, JPEG, WebP, or passive SVG. Up to 2 MiB and 4096 pixels. Leave empty to keep the current image."})
+  @button.Button(button.WithType("submit")) {
+   Save icon
+  }
+  @link.Link("/icons") {
+   Back to Icons
+  }
+ </form>
+ if i.ID!="" && len(i.UsedBy)==0 {
+  <details class="balemoh-icon-upload">
+   <summary>Delete icon</summary>
+   <p>This removes the unused uploaded icon.</p>
+   <form method="post" action={templ.SafeURL("/icons/"+i.ID+"/delete")}>
+    <input type="hidden" name="digest" value={i.Digest}/>
+    @button.Button(button.WithType("submit"),button.WithTone(button.ToneDanger)) {
+     Delete icon
+    }
+   </form>
+  </details>
+ }
+}
+
+func iconSaveURL(id string)string{if id==""{return "/icons/upload"};return "/icons/"+id+"/edit"}
+
+templ IconResults(data IconPage) {
+ <div id="icon-picker-results" class="balemoh-icon-results">
+  <nav aria-label="Icon sources" class="balemoh-icon-filters">
+   for _,source:=range []string{"","goshtoso","selfhst","uploads"} {
+    @link.Link(IconPageURL(IconPage{Picker:data.Picker,Query:data.Query,Source:source},1),link.WithAttrs(iconNavigationAttrs(data.Picker))) {
+     if source=="" {
+      All
+     } else if source=="selfhst" {
+      selfh.st
+     } else {
+      {source}
+     }
+    }
+   }
+  </nav>
+  if data.Picker&&data.Error!="" {
+   <p role="alert">{data.Error}</p>
+  }
+  <p role="status">{fmt.Sprintf("%d icons",data.Total)}</p>
+  <div class="balemoh-icon-grid">
+   for _,i:=range data.Icons {
+    @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,data.Picker)})
+   }
+  </div>
+  <nav aria-label="Icon pages" class="balemoh-icon-filters">
+   if data.Page>1 {
+    @link.Link(IconPageURL(data,data.Page-1),link.WithAttrs(iconNavigationAttrs(data.Picker))) {
+     Previous
+    }
+   }
+   <span>{fmt.Sprintf("Page %d of %d",data.Page,max(1,(data.Total+47)/48))}</span>
+   if data.Page*48<data.Total {
+    @link.Link(IconPageURL(data,data.Page+1),link.WithAttrs(iconNavigationAttrs(data.Picker))) {
+     Next
+    }
+   }
+  </nav>
+  if !data.Picker {
+   @link.Link("https://selfh.st/icons/",link.WithTarget("_blank")) {
+    Icons by selfh.st
+   }
+   @link.Link("/ui/icon-library/selfhst/LICENSES/selfhst.txt",link.WithTarget("_blank")) {
+    License
+   }
+  }
+ </div>
+}
+func iconNavigationAttrs(picker bool)templ.Attributes{if picker{return templ.Attributes{"hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-boost":"true", "hx-push-url":"false"}};return nil}
+
+templ IconTileBody(i LibraryIcon, picker bool) {
+ <div class="balemoh-icon-tile-content">
+     if picker {
+      @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-icon-choice"),button.WithAttrs(templ.Attributes{"aria-label":"Choose "+i.Name,"data-icon-id":i.ID,"data-icon-url":i.URL,"data-icon-symbol":i.Symbol,"data-icon-sprite":i.SpriteURL,"x-on:click":"$dispatch('icon-selected', {id:$el.dataset.iconId, url:$el.dataset.iconUrl, symbol:$el.dataset.iconSymbol, sprite:$el.dataset.iconSprite})"})) {
+       @LibraryImage(i)
+       <span>{i.Name}</span>
+      }
+     } else {
+      @LibraryImage(i)
+      <strong>{i.Name}</strong>
+      <small>{i.Source}</small>
+      if i.Source=="uploads" {
+       @link.Link(IconEditURL(i.ID)) {
+        Manage
+       }
+      } else {
+       <details>
+        <summary>Details</summary>
+        <p>{i.Tags}</p>
+        <p>{i.License}</p>
+        if i.LightURL!="" {
+         <img src={i.LightURL} width="40" height="40" alt={i.Name+" light variant"} loading="lazy"/>
+        }
+        if i.DarkURL!="" {
+         <img src={i.DarkURL} width="40" height="40" alt={i.Name+" dark variant"} loading="lazy"/>
+        }
+       </details>
+      }
+     }
+
+ </div>
+}

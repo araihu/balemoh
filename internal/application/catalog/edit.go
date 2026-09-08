@@ -8,12 +8,15 @@ import (
 	"unicode/utf8"
 )
 
-type Edit struct{ DisplayName, Description, Address string }
+type Edit struct {
+	DisplayName, Description, Address string
+	Icon                              *string
+}
 
 var ErrInvalidEdit = errors.New("invalid service edit")
 
 func (e Edit) Normalize() Edit {
-	return Edit{strings.TrimSpace(e.DisplayName), strings.TrimSpace(e.Description), strings.TrimSpace(e.Address)}
+	return Edit{strings.TrimSpace(e.DisplayName), strings.TrimSpace(e.Description), strings.TrimSpace(e.Address), e.Icon}
 }
 func (e Edit) Validate() error {
 	if e.DisplayName == "" || utf8.RuneCountInString(e.DisplayName) > 200 || utf8.RuneCountInString(e.Description) > 2000 || len(e.Address) > 2048 {

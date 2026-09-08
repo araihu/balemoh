@@ -22,6 +22,7 @@ func ConsolePage(data PageData) templ.Component {
 				Sections: []sidebar.Section{{Items: []sidebar.Item{
 					{ID: "nav-home", Label: "Home", Href: "/"},
 					{ID: "nav-staging", Label: "Staging", Href: "/staging"},
+					{ID: "nav-icons", Label: "Icons", Href: "/icons"},
 				}}},
 			},
 			Appearance: consoleshell.AppearanceConfig{

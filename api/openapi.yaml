@@ -194,12 +194,138 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/icons:
+    get:
+      operationId: listIcons
+      responses:
+        '200':
+          description: Uploaded icons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UploadedIcon'
+    post:
+      operationId: uploadIcon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IconUpload'
+      responses:
+        '201':
+          description: Icon stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadedIcon'
+        '400':
+          description: Invalid image
+  /api/v1/icons/{iconID}:
+    parameters:
+      - name: iconID
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      operationId: updateIcon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IconUpload'
+      responses:
+        '200':
+          description: Icon updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadedIcon'
+        '400':
+          description: Invalid image
+        '404':
+          description: Missing icon
+        '409':
+          description: Icon changed since it was opened
+    delete:
+      operationId: deleteIcon
+      parameters:
+        - name: digest
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Unused icon deleted
+        '409':
+          description: Icon in use or changed
+  /api/v1/icons/{iconID}/image:
+    parameters:
+      - name: iconID
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getIconImage
+      responses:
+        '200':
+          description: Validated image
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Missing icon
+
 components:
   securitySchemes:
     FederationBearer:
       type: http
       scheme: bearer
   schemas:
+    UploadedIcon:
+      type: object
+      required: [id, name, tags, mime, digest, usedBy]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tags:
+          type: string
+        mime:
+          type: string
+        digest:
+          type: string
+        usedBy:
+          type: array
+          items:
+            type: string
+    IconUpload:
+      type: object
+      additionalProperties: false
+      required: [name, tags]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        tags:
+          type: string
+          maxLength: 1000
+        data:
+          type: string
+          format: byte
+          description: Base64 image bytes. Omit to keep existing image.
+        digest:
+          type: string
+          description: Existing image revision required for updates.
     HealthResponse:
       type: object
       required:
@@ -285,6 +411,10 @@ components:
       additionalProperties: false
       required: [displayName, description, address]
       properties:
+        icon:
+          type: string
+          maxLength: 256
+          description: Icon reference. Empty resets to discovery; omitted preserves selection.
         displayName:
           type: string
           minLength: 1
@@ -311,6 +441,9 @@ components:
         - pinned
         - pinnedAt
       properties:
+        icon:
+          type: string
+          description: Local icon reference; empty uses discovery.
         address:
           type: string
           description: Local homepage address override; empty uses discovery

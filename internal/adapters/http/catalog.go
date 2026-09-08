@@ -101,6 +101,7 @@ func serviceCandidate(candidate catalog.Candidate) generated.ServiceCandidate {
 	return generated.ServiceCandidate{
 		Resources:   &resources,
 		Address:     &candidate.Address,
+		Icon:        &candidate.Icon,
 		Id:          candidate.ID,
 		Source:      generated.SourceRef{Kind: candidate.Source.Kind, Id: candidate.Source.ID},
 		Resource:    resource,
@@ -148,7 +149,7 @@ func (h Handler) EditStagingService(w http.ResponseWriter, r *http.Request, serv
 		http.Error(w, "Invalid edit", http.StatusBadRequest)
 		return
 	}
-	err := h.catalog.Edit(r.Context(), serviceID, catalog.Edit{DisplayName: edit.DisplayName, Description: edit.Description, Address: edit.Address})
+	err := h.catalog.Edit(r.Context(), serviceID, catalog.Edit{DisplayName: edit.DisplayName, Description: edit.Description, Address: edit.Address, Icon: edit.Icon})
 	if errors.Is(err, catalog.ErrInvalidEdit) {
 		http.Error(w, "Invalid edit", http.StatusBadRequest)
 		return

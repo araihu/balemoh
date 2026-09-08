@@ -164,3 +164,18 @@ body {
 .balemoh-editor { padding: 1rem; display: grid; gap: 1.25rem; text-align: left; }
 .balemoh-editor .balemoh-editor { padding: 0; }
 .balemoh-editor-actions { display: flex; align-items: center; gap: 1rem; }
+
+.balemoh-icon-search,.balemoh-icon-filters{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:1rem 0}
+.balemoh-icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem}
+.balemoh-icon-tile{min-width:0;text-align:center;overflow-wrap:anywhere}
+.balemoh-icon-tile-content{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.balemoh-icon-search>:first-child{flex:1;min-width:12rem}
+.balemoh-icon-results{display:grid;gap:.75rem}
+.balemoh-icon-choice{display:flex;flex-direction:column;gap:.5rem;align-items:center;width:100%;min-height:90px;white-space:normal}
+.balemoh-library-image{object-fit:contain;flex-shrink:0;max-width:100%}
+.balemoh-service-card-icon .balemoh-library-image{width:32px;height:32px}
+.balemoh-icon-upload{margin:1rem 0}.balemoh-icon-upload>summary{cursor:pointer}
+.balemoh-upload-form{max-width:36rem;margin:1rem 0}
+#service-icon-picker .balemoh-icon-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+#service-icon-picker{min-width:0;max-height:26rem;overflow-y:auto;padding:.25rem}
+.balemoh-editor{min-width:0}.balemoh-editor>*{min-width:0}
