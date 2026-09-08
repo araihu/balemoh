@@ -21,6 +21,7 @@ type PageData struct {
 }
 
 type Service struct {
+	PinError    string
 	Resources   []Service
 	ID          string
 	DisplayName string
@@ -57,7 +58,8 @@ func serviceTableRows(data PageData) []table.Row {
 	rows := make([]table.Row, 0, len(data.Services))
 	for _, service := range data.Services {
 		row := table.Row{
-			ID: service.ID,
+			ID:          service.ID,
+			AlpineAttrs: map[string]string{"id": "service-row-" + service.ID, "hx-on::after-settle": "this.querySelector('input[name=pinned]')?.focus({preventScroll:true})"},
 			Cells: map[string]table.Cell{
 				"select":   {Component: ServiceSelection(service)},
 				"service":  {Component: ServiceIdentity(service)},

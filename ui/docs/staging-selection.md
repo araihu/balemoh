@@ -17,20 +17,25 @@ GOWORK=off go run github.com/araihu/goshtoso/cmd/iconpack@v0.2.5 \
 
 ## Mutation contract
 
-Each Goshtoso checkbox submits its own native POST form on change. Checked sends
-`pinned=true`; unchecked sends no pin field. The handler validates the body and
-service against the current catalog, skips an already-saved state, then pins or
-unpins. Success redirects to the same checkbox in staging. Native navigation
-keeps the browser's transport errors visible; no optimistic saved state is kept.
-Without JavaScript, a noscript Save button submits the same form.
+Each Goshtoso checkbox submits only its row's form through HTMX. Checked sends
+`pinned=true`; unchecked sends no pin field. The handler validates against the
+current catalog, skips an already-saved state, and returns one Goshtoso TableRow
+fragment. HTMX replaces the row without navigation and restores checkbox focus.
+The checkbox is disabled while its request runs; requests for that row cannot
+queue duplicate submissions.
+
+Expected errors return a fresh row with a safe message and `X-Balemoh-Status`.
+HTTP 200 allows HTMX's standard swap policy. If the catalog cannot confirm state,
+the existing row stays, the checkbox is disabled, and a Refresh link appears.
+Native form submission remains a full-page fallback, with a noscript Save button.
 
 | Request | Result | Pin effects |
 |---|---|---|
-| Check or uncheck | 303 back to the checkbox | Requested state saved |
-| Repeat saved state | Same redirect | None |
-| Invalid, duplicate, or oversized field | 400 in shell | None |
-| Unknown service | 409 in shell | None |
-| Upstream failure | 503 in shell with fresh catalog state | May already have completed; retry is idempotent |
+| Check or uncheck | Updated row fragment | Requested state saved |
+| Repeat saved state | Same saved row | None |
+| Invalid, duplicate, or oversized field | Error row, status header 400 | None |
+| Unknown service | 409, retain row and offer refresh | None |
+| Upstream failure | Error row with fresh state, or refresh recovery | May already have completed; retry is idempotent |
 
 Body size is limited to 1 KiB. Pin state comes only from POST fields. Tests cover
 pin, unpin, replay, invalid input, unknown IDs, failed writes, and recovery.

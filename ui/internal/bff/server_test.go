@@ -337,3 +337,45 @@ func TestCheckboxRejectsMissingServiceAndRendersSavedStateOnFailure(t *testing.T
 		t.Fatal("failed unpin lost saved checked state")
 	}
 }
+
+func TestCheckboxHTMXReturnsOnlyChangedRow(t *testing.T) {
+	catalog := &fakeCatalog{staging: []client.ServiceCandidate{{Id: "svc-1", DisplayName: "One"}, {Id: "svc-2", DisplayName: "Two"}}}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	submit := func(body string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodPost, "/staging/services/svc-1/selection", strings.NewReader(body))
+		r.Header.Set("HX-Request", "true")
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w
+	}
+	response := submit("pinned=true")
+	if response.Code != 200 || response.Header().Get("Location") != "" || response.Header().Get("X-Balemoh-Status") != "200" {
+		t.Fatal("fragment unexpectedly redirects or fails")
+	}
+	html := response.Body.String()
+	if !strings.HasPrefix(html, "<tr") || strings.Contains(html, "<html") || strings.Contains(html, "service-row-svc-2") || !strings.Contains(html, `value="true" checked`) {
+		t.Fatalf("wrong fragment: %s", html)
+	}
+	response = submit("")
+	if response.Code != 200 || catalog.staging[0].Pinned || strings.Contains(response.Body.String(), `value="true" checked`) {
+		t.Fatal("unpin fragment has stale state")
+	}
+	catalog.mutationErr = errors.New("private")
+	response = submit("pinned=true")
+	if response.Code != 200 || response.Header().Get("X-Balemoh-Status") != "503" || !strings.Contains(response.Body.String(), pageMutationError) || strings.Contains(response.Body.String(), `value="true" checked`) {
+		t.Fatal("error must swap authoritative row with safe message")
+	}
+	response = submit("pinned=invalid")
+	if response.Header().Get("X-Balemoh-Status") != "400" || !strings.HasPrefix(response.Body.String(), "<tr") {
+		t.Fatal("invalid input returned full page")
+	}
+	catalog.stagingErr = errors.New("offline")
+	response = submit("pinned=true")
+	if response.Code != 503 || strings.Contains(response.Body.String(), "<tr") {
+		t.Fatal("unknown state should retain row with client recovery")
+	}
+}

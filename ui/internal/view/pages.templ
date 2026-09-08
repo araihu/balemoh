@@ -170,7 +170,13 @@ templ ServiceImages(service Service) {
 }
 
 templ ServiceSelection(service Service) {
- <form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "selection")) }>
+ <form
+ method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "selection")) }
+ class="balemoh-pin-form"
+ hx-post={ serviceActionURL(service.ID, "selection") }
+ hx-target="closest tr" hx-swap="outerHTML" hx-disabled-elt="find input" hx-sync="this:drop"
+ hx-on::after-request="if (!event.detail.successful) { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }"
+>
   @checkbox.Checkbox(checkbox.Config{
    ID: "select-" + service.ID,
    Name: "pinned",
@@ -178,6 +184,13 @@ templ ServiceSelection(service Service) {
    Checked: service.Pinned,
    InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
   })
+  if service.PinError != "" {
+   <small role="alert">{ service.PinError }</small>
+  }
+  <small hidden data-pin-error role="alert">
+   Save unconfirmed.
+   @link.Link("/staging") { Refresh }
+  </small>
   <noscript>
    @button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall)) { Save }
   </noscript>
@@ -223,4 +236,8 @@ templ GroupAddresses(service Service) {
  <span class="balemoh-muted">No public address</span>
  }
  </div>
+}
+
+templ StagingRow(service Service) {
+ @table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
 }

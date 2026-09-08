@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -104,12 +105,12 @@ func (s *server) sync(w http.ResponseWriter, r *http.Request) {
 func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	if err := r.ParseForm(); err != nil {
-		s.renderStaging(w, r, "", "Unable to read the pin change. Try again.", http.StatusBadRequest)
+		s.pinError(w, r, "Unable to read the pin change. Try again.", http.StatusBadRequest)
 		return
 	}
 	values := r.PostForm["pinned"]
 	if len(values) > 1 || (len(values) == 1 && values[0] != "true") {
-		s.renderStaging(w, r, "", "Invalid pin state. Try again.", http.StatusBadRequest)
+		s.pinError(w, r, "Invalid pin state. Try again.", http.StatusBadRequest)
 		return
 	}
 	desired := len(values) == 1
@@ -118,7 +119,7 @@ func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	services, err := s.catalog.Staging(ctx)
 	if err != nil {
-		s.renderStaging(w, r, "", pageErrorMessage, http.StatusServiceUnavailable)
+		s.pinError(w, r, pageErrorMessage, http.StatusServiceUnavailable)
 		return
 	}
 	for _, service := range services {
@@ -132,9 +133,14 @@ func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
 				err = s.catalog.Unpin(ctx, id)
 			}
 			if err != nil {
-				s.renderStaging(w, r, "", pageMutationError, http.StatusServiceUnavailable)
+				s.pinError(w, r, pageMutationError, http.StatusServiceUnavailable)
 				return
 			}
+		}
+		if r.Header.Get("HX-Request") == "true" {
+			service.Pinned = desired
+			s.renderPinRow(w, r, mapService(service), http.StatusOK)
+			return
 		}
 		notice := "unpinned"
 		if desired {
@@ -143,7 +149,43 @@ func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
 		redirect(w, r, "/staging?notice="+notice+"#select-"+url.PathEscape(id))
 		return
 	}
-	s.renderStaging(w, r, "", "This service is no longer available. Refresh discovery.", http.StatusConflict)
+	s.pinError(w, r, "This service is no longer available. Refresh discovery.", http.StatusConflict)
+}
+
+// Expected HTMX errors swap a row with fresh server state. The status header
+// preserves the outcome while HTTP 200 allows the standard HTMX swap policy.
+func (s *server) pinError(w http.ResponseWriter, r *http.Request, message string, status int) {
+	if r.Header.Get("HX-Request") != "true" {
+		s.renderStaging(w, r, "", message, status)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	services, err := s.catalog.Staging(ctx)
+	if err == nil {
+		for _, service := range services {
+			if service.Id == r.PathValue("serviceID") {
+				row := mapService(service)
+				row.PinError = message
+				s.renderPinRow(w, r, row, status)
+				return
+			}
+		}
+	}
+	// Without current catalog state, keep the existing row and show recovery.
+	http.Error(w, "Unable to confirm pin state. Refresh staging.", status)
+}
+
+func (s *server) renderPinRow(w http.ResponseWriter, r *http.Request, service view.Service, status int) {
+	var body bytes.Buffer
+	if err := view.StagingRow(service).Render(r.Context(), &body); err != nil {
+		http.Error(w, "Unable to render service row.", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Balemoh-Status", strconv.Itoa(status))
+	_, _ = io.Copy(w, &body)
 }
 
 func (s *server) pin(w http.ResponseWriter, r *http.Request) {

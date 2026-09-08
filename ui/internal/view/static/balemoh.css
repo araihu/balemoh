@@ -146,3 +146,7 @@ body {
 .balemoh-col-service { min-width: 10rem; }
 .balemoh-col-address { min-width: 12rem; }
 .balemoh-col-resources { width: 20rem; }
+
+.balemoh-pin-form.htmx-request { opacity: .6; }
+.balemoh-pin-form small { display: block; margin-top: .5rem; }
+.balemoh-pin-form small[hidden] { display: none; }
