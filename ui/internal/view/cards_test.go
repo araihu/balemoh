@@ -38,3 +38,22 @@ func TestHomepageCardAddresses(t *testing.T) {
 		}
 	}
 }
+
+func TestServiceEditorCardAndDiscoveredPlaceholder(t *testing.T) {
+	service := Service{ID: "app", DisplayName: "Application", Description: "Team workspace", Address: "https://custom.example/", Endpoints: []Endpoint{{URL: "https://discovered.example/"}}}
+	var html bytes.Buffer
+	if err := ServiceEditor(service).Render(context.Background(), &html); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`placeholder="https://discovered.example/"`, `value="https://custom.example/"`, `aria-label="Homepage card preview"`, `balemoh-service-card`, `Team workspace`, `href="https://custom.example/"`, `x-bind:src="iconPreview"`} {
+		if !strings.Contains(html.String(), want) {
+			t.Errorf("editor missing %s", want)
+		}
+	}
+	if service.Address != "https://custom.example/" {
+		t.Fatal("placeholder changed address override")
+	}
+	if discoveredAddress(Service{}) != "" {
+		t.Fatal("undiscovered address should have empty placeholder")
+	}
+}

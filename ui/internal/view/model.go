@@ -15,6 +15,14 @@ func addressLabel(address string) string {
 	return strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://"), "//")
 }
 
+func discoveredAddress(service Service) string {
+	service.Address = ""
+	if addresses := groupAddresses(service); len(addresses) > 0 {
+		return addresses[0]
+	}
+	return ""
+}
+
 func addressMenuItems(addresses []string) []dropdown.Item {
 	items := make([]dropdown.Item, 0, len(addresses))
 	for _, address := range addresses {

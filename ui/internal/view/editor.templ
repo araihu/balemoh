@@ -1,7 +1,6 @@
 package view
 
 import (
-	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/button"
 	"github.com/araihu/goshtoso/components/fileinput"
 	"github.com/araihu/goshtoso/components/form"
@@ -38,17 +37,10 @@ templ ServiceEditor(service Service) {
 		}
 		@form.FieldGroup(form.FieldGroupConfig{Label: "Name", Required: true, Input: &textinput.Config{ID: "edit-name", Name: "displayName", Value: service.DisplayName, MaxLength: 200}})
 		@form.FieldGroup(form.FieldGroupConfig{Label: "Description", Textarea: &textarea.Config{ID: "edit-description", Name: "description", Value: service.Description, Rows: 3, InputAttrs: templ.Attributes{"maxlength": "2000"}}})
-		@form.FieldGroup(form.FieldGroupConfig{Label: "Homepage address", Hints: []string{"Leave blank to use discovered addresses."}, Input: &textinput.Config{ID: "edit-address", Name: "address", Type: textinput.TypeURL, Value: service.Address, MaxLength: 2048}})
+		@form.FieldGroup(form.FieldGroupConfig{Label: "Homepage address", Hints: []string{"Leave blank to use discovered addresses."}, Input: &textinput.Config{ID: "edit-address", Name: "address", Type: textinput.TypeURL, Value: service.Address, Placeholder: discoveredAddress(service), MaxLength: 2048}})
 		<div x-data="{iconPreview: '', destroy() { if (this.iconPreview) URL.revokeObjectURL(this.iconPreview) }}" class="balemoh-editor">
-			<div class="balemoh-icon-preview">
-				<span x-show="!iconPreview">
-					if isKubernetes(service) {
-						@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Label: "Discovery default icon"})
-					} else {
-						<span>Discovery default</span>
-					}
-				</span>
-				<template x-if="iconPreview"><img x-bind:src="iconPreview" alt="Selected icon preview" width="32" height="32"/></template>
+			<div aria-label="Homepage card preview">
+				@ServiceCard(service, ServiceIconPreview(service))
 			</div>
 			@fileinput.FileInput(fileinput.Config{Appearance: fileinput.AppearanceUpload, ID: "edit-icon-preview", Label: "Icon preview", Accept: "image/*", HelperText: "Preview only. Icon changes are not saved yet.", InputAttrs: templ.Attributes{"x-ref": "iconFile", "x-on:change": "if (iconPreview) URL.revokeObjectURL(iconPreview); iconPreview = $event.target.files[0] ? URL.createObjectURL($event.target.files[0]) : ''"}})
 			@button.Button(button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithSize(button.SizeSmall), button.WithAttrs(templ.Attributes{"x-on:click": "if (iconPreview) URL.revokeObjectURL(iconPreview); iconPreview = ''; $refs.iconFile.value = ''"})) {
@@ -64,6 +56,15 @@ templ ServiceEditor(service Service) {
 			}
 		</div>
 	</form>
+}
+
+templ ServiceIconPreview(service Service) {
+	<span class="balemoh-service-card-icon">
+		<span x-show="!iconPreview">
+			@ServiceCardIcon(service)
+		</span>
+		<template x-if="iconPreview"><img x-bind:src="iconPreview" alt="Selected icon preview" width="32" height="32"/></template>
+	</span>
 }
 
 templ EditedRow(service Service) {

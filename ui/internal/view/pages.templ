@@ -64,13 +64,7 @@ templ HomepageContent(data PageData) {
 	if len(data.Services) > 0 {
 		<div class="balemoh-service-grid">
 			for _, service := range data.Services {
-				@card.Card(card.Config{
-					Title:       service.DisplayName,
-					Description: service.Description,
-					TitlePrefix: ServiceCardIcon(service),
-					Body:        ServiceCardAddresses(service),
-					RootClass:   "balemoh-service-card",
-				})
+				@ServiceCard(service, ServiceCardIcon(service))
 			}
 		</div>
 	} else if data.Error == "" {
@@ -81,6 +75,16 @@ templ HomepageContent(data PageData) {
 			RootClass:   "balemoh-empty-state",
 		})
 	}
+}
+
+templ ServiceCard(service Service, serviceIcon templ.Component) {
+	@card.Card(card.Config{
+		Title:       service.DisplayName,
+		Description: service.Description,
+		TitlePrefix: serviceIcon,
+		Body:        ServiceCardAddresses(service),
+		RootClass:   "balemoh-service-card",
+	})
 }
 
 templ ServiceCardIcon(service Service) {
