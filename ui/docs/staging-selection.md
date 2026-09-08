@@ -17,29 +17,24 @@ GOWORK=off go run github.com/araihu/goshtoso/cmd/iconpack@v0.2.5 \
 
 ## Mutation contract
 
-| State | Request | Result | Retained selection | Pin effects |
-|---|---|---|---|---|
-| Ready | Known unpinned IDs | 303 to `/staging?notice=selection-pinned` | Cleared | Once per distinct ID |
-| Already pinned | Repeat selection | Same redirect | Cleared | None |
-| Empty or excessive | Zero or over 500 IDs | 400 in shell | None | None |
-| Stale | Includes an unknown ID | 409 in shell before any pin | Available selected rows | None |
-| Interrupted batch | Upstream pin fails | 503 in shell | Unfinished rows stay checked | Earlier successes remain pinned |
-| Retry | Resubmit interrupted batch | Normal redirect on success | Cleared | Already pinned rows skipped |
+Each Goshtoso checkbox submits its own native POST form on change. Checked sends
+`pinned=true`; unchecked sends no pin field. The handler validates the body and
+service against the current catalog, skips an already-saved state, then pins or
+unpins. Success redirects to the same checkbox in staging. Native navigation
+keeps the browser's transport errors visible; no optimistic saved state is kept.
+Without JavaScript, a noscript Save button submits the same form.
 
-Body size is limited to 64 KiB. IDs come only from POST form fields. Pinning
-reuses the existing idempotent API; batches are sequential and not atomic.
-Homepage unpin controls retain their existing routes.
+| Request | Result | Pin effects |
+|---|---|---|
+| Check or uncheck | 303 back to the checkbox | Requested state saved |
+| Repeat saved state | Same redirect | None |
+| Invalid, duplicate, or oversized field | 400 in shell | None |
+| Unknown service | 409 in shell | None |
+| Upstream failure | 503 in shell with fresh catalog state | May already have completed; retry is idempotent |
 
-## Verification
-
-`GOWORK=off go test ./...`, `go vet ./...`, generation, and icon lock verification
-pass. Handler tests cover the mutation contract, safe errors, and embedded assets.
-Browser checks use a disposable local API fixture, not homelab pin data.
-Verified checkbox keyboard operation, tooltip description, pin success,
-failed pin with selection retention, empty state, and native PRG destination.
-Inspected 390 px and 1440 px layouts in Goshtoso and Minimal, light and dark.
-Table owns horizontal overflow; document stays within viewport width.
-Checkbox outlines use the existing muted-text token for visible boundaries.
+Body size is limited to 1 KiB. Pin state comes only from POST fields. Tests cover
+pin, unpin, replay, invalid input, unknown IDs, failed writes, and recovery.
+Goshtoso Link renders addresses in both the summary and resource details.
 
 ## Service groups
 

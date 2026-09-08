@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -44,7 +45,7 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("POST /staging/sync", server.sync)
-	mux.HandleFunc("POST /staging/pin", server.pinSelected)
+	mux.HandleFunc("POST /staging/services/{serviceID}/selection", server.setPin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/pin", server.pin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/unpin", server.unpin)
 	mux.HandleFunc("GET /", server.homepage)
@@ -87,65 +88,62 @@ func (s *server) staging(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.renderStaging(w, r, noticeText(r.URL.Query().Get("notice")), "", nil, http.StatusOK)
+	s.renderStaging(w, r, noticeText(r.URL.Query().Get("notice")), "", http.StatusOK)
 }
 
 func (s *server) sync(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	if _, err := s.catalog.Sync(ctx); err != nil {
-		s.renderStaging(w, r, "", pageSyncError, nil, http.StatusServiceUnavailable)
+		s.renderStaging(w, r, "", pageSyncError, http.StatusServiceUnavailable)
 		return
 	}
 	redirect(w, r, "/staging?notice=synced")
 }
 
-func (s *server) pinSelected(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	if err := r.ParseForm(); err != nil {
-		s.renderStaging(w, r, "", "Unable to read the selection. Select services and try again.", nil, http.StatusBadRequest)
+		s.renderStaging(w, r, "", "Unable to read the pin change. Try again.", http.StatusBadRequest)
 		return
 	}
-	ids := r.PostForm["serviceID"]
-	if len(ids) == 0 || len(ids) > 500 {
-		s.renderStaging(w, r, "", "Select between 1 and 500 services to pin.", nil, http.StatusBadRequest)
+	values := r.PostForm["pinned"]
+	if len(values) > 1 || (len(values) == 1 && values[0] != "true") {
+		s.renderStaging(w, r, "", "Invalid pin state. Try again.", http.StatusBadRequest)
 		return
 	}
-	selected := make(map[string]bool, len(ids))
-	for _, id := range ids {
-		selected[id] = true
-	}
+	desired := len(values) == 1
+	id := r.PathValue("serviceID")
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	services, err := s.catalog.Staging(ctx)
 	if err != nil {
-		s.renderStaging(w, r, "", pageErrorMessage, selected, http.StatusServiceUnavailable)
+		s.renderStaging(w, r, "", pageErrorMessage, http.StatusServiceUnavailable)
 		return
 	}
-	known := make(map[string]bool, len(services))
 	for _, service := range services {
-		known[service.Id] = service.Pinned
-	}
-	for id := range selected {
-		if _, exists := known[id]; !exists {
-			s.renderStaging(w, r, "", "A selected service is no longer available. Review the selection and try again.", selected, http.StatusConflict)
-			return
-		}
-	}
-	// Pins are idempotent; keep unfinished selections when a batch is interrupted.
-	for _, id := range ids {
-		if !selected[id] {
+		if service.Id != id {
 			continue
 		}
-		if !known[id] {
-			if err := s.catalog.Pin(ctx, id); err != nil {
-				s.renderStaging(w, r, "", "Pinning stopped. Some services may already be pinned; retry the remaining selection.", selected, http.StatusServiceUnavailable)
+		if service.Pinned != desired {
+			if desired {
+				err = s.catalog.Pin(ctx, id)
+			} else {
+				err = s.catalog.Unpin(ctx, id)
+			}
+			if err != nil {
+				s.renderStaging(w, r, "", pageMutationError, http.StatusServiceUnavailable)
 				return
 			}
 		}
-		delete(selected, id)
+		notice := "unpinned"
+		if desired {
+			notice = "pinned"
+		}
+		redirect(w, r, "/staging?notice="+notice+"#select-"+url.PathEscape(id))
+		return
 	}
-	redirect(w, r, "/staging?notice=selection-pinned")
+	s.renderStaging(w, r, "", "This service is no longer available. Refresh discovery.", http.StatusConflict)
 }
 
 func (s *server) pin(w http.ResponseWriter, r *http.Request) {
@@ -169,13 +167,13 @@ func (s *server) mutate(w http.ResponseWriter, r *http.Request, operation func(c
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	if err := operation(ctx, id); err != nil {
-		s.renderStaging(w, r, "", pageMutationError, nil, http.StatusServiceUnavailable)
+		s.renderStaging(w, r, "", pageMutationError, http.StatusServiceUnavailable)
 		return
 	}
 	redirect(w, r, "/staging?notice="+notice)
 }
 
-func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, errorMessage string, selected map[string]bool, status int) {
+func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, errorMessage string, status int) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	services, err := s.catalog.Staging(ctx)
@@ -193,7 +191,6 @@ func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, e
 		Staging:     true,
 		Error:       errorMessage,
 		Notice:      notice,
-		Selected:    selected,
 	}, status)
 }
 
@@ -229,8 +226,6 @@ func redirect(w http.ResponseWriter, _ *http.Request, location string) {
 
 func noticeText(value string) string {
 	switch value {
-	case "selection-pinned":
-		return "Selected services are now visible on the homepage."
 	case "pinned":
 		return "The service is now visible on the homepage."
 	case "unpinned":

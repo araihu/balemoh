@@ -18,7 +18,6 @@ type PageData struct {
 	Staging     bool
 	Error       string
 	Notice      string
-	Selected    map[string]bool
 }
 
 type Service struct {
@@ -45,7 +44,7 @@ type Endpoint struct {
 func serviceTableColumns(staging bool) []table.Column {
 	columns := []table.Column{}
 	if staging {
-		columns = append(columns, table.Column{Key: "select", Label: "Select", Width: "balemoh-col-select"})
+		columns = append(columns, table.Column{Key: "select", Label: "Pinned", Width: "balemoh-col-select"})
 	}
 	return append(columns,
 		table.Column{Key: "service", Label: "Service", Width: "balemoh-col-service"},
@@ -60,7 +59,7 @@ func serviceTableRows(data PageData) []table.Row {
 		row := table.Row{
 			ID: service.ID,
 			Cells: map[string]table.Cell{
-				"select":   {Component: ServiceSelection(service, data.Selected[service.ID])},
+				"select":   {Component: ServiceSelection(service)},
 				"service":  {Component: ServiceIdentity(service)},
 				"source":   {Text: service.Source, Code: true},
 				"resource": {Component: ServiceResources(service)},
@@ -81,10 +80,7 @@ func isKubernetes(service Service) bool {
 }
 
 func selectionLabel(service Service) string {
-	if service.Pinned {
-		return "Already on homepage: " + service.DisplayName + ", " + resourceLabel(service)
-	}
-	return "Select " + service.DisplayName + ", " + resourceLabel(service)
+	return "Pin " + service.DisplayName + " to homepage, " + resourceLabel(service)
 }
 
 func serviceActionURL(id, action string) string {

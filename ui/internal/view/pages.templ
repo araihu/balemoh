@@ -71,13 +71,13 @@ templ HomepageContent(data PageData) {
 }
 
 templ StagingContent(data PageData) {
-	<form method="post" action="/staging/pin" class="balemoh-selection-form" x-data="{ submitting: false }" x-on:submit="submitting = true">
+	<div class="balemoh-selection-form">
 		@panel.Panel(panel.Config{
 			Density: panel.DensityCompact,
-			Header: StagingTableHeader(len(data.Services) > 0),
+			Header: PanelHeader("Discovered candidates", "Check to pin to your homepage. Uncheck to remove. Changes save immediately."),
 			Body: ServiceTable(data),
 		})
-	</form>
+	</div>
 	if len(data.Services) == 0 && data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
 			Title: "No candidates yet",
@@ -86,17 +86,6 @@ templ StagingContent(data PageData) {
 			RootClass: "balemoh-empty-state",
 		})
 	}
-}
-
-templ StagingTableHeader(hasServices bool) {
-	<div class="balemoh-table-toolbar">
-		@PanelHeader("Discovered candidates", "Select services to pin to your homepage.")
-		if hasServices {
-			@button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall), button.WithAlpine(&button.AlpineConfig{BindDisabled: "submitting"})) {
-				<span x-text="submitting ? 'Pinning…' : 'Pin selected'">Pin selected</span>
-			}
-		}
-	</div>
 }
 
 templ SyncAction() {
@@ -180,15 +169,19 @@ templ ServiceImages(service Service) {
 	</div>
 }
 
-templ ServiceSelection(service Service, selected bool) {
-	@checkbox.Checkbox(checkbox.Config{
-		ID: "select-" + service.ID,
-		Name: "serviceID",
-		Value: service.ID,
-		Checked: selected || service.Pinned,
-		Disabled: service.Pinned,
-		InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "style": "border-color: var(--balemoh-muted)"},
-	})
+templ ServiceSelection(service Service) {
+ <form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "selection")) }>
+  @checkbox.Checkbox(checkbox.Config{
+   ID: "select-" + service.ID,
+   Name: "pinned",
+   Value: "true",
+   Checked: service.Pinned,
+   InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
+  })
+  <noscript>
+   @button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall)) { Save }
+  </noscript>
+ </form>
 }
 
 templ ServiceActions(service Service) {

@@ -52,7 +52,15 @@ func (f *fakeCatalog) Pin(_ context.Context, id string) error {
 
 func (f *fakeCatalog) Unpin(_ context.Context, id string) error {
 	f.unpinnedIDs = append(f.unpinnedIDs, id)
-	return f.mutationErr
+	if f.mutationErr != nil {
+		return f.mutationErr
+	}
+	for i := range f.staging {
+		if f.staging[i].Id == id {
+			f.staging[i].Pinned = false
+		}
+	}
+	return nil
 }
 
 func (f *fakeCatalog) Sync(context.Context) (client.DiscoverySyncResponse, error) {
@@ -98,70 +106,15 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 	if staging.Code != http.StatusOK {
 		t.Fatalf("GET /staging status = %d, want 200", staging.Code)
 	}
-	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/pin"`, `name="serviceID" value="svc-stage"`, `aria-label="Sync discovery"`} {
+	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/services/svc-stage/selection"`, `name="pinned" value="true"`, `onchange="this.form.requestSubmit()"`, `aria-label="Sync discovery"`} {
 		if !strings.Contains(staging.Body.String(), want) {
 			t.Errorf("GET /staging body missing %q", want)
 		}
 	}
-	for _, unwanted := range []string{`>Status</`, `>Pin to homepage<`, `<code>svc-stage</code>`} {
+	for _, unwanted := range []string{`>Status</`, `>Pin to homepage<`, `Pin selected`, `<code>svc-stage</code>`} {
 		if strings.Contains(staging.Body.String(), unwanted) {
 			t.Errorf("staging contains removed UI %q", unwanted)
 		}
-	}
-}
-
-func TestPinSelectionValidatesBeforeMutationAndAllowsReplay(t *testing.T) {
-	for _, tc := range []struct {
-		name, body string
-		status     int
-		calls      int
-	}{
-		{"empty", "", http.StatusBadRequest, 0},
-		{"unknown", "serviceID=svc-1&serviceID=missing", http.StatusConflict, 0},
-		{"deduplicated", "serviceID=svc-1&serviceID=svc-1&serviceID=svc-2", http.StatusSeeOther, 2},
-		{"oversized", "serviceID=" + strings.Repeat("x", 65536), http.StatusBadRequest, 0},
-		{"too many", strings.Repeat("serviceID=svc-1&", 501), http.StatusBadRequest, 0},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			catalog := &fakeCatalog{staging: []client.ServiceCandidate{{Id: "svc-1"}, {Id: "svc-2"}}}
-			handler, err := New(catalog, time.Second)
-			if err != nil {
-				t.Fatal(err)
-			}
-			response := request(t, handler, http.MethodPost, "/staging/pin", tc.body)
-			if response.Code != tc.status || len(catalog.pinnedIDs) != tc.calls {
-				t.Fatalf("status=%d calls=%v", response.Code, catalog.pinnedIDs)
-			}
-			if tc.status == http.StatusSeeOther {
-				if response.Header().Get("Location") != "/staging?notice=selection-pinned" {
-					t.Fatal("missing PRG destination")
-				}
-				response = request(t, handler, http.MethodPost, "/staging/pin", tc.body)
-				if response.Code != http.StatusSeeOther || len(catalog.pinnedIDs) != tc.calls {
-					t.Fatal("replay pinned services twice")
-				}
-			}
-		})
-	}
-}
-
-func TestPinSelectionPreservesUnfinishedItemsOnFailure(t *testing.T) {
-	catalog := &fakeCatalog{staging: []client.ServiceCandidate{{Id: "svc-1"}, {Id: "svc-2"}}, failPinID: "svc-2"}
-	handler, err := New(catalog, time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
-	response := request(t, handler, http.MethodPost, "/staging/pin", "serviceID=svc-1&serviceID=svc-2")
-	if response.Code != http.StatusServiceUnavailable {
-		t.Fatalf("status=%d", response.Code)
-	}
-	if !strings.Contains(response.Body.String(), `name="serviceID" value="svc-2" checked`) || !strings.Contains(response.Body.String(), "Pinning stopped") {
-		t.Fatal("remaining selection or error missing")
-	}
-	catalog.failPinID = ""
-	response = request(t, handler, http.MethodPost, "/staging/pin", "serviceID=svc-1&serviceID=svc-2")
-	if response.Code != http.StatusSeeOther || strings.Join(catalog.pinnedIDs, ",") != "svc-1,svc-2,svc-2" {
-		t.Fatalf("retry status=%d calls=%v", response.Code, catalog.pinnedIDs)
 	}
 }
 
@@ -320,3 +273,67 @@ func request(t *testing.T, handler http.Handler, method, path, body string) *htt
 }
 
 func stringPtr(value string) *string { return &value }
+
+func TestCheckboxSavesExplicitPinState(t *testing.T) {
+	for _, tc := range []struct {
+		name, body       string
+		initial, desired bool
+		status           int
+		calls            int
+	}{
+		{"pin", "pinned=true", false, true, 303, 1},
+		{"unpin", "", true, false, 303, 1},
+		{"already pinned", "pinned=true", true, true, 303, 0},
+		{"already unpinned", "", false, false, 303, 0},
+		{"invalid", "pinned=no", false, false, 400, 0},
+		{"duplicate", "pinned=true&pinned=true", false, false, 400, 0},
+		{"oversized", strings.Repeat("x", 1025), false, false, 400, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			catalog := &fakeCatalog{staging: []client.ServiceCandidate{{Id: "svc-1", Pinned: tc.initial}}}
+			handler, err := New(catalog, time.Second)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response := request(t, handler, http.MethodPost, "/staging/services/svc-1/selection", tc.body)
+			if response.Code != tc.status || len(catalog.pinnedIDs)+len(catalog.unpinnedIDs) != tc.calls || catalog.staging[0].Pinned != tc.desired {
+				t.Fatalf("status=%d pins=%v unpins=%v state=%v", response.Code, catalog.pinnedIDs, catalog.unpinnedIDs, catalog.staging[0].Pinned)
+			}
+			if tc.status == 303 {
+				if !strings.HasSuffix(response.Header().Get("Location"), "#select-svc-1") {
+					t.Fatal("missing return to checkbox")
+				}
+				replay := request(t, handler, http.MethodPost, "/staging/services/svc-1/selection", tc.body)
+				if replay.Code != 303 || len(catalog.pinnedIDs)+len(catalog.unpinnedIDs) != tc.calls {
+					t.Fatal("replay changed pin state again")
+				}
+			}
+		})
+	}
+}
+
+func TestCheckboxRejectsMissingServiceAndRendersSavedStateOnFailure(t *testing.T) {
+	catalog := &fakeCatalog{staging: []client.ServiceCandidate{{Id: "svc-1", DisplayName: "One"}}, mutationErr: errors.New("private upstream error")}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := request(t, handler, http.MethodPost, "/staging/services/missing/selection", "pinned=true")
+	if response.Code != 409 || len(catalog.pinnedIDs) != 0 {
+		t.Fatal("unknown service mutated")
+	}
+	response = request(t, handler, http.MethodPost, "/staging/services/svc-1/selection", "pinned=true")
+	if response.Code != 503 || !strings.Contains(response.Body.String(), pageMutationError) || strings.Contains(response.Body.String(), `value="true" checked`) || strings.Contains(response.Body.String(), "private upstream error") {
+		t.Fatal("failed pin must show safe error and saved unchecked state")
+	}
+	catalog.mutationErr = nil
+	response = request(t, handler, http.MethodPost, "/staging/services/svc-1/selection", "pinned=true")
+	if response.Code != 303 || !catalog.staging[0].Pinned {
+		t.Fatal("retry failed")
+	}
+	catalog.mutationErr = errors.New("failed unpin")
+	response = request(t, handler, http.MethodPost, "/staging/services/svc-1/selection", "")
+	if response.Code != 503 || !strings.Contains(response.Body.String(), `value="true" checked`) {
+		t.Fatal("failed unpin lost saved checked state")
+	}
+}
