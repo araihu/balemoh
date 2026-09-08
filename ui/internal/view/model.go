@@ -1,11 +1,13 @@
 package view
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/araihu/goshtoso/components/table"
+	"github.com/araihu/goshtoso/components/tooltip"
 )
 
 // PageData is the presentation model for the two operator-facing catalog
@@ -45,7 +47,7 @@ type Endpoint struct {
 func serviceTableColumns(staging bool) []table.Column {
 	columns := []table.Column{}
 	if staging {
-		columns = append(columns, table.Column{Key: "select", Label: "Pinned", Width: "balemoh-col-select"})
+		columns = append(columns, table.Column{Key: "select", Label: "Pinned", HeaderSuffix: tooltip.Help("pinning-help", "How pinning works", "Check to pin a service to your homepage. Uncheck to remove it. Changes save immediately."), Width: "balemoh-col-select"})
 	}
 	return append(columns,
 		table.Column{Key: "service", Label: "Service", Width: "balemoh-col-service"},
@@ -68,9 +70,6 @@ func serviceTableRows(data PageData) []table.Row {
 				"endpoint": {Component: GroupAddresses(service)},
 				"images":   {Component: ServiceImages(service)},
 			},
-		}
-		if !data.Staging {
-			row.Actions = ServiceActions(service)
 		}
 		rows = append(rows, row)
 	}
@@ -177,4 +176,9 @@ func groupAddresses(service Service) []string {
 		}
 	}
 	return addresses
+}
+
+func successToastEvent(message string) string {
+	payload, _ := json.Marshal(map[string]string{"kind": "toast", "tone": "success", "message": message})
+	return "$nextTick(() => $dispatch('notify', " + string(payload) + "))"
 }

@@ -43,6 +43,10 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 		_, _ = w.Write(uiassets.IconSprite)
 	})
 	mux.HandleFunc("GET /ui/balemoh.css", server.serveCSS)
+	mux.HandleFunc("GET /ui/social-v1.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(view.SocialPreview())
+	})
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("POST /staging/sync", server.sync)

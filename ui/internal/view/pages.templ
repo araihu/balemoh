@@ -1,9 +1,8 @@
 package view
 
 import (
- "strings"
-	"github.com/araihu/goshtoso/components/alert"
 	"github.com/araihu/balemoh/ui/internal/appicons"
+	"github.com/araihu/goshtoso/components/alert"
 	"github.com/araihu/goshtoso/components/button"
 	"github.com/araihu/goshtoso/components/checkbox"
 	"github.com/araihu/goshtoso/components/emptystate"
@@ -11,24 +10,28 @@ import (
 	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/link"
 	"github.com/araihu/goshtoso/components/pageheader"
-	"github.com/araihu/goshtoso/components/panel"
 	"github.com/araihu/goshtoso/components/table"
+	"github.com/araihu/goshtoso/components/toast"
 	"github.com/araihu/goshtoso/components/tooltip"
+	"strings"
 )
 
 templ PageContent(data PageData) {
-	<section class="balemoh-content" aria-labelledby="balemoh-page-heading">
-		@pageheader.PageHeader(pageheader.Config{
-			Title: data.Title,
-			Description: data.Description,
-			TitleAttrs: templ.Attributes{"id": "balemoh-page-heading"},
-			Actions: PageActions(data),
-		})
+	@toast.ToastContainer(toast.ContainerConfig{DisplayDuration: 4000})
+	if data.Notice != "" {
+		<div hidden x-data="{}" x-init={ successToastEvent(data.Notice) }></div>
+	}
+	<section class="balemoh-content" aria-label={ data.Title }>
+		if data.Staging {
+			@pageheader.PageHeader(pageheader.Config{
+				Title:       data.Title,
+				TitleSuffix: tooltip.Help("staging-help", "About Staging", data.Description),
+				TitleAttrs:  templ.Attributes{"id": "balemoh-page-heading"},
+				Actions:     StagingActions(),
+			})
+		}
 		if data.Error != "" {
 			@alert.Alert(alert.Config{Title: "Catálogo indisponível", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
-		}
-		if data.Notice != "" {
-			@alert.Alert(alert.Config{Title: "Atualização concluída", Description: data.Notice, Tone: alert.ToneSuccess, RootClass: "balemoh-alert"})
 		}
 		if data.Staging {
 			@StagingContent(data)
@@ -38,14 +41,10 @@ templ PageContent(data PageData) {
 	</section>
 }
 
-templ PageActions(data PageData) {
-	if data.Staging {
-		<form method="post" action="/staging/sync">
-			@tooltip.Tooltip("sync-discovery-tooltip", "Sync discovery", tooltip.WithPosition(tooltip.PositionBottom), tooltip.WithTrigger(SyncButton()))
-		</form>
-	} else {
-		@link.Link("/staging", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Review staging }
-	}
+templ StagingActions() {
+	<form method="post" action="/staging/sync">
+		@tooltip.Tooltip("sync-discovery-tooltip", "Sync discovery", tooltip.WithPosition(tooltip.PositionBottom), tooltip.WithTrigger(SyncButton()))
+	</form>
 }
 
 templ SyncButton() {
@@ -55,64 +54,53 @@ templ SyncButton() {
 }
 
 templ HomepageContent(data PageData) {
-	@panel.Panel(panel.Config{
-		Density: panel.DensityCompact,
-		Header: PanelHeader("Pinned services", "Services currently visible on the Balemoh homepage."),
-		Body: ServiceTable(data),
-	})
-	if len(data.Services) == 0 && data.Error == "" {
+	if len(data.Services) > 0 {
+		@ServiceTable(data)
+	} else if data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
-			Title: "No pinned services",
+			Title:       "No pinned services",
 			Description: "Review discovered candidates in staging and pin the services you want to keep on the homepage.",
-			Action: ReviewStagingAction(),
-			RootClass: "balemoh-empty-state",
+			Action:      ReviewStagingAction(),
+			RootClass:   "balemoh-empty-state",
 		})
 	}
 }
 
 templ StagingContent(data PageData) {
-	<div class="balemoh-selection-form">
-		@panel.Panel(panel.Config{
-			Density: panel.DensityCompact,
-			Header: PanelHeader("Discovered candidates", "Check to pin to your homepage. Uncheck to remove. Changes save immediately."),
-			Body: ServiceTable(data),
-		})
-	</div>
-	if len(data.Services) == 0 && data.Error == "" {
+	if len(data.Services) > 0 {
+		@ServiceTable(data)
+	} else if data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
-			Title: "No candidates yet",
+			Title:       "No candidates yet",
 			Description: "Run discovery again when a cluster or host is connected to this Balemoh instance.",
-			Action: SyncAction(),
-			RootClass: "balemoh-empty-state",
+			Action:      SyncAction(),
+			RootClass:   "balemoh-empty-state",
 		})
 	}
 }
 
 templ SyncAction() {
 	<form method="post" action="/staging/sync">
-		@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary)) { Sync discovery }
+		@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary)) {
+			Sync discovery
+		}
 	</form>
 }
 
 templ ReviewStagingAction() {
-	@link.Link("/staging", link.WithAppearance(link.AppearanceButton)) { Review staging }
-}
-
-templ PanelHeader(title, description string) {
-	<div class="balemoh-panel-header">
-		<h2>{ title }</h2>
-		<p>{ description }</p>
-	</div>
+	@link.Link("/staging", link.WithAppearance(link.AppearanceButton)) {
+		Review staging
+	}
 }
 
 templ ServiceTable(data PageData) {
 	if len(data.Services) > 0 {
 		<div class="balemoh-table-scroll">
 			@table.Table(table.Config{
-				ID: "balemoh-services",
-				Caption: "Discovered Balemoh services",
-				Columns: serviceTableColumns(data.Staging),
-				Rows: serviceTableRows(data),
+				ID:        "balemoh-services",
+				Caption:   "Discovered Balemoh services",
+				Columns:   serviceTableColumns(data.Staging),
+				Rows:      serviceTableRows(data),
 				RootClass: "balemoh-service-table",
 			})
 		</div>
@@ -130,7 +118,7 @@ templ ServiceIdentity(service Service) {
 			<strong>{ service.DisplayName }</strong>
 		</div>
 		<small class="balemoh-muted">{ service.Namespace }</small>
- if service.Description != "" && !isKubernetes(service) {
+		if service.Description != "" && !isKubernetes(service) {
 			<span>{ service.Description }</span>
 		}
 	</div>
@@ -143,9 +131,9 @@ templ ServiceEndpoints(service Service) {
 		} else {
 			for _, endpoint := range service.Endpoints {
 				if href := endpointHref(endpoint.URL); href != "" {
-					@link.Link(href) {
- { endpointSummary(endpoint) }
- }
+					@link.Link(href, link.WithTarget("_blank")) {
+						{ endpointSummary(endpoint) }
+					}
 				} else {
 					<span>{ endpointSummary(endpoint) }</span>
 				}
@@ -170,74 +158,74 @@ templ ServiceImages(service Service) {
 }
 
 templ ServiceSelection(service Service) {
- <form
- method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "selection")) }
- class="balemoh-pin-form"
- hx-post={ serviceActionURL(service.ID, "selection") }
- hx-target="closest tr" hx-swap="outerHTML" hx-disabled-elt="find input" hx-sync="this:drop"
- hx-on::after-request="if (!event.detail.successful) { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }"
->
-  @checkbox.Checkbox(checkbox.Config{
-   ID: "select-" + service.ID,
-   Name: "pinned",
-   Value: "true",
-   Checked: service.Pinned,
-   InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
-  })
-  if service.PinError != "" {
-   <small role="alert">{ service.PinError }</small>
-  }
-  <small hidden data-pin-error role="alert">
-   Save unconfirmed.
-   @link.Link("/staging") { Refresh }
-  </small>
-  <noscript>
-   @button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall)) { Save }
-  </noscript>
- </form>
-}
-
-templ ServiceActions(service Service) {
-	<div class="balemoh-service-actions">
-		<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "unpin")) }>
-			@button.Button(button.WithType("submit"), button.WithTone(button.ToneSecondary), button.WithSize(button.SizeSmall)) { Unpin }
-		</form>
-	</div>
+	<form
+		method="post"
+		action={ templ.SafeURL(serviceActionURL(service.ID, "selection")) }
+		class="balemoh-pin-form"
+		hx-post={ serviceActionURL(service.ID, "selection") }
+		hx-target="closest tr"
+		hx-swap="outerHTML"
+		hx-disabled-elt="find input"
+		hx-sync="this:drop"
+		hx-on::after-request="if (!event.detail.successful) { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }"
+	>
+		@checkbox.Checkbox(checkbox.Config{
+			ID:         "select-" + service.ID,
+			Name:       "pinned",
+			Value:      "true",
+			Checked:    service.Pinned,
+			InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
+		})
+		if service.PinError != "" {
+			<small role="alert">{ service.PinError }</small>
+		}
+		<small hidden data-pin-error role="alert">
+			Save unconfirmed.
+			@link.Link("/staging") {
+				Refresh
+			}
+		</small>
+		<noscript>
+			@button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall)) {
+				Save
+			}
+		</noscript>
+	</form>
 }
 
 // Native disclosure composes in the public Table Cell slot, with keyboard support.
 templ ServiceResources(service Service) {
- <details class="balemoh-resource-details">
-  <summary aria-label={ resourceCount(service) + " for " + service.DisplayName }>{ resourceCount(service) }</summary>
-  <div class="balemoh-resource-list">
-   <small class="balemoh-muted">{ service.Source }</small>
-   for _, member := range resourceMembers(service) {
-    <section>
-     <strong>{ resourceLabel(member) }</strong>
-     @ServiceEndpoints(member)
-     if len(member.Images) > 0 {
- @ServiceImages(member)
- }
-    </section>
-   }
-  </div>
- </details>
+	<details class="balemoh-resource-details">
+		<summary aria-label={ resourceCount(service) + " for " + service.DisplayName }>{ resourceCount(service) }</summary>
+		<div class="balemoh-resource-list">
+			<small class="balemoh-muted">{ service.Source }</small>
+			for _, member := range resourceMembers(service) {
+				<section>
+					<strong>{ resourceLabel(member) }</strong>
+					@ServiceEndpoints(member)
+					if len(member.Images) > 0 {
+						@ServiceImages(member)
+					}
+				</section>
+			}
+		</div>
+	</details>
 }
 
 templ GroupAddresses(service Service) {
- <div class="balemoh-endpoint-list">
-  if addresses := groupAddresses(service); len(addresses) > 0 {
-   for _, address := range addresses {
-    @link.Link(address) {
- { strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://"), "//") }
- }
-   }
-  } else {
- <span class="balemoh-muted">No public address</span>
- }
- </div>
+	<div class="balemoh-endpoint-list">
+		if addresses := groupAddresses(service); len(addresses) > 0 {
+			for _, address := range addresses {
+				@link.Link(address, link.WithTarget("_blank")) {
+					{ strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://"), "//") }
+				}
+			}
+		} else {
+			<span class="balemoh-muted">No public address</span>
+		}
+	</div>
 }
 
 templ StagingRow(service Service) {
- @table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
+	@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
 }

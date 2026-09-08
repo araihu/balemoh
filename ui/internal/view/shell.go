@@ -3,6 +3,7 @@ package view
 import (
 	"github.com/a-h/templ"
 	"github.com/araihu/goshtoso-app-shells/consoleshell"
+	"github.com/araihu/goshtoso/components/head"
 	"github.com/araihu/goshtoso/components/sidebar"
 )
 
@@ -14,10 +15,12 @@ func ConsolePage(data PageData) templ.Component {
 				HomeURL: "/",
 			},
 			Navigation: consoleshell.Navigation{
+				Drawer:        true,
+				IconOnlyMenu:  true,
 				DisableSearch: true,
 				SectionsTitle: "Balemoh",
 				Sections: []sidebar.Section{{Items: []sidebar.Item{
-					{ID: "nav-home", Label: "Homepage", Href: "/"},
+					{ID: "nav-home", Label: "Home", Href: "/"},
 					{ID: "nav-staging", Label: "Staging", Href: "/staging"},
 				}}},
 			},
@@ -38,13 +41,14 @@ func ConsolePage(data PageData) templ.Component {
 			CanonicalURL:  pageURL(data.Staging),
 			Active:        data.Active,
 			Content:       PageContent(data),
+			Metadata:      &head.MetadataConfig{Image: head.SocialImage{URL: "https://balemoh.decastro.me/ui/social-v1.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}},
 		},
 	)
 }
 
 func pageURL(staging bool) string {
 	if staging {
-		return "/staging"
+		return "https://balemoh.decastro.me/staging"
 	}
-	return "/"
+	return "https://balemoh.decastro.me/"
 }

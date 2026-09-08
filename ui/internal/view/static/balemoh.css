@@ -25,17 +25,6 @@ body {
 	margin-top: -0.25rem;
 }
 
-.balemoh-panel-header {
-	display: grid;
-	gap: 0.25rem;
-}
-
-.balemoh-panel-header h2,
-.balemoh-panel-header p {
-	margin: 0;
-}
-
-.balemoh-panel-header p,
 .balemoh-muted,
 .balemoh-table-placeholder {
 	color: var(--balemoh-muted);
@@ -46,18 +35,13 @@ body {
 	overflow-x: auto;
 }
 
-.balemoh-selection-form {
-	min-width: 0;
-}
-
 .balemoh-service-table {
 	min-width: 38rem;
 }
 
 .balemoh-service-identity,
 .balemoh-endpoint-list,
-.balemoh-image-list,
-.balemoh-service-actions {
+.balemoh-image-list {
 	display: grid;
 	gap: 0.3rem;
 }
@@ -110,10 +94,6 @@ body {
 
 .balemoh-endpoint-list a {
 	overflow-wrap: anywhere;
-}
-
-.balemoh-service-actions form {
-	display: inline-flex;
 }
 
 .balemoh-empty-state {
