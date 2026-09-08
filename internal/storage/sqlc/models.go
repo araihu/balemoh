@@ -31,6 +31,13 @@ type DiscoverySourceSnapshot struct {
 	ObservedAt string `json:"observed_at"`
 }
 
+type ServiceEdit struct {
+	ServiceID   string `json:"service_id"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
+	Address     string `json:"address"`
+}
+
 type ServiceEndpoint struct {
 	ID         int64  `json:"id"`
 	ServiceID  string `json:"service_id"`

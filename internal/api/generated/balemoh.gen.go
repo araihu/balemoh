@@ -89,6 +89,8 @@ type ResourceRef struct {
 
 // ServiceCandidate defines model for ServiceCandidate.
 type ServiceCandidate struct {
+	// Address Local homepage address override; empty uses discovery
+	Address     *string           `json:"address,omitempty"`
 	Description string            `json:"description"`
 	DisplayName string            `json:"displayName"`
 	Endpoints   []ServiceEndpoint `json:"endpoints"`
@@ -105,6 +107,14 @@ type ServiceCandidate struct {
 	// Resources Resource evidence grouped under this Service; pin identity remains the Service ID.
 	Resources *[]ResourceObservation `json:"resources,omitempty"`
 	Source    SourceRef              `json:"source"`
+}
+
+// ServiceEdit defines model for ServiceEdit.
+type ServiceEdit struct {
+	// Address Absolute HTTP(S) homepage address; empty uses discovery
+	Address     string `json:"address"`
+	Description string `json:"description"`
+	DisplayName string `json:"displayName"`
 }
 
 // ServiceEndpoint defines model for ServiceEndpoint.
@@ -139,6 +149,9 @@ type federationBearerContextKey string
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
 
+// EditStagingServiceJSONRequestBody defines body for EditStagingService for application/json ContentType.
+type EditStagingServiceJSONRequestBody = ServiceEdit
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -153,6 +166,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/staging/services)
 	GetStagingServices(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/v1/staging/services/{serviceId})
+	EditStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
 
 	// (DELETE /api/v1/staging/services/{serviceId}/pin)
 	UnpinStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
@@ -226,6 +242,32 @@ func (siw *ServerInterfaceWrapper) GetStagingServices(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetStagingServices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EditStagingService operation middleware
+func (siw *ServerInterfaceWrapper) EditStagingService(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "serviceId" -------------
+	var serviceId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceId", r.PathValue("serviceId"), &serviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "serviceId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EditStagingService(w, r, serviceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -425,6 +467,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/snapshots", wrapper.ImportFederationSnapshot)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/homepage/services", wrapper.GetHomepageServices)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}", wrapper.EditStagingService)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.UnpinStagingService)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.PinStagingService)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/healthz", wrapper.GetHealthz)

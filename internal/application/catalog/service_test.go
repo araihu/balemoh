@@ -325,3 +325,5 @@ func TestServiceImportSnapshotRejectsMixedSourcesBeforeWriting(t *testing.T) {
 		t.Fatalf("upserts = %d, want no writes for invalid snapshot", len(store.upserts))
 	}
 }
+
+func (f *fakeStore) SaveEdit(context.Context, string, Edit) error { return nil }

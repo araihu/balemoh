@@ -13,6 +13,8 @@ import (
 // PageData is the presentation model for the two operator-facing catalog
 // pages. It deliberately contains no generated API types.
 type PageData struct {
+	Editor      *Service
+	Path        string
 	Title       string
 	Description string
 	Active      string
@@ -23,6 +25,9 @@ type PageData struct {
 }
 
 type Service struct {
+	Standalone  bool
+	Address     string
+	EditError   string
 	PinError    string
 	Resources   []Service
 	ID          string
@@ -49,11 +54,15 @@ func serviceTableColumns(staging bool) []table.Column {
 	if staging {
 		columns = append(columns, table.Column{Key: "select", Label: "Pinned", HeaderSuffix: tooltip.Help("pinning-help", "How pinning works", "Check to pin a service to your homepage. Uncheck to remove it. Changes save immediately."), Width: "balemoh-col-select"})
 	}
-	return append(columns,
+	columns = append(columns,
 		table.Column{Key: "service", Label: "Service", Width: "balemoh-col-service"},
 		table.Column{Key: "endpoint", Label: "Address", Width: "balemoh-col-address"},
 		table.Column{Key: "resource", Label: "Resources", Width: "balemoh-col-resources"},
 	)
+	if staging {
+		columns = append(columns, table.Column{Key: "actions", Label: "Actions"})
+	}
+	return columns
 }
 
 func serviceTableRows(data PageData) []table.Row {
@@ -70,6 +79,9 @@ func serviceTableRows(data PageData) []table.Row {
 				"endpoint": {Component: GroupAddresses(service)},
 				"images":   {Component: ServiceImages(service)},
 			},
+		}
+		if data.Staging {
+			row.Cells["actions"] = table.Cell{Component: EditAction(service)}
 		}
 		rows = append(rows, row)
 	}
@@ -167,6 +179,9 @@ func resourceMembers(service Service) []Service {
 	return []Service{service}
 }
 func groupAddresses(service Service) []string {
+	if service.Address != "" {
+		return []string{service.Address}
+	}
 	addresses := []string{}
 	seen := map[string]bool{}
 	for _, endpoint := range service.Endpoints {
@@ -181,4 +196,10 @@ func groupAddresses(service Service) []string {
 func successToastEvent(message string) string {
 	payload, _ := json.Marshal(map[string]string{"kind": "toast", "tone": "success", "message": message})
 	return "$nextTick(() => $dispatch('notify', " + string(payload) + "))"
+}
+
+func editedTableRow(service Service) table.Row {
+	row := serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0]
+	row.AlpineAttrs["hx-swap-oob"] = "outerHTML"
+	return row
 }

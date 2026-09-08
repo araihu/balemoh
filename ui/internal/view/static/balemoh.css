@@ -130,3 +130,7 @@ body {
 .balemoh-pin-form.htmx-request { opacity: .6; }
 .balemoh-pin-form small { display: block; margin-top: .5rem; }
 .balemoh-pin-form small[hidden] { display: none; }
+
+.balemoh-editor { padding: 1rem; display: grid; gap: 1.25rem; text-align: left; }
+.balemoh-editor .balemoh-editor { padding: 0; }
+.balemoh-editor-actions { display: flex; align-items: center; gap: 1rem; }

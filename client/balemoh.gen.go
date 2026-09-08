@@ -92,6 +92,8 @@ type ResourceRef struct {
 
 // ServiceCandidate defines model for ServiceCandidate.
 type ServiceCandidate struct {
+	// Address Local homepage address override; empty uses discovery
+	Address     *string           `json:"address,omitempty"`
 	Description string            `json:"description"`
 	DisplayName string            `json:"displayName"`
 	Endpoints   []ServiceEndpoint `json:"endpoints"`
@@ -108,6 +110,14 @@ type ServiceCandidate struct {
 	// Resources Resource evidence grouped under this Service; pin identity remains the Service ID.
 	Resources *[]ResourceObservation `json:"resources,omitempty"`
 	Source    SourceRef              `json:"source"`
+}
+
+// ServiceEdit defines model for ServiceEdit.
+type ServiceEdit struct {
+	// Address Absolute HTTP(S) homepage address; empty uses discovery
+	Address     string `json:"address"`
+	Description string `json:"description"`
+	DisplayName string `json:"displayName"`
 }
 
 // ServiceEndpoint defines model for ServiceEndpoint.
@@ -141,6 +151,9 @@ type federationBearerContextKey string
 
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
+
+// EditStagingServiceJSONRequestBody defines body for EditStagingService for application/json ContentType.
+type EditStagingServiceJSONRequestBody = ServiceEdit
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -229,6 +242,11 @@ type ClientInterface interface {
 	// GetStagingServices request
 	GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// EditStagingServiceWithBody request with any body
+	EditStagingServiceWithBody(ctx context.Context, serviceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	EditStagingService(ctx context.Context, serviceId string, body EditStagingServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// UnpinStagingService request
 	UnpinStagingService(ctx context.Context, serviceId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -289,6 +307,30 @@ func (c *Client) GetHomepageServices(ctx context.Context, reqEditors ...RequestE
 
 func (c *Client) GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetStagingServicesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) EditStagingServiceWithBody(ctx context.Context, serviceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEditStagingServiceRequestWithBody(c.Server, serviceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) EditStagingService(ctx context.Context, serviceId string, body EditStagingServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEditStagingServiceRequest(c.Server, serviceId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -456,6 +498,53 @@ func NewGetStagingServicesRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewEditStagingServiceRequest calls the generic EditStagingService builder with application/json body
+func NewEditStagingServiceRequest(server string, serviceId string, body EditStagingServiceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewEditStagingServiceRequestWithBody(server, serviceId, "application/json", bodyReader)
+}
+
+// NewEditStagingServiceRequestWithBody generates requests for EditStagingService with any type of body
+func NewEditStagingServiceRequestWithBody(server string, serviceId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "serviceId", serviceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/staging/services/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewUnpinStagingServiceRequest generates requests for UnpinStagingService
 func NewUnpinStagingServiceRequest(server string, serviceId string) (*http.Request, error) {
 	var err error
@@ -608,6 +697,11 @@ type ClientWithResponsesInterface interface {
 	// GetStagingServicesWithResponse request
 	GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error)
 
+	// EditStagingServiceWithBodyWithResponse request with any body
+	EditStagingServiceWithBodyWithResponse(ctx context.Context, serviceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EditStagingServiceResponse, error)
+
+	EditStagingServiceWithResponse(ctx context.Context, serviceId string, body EditStagingServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*EditStagingServiceResponse, error)
+
 	// UnpinStagingServiceWithResponse request
 	UnpinStagingServiceWithResponse(ctx context.Context, serviceId string, reqEditors ...RequestEditorFn) (*UnpinStagingServiceResponse, error)
 
@@ -741,6 +835,35 @@ func (r GetStagingServicesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetStagingServicesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type EditStagingServiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r EditStagingServiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r EditStagingServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r EditStagingServiceResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -884,6 +1007,23 @@ func (c *ClientWithResponses) GetStagingServicesWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseGetStagingServicesResponse(rsp)
+}
+
+// EditStagingServiceWithBodyWithResponse request with arbitrary body returning *EditStagingServiceResponse
+func (c *ClientWithResponses) EditStagingServiceWithBodyWithResponse(ctx context.Context, serviceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EditStagingServiceResponse, error) {
+	rsp, err := c.EditStagingServiceWithBody(ctx, serviceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEditStagingServiceResponse(rsp)
+}
+
+func (c *ClientWithResponses) EditStagingServiceWithResponse(ctx context.Context, serviceId string, body EditStagingServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*EditStagingServiceResponse, error) {
+	rsp, err := c.EditStagingService(ctx, serviceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEditStagingServiceResponse(rsp)
 }
 
 // UnpinStagingServiceWithResponse request returning *UnpinStagingServiceResponse
@@ -1075,6 +1215,22 @@ func ParseGetStagingServicesResponse(rsp *http.Response) (*GetStagingServicesRes
 		}
 		response.JSON503 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseEditStagingServiceResponse parses an HTTP response from a EditStagingServiceWithResponse call
+func ParseEditStagingServiceResponse(rsp *http.Response) (*EditStagingServiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &EditStagingServiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

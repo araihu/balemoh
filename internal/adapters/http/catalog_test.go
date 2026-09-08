@@ -424,3 +424,5 @@ func federationPayload(candidate catalog.Candidate) generated.FederationSnapshot
 		ObservedAt: candidate.ObservedAt,
 	}
 }
+
+func (f *fakeCatalog) Edit(context.Context, string, catalog.Edit) error { return nil }

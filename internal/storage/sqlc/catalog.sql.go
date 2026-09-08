@@ -103,6 +103,22 @@ func (q *Queries) GetDiscoverySourceSnapshot(ctx context.Context, arg GetDiscove
 	return i, err
 }
 
+const getServiceEdit = `-- name: GetServiceEdit :one
+SELECT service_id, display_name, description, address FROM service_edits WHERE service_id = ?
+`
+
+func (q *Queries) GetServiceEdit(ctx context.Context, serviceID string) (ServiceEdit, error) {
+	row := q.db.QueryRowContext(ctx, getServiceEdit, serviceID)
+	var i ServiceEdit
+	err := row.Scan(
+		&i.ServiceID,
+		&i.DisplayName,
+		&i.Description,
+		&i.Address,
+	)
+	return i, err
+}
+
 const insertServiceEndpoint = `-- name: InsertServiceEndpoint :exec
 INSERT INTO service_endpoints (
     service_id,
@@ -357,6 +373,30 @@ func (q *Queries) PinDiscoveredService(ctx context.Context, arg PinDiscoveredSer
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const saveServiceEdit = `-- name: SaveServiceEdit :exec
+INSERT INTO service_edits (service_id, display_name, description, address)
+VALUES (?, ?, ?, ?)
+ON CONFLICT (service_id) DO UPDATE SET display_name = excluded.display_name,
+ description = excluded.description, address = excluded.address
+`
+
+type SaveServiceEditParams struct {
+	ServiceID   string `json:"service_id"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
+	Address     string `json:"address"`
+}
+
+func (q *Queries) SaveServiceEdit(ctx context.Context, arg SaveServiceEditParams) error {
+	_, err := q.db.ExecContext(ctx, saveServiceEdit,
+		arg.ServiceID,
+		arg.DisplayName,
+		arg.Description,
+		arg.Address,
+	)
+	return err
 }
 
 const unpinDiscoveredService = `-- name: UnpinDiscoveredService :execrows
