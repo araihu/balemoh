@@ -21,6 +21,8 @@ type PageData struct {
 }
 
 type Service struct {
+	PinError    string
+	Resources   []Service
 	ID          string
 	DisplayName string
 	Description string
@@ -40,23 +42,47 @@ type Endpoint struct {
 	Provenance string
 }
 
-func serviceTableRows(services []Service, staging bool) []table.Row {
-	rows := make([]table.Row, 0, len(services))
-	for _, service := range services {
-		rows = append(rows, table.Row{
-			ID: service.ID,
+func serviceTableColumns(staging bool) []table.Column {
+	columns := []table.Column{}
+	if staging {
+		columns = append(columns, table.Column{Key: "select", Label: "Pinned", Width: "balemoh-col-select"})
+	}
+	return append(columns,
+		table.Column{Key: "service", Label: "Service", Width: "balemoh-col-service"},
+		table.Column{Key: "endpoint", Label: "Address", Width: "balemoh-col-address"},
+		table.Column{Key: "resource", Label: "Resources", Width: "balemoh-col-resources"},
+	)
+}
+
+func serviceTableRows(data PageData) []table.Row {
+	rows := make([]table.Row, 0, len(data.Services))
+	for _, service := range data.Services {
+		row := table.Row{
+			ID:          service.ID,
+			AlpineAttrs: map[string]string{"id": "service-row-" + service.ID, "hx-on::after-settle": "this.querySelector('input[name=pinned]')?.focus({preventScroll:true})"},
 			Cells: map[string]table.Cell{
+				"select":   {Component: ServiceSelection(service)},
 				"service":  {Component: ServiceIdentity(service)},
 				"source":   {Text: service.Source, Code: true},
-				"resource": {Text: resourceLabel(service)},
-				"endpoint": {Component: ServiceEndpoints(service)},
+				"resource": {Component: ServiceResources(service)},
+				"endpoint": {Component: GroupAddresses(service)},
 				"images":   {Component: ServiceImages(service)},
-				"status":   {Component: ServiceStatus(service)},
 			},
-			Actions: ServiceActions(service, staging),
-		})
+		}
+		if !data.Staging {
+			row.Actions = ServiceActions(service)
+		}
+		rows = append(rows, row)
 	}
 	return rows
+}
+
+func isKubernetes(service Service) bool {
+	return strings.HasPrefix(service.Source, "kubernetes/")
+}
+
+func selectionLabel(service Service) string {
+	return "Pin " + service.DisplayName + " to homepage, " + resourceLabel(service)
 }
 
 func serviceActionURL(id, action string) string {
@@ -123,4 +149,32 @@ func endpointSummary(endpoint Endpoint) string {
 
 func imagesSummary(images []string) string {
 	return strings.Join(images, ", ")
+}
+
+func resourceCount(service Service) string {
+	n := len(service.Resources)
+	if n == 0 {
+		n = 1
+	}
+	if n == 1 {
+		return "1 resource"
+	}
+	return fmt.Sprintf("%d resources", n)
+}
+func resourceMembers(service Service) []Service {
+	if len(service.Resources) > 0 {
+		return service.Resources
+	}
+	return []Service{service}
+}
+func groupAddresses(service Service) []string {
+	addresses := []string{}
+	seen := map[string]bool{}
+	for _, endpoint := range service.Endpoints {
+		if href := endpointHref(endpoint.URL); href != "" && !seen[href] {
+			addresses = append(addresses, href)
+			seen[href] = true
+		}
+	}
+	return addresses
 }

@@ -76,6 +76,13 @@ type HealthResponse struct {
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
 
+// ResourceObservation defines model for ResourceObservation.
+type ResourceObservation struct {
+	Endpoints []ServiceEndpoint `json:"endpoints"`
+	Images    []string          `json:"images"`
+	Resource  ResourceRef       `json:"resource"`
+}
+
 // ResourceRef defines model for ResourceRef.
 type ResourceRef struct {
 	Kind      string  `json:"kind"`
@@ -97,7 +104,10 @@ type ServiceCandidate struct {
 	Pinned     bool              `json:"pinned"`
 	PinnedAt   *time.Time        `json:"pinnedAt"`
 	Resource   ResourceRef       `json:"resource"`
-	Source     SourceRef         `json:"source"`
+
+	// Resources Resource evidence grouped under this Service; pin identity remains the Service ID.
+	Resources *[]ResourceObservation `json:"resources,omitempty"`
+	Source    SourceRef              `json:"source"`
 }
 
 // ServiceEndpoint defines model for ServiceEndpoint.

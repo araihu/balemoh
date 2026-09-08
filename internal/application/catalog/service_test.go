@@ -150,8 +150,8 @@ func TestServiceListsStagingAndHomepageThroughStore(t *testing.T) {
 	if len(homepage) != 1 || homepage[0].ID != "two" {
 		t.Fatalf("ListHomepage() = %#v, want only pinned candidate", homepage)
 	}
-	if !reflect.DeepEqual(store.listPinned, []bool{false, true}) {
-		t.Fatalf("store list filters = %#v, want [false true]", store.listPinned)
+	if !reflect.DeepEqual(store.listPinned, []bool{false, false}) {
+		t.Fatalf("store list filters = %#v, want [false false]", store.listPinned)
 	}
 }
 

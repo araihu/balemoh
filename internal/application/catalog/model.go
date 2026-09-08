@@ -31,7 +31,15 @@ type Endpoint struct {
 	Provenance string
 }
 
+// ResourceObservation retains the evidence behind a grouped service.
+type ResourceObservation struct {
+	Resource  ResourceRef
+	Endpoints []Endpoint
+	Images    []string
+}
+
 type Candidate struct {
+	Resources   []ResourceObservation // Read projection only; discovery snapshots stay resource-based.
 	ID          string
 	Source      SourceRef
 	Resource    ResourceRef

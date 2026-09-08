@@ -91,7 +91,13 @@ func serviceCandidate(candidate catalog.Candidate) generated.ServiceCandidate {
 		value := candidate.PinnedAt.UTC()
 		pinnedAt = &value
 	}
+	resources := make([]generated.ResourceObservation, 0, len(candidate.Resources))
+	for _, observation := range candidate.Resources {
+		member := serviceCandidate(catalog.Candidate{Resource: observation.Resource, Endpoints: observation.Endpoints, Images: observation.Images})
+		resources = append(resources, generated.ResourceObservation{Resource: member.Resource, Endpoints: member.Endpoints, Images: member.Images})
+	}
 	return generated.ServiceCandidate{
+		Resources:   &resources,
 		Id:          candidate.ID,
 		Source:      generated.SourceRef{Kind: candidate.Source.Kind, Id: candidate.Source.ID},
 		Resource:    resource,

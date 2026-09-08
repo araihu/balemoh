@@ -7,10 +7,13 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	api "github.com/araihu/balemoh/client"
+	uiassets "github.com/araihu/balemoh/ui"
 	"github.com/araihu/balemoh/ui/internal/view"
 	shellassets "github.com/araihu/goshtoso-app-shells/consoleshell/assets"
 	"github.com/araihu/goshtoso/assets"
@@ -35,10 +38,15 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.Handle("GET /assets/", assets.Handler())
 	mux.Handle("GET /consoleshell/assets/", shellassets.Handler())
+	mux.HandleFunc("GET /ui/icons/sprite.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		_, _ = w.Write(uiassets.IconSprite)
+	})
 	mux.HandleFunc("GET /ui/balemoh.css", server.serveCSS)
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("POST /staging/sync", server.sync)
+	mux.HandleFunc("POST /staging/services/{serviceID}/selection", server.setPin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/pin", server.pin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/unpin", server.unpin)
 	mux.HandleFunc("GET /", server.homepage)
@@ -81,17 +89,103 @@ func (s *server) staging(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.renderStaging(w, r, noticeText(r.URL.Query().Get("notice")), "")
+	s.renderStaging(w, r, noticeText(r.URL.Query().Get("notice")), "", http.StatusOK)
 }
 
 func (s *server) sync(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	if _, err := s.catalog.Sync(ctx); err != nil {
-		s.renderStaging(w, r, "", pageSyncError)
+		s.renderStaging(w, r, "", pageSyncError, http.StatusServiceUnavailable)
 		return
 	}
 	redirect(w, r, "/staging?notice=synced")
+}
+
+func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+	if err := r.ParseForm(); err != nil {
+		s.pinError(w, r, "Unable to read the pin change. Try again.", http.StatusBadRequest)
+		return
+	}
+	values := r.PostForm["pinned"]
+	if len(values) > 1 || (len(values) == 1 && values[0] != "true") {
+		s.pinError(w, r, "Invalid pin state. Try again.", http.StatusBadRequest)
+		return
+	}
+	desired := len(values) == 1
+	id := r.PathValue("serviceID")
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	services, err := s.catalog.Staging(ctx)
+	if err != nil {
+		s.pinError(w, r, pageErrorMessage, http.StatusServiceUnavailable)
+		return
+	}
+	for _, service := range services {
+		if service.Id != id {
+			continue
+		}
+		if service.Pinned != desired {
+			if desired {
+				err = s.catalog.Pin(ctx, id)
+			} else {
+				err = s.catalog.Unpin(ctx, id)
+			}
+			if err != nil {
+				s.pinError(w, r, pageMutationError, http.StatusServiceUnavailable)
+				return
+			}
+		}
+		if r.Header.Get("HX-Request") == "true" {
+			service.Pinned = desired
+			s.renderPinRow(w, r, mapService(service), http.StatusOK)
+			return
+		}
+		notice := "unpinned"
+		if desired {
+			notice = "pinned"
+		}
+		redirect(w, r, "/staging?notice="+notice+"#select-"+url.PathEscape(id))
+		return
+	}
+	s.pinError(w, r, "This service is no longer available. Refresh discovery.", http.StatusConflict)
+}
+
+// Expected HTMX errors swap a row with fresh server state. The status header
+// preserves the outcome while HTTP 200 allows the standard HTMX swap policy.
+func (s *server) pinError(w http.ResponseWriter, r *http.Request, message string, status int) {
+	if r.Header.Get("HX-Request") != "true" {
+		s.renderStaging(w, r, "", message, status)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	services, err := s.catalog.Staging(ctx)
+	if err == nil {
+		for _, service := range services {
+			if service.Id == r.PathValue("serviceID") {
+				row := mapService(service)
+				row.PinError = message
+				s.renderPinRow(w, r, row, status)
+				return
+			}
+		}
+	}
+	// Without current catalog state, keep the existing row and show recovery.
+	http.Error(w, "Unable to confirm pin state. Refresh staging.", status)
+}
+
+func (s *server) renderPinRow(w http.ResponseWriter, r *http.Request, service view.Service, status int) {
+	var body bytes.Buffer
+	if err := view.StagingRow(service).Render(r.Context(), &body); err != nil {
+		http.Error(w, "Unable to render service row.", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Balemoh-Status", strconv.Itoa(status))
+	_, _ = io.Copy(w, &body)
 }
 
 func (s *server) pin(w http.ResponseWriter, r *http.Request) {
@@ -115,21 +209,20 @@ func (s *server) mutate(w http.ResponseWriter, r *http.Request, operation func(c
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	if err := operation(ctx, id); err != nil {
-		s.renderStaging(w, r, "", pageMutationError)
+		s.renderStaging(w, r, "", pageMutationError, http.StatusServiceUnavailable)
 		return
 	}
 	redirect(w, r, "/staging?notice="+notice)
 }
 
-func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, errorMessage string) {
+func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, errorMessage string, status int) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	services, err := s.catalog.Staging(ctx)
 	if err != nil && errorMessage == "" {
 		errorMessage = pageErrorMessage
 	}
-	status := http.StatusOK
-	if err != nil || errorMessage != "" {
+	if err != nil {
 		status = http.StatusServiceUnavailable
 	}
 	s.render(w, r, view.PageData{
@@ -161,6 +254,7 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageDa
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
@@ -217,7 +311,14 @@ func mapService(service api.ServiceCandidate) view.Service {
 			Provenance: endpoint.Provenance,
 		})
 	}
+	resources := make([]view.Service, 0)
+	if service.Resources != nil {
+		for _, member := range *service.Resources {
+			resources = append(resources, mapService(api.ServiceCandidate{Resource: member.Resource, Source: service.Source, DisplayName: member.Resource.Name, Endpoints: member.Endpoints, Images: member.Images}))
+		}
+	}
 	return view.Service{
+		Resources:   resources,
 		ID:          service.Id,
 		DisplayName: displayName,
 		Description: service.Description,

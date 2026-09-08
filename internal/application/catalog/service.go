@@ -70,11 +70,25 @@ func NewServiceWithPublisher(store CatalogStore, publisher SnapshotPublisher, di
 }
 
 func (s *Service) ListStaging(ctx context.Context) ([]Candidate, error) {
-	return s.store.List(ctx, false)
+	candidates, err := s.store.List(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	return groupCandidates(candidates), nil
 }
 
 func (s *Service) ListHomepage(ctx context.Context) ([]Candidate, error) {
-	return s.store.List(ctx, true)
+	candidates, err := s.ListStaging(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pinned := make([]Candidate, 0)
+	for _, candidate := range candidates {
+		if candidate.PinnedAt != nil {
+			pinned = append(pinned, candidate)
+		}
+	}
+	return pinned, nil
 }
 
 func (s *Service) Pin(ctx context.Context, id string) (Candidate, error) {

@@ -1,0 +1,12 @@
+schema: 1
+files:
+  - id: kubernetes/icon
+    url: https://raw.githubusercontent.com/devicons/devicon/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08/icons/kubernetes/kubernetes-plain.svg
+    path: .iconpack/sources/kubernetes/kubernetes.svg
+    size: 4511
+    integrity: sha384-BXE3AgSihtzXlz6eH1S13WlpiEcsJpNdDuEkvSP0YKU8gKzafdlc220bqxgUKwtA
+  - id: kubernetes/license
+    url: https://raw.githubusercontent.com/devicons/devicon/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08/LICENSE
+    path: .iconpack/sources/kubernetes/LICENSE
+    size: 1072
+    integrity: sha384-wpyinKYeVn79xniwi3fSVbqSjlaqhMvzGaFwclhQGaCDmMWW2tSz9DTxRv0ye3l0
