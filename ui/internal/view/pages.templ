@@ -1,6 +1,7 @@
 package view
 
 import (
+	"fmt"
 	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/alert"
 	"github.com/araihu/goshtoso/components/button"
@@ -103,18 +104,22 @@ templ ServiceCardAddresses(service Service) {
 			}
 			if len(addresses) > 1 {
 				@dropdown.Dropdown(dropdown.Config{
-					ID:              "service-addresses-" + service.ID,
-					Label:           "More addresses for " + service.DisplayName,
-					TriggerIcon:     icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidEllipsisHorizontal, Decorative: true}),
-					TriggerIconOnly: true,
-					MenuAlign:       dropdown.AlignEnd,
-					Sections:        []dropdown.Section{{Items: addressMenuItems(addresses[1:])}},
+					ID:        "service-addresses-" + service.ID,
+					Trigger:   AddressCountTrigger(service, len(addresses)-1),
+					MenuAlign: dropdown.AlignEnd,
+					Sections:  []dropdown.Section{{Items: addressMenuItems(addresses[1:])}},
 				})
 			}
 		} else {
 			<span class="balemoh-muted">No public address</span>
 		}
 	</div>
+}
+
+templ AddressCountTrigger(service Service, count int) {
+	@button.Button(button.WithAppearance(button.AppearancePlain), button.WithAttrs(templ.Attributes{"aria-label": "More addresses for " + service.DisplayName})) {
+		{ fmt.Sprintf("+%d", count) }
+	}
 }
 
 templ StagingContent(data PageData) {

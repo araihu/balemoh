@@ -3,14 +3,15 @@ package view
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 )
 
 func TestHomepageCardAddresses(t *testing.T) {
-	for _, count := range []int{0, 1, 2} {
+	for _, count := range []int{0, 1, 2, 3} {
 		service := Service{ID: "app", DisplayName: "Application", Description: "Team workspace", Namespace: "apps"}
-		for _, address := range []string{"https://app.example/", "https://admin.example/"}[:count] {
+		for _, address := range []string{"https://app.example/", "https://admin.example/", "https://status.example/"}[:count] {
 			service.Endpoints = append(service.Endpoints, Endpoint{URL: address})
 		}
 		var html bytes.Buffer
@@ -31,6 +32,9 @@ func TestHomepageCardAddresses(t *testing.T) {
 			t.Fatal("first address missing or not a new-tab link")
 		}
 		if count > 1 {
+			if !strings.Contains(body, fmt.Sprintf("+%d", count-1)) {
+				t.Fatalf("%d addresses: wrong remaining count", count)
+			}
 			items := addressMenuItems([]string{"https://admin.example/"})
 			if len(items) != 1 || items[0].Href != "https://admin.example/" || items[0].Target != "_blank" {
 				t.Fatalf("extra address: %#v", items)
