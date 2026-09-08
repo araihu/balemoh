@@ -39,6 +39,39 @@ body {
 	min-width: 38rem;
 }
 
+.balemoh-service-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: start;
+	gap: 1rem;
+}
+
+.balemoh-service-card {
+	min-width: 0;
+	max-width: none;
+	overflow-wrap: anywhere;
+}
+
+.balemoh-service-card-icon {
+	height: auto;
+	padding: 1.5rem 1.5rem 0;
+}
+
+.balemoh-service-card-icon svg { width: 2rem; height: 2rem; }
+.balemoh-service-card .balemoh-resource-list { min-width: 0; max-width: none; }
+
+@media (min-width: 640px) {
+	.balemoh-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+	.balemoh-service-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1280px) {
+	.balemoh-service-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 .balemoh-service-identity,
 .balemoh-endpoint-list,
 .balemoh-image-list {
