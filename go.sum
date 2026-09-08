@@ -18,6 +18,8 @@ github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7D
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
 github.com/araihu/goshtoso v0.2.9-0.20260908234554-ac23ceae75d9 h1:Piw6QWoMSdAaj2JLuTNvYdoeWc0G6iLf223pBudN2ag=
 github.com/araihu/goshtoso v0.2.9-0.20260908234554-ac23ceae75d9/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
+github.com/araihu/goshtoso v0.2.9-0.20260908235034-98a8ad7f0919 h1:uNEEuRwrRhzlYXolodBa7kgx79pQEMPE0zJ7b/WihOY=
+github.com/araihu/goshtoso v0.2.9-0.20260908235034-98a8ad7f0919/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
 github.com/caarlos0/env/v11 v11.4.1 h1:fYwH0sWEsBSMPG7t4e/PEfTFzrWrpjyygXyUnWiSwEw=

@@ -26,8 +26,8 @@
     {
       "path": "NOTICE",
       "mode": "0644",
-      "bytes": 137,
-      "sha256": "079fc9e78be344a7e0b0d0f9c9516e429ce9c03ea76ee742f61f18986bfba992"
+      "bytes": 136,
+      "sha256": "b3c6b48dda534a43460b68b534286bb6886cb6dbc5356eb8ecc565e1b04b1e4e"
     },
     {
       "path": "PROVENANCE/config.yaml",

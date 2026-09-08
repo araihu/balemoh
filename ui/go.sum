@@ -11,6 +11,8 @@ github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7D
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
 github.com/araihu/goshtoso v0.2.9-0.20260908234554-ac23ceae75d9 h1:Piw6QWoMSdAaj2JLuTNvYdoeWc0G6iLf223pBudN2ag=
 github.com/araihu/goshtoso v0.2.9-0.20260908234554-ac23ceae75d9/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
+github.com/araihu/goshtoso v0.2.9-0.20260908235034-98a8ad7f0919 h1:uNEEuRwrRhzlYXolodBa7kgx79pQEMPE0zJ7b/WihOY=
+github.com/araihu/goshtoso v0.2.9-0.20260908235034-98a8ad7f0919/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/araihu/goshtoso-app-shells v0.1.9-0.20260908213236-a76b2b77163f h1:5pM7DPneqW4O+Sbvg/1Pau7HlYJLB9VG55piUdpgkss=
 github.com/araihu/goshtoso-app-shells v0.1.9-0.20260908213236-a76b2b77163f/go.mod h1:KdRzZN01fQ7dVUZ5y1E8baFbhVW4o9V1E9VW/KBBMtU=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
