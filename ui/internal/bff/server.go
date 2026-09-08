@@ -11,6 +11,7 @@ import (
 	"time"
 
 	api "github.com/araihu/balemoh/client"
+	uiassets "github.com/araihu/balemoh/ui"
 	"github.com/araihu/balemoh/ui/internal/view"
 	shellassets "github.com/araihu/goshtoso-app-shells/consoleshell/assets"
 	"github.com/araihu/goshtoso/assets"
@@ -35,10 +36,15 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.Handle("GET /assets/", assets.Handler())
 	mux.Handle("GET /consoleshell/assets/", shellassets.Handler())
+	mux.HandleFunc("GET /ui/icons/sprite.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		_, _ = w.Write(uiassets.IconSprite)
+	})
 	mux.HandleFunc("GET /ui/balemoh.css", server.serveCSS)
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("POST /staging/sync", server.sync)
+	mux.HandleFunc("POST /staging/pin", server.pinSelected)
 	mux.HandleFunc("POST /staging/services/{serviceID}/pin", server.pin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/unpin", server.unpin)
 	mux.HandleFunc("GET /", server.homepage)
@@ -81,17 +87,65 @@ func (s *server) staging(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.renderStaging(w, r, noticeText(r.URL.Query().Get("notice")), "")
+	s.renderStaging(w, r, noticeText(r.URL.Query().Get("notice")), "", nil, http.StatusOK)
 }
 
 func (s *server) sync(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	if _, err := s.catalog.Sync(ctx); err != nil {
-		s.renderStaging(w, r, "", pageSyncError)
+		s.renderStaging(w, r, "", pageSyncError, nil, http.StatusServiceUnavailable)
 		return
 	}
 	redirect(w, r, "/staging?notice=synced")
+}
+
+func (s *server) pinSelected(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+	if err := r.ParseForm(); err != nil {
+		s.renderStaging(w, r, "", "Unable to read the selection. Select services and try again.", nil, http.StatusBadRequest)
+		return
+	}
+	ids := r.PostForm["serviceID"]
+	if len(ids) == 0 || len(ids) > 500 {
+		s.renderStaging(w, r, "", "Select between 1 and 500 services to pin.", nil, http.StatusBadRequest)
+		return
+	}
+	selected := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		selected[id] = true
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	services, err := s.catalog.Staging(ctx)
+	if err != nil {
+		s.renderStaging(w, r, "", pageErrorMessage, selected, http.StatusServiceUnavailable)
+		return
+	}
+	known := make(map[string]bool, len(services))
+	for _, service := range services {
+		known[service.Id] = service.Pinned
+	}
+	for id := range selected {
+		if _, exists := known[id]; !exists {
+			s.renderStaging(w, r, "", "A selected service is no longer available. Review the selection and try again.", selected, http.StatusConflict)
+			return
+		}
+	}
+	// Pins are idempotent; keep unfinished selections when a batch is interrupted.
+	for _, id := range ids {
+		if !selected[id] {
+			continue
+		}
+		if !known[id] {
+			if err := s.catalog.Pin(ctx, id); err != nil {
+				s.renderStaging(w, r, "", "Pinning stopped. Some services may already be pinned; retry the remaining selection.", selected, http.StatusServiceUnavailable)
+				return
+			}
+		}
+		delete(selected, id)
+	}
+	redirect(w, r, "/staging?notice=selection-pinned")
 }
 
 func (s *server) pin(w http.ResponseWriter, r *http.Request) {
@@ -115,21 +169,20 @@ func (s *server) mutate(w http.ResponseWriter, r *http.Request, operation func(c
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	if err := operation(ctx, id); err != nil {
-		s.renderStaging(w, r, "", pageMutationError)
+		s.renderStaging(w, r, "", pageMutationError, nil, http.StatusServiceUnavailable)
 		return
 	}
 	redirect(w, r, "/staging?notice="+notice)
 }
 
-func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, errorMessage string) {
+func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, errorMessage string, selected map[string]bool, status int) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	services, err := s.catalog.Staging(ctx)
 	if err != nil && errorMessage == "" {
 		errorMessage = pageErrorMessage
 	}
-	status := http.StatusOK
-	if err != nil || errorMessage != "" {
+	if err != nil {
 		status = http.StatusServiceUnavailable
 	}
 	s.render(w, r, view.PageData{
@@ -140,6 +193,7 @@ func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, e
 		Staging:     true,
 		Error:       errorMessage,
 		Notice:      notice,
+		Selected:    selected,
 	}, status)
 }
 
@@ -161,6 +215,7 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageDa
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
@@ -174,6 +229,8 @@ func redirect(w http.ResponseWriter, _ *http.Request, location string) {
 
 func noticeText(value string) string {
 	switch value {
+	case "selection-pinned":
+		return "Selected services are now visible on the homepage."
 	case "pinned":
 		return "The service is now visible on the homepage."
 	case "unpinned":
@@ -217,7 +274,14 @@ func mapService(service api.ServiceCandidate) view.Service {
 			Provenance: endpoint.Provenance,
 		})
 	}
+	resources := make([]view.Service, 0)
+	if service.Resources != nil {
+		for _, member := range *service.Resources {
+			resources = append(resources, mapService(api.ServiceCandidate{Resource: member.Resource, Source: service.Source, DisplayName: member.Resource.Name, Endpoints: member.Endpoints, Images: member.Images}))
+		}
+	}
 	return view.Service{
+		Resources:   resources,
 		ID:          service.Id,
 		DisplayName: displayName,
 		Description: service.Description,

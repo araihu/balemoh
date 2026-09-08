@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "tool": "goshtoso-iconpack",
+  "release": "iconpack-77e5cb96fdde",
+  "catalogSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+  "sourceKind": "muamba-snapshot",
+  "archiveSha256": "",
+  "sourceConfigSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+  "sourceLockSha256": "6c62389413f917eaf3b4fc798c687a4b38dab5620b7b52cbcd5c96293fd7e5a5",
+  "sources": [
+    {
+      "namespace": "custom",
+      "product": "kubernetes",
+      "spritePath": "",
+      "spriteSha256": "",
+      "manifestPath": ".iconpack.yaml",
+      "manifestSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+      "provenancePath": "",
+      "provenanceSha256": "",
+      "licensePath": "kubernetes/LICENSE",
+      "licenseSha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664"
+    }
+  ],
+  "assets": [
+    {
+      "canonicalName": "kubernetes-kubernetes",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08/icons/kubernetes/kubernetes-plain.svg:kubernetes.svg",
+      "license": "MIT",
+      "path": "kubernetes/kubernetes.svg",
+      "sha256": "8253c15339196bd566a300530323df4af91f781458e511b6446b57dcef387e85"
+    }
+  ]
+}

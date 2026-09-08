@@ -19,6 +19,7 @@ type fakeCatalog struct {
 	homepageErr error
 	stagingErr  error
 	mutationErr error
+	failPinID   string
 	syncErr     error
 	pinnedIDs   []string
 	unpinnedIDs []string
@@ -35,7 +36,18 @@ func (f *fakeCatalog) Staging(context.Context) ([]client.ServiceCandidate, error
 
 func (f *fakeCatalog) Pin(_ context.Context, id string) error {
 	f.pinnedIDs = append(f.pinnedIDs, id)
-	return f.mutationErr
+	if f.mutationErr != nil {
+		return f.mutationErr
+	}
+	if id == f.failPinID {
+		return errors.New("pin failed")
+	}
+	for i := range f.staging {
+		if f.staging[i].Id == id {
+			f.staging[i].Pinned = true
+		}
+	}
+	return nil
 }
 
 func (f *fakeCatalog) Unpin(_ context.Context, id string) error {
@@ -86,10 +98,70 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 	if staging.Code != http.StatusOK {
 		t.Fatalf("GET /staging status = %d, want 200", staging.Code)
 	}
-	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/services/svc-stage/pin"`} {
+	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/pin"`, `name="serviceID" value="svc-stage"`, `aria-label="Sync discovery"`} {
 		if !strings.Contains(staging.Body.String(), want) {
 			t.Errorf("GET /staging body missing %q", want)
 		}
+	}
+	for _, unwanted := range []string{`>Status</`, `>Pin to homepage<`, `<code>svc-stage</code>`} {
+		if strings.Contains(staging.Body.String(), unwanted) {
+			t.Errorf("staging contains removed UI %q", unwanted)
+		}
+	}
+}
+
+func TestPinSelectionValidatesBeforeMutationAndAllowsReplay(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		status     int
+		calls      int
+	}{
+		{"empty", "", http.StatusBadRequest, 0},
+		{"unknown", "serviceID=svc-1&serviceID=missing", http.StatusConflict, 0},
+		{"deduplicated", "serviceID=svc-1&serviceID=svc-1&serviceID=svc-2", http.StatusSeeOther, 2},
+		{"oversized", "serviceID=" + strings.Repeat("x", 65536), http.StatusBadRequest, 0},
+		{"too many", strings.Repeat("serviceID=svc-1&", 501), http.StatusBadRequest, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			catalog := &fakeCatalog{staging: []client.ServiceCandidate{{Id: "svc-1"}, {Id: "svc-2"}}}
+			handler, err := New(catalog, time.Second)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response := request(t, handler, http.MethodPost, "/staging/pin", tc.body)
+			if response.Code != tc.status || len(catalog.pinnedIDs) != tc.calls {
+				t.Fatalf("status=%d calls=%v", response.Code, catalog.pinnedIDs)
+			}
+			if tc.status == http.StatusSeeOther {
+				if response.Header().Get("Location") != "/staging?notice=selection-pinned" {
+					t.Fatal("missing PRG destination")
+				}
+				response = request(t, handler, http.MethodPost, "/staging/pin", tc.body)
+				if response.Code != http.StatusSeeOther || len(catalog.pinnedIDs) != tc.calls {
+					t.Fatal("replay pinned services twice")
+				}
+			}
+		})
+	}
+}
+
+func TestPinSelectionPreservesUnfinishedItemsOnFailure(t *testing.T) {
+	catalog := &fakeCatalog{staging: []client.ServiceCandidate{{Id: "svc-1"}, {Id: "svc-2"}}, failPinID: "svc-2"}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := request(t, handler, http.MethodPost, "/staging/pin", "serviceID=svc-1&serviceID=svc-2")
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d", response.Code)
+	}
+	if !strings.Contains(response.Body.String(), `name="serviceID" value="svc-2" checked`) || !strings.Contains(response.Body.String(), "Pinning stopped") {
+		t.Fatal("remaining selection or error missing")
+	}
+	catalog.failPinID = ""
+	response = request(t, handler, http.MethodPost, "/staging/pin", "serviceID=svc-1&serviceID=svc-2")
+	if response.Code != http.StatusSeeOther || strings.Join(catalog.pinnedIDs, ",") != "svc-1,svc-2,svc-2" {
+		t.Fatalf("retry status=%d calls=%v", response.Code, catalog.pinnedIDs)
 	}
 }
 
@@ -168,6 +240,7 @@ func TestHandlerServesGoshtosoAndConsoleShellAssets(t *testing.T) {
 		{path: "/ui/balemoh.css", want: ".balemoh-content"},
 		{path: "/consoleshell/assets/shell.css", want: "console-shell"},
 		{path: "/assets/styles.css", want: "--color-"},
+		{path: "/ui/icons/sprite.svg", want: `id="kubernetes-kubernetes"`},
 	} {
 		response := request(t, handler, http.MethodGet, tc.path, "")
 		if response.Code != http.StatusOK {
@@ -238,6 +311,9 @@ func TestHandlerRejectsInvalidConfiguration(t *testing.T) {
 func request(t *testing.T, handler http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if method == http.MethodPost {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, req)
 	return response

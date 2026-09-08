@@ -1,5 +1,8 @@
 .worktrees/
 .devspace/
+/ui/.iconpack/
+/ui/.iconpack-cache/
+/ui/internal/.appicons.goshtoso-iconpack.lock
 
 # Go
 /bin/

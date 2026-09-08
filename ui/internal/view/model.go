@@ -18,9 +18,11 @@ type PageData struct {
 	Staging     bool
 	Error       string
 	Notice      string
+	Selected    map[string]bool
 }
 
 type Service struct {
+	Resources   []Service
 	ID          string
 	DisplayName string
 	Description string
@@ -40,23 +42,49 @@ type Endpoint struct {
 	Provenance string
 }
 
-func serviceTableRows(services []Service, staging bool) []table.Row {
-	rows := make([]table.Row, 0, len(services))
-	for _, service := range services {
-		rows = append(rows, table.Row{
+func serviceTableColumns(staging bool) []table.Column {
+	columns := []table.Column{}
+	if staging {
+		columns = append(columns, table.Column{Key: "select", Label: "Select", Width: "balemoh-col-select"})
+	}
+	return append(columns,
+		table.Column{Key: "service", Label: "Service", Width: "balemoh-col-service"},
+		table.Column{Key: "endpoint", Label: "Address", Width: "balemoh-col-address"},
+		table.Column{Key: "resource", Label: "Resources", Width: "balemoh-col-resources"},
+	)
+}
+
+func serviceTableRows(data PageData) []table.Row {
+	rows := make([]table.Row, 0, len(data.Services))
+	for _, service := range data.Services {
+		row := table.Row{
 			ID: service.ID,
 			Cells: map[string]table.Cell{
+				"select":   {Component: ServiceSelection(service, data.Selected[service.ID])},
 				"service":  {Component: ServiceIdentity(service)},
 				"source":   {Text: service.Source, Code: true},
-				"resource": {Text: resourceLabel(service)},
-				"endpoint": {Component: ServiceEndpoints(service)},
+				"resource": {Component: ServiceResources(service)},
+				"endpoint": {Component: GroupAddresses(service)},
 				"images":   {Component: ServiceImages(service)},
-				"status":   {Component: ServiceStatus(service)},
 			},
-			Actions: ServiceActions(service, staging),
-		})
+		}
+		if !data.Staging {
+			row.Actions = ServiceActions(service)
+		}
+		rows = append(rows, row)
 	}
 	return rows
+}
+
+func isKubernetes(service Service) bool {
+	return strings.HasPrefix(service.Source, "kubernetes/")
+}
+
+func selectionLabel(service Service) string {
+	if service.Pinned {
+		return "Already on homepage: " + service.DisplayName + ", " + resourceLabel(service)
+	}
+	return "Select " + service.DisplayName + ", " + resourceLabel(service)
 }
 
 func serviceActionURL(id, action string) string {
@@ -123,4 +151,32 @@ func endpointSummary(endpoint Endpoint) string {
 
 func imagesSummary(images []string) string {
 	return strings.Join(images, ", ")
+}
+
+func resourceCount(service Service) string {
+	n := len(service.Resources)
+	if n == 0 {
+		n = 1
+	}
+	if n == 1 {
+		return "1 resource"
+	}
+	return fmt.Sprintf("%d resources", n)
+}
+func resourceMembers(service Service) []Service {
+	if len(service.Resources) > 0 {
+		return service.Resources
+	}
+	return []Service{service}
+}
+func groupAddresses(service Service) []string {
+	addresses := []string{}
+	seen := map[string]bool{}
+	for _, endpoint := range service.Endpoints {
+		if href := endpointHref(endpoint.URL); href != "" && !seen[href] {
+			addresses = append(addresses, href)
+			seen[href] = true
+		}
+	}
+	return addresses
 }

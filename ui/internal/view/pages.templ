@@ -1,14 +1,19 @@
 package view
 
 import (
+ "strings"
 	"github.com/araihu/goshtoso/components/alert"
-	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/checkbox"
 	"github.com/araihu/goshtoso/components/emptystate"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/link"
 	"github.com/araihu/goshtoso/components/pageheader"
 	"github.com/araihu/goshtoso/components/panel"
 	"github.com/araihu/goshtoso/components/table"
+	"github.com/araihu/goshtoso/components/tooltip"
 )
 
 templ PageContent(data PageData) {
@@ -36,11 +41,16 @@ templ PageContent(data PageData) {
 templ PageActions(data PageData) {
 	if data.Staging {
 		<form method="post" action="/staging/sync">
-			@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary), button.WithSize(button.SizeSmall)) { Sync discovery }
+			@tooltip.Tooltip("sync-discovery-tooltip", "Sync discovery", tooltip.WithPosition(tooltip.PositionBottom), tooltip.WithTrigger(SyncButton()))
 		</form>
-		@link.Link("/", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Homepage }
 	} else {
 		@link.Link("/staging", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Review staging }
+	}
+}
+
+templ SyncButton() {
+	@button.Button(button.WithType("submit"), button.WithTone(button.ToneAlternate), button.WithSize(button.SizeSmall), button.WithRootClass("balemoh-icon-button"), button.WithAttrs(templ.Attributes{"aria-label": "Sync discovery"})) {
+		@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true})
 	}
 }
 
@@ -61,11 +71,13 @@ templ HomepageContent(data PageData) {
 }
 
 templ StagingContent(data PageData) {
-	@panel.Panel(panel.Config{
-		Density: panel.DensityCompact,
-		Header: PanelHeader("Discovered candidates", "Review the resource and endpoint evidence before pinning a service."),
-		Body: ServiceTable(data),
-	})
+	<form method="post" action="/staging/pin" class="balemoh-selection-form" x-data="{ submitting: false }" x-on:submit="submitting = true">
+		@panel.Panel(panel.Config{
+			Density: panel.DensityCompact,
+			Header: StagingTableHeader(len(data.Services) > 0),
+			Body: ServiceTable(data),
+		})
+	</form>
 	if len(data.Services) == 0 && data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
 			Title: "No candidates yet",
@@ -74,6 +86,17 @@ templ StagingContent(data PageData) {
 			RootClass: "balemoh-empty-state",
 		})
 	}
+}
+
+templ StagingTableHeader(hasServices bool) {
+	<div class="balemoh-table-toolbar">
+		@PanelHeader("Discovered candidates", "Select services to pin to your homepage.")
+		if hasServices {
+			@button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall), button.WithAlpine(&button.AlpineConfig{BindDisabled: "submitting"})) {
+				<span x-text="submitting ? 'Pinning…' : 'Pin selected'">Pin selected</span>
+			}
+		}
+	</div>
 }
 
 templ SyncAction() {
@@ -99,15 +122,8 @@ templ ServiceTable(data PageData) {
 			@table.Table(table.Config{
 				ID: "balemoh-services",
 				Caption: "Discovered Balemoh services",
-				Columns: []table.Column{
-					{Key: "service", Label: "Service"},
-					{Key: "source", Label: "Source"},
-					{Key: "resource", Label: "Resource"},
-					{Key: "endpoint", Label: "Endpoints"},
-					{Key: "images", Label: "Images"},
-					{Key: "status", Label: "Status"},
-				},
-				Rows: serviceTableRows(data.Services, data.Staging),
+				Columns: serviceTableColumns(data.Staging),
+				Rows: serviceTableRows(data),
 				RootClass: "balemoh-service-table",
 			})
 		</div>
@@ -118,11 +134,16 @@ templ ServiceTable(data PageData) {
 
 templ ServiceIdentity(service Service) {
 	<div class="balemoh-service-identity">
-		<strong>{ service.DisplayName }</strong>
-		if service.Description != "" {
+		<div class="balemoh-service-name">
+			if isKubernetes(service) {
+				@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Label: "Kubernetes"})
+			}
+			<strong>{ service.DisplayName }</strong>
+		</div>
+		<small class="balemoh-muted">{ service.Namespace }</small>
+ if service.Description != "" && !isKubernetes(service) {
 			<span>{ service.Description }</span>
 		}
-		<code>{ service.ID }</code>
 	</div>
 }
 
@@ -133,7 +154,9 @@ templ ServiceEndpoints(service Service) {
 		} else {
 			for _, endpoint := range service.Endpoints {
 				if href := endpointHref(endpoint.URL); href != "" {
-					<a href={ templ.SafeURL(href) }>{ endpointSummary(endpoint) }</a>
+					@link.Link(href) {
+ { endpointSummary(endpoint) }
+ }
 				} else {
 					<span>{ endpointSummary(endpoint) }</span>
 				}
@@ -157,24 +180,54 @@ templ ServiceImages(service Service) {
 	</div>
 }
 
-templ ServiceStatus(service Service) {
-	if service.Pinned {
-		@badge.Badge(badge.Config{Label: "Pinned", Tone: badge.ToneSuccess, Appearance: badge.AppearanceSoft, Size: badge.SizeSM})
-	} else {
-		@badge.Badge(badge.Config{Label: "Staging", Tone: badge.ToneWarning, Appearance: badge.AppearanceSoft, Size: badge.SizeSM})
-	}
+templ ServiceSelection(service Service, selected bool) {
+	@checkbox.Checkbox(checkbox.Config{
+		ID: "select-" + service.ID,
+		Name: "serviceID",
+		Value: service.ID,
+		Checked: selected || service.Pinned,
+		Disabled: service.Pinned,
+		InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "style": "border-color: var(--balemoh-muted)"},
+	})
 }
 
-templ ServiceActions(service Service, staging bool) {
+templ ServiceActions(service Service) {
 	<div class="balemoh-service-actions">
-		if service.Pinned || !staging {
-			<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "unpin")) }>
-				@button.Button(button.WithType("submit"), button.WithTone(button.ToneSecondary), button.WithSize(button.SizeSmall)) { Unpin }
-			</form>
-		} else {
-			<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "pin")) }>
-				@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary), button.WithSize(button.SizeSmall)) { Pin to homepage }
-			</form>
-		}
+		<form method="post" action={ templ.SafeURL(serviceActionURL(service.ID, "unpin")) }>
+			@button.Button(button.WithType("submit"), button.WithTone(button.ToneSecondary), button.WithSize(button.SizeSmall)) { Unpin }
+		</form>
 	</div>
+}
+
+// Native disclosure composes in the public Table Cell slot, with keyboard support.
+templ ServiceResources(service Service) {
+ <details class="balemoh-resource-details">
+  <summary aria-label={ "Resources for " + service.DisplayName }>{ resourceCount(service) }</summary>
+  <div class="balemoh-resource-list">
+   <small class="balemoh-muted">{ service.Source }</small>
+   for _, member := range resourceMembers(service) {
+    <section>
+     <strong>{ resourceLabel(member) }</strong>
+     @ServiceEndpoints(member)
+     if len(member.Images) > 0 {
+ @ServiceImages(member)
+ }
+    </section>
+   }
+  </div>
+ </details>
+}
+
+templ GroupAddresses(service Service) {
+ <div class="balemoh-endpoint-list">
+  if addresses := groupAddresses(service); len(addresses) > 0 {
+   for _, address := range addresses {
+    @link.Link(address) {
+ { strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://"), "//") }
+ }
+   }
+  } else {
+ <span class="balemoh-muted">No public address</span>
+ }
+ </div>
 }

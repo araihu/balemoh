@@ -46,8 +46,12 @@ body {
 	overflow-x: auto;
 }
 
+.balemoh-selection-form {
+	min-width: 0;
+}
+
 .balemoh-service-table {
-	min-width: 62rem;
+	min-width: 38rem;
 }
 
 .balemoh-service-identity,
@@ -63,18 +67,45 @@ body {
 }
 
 .balemoh-service-identity span,
-.balemoh-service-identity code,
 .balemoh-endpoint-list small {
 	color: var(--balemoh-muted);
 	font-size: 0.8rem;
 	overflow-wrap: anywhere;
 }
 
-.balemoh-service-identity code,
 .balemoh-image-list code {
 	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 	font-size: 0.78rem;
 	overflow-wrap: anywhere;
+}
+
+.balemoh-table-toolbar,
+.balemoh-service-name {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.balemoh-table-toolbar {
+	justify-content: space-between;
+	flex-wrap: wrap;
+}
+
+.balemoh-service-name svg {
+	width: 1.25rem;
+	height: 1.25rem;
+	flex-shrink: 0;
+}
+
+.balemoh-icon-button {
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0.5rem;
+}
+
+.balemoh-icon-button svg {
+	width: 1rem;
+	height: 1rem;
 }
 
 .balemoh-endpoint-list a {
@@ -104,3 +135,14 @@ body {
 		animation-iteration-count: 1 !important;
 	}
 }
+
+.balemoh-resource-details summary { cursor: pointer; white-space: nowrap; }
+.balemoh-resource-details summary:focus-visible { outline: 2px solid var(--balemoh-muted); outline-offset: 4px; }
+.balemoh-resource-list { display: grid; gap: 1rem; margin-top: 1rem; min-width: 14rem; max-width: 18rem; overflow-wrap: anywhere; }
+.balemoh-resource-list section { display: grid; gap: .5rem; }
+
+.balemoh-col-select, .balemoh-col-service, .balemoh-col-address, .balemoh-col-resources { vertical-align: top; }
+.balemoh-col-select { width: 5rem; }
+.balemoh-col-service { min-width: 10rem; }
+.balemoh-col-address { min-width: 12rem; }
+.balemoh-col-resources { width: 20rem; }

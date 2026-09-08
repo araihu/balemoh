@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "tool": "goshtoso-iconpack",
+  "release": "iconpack-77e5cb96fdde",
+  "identityRevision": 1,
+  "catalogSchemaVersion": 1,
+  "catalogSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+  "releaseJsonSha256": "",
+  "checksumsSha256": "",
+  "sourceKind": "muamba-snapshot",
+  "archiveSha256": "",
+  "sourceConfigSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+  "sourceLockSha256": "6c62389413f917eaf3b4fc798c687a4b38dab5620b7b52cbcd5c96293fd7e5a5",
+  "package": "appicons",
+  "constPrefix": "Icon",
+  "spriteUrl": "/ui/icons/sprite.svg",
+  "iconifyPrefix": "appicons",
+  "assets": [
+    {
+      "canonicalName": "kubernetes-kubernetes",
+      "namespace": "custom",
+      "product": "kubernetes",
+      "path": "kubernetes/kubernetes.svg",
+      "spriteSymbol": "kubernetes-kubernetes",
+      "colorBehavior": "currentColor",
+      "sha256": "8253c15339196bd566a300530323df4af91f781458e511b6446b57dcef387e85",
+      "goIdentifier": "IconKubernetesKubernetes"
+    }
+  ],
+  "files": [
+    {
+      "path": "LICENSES/kubernetes-LICENSE.txt",
+      "mode": "0644",
+      "bytes": 1072,
+      "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664"
+    },
+    {
+      "path": "NOTICE",
+      "mode": "0644",
+      "bytes": 163,
+      "sha256": "763e8ab11772b35df1292eccd520fee4a97f589f44384b6c1180ad1b1ba8d309"
+    },
+    {
+      "path": "PROVENANCE/.iconpack.yaml",
+      "mode": "0644",
+      "bytes": 382,
+      "sha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020"
+    },
+    {
+      "path": "icons.json",
+      "mode": "0644",
+      "bytes": 4629,
+      "sha256": "88b36636fa866ec399a6767538ad0be92bc0af97c44f472564ea7c250f4564e5"
+    },
+    {
+      "path": "icons_gen.go",
+      "mode": "0644",
+      "bytes": 1288,
+      "sha256": "c1734c0697855352298416c7d1a88841abb8aaf3bcb6a79bd21a1e89eda1874e"
+    },
+    {
+      "path": "provenance.json",
+      "mode": "0644",
+      "bytes": 1279,
+      "sha256": "5c6a10d3718d5344956ec07f08fcc98e197072fa03844bbb713c831747686023"
+    },
+    {
+      "path": "sprite.svg",
+      "mode": "0644",
+      "bytes": 4598,
+      "sha256": "1a8e4a4575d34dfc38a57c098768fa7d2188c992fe464e0f400540fa7444baf6"
+    }
+  ]
+}

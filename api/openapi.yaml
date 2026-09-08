@@ -242,6 +242,20 @@ components:
         provenance:
           type: string
           description: Adapter evidence for the endpoint observation.
+    ResourceObservation:
+      type: object
+      required: [resource, endpoints, images]
+      properties:
+        resource:
+          $ref: '#/components/schemas/ResourceRef'
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEndpoint'
+        images:
+          type: array
+          items:
+            type: string
     ServiceCandidate:
       type: object
       required:
@@ -257,6 +271,11 @@ components:
         - pinned
         - pinnedAt
       properties:
+        resources:
+          type: array
+          description: Resource evidence grouped under this Service; pin identity remains the Service ID.
+          items:
+            $ref: '#/components/schemas/ResourceObservation'
         id:
           type: string
         source:
