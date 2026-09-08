@@ -208,7 +208,7 @@ templ ServiceActions(service Service) {
 // Native disclosure composes in the public Table Cell slot, with keyboard support.
 templ ServiceResources(service Service) {
  <details class="balemoh-resource-details">
-  <summary aria-label={ "Resources for " + service.DisplayName }>{ resourceCount(service) }</summary>
+  <summary aria-label={ resourceCount(service) + " for " + service.DisplayName }>{ resourceCount(service) }</summary>
   <div class="balemoh-resource-list">
    <small class="balemoh-muted">{ service.Source }</small>
    for _, member := range resourceMembers(service) {
