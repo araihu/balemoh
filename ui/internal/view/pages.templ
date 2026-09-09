@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/alert"
+ "github.com/araihu/goshtoso/components/avatar"
 	"github.com/araihu/goshtoso/components/button"
 	"github.com/araihu/goshtoso/components/card"
 	"github.com/araihu/goshtoso/components/checkbox"
@@ -98,6 +99,10 @@ templ ServiceCard(service Service, serviceIcon templ.Component) {
 }
 
 templ ServiceCardIcon(service Service) {
+ @avatar.Avatar(avatar.Config{Size: avatar.SizeXS, Shape: avatar.ShapeSquare, Icon: ServiceGlyph(service), RootClass: "balemoh-service-avatar"})
+}
+
+templ ServiceGlyph(service Service) {
  if service.Icon.ID != "" {
  <span class="balemoh-service-card-icon">@LibraryImage(service.Icon)</span>
  } else if isKubernetes(service) {

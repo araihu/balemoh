@@ -52,8 +52,10 @@ body {
 	overflow-wrap: anywhere;
 }
 
+.balemoh-service-avatar { flex-shrink: 0; }
 .balemoh-service-card-icon { display: flex; }
-.balemoh-service-card-icon svg { width: 2rem; height: 2rem; }
+.balemoh-service-card-icon svg,
+.balemoh-service-card-icon .balemoh-library-image { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
 .balemoh-card-addresses { display: flex; align-items: center; gap: .5rem; }
 .balemoh-card-addresses > a { min-width: 0; overflow-wrap: anywhere; }
 
@@ -105,11 +107,6 @@ body {
 	flex-wrap: wrap;
 }
 
-.balemoh-service-name svg {
-	width: 1.25rem;
-	height: 1.25rem;
-	flex-shrink: 0;
-}
 
 .balemoh-icon-button {
 	width: 2.5rem;
@@ -183,7 +180,6 @@ body {
 .balemoh-icon-results{display:grid;gap:.75rem}
 .balemoh-icon-choice{display:flex;flex-direction:column;gap:.5rem;align-items:center;width:100%;min-height:90px;white-space:normal}
 .balemoh-library-image{object-fit:contain;flex-shrink:0;max-width:100%}
-.balemoh-service-card-icon .balemoh-library-image{width:32px;height:32px}
 .balemoh-icon-upload{margin:1rem 0}.balemoh-icon-upload>summary{cursor:pointer}
 .balemoh-upload-form{max-width:36rem;margin:1rem 0}
 .balemoh-icon-upload-body{padding:1rem;min-width:0}

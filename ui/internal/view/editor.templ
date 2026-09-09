@@ -2,6 +2,7 @@ package view
 
 import (
 	"github.com/araihu/goshtoso/components/button"
+ "github.com/araihu/goshtoso/components/avatar"
 
 	"github.com/araihu/goshtoso/components/form"
 	"github.com/araihu/goshtoso/components/link"
@@ -73,6 +74,9 @@ templ ServiceEditor(service Service) {
 }
 
 templ ServiceIconPreview(service Service) {
+ @avatar.Avatar(avatar.Config{Size: avatar.SizeXS, Shape: avatar.ShapeSquare, Icon: ServicePreviewGlyph(service), RootClass: "balemoh-service-avatar"})
+}
+templ ServicePreviewGlyph(service Service) {
  <span class="balemoh-service-card-icon">
   <span x-show="!iconRef">
  @ServiceDefaultIcon(service)
@@ -82,11 +86,7 @@ templ ServiceIconPreview(service Service) {
  </span>
 }
 templ ServiceDefaultIcon(service Service) {
- if service.DefaultIcon.ID!="" {
- @LibraryImage(service.DefaultIcon)
- } else {
- @ServiceCardIcon(Service{Source:service.Source,Resource:service.Resource})
- }
+ @ServiceGlyph(Service{Icon: service.DefaultIcon, Source:service.Source, Resource:service.Resource})
 }
 
 templ EditedRow(service Service) {
