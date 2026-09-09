@@ -12,6 +12,7 @@ import (
 // Keeping this interface here makes the BFF testable without coupling views to
 // the generated SDK or to the API server's internal packages.
 type Catalog interface {
+	Lifecycle(context.Context, string, string) error
 	Homepage(context.Context) ([]api.ServiceCandidate, error)
 	Staging(context.Context) ([]api.ServiceCandidate, error)
 	Edit(context.Context, string, api.ServiceEdit) error
@@ -177,4 +178,15 @@ func (c *APIClient) IconImage(ctx context.Context, id string) ([]byte, string, e
 		return nil, "", &upstreamError{operation: "icon image", status: r.StatusCode()}
 	}
 	return r.Body, r.HTTPResponse.Header.Get("Content-Type"), nil
+}
+
+func (c *APIClient) Lifecycle(ctx context.Context, id, action string) error {
+	r, err := c.client.ChangeServiceLifecycleWithResponse(ctx, id, api.ChangeServiceLifecycleJSONRequestBody{Action: api.ChangeServiceLifecycleJSONBodyAction(action)})
+	if err != nil {
+		return &upstreamError{operation: "lifecycle", cause: err}
+	}
+	if r.StatusCode() != http.StatusNoContent {
+		return &upstreamError{operation: "lifecycle", status: r.StatusCode()}
+	}
+	return nil
 }

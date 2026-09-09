@@ -426,3 +426,31 @@ func federationPayload(candidate catalog.Candidate) generated.FederationSnapshot
 }
 
 func (f *fakeCatalog) Edit(context.Context, string, catalog.Edit) error { return nil }
+
+func (f *fakeCatalog) Lifecycle(context.Context, string, string) error { return f.pinErr }
+
+func TestLifecycleHTTPContract(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		err        error
+		status     int
+	}{
+		{"hide", `{"action":"hide"}`, nil, 204},
+		{"show", `{"action":"show"}`, nil, 204},
+		{"purge", `{"action":"purge"}`, nil, 204},
+		{"stale", `{"action":"purge"}`, catalog.ErrConflict, 409},
+		{"gone", `{"action":"purge"}`, catalog.ErrNotFound, 404},
+		{"failure", `{"action":"hide"}`, errors.New("db unavailable"), 503},
+		{"unknown", `{"action":"delete"}`, nil, 400},
+		{"trailing", `{"action":"hide"} {}`, nil, 400},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := catalogHandler(&fakeCatalog{pinErr: tc.err})
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, httptest.NewRequest("POST", "/api/v1/staging/services/service-1/lifecycle", strings.NewReader(tc.body)))
+			if w.Code != tc.status {
+				t.Fatalf("status %d want %d: %s", w.Code, tc.status, w.Body.String())
+			}
+		})
+	}
+}

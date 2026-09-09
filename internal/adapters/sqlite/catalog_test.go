@@ -199,8 +199,8 @@ func TestCatalogServiceImportSnapshotReconcilesSQLiteSourceAndPreservesPins(t *t
 	for _, service := range services {
 		byID[service.ID] = service
 	}
-	if _, ok := byID[stale.ID]; ok {
-		t.Fatal("stale unpinned candidate remains in SQLite")
+	if got, ok := byID[stale.ID]; !ok || !got.Missing {
+		t.Fatal("absent candidate must be retained as missing")
 	}
 	if got, ok := byID[pinned.ID]; !ok || got.PinnedAt == nil {
 		t.Fatalf("pinned candidate = %#v, want preserved pin", got)

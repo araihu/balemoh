@@ -23,6 +23,8 @@ type DiscoveredService struct {
 	CreatedAt         string         `json:"created_at"`
 	UpdatedAt         string         `json:"updated_at"`
 	ImagesJson        string         `json:"images_json"`
+	Missing           int64          `json:"missing"`
+	Hidden            int64          `json:"hidden"`
 }
 
 type DiscoverySourceSnapshot struct {

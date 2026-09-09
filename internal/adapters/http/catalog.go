@@ -99,6 +99,7 @@ func serviceCandidate(candidate catalog.Candidate) generated.ServiceCandidate {
 		resources = append(resources, generated.ResourceObservation{Resource: member.Resource, Endpoints: member.Endpoints, Images: member.Images})
 	}
 	return generated.ServiceCandidate{
+		Status: generated.ServiceCandidateStatus(candidate.Status()), Missing: candidate.Missing,
 		Resources:   &resources,
 		Address:     &candidate.Address,
 		Icon:        &candidate.Icon,
@@ -117,6 +118,10 @@ func serviceCandidate(candidate catalog.Candidate) generated.ServiceCandidate {
 }
 
 func writeCatalogError(w http.ResponseWriter, err error) {
+	if errors.Is(err, catalog.ErrConflict) {
+		writeJSON(w, http.StatusConflict, generated.ErrorResponse{Code: "conflict", Message: "Service state changed. Refresh before trying again."})
+		return
+	}
 	if errors.Is(err, catalog.ErrNotFound) {
 		writeJSON(w, http.StatusNotFound, generated.ErrorResponse{
 			Code:    "not_found",
@@ -155,6 +160,31 @@ func (h Handler) EditStagingService(w http.ResponseWriter, r *http.Request, serv
 		return
 	}
 	if err != nil {
+		writeCatalogError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h Handler) ChangeServiceLifecycle(w http.ResponseWriter, r *http.Request, serviceID string) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+	var body generated.ChangeServiceLifecycleJSONRequestBody
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&body); err != nil {
+		http.Error(w, "Invalid action", 400)
+		return
+	}
+	if err := dec.Decode(new(any)); err != io.EOF {
+		http.Error(w, "Invalid action", 400)
+		return
+	}
+	action := string(body.Action)
+	if action != "hide" && action != "show" && action != "purge" {
+		http.Error(w, "Invalid action", 400)
+		return
+	}
+	if err := h.catalog.Lifecycle(r.Context(), serviceID, action); err != nil {
 		writeCatalogError(w, err)
 		return
 	}

@@ -37,6 +37,7 @@ func addressMenuItems(addresses []string) []dropdown.Item {
 // PageData is the presentation model for the two operator-facing catalog
 // pages. It deliberately contains no generated API types.
 type PageData struct {
+	Status      string
 	IconPage    *IconPage
 	Editor      *Service
 	Path        string
@@ -50,6 +51,8 @@ type PageData struct {
 }
 
 type Service struct {
+	Status      string
+	Missing     bool
 	IconRef     string
 	Icon        LibraryIcon
 	DefaultIcon LibraryIcon
@@ -217,4 +220,18 @@ func groupAddresses(service Service) []string {
 func successToastEvent(message string) string {
 	payload, _ := json.Marshal(map[string]string{"kind": "toast", "tone": "success", "message": message})
 	return "$nextTick(() => $dispatch('notify', " + string(payload) + "))"
+}
+
+func (s Service) State() string {
+	if s.Status == "" {
+		return "live"
+	}
+	return s.Status
+}
+func lifecycleURL(id string) string { return serviceActionURL(id, "lifecycle") }
+func stagingURL(state string) string {
+	if state == "" {
+		state = "live"
+	}
+	return "/staging?status=" + url.QueryEscape(state) + "#" + url.QueryEscape(state)
 }

@@ -10,6 +10,7 @@ import (
 )
 
 type CatalogStore interface {
+	Lifecycle(context.Context, string, string) error
 	Upsert(context.Context, Candidate) error
 	ReplaceSourceSnapshot(context.Context, Snapshot) (SnapshotApplyResult, error)
 	List(context.Context, bool) ([]Candidate, error)
@@ -37,6 +38,7 @@ type SnapshotImporter interface {
 }
 
 type UseCase interface {
+	Lifecycle(context.Context, string, string) error
 	ListStaging(context.Context) ([]Candidate, error)
 	ListHomepage(context.Context) ([]Candidate, error)
 	Pin(context.Context, string) (Candidate, error)
@@ -86,7 +88,7 @@ func (s *Service) ListHomepage(ctx context.Context) ([]Candidate, error) {
 	}
 	pinned := make([]Candidate, 0)
 	for _, candidate := range candidates {
-		if candidate.PinnedAt != nil {
+		if candidate.PinnedAt != nil && candidate.Status() == "live" {
 			pinned = append(pinned, candidate)
 		}
 	}
@@ -94,7 +96,19 @@ func (s *Service) ListHomepage(ctx context.Context) ([]Candidate, error) {
 }
 
 func (s *Service) Pin(ctx context.Context, id string) (Candidate, error) {
-	return s.store.SetPinned(ctx, id, true)
+	groups, err := s.ListStaging(ctx)
+	if err != nil {
+		return Candidate{}, err
+	}
+	for _, c := range groups {
+		if c.ID == id {
+			if c.Status() != "live" {
+				return Candidate{}, ErrConflict
+			}
+			return s.store.SetPinned(ctx, id, true)
+		}
+	}
+	return Candidate{}, ErrNotFound
 }
 
 func (s *Service) Unpin(ctx context.Context, id string) (Candidate, error) {
@@ -125,6 +139,7 @@ func (s *Service) Sync(ctx context.Context) (SyncResult, error) {
 	var result SyncResult
 	for _, discoverer := range s.discoverers {
 		result.Sources++
+		startedAt := time.Now().UTC()
 		candidates, err := discoverer.Discover(ctx)
 		if err != nil {
 			return result, fmt.Errorf("discover %s: %w", discoverer.Name(), err)
@@ -133,15 +148,14 @@ func (s *Service) Sync(ctx context.Context) (SyncResult, error) {
 		if err != nil {
 			return result, fmt.Errorf("prepare snapshot from %s: %w", discoverer.Name(), err)
 		}
-		for _, candidate := range candidates {
-			candidate = candidate.Normalize()
-			if err := candidate.Validate(); err != nil {
-				return result, fmt.Errorf("validate candidate from %s: %w", discoverer.Name(), err)
+		for index := range batches {
+			batches[index].ObservedAt = startedAt
+		}
+		for _, snapshot := range batches {
+			if _, err := s.store.ReplaceSourceSnapshot(ctx, snapshot); err != nil {
+				return result, fmt.Errorf("store snapshot from %s: %w", discoverer.Name(), err)
 			}
-			if err := s.store.Upsert(ctx, candidate); err != nil {
-				return result, fmt.Errorf("store candidate from %s: %w", discoverer.Name(), err)
-			}
-			result.Candidates++
+			result.Candidates += len(snapshot.Candidates)
 		}
 		if s.publisher != nil {
 			for _, snapshot := range batches {
@@ -217,3 +231,7 @@ func snapshotBatches(discoverer Discoverer, candidates []Candidate) ([]Snapshot,
 
 var _ UseCase = (*Service)(nil)
 var _ SnapshotImporter = (*Service)(nil)
+
+func (s *Service) Lifecycle(ctx context.Context, id, action string) error {
+	return s.store.Lifecycle(ctx, id, action)
+}

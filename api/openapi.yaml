@@ -194,6 +194,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/staging/services/{serviceId}/lifecycle:
+    post:
+      operationId: changeServiceLifecycle
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [hide, show, purge]
+      responses:
+        '204':
+          description: Visibility changed or missing resource permanently deleted
+        '400':
+          description: Invalid action
+        '404':
+          description: Resource no longer exists
+        '409':
+          description: Current resource state does not permit this action
+        '503':
+          description: Catalog unavailable
   /api/v1/icons:
     get:
       operationId: listIcons
@@ -429,6 +460,8 @@ components:
     ServiceCandidate:
       type: object
       required:
+        - status
+        - missing
         - id
         - source
         - resource
@@ -441,6 +474,13 @@ components:
         - pinned
         - pinnedAt
       properties:
+        status:
+          type: string
+          enum: [live, missing, hidden]
+          description: Hidden takes precedence over missing until the user shows the service again.
+        missing:
+          type: boolean
+          description: Absent from the latest successful source snapshot, including when hidden.
         icon:
           type: string
           description: Local icon reference; empty uses discovery.

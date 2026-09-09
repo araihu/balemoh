@@ -43,7 +43,9 @@ func groupCandidates(candidates []Candidate) []Candidate {
 					seen[k] = true
 					matched = true
 					group.Resources = append(group.Resources, ResourceObservation{Resource: candidate.Resource, Endpoints: candidate.Endpoints, Images: candidate.Images})
-					group.Endpoints = append(group.Endpoints, groupMemberEndpoints(candidate, group.Resource)...)
+					if candidate.Missing == group.Missing {
+						group.Endpoints = append(group.Endpoints, groupMemberEndpoints(candidate, group.Resource)...)
+					}
 					group.Images = append(group.Images, candidate.Images...)
 				}
 			}

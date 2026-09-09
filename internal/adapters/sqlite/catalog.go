@@ -20,6 +20,8 @@ type CatalogStore struct {
 }
 
 type discoveredServiceRow struct {
+	Missing           int64
+	Hidden            int64
 	ID                string
 	SourceKind        string
 	SourceID          string
@@ -36,6 +38,7 @@ type discoveredServiceRow struct {
 
 func discoveredServiceRowFromGet(row sqlc.GetDiscoveredServiceRow) discoveredServiceRow {
 	return discoveredServiceRow{
+		Missing: row.Missing, Hidden: row.Hidden,
 		ID:                row.ID,
 		SourceKind:        row.SourceKind,
 		SourceID:          row.SourceID,
@@ -53,6 +56,7 @@ func discoveredServiceRowFromGet(row sqlc.GetDiscoveredServiceRow) discoveredSer
 
 func discoveredServiceRowFromList(row sqlc.ListDiscoveredServicesRow) discoveredServiceRow {
 	return discoveredServiceRow{
+		Missing: row.Missing, Hidden: row.Hidden,
 		ID:                row.ID,
 		SourceKind:        row.SourceKind,
 		SourceID:          row.SourceID,
@@ -70,6 +74,7 @@ func discoveredServiceRowFromList(row sqlc.ListDiscoveredServicesRow) discovered
 
 func discoveredServiceRowFromPinnedList(row sqlc.ListPinnedDiscoveredServicesRow) discoveredServiceRow {
 	return discoveredServiceRow{
+		Missing: row.Missing, Hidden: row.Hidden,
 		ID:                row.ID,
 		SourceKind:        row.SourceKind,
 		SourceID:          row.SourceID,
@@ -207,9 +212,12 @@ func (s *CatalogStore) ReplaceSourceSnapshot(ctx context.Context, snapshot catal
 		if err := s.upsertCandidate(ctx, queries, candidate); err != nil {
 			return catalog.SnapshotApplyResult{}, fmt.Errorf("upsert source candidate: %w", err)
 		}
+		if _, err := tx.ExecContext(ctx, "UPDATE discovered_services SET missing = 0 WHERE id = ?", candidate.ID); err != nil {
+			return catalog.SnapshotApplyResult{}, err
+		}
 		keepIDs = append(keepIDs, candidate.ID)
 	}
-	if err := deleteAbsentUnpinnedCandidates(ctx, tx, snapshot.Source, keepIDs); err != nil {
+	if err := markAbsentCandidates(ctx, tx, snapshot.Source, keepIDs); err != nil {
 		return catalog.SnapshotApplyResult{}, err
 	}
 	if err := queries.UpsertDiscoverySourceSnapshot(ctx, sqlc.UpsertDiscoverySourceSnapshotParams{
@@ -225,8 +233,8 @@ func (s *CatalogStore) ReplaceSourceSnapshot(ctx context.Context, snapshot catal
 	return catalog.SnapshotApplyResult{Applied: true, Candidates: len(snapshot.Candidates)}, nil
 }
 
-func deleteAbsentUnpinnedCandidates(ctx context.Context, tx *sql.Tx, source catalog.SourceRef, keepIDs []string) error {
-	query := `DELETE FROM discovered_services WHERE source_kind = ? AND source_id = ? AND pinned_at IS NULL`
+func markAbsentCandidates(ctx context.Context, tx *sql.Tx, source catalog.SourceRef, keepIDs []string) error {
+	query := `UPDATE discovered_services SET missing = 1 WHERE source_kind = ? AND source_id = ?`
 	args := []any{source.Kind, source.ID}
 	if len(keepIDs) > 0 {
 		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(keepIDs)), ",")
@@ -236,7 +244,7 @@ func deleteAbsentUnpinnedCandidates(ctx context.Context, tx *sql.Tx, source cata
 		}
 	}
 	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
-		return fmt.Errorf("remove stale source candidates: %w", err)
+		return fmt.Errorf("mark missing source candidates: %w", err)
 	}
 	return nil
 }
@@ -301,6 +309,9 @@ func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool, re
 			return catalog.Candidate{}, fmt.Errorf("read candidate pin state: %w", err)
 		}
 
+		if pinned && (row.Missing != 0 || row.Hidden != 0) {
+			return catalog.Candidate{}, catalog.ErrConflict
+		}
 		if pinned && !row.PinnedAt.Valid {
 			now := time.Now().UTC().Format(time.RFC3339Nano)
 			if _, err := queries.PinDiscoveredService(ctx, sqlc.PinDiscoveredServiceParams{
@@ -352,6 +363,7 @@ func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queri
 	}
 
 	candidate := catalog.Candidate{
+		Missing: row.Missing != 0, Hidden: row.Hidden != 0,
 		ID:          row.ID,
 		Source:      catalog.SourceRef{Kind: row.SourceKind, ID: row.SourceID},
 		Resource:    catalog.ResourceRef{Kind: row.ResourceKind, Namespace: row.ResourceNamespace, Name: row.ResourceName},

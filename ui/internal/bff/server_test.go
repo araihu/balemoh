@@ -174,7 +174,7 @@ func TestHandlerDoesNotLeakUpstreamErrors(t *testing.T) {
 		t.Fatalf("GET / status = %d, want 503", response.Code)
 	}
 	body := response.Body.String()
-	if !strings.Contains(body, "Catálogo indisponível") {
+	if !strings.Contains(body, "Request could not be completed") {
 		t.Errorf("error page missing safe message")
 	}
 	if strings.Contains(body, "super-secret") {
@@ -397,3 +397,5 @@ func (f *fakeCatalog) Edit(_ context.Context, id string, edit client.ServiceEdit
 	}
 	return nil
 }
+
+func (f *fakeCatalog) Lifecycle(context.Context, string, string) error { return f.mutationErr }

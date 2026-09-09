@@ -34,6 +34,8 @@ SELECT
     images_json,
     observed_at,
     pinned_at,
+    missing,
+    hidden,
     created_at,
     updated_at
 FROM discovered_services
@@ -54,6 +56,8 @@ type GetDiscoveredServiceRow struct {
 	ImagesJson        string         `json:"images_json"`
 	ObservedAt        string         `json:"observed_at"`
 	PinnedAt          sql.NullString `json:"pinned_at"`
+	Missing           int64          `json:"missing"`
+	Hidden            int64          `json:"hidden"`
 	CreatedAt         string         `json:"created_at"`
 	UpdatedAt         string         `json:"updated_at"`
 }
@@ -74,6 +78,8 @@ func (q *Queries) GetDiscoveredService(ctx context.Context, id string) (GetDisco
 		&i.ImagesJson,
 		&i.ObservedAt,
 		&i.PinnedAt,
+		&i.Missing,
+		&i.Hidden,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -173,6 +179,8 @@ SELECT
     images_json,
     observed_at,
     pinned_at,
+    missing,
+    hidden,
     created_at,
     updated_at
 FROM discovered_services
@@ -192,6 +200,8 @@ type ListDiscoveredServicesRow struct {
 	ImagesJson        string         `json:"images_json"`
 	ObservedAt        string         `json:"observed_at"`
 	PinnedAt          sql.NullString `json:"pinned_at"`
+	Missing           int64          `json:"missing"`
+	Hidden            int64          `json:"hidden"`
 	CreatedAt         string         `json:"created_at"`
 	UpdatedAt         string         `json:"updated_at"`
 }
@@ -218,6 +228,8 @@ func (q *Queries) ListDiscoveredServices(ctx context.Context) ([]ListDiscoveredS
 			&i.ImagesJson,
 			&i.ObservedAt,
 			&i.PinnedAt,
+			&i.Missing,
+			&i.Hidden,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -248,6 +260,8 @@ SELECT
     images_json,
     observed_at,
     pinned_at,
+    missing,
+    hidden,
     created_at,
     updated_at
 FROM discovered_services
@@ -268,6 +282,8 @@ type ListPinnedDiscoveredServicesRow struct {
 	ImagesJson        string         `json:"images_json"`
 	ObservedAt        string         `json:"observed_at"`
 	PinnedAt          sql.NullString `json:"pinned_at"`
+	Missing           int64          `json:"missing"`
+	Hidden            int64          `json:"hidden"`
 	CreatedAt         string         `json:"created_at"`
 	UpdatedAt         string         `json:"updated_at"`
 }
@@ -294,6 +310,8 @@ func (q *Queries) ListPinnedDiscoveredServices(ctx context.Context) ([]ListPinne
 			&i.ImagesJson,
 			&i.ObservedAt,
 			&i.PinnedAt,
+			&i.Missing,
+			&i.Hidden,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -461,7 +479,8 @@ ON CONFLICT (id) DO UPDATE SET
     metadata_json = excluded.metadata_json,
     images_json = excluded.images_json,
     observed_at = excluded.observed_at,
-    updated_at = excluded.updated_at
+    updated_at = excluded.updated_at,
+    missing = 0
 `
 
 type UpsertDiscoveredServiceParams struct {
