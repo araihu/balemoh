@@ -5,6 +5,7 @@ import (
  "strings"
  "strconv"
  "github.com/araihu/goshtoso/components/textinput"
+ "github.com/araihu/goshtoso/components/modal"
 	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/alert"
  "github.com/araihu/goshtoso/components/avatar"
@@ -76,16 +77,14 @@ templ SyncButton() {
 
 templ HomepageContent(data PageData) {
 	if len(data.Services) > 0 {
-  <div x-data="{query: ''}" x-on:keydown.window={homepageSearchKeys}>
-   @textinput.TextInput(textinput.Config{ID:"home-search",Type:textinput.TypeSearch,Label:"Search services",Placeholder:"Name, description, or address",Autocomplete:"off",InputAttrs:templ.Attributes{"x-ref":"search","x-model":"query","aria-keyshortcuts":"Meta+K Control+K","x-on:keydown.escape.prevent.stop":"query = ''; $el.blur()"}})
+  <div x-data={homeSearchState} x-on:keydown.window={homepageSearchKeys}>
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"query = ''; $dispatch('modal:open', {id:'home-search-modal'})","aria-haspopup":"dialog","aria-controls":"home-search-modal","aria-keyshortcuts":"Meta+K Control+K"})) { Search services }
    <div class="balemoh-service-grid" style="margin-top: 1rem">
     for _, service := range data.Services {
-     <div data-home-service x-show={homeSearchMatch(service)}>
       @ServiceCard(service, ServiceCardIcon(service))
-     </div>
     }
    </div>
-   <p role="status" x-cloak x-show={homeSearchEmpty(data.Services)}>No matching services.</p>
+   @modal.Dialog(modal.DialogConfig{ID:"home-search-modal",Title:"Search services",FullscreenMobile:true,Content:HomeSearchResults(data.Services)})
   </div>
 	} else if data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
@@ -309,17 +308,48 @@ templ StagingRow(service Service) {
 	@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
 }
 
+const homeSearchState = `{query: '', move(step) {
+ const links = [...document.querySelectorAll('#home-search-results a')].filter(el => el.getClientRects().length);
+ if (!links.length) return;
+ const current = links.indexOf(document.activeElement);
+ const index = current < 0 ? (step > 0 ? 0 : links.length - 1) : (current + step + links.length) % links.length;
+ links[index].focus(); links[index].scrollIntoView({block: 'nearest'});
+}}`
 const homepageSearchKeys = `
  const e = $event;
  if (e.defaultPrevented || e.isComposing || e.altKey) return;
- if ([...document.querySelectorAll('[role="dialog"], dialog[open], [role="menu"]')].some(el => el.getClientRects().length)) return;
+ const own = document.querySelector('#home-search-modal');
+ if ([...document.querySelectorAll('[role="dialog"], dialog[open], [role="menu"]')].some(el => el !== own && el.getClientRects().length)) return;
  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-  e.preventDefault(); $refs.search.focus(); $refs.search.select(); return;
+  e.preventDefault();
+  if (own.open) { document.querySelector('#home-search').focus(); document.querySelector('#home-search').select(); }
+  else { query = ''; $dispatch('modal:open', {id:'home-search-modal'}); }
+  return;
  }
  if (e.metaKey || e.ctrlKey || e.key.length !== 1 || e.key.trim() === '') return;
  if (e.target.closest('input, textarea, select, [role="textbox"], [contenteditable]:not([contenteditable="false"])')) return;
- e.preventDefault(); query += e.key; $refs.search.focus();
+ e.preventDefault(); query = own.open ? query + e.key : e.key;
+ if (own.open) document.querySelector('#home-search').focus();
+ else $dispatch('modal:open', {id:'home-search-modal'});
 `
+
+templ HomeSearchResults(services []Service) {
+ <div x-on:keydown.arrow-down.prevent="move(1)" x-on:keydown.arrow-up.prevent="move(-1)">
+  @textinput.TextInput(textinput.Config{ID:"home-search",Type:textinput.TypeSearch,Label:"Search services",Placeholder:"Name, description, or address",Autocomplete:"off",HelperText:"Up/Down to navigate, Enter to open, Escape to close.",InputAttrs:templ.Attributes{"autofocus":true,"x-model":"query","x-on:keydown.escape.prevent.stop":"$dispatch('modal:close', {id:'home-search-modal'})","x-on:keydown.enter.prevent":"[...document.querySelectorAll('#home-search-results a')].find(el => el.getClientRects().length)?.click()"}})
+  <ul id="home-search-results" class="balemoh-search-results" aria-label="Matching services">
+   for _, service := range services {
+    <li x-show={homeSearchMatch(service)}>
+     if addresses := groupAddresses(service); len(addresses)>0 {
+      @link.Link(addresses[0],link.WithTarget("_blank")) { {service.DisplayName} <span class="balemoh-muted">{service.Description}</span> }
+     } else {
+      <span>{service.DisplayName} <span class="balemoh-muted">No public address</span></span>
+     }
+    </li>
+   }
+  </ul>
+  <p role="status" x-cloak x-show={homeSearchEmpty(services)}>No matching services.</p>
+ </div>
+}
 
 func homeSearchMatch(service Service) string {
  text := strings.ToLower(service.DisplayName + " " + service.Description + " " + strings.Join(groupAddresses(service), " "))

@@ -91,7 +91,7 @@ func TestHomepageSearchIsScopedToServices(t *testing.T) {
 		if strings.Contains(html.String(), `id="home-search"`) != (len(services) > 0) {
 			t.Fatal("search requires service cards")
 		}
-		if len(services) > 0 && (!strings.Contains(html.String(), "app.example") || !strings.Contains(html.String(), `x-on:keydown.window`)) {
+		if len(services) > 0 && (!strings.Contains(html.String(), "app.example") || !strings.Contains(html.String(), `id="home-search-modal"`) || !strings.Contains(html.String(), `x-on:keydown.arrow-down.prevent`)) {
 			t.Fatal("missing search data or shortcut")
 		}
 	}
