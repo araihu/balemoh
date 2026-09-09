@@ -18,6 +18,9 @@ func addressLabel(address string) string {
 func discoveredAddress(service Service) string {
 	service.Address = ""
 	if addresses := groupAddresses(service); len(addresses) > 0 {
+		if strings.HasPrefix(addresses[0], "//") {
+			return "https:" + addresses[0]
+		}
 		return addresses[0]
 	}
 	return ""

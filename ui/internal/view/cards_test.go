@@ -61,3 +61,17 @@ func TestServiceEditorCardAndDiscoveredPlaceholder(t *testing.T) {
 		t.Fatal("undiscovered address should have empty placeholder")
 	}
 }
+
+func TestDiscoveredAddressScheme(t *testing.T) {
+	for _, tc := range []struct{ url, want string }{
+		{"//app.example/", "https://app.example/"},
+		{"http://app.example/", "http://app.example/"},
+		{"https://app.example/", "https://app.example/"},
+		{"", ""},
+	} {
+		service := Service{Address: "https://custom.example/", Endpoints: []Endpoint{{URL: tc.url}}}
+		if got := discoveredAddress(service); got != tc.want {
+			t.Errorf("discoveredAddress(%q) = %q, want %q", tc.url, got, tc.want)
+		}
+	}
+}
