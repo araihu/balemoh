@@ -21,6 +21,8 @@ github.com/araihu/goshtoso v0.2.9-0.20260909014021-41c4ced948ac h1:jZ92Wsy4kW+ed
 github.com/araihu/goshtoso v0.2.9-0.20260909014021-41c4ced948ac/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/araihu/goshtoso v0.2.9-0.20260909032904-ef56e375cc22 h1:c0uGQYcay4s3+41lnYmOFYA4RmlJDV6/t85wROdDthQ=
 github.com/araihu/goshtoso v0.2.9-0.20260909032904-ef56e375cc22/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
+github.com/araihu/goshtoso v0.2.9-0.20260909033241-d881cbbe3189 h1:i2vNx7g4iW8F2Ne8ZfLnCbQjWKqJMnYsSlrDCjmWTgQ=
+github.com/araihu/goshtoso v0.2.9-0.20260909033241-d881cbbe3189/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

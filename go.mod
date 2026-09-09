@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/araihu/balemoh/client v0.0.0
-	github.com/araihu/goshtoso v0.2.9-0.20260909032904-ef56e375cc22
+	github.com/araihu/goshtoso v0.2.9-0.20260909033241-d881cbbe3189
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/moby/moby/api v1.55.0
