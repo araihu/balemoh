@@ -119,3 +119,62 @@ func (c *APIClient) Edit(ctx context.Context, id string, edit api.ServiceEdit) e
 	}
 	return nil
 }
+
+// IconCatalog exposes upload management without making bundled assets mutable.
+type IconCatalog interface {
+	Icons(context.Context) ([]api.UploadedIcon, error)
+	SaveIcon(context.Context, string, api.IconUpload) (api.UploadedIcon, error)
+	DeleteIcon(context.Context, string, string) error
+	IconImage(context.Context, string) ([]byte, string, error)
+}
+
+func (c *APIClient) Icons(ctx context.Context) ([]api.UploadedIcon, error) {
+	r, err := c.client.ListIconsWithResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if r.StatusCode() != 200 || r.JSON200 == nil {
+		return nil, &upstreamError{operation: "icons", status: r.StatusCode()}
+	}
+	return *r.JSON200, nil
+}
+func (c *APIClient) SaveIcon(ctx context.Context, id string, v api.IconUpload) (api.UploadedIcon, error) {
+	if id == "" {
+		r, err := c.client.UploadIconWithResponse(ctx, v)
+		if err != nil {
+			return api.UploadedIcon{}, err
+		}
+		if r.StatusCode() != 201 || r.JSON201 == nil {
+			return api.UploadedIcon{}, &upstreamError{operation: "upload icon", status: r.StatusCode()}
+		}
+		return *r.JSON201, nil
+	}
+	r, err := c.client.UpdateIconWithResponse(ctx, id, v)
+	if err != nil {
+		return api.UploadedIcon{}, err
+	}
+	if r.StatusCode() != 200 || r.JSON200 == nil {
+		return api.UploadedIcon{}, &upstreamError{operation: "update icon", status: r.StatusCode()}
+	}
+	return *r.JSON200, nil
+}
+func (c *APIClient) DeleteIcon(ctx context.Context, id, revision string) error {
+	r, err := c.client.DeleteIconWithResponse(ctx, id, &api.DeleteIconParams{Digest: revision})
+	if err != nil {
+		return err
+	}
+	if r.StatusCode() != 204 {
+		return &upstreamError{operation: "delete icon", status: r.StatusCode()}
+	}
+	return nil
+}
+func (c *APIClient) IconImage(ctx context.Context, id string) ([]byte, string, error) {
+	r, err := c.client.GetIconImageWithResponse(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+	if r.StatusCode() != 200 {
+		return nil, "", &upstreamError{operation: "icon image", status: r.StatusCode()}
+	}
+	return r.Body, r.HTTPResponse.Header.Get("Content-Type"), nil
+}

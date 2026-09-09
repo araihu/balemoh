@@ -18,6 +18,9 @@ func addressLabel(address string) string {
 func discoveredAddress(service Service) string {
 	service.Address = ""
 	if addresses := groupAddresses(service); len(addresses) > 0 {
+		if strings.HasPrefix(addresses[0], "//") {
+			return "https:" + addresses[0]
+		}
 		return addresses[0]
 	}
 	return ""
@@ -34,6 +37,7 @@ func addressMenuItems(addresses []string) []dropdown.Item {
 // PageData is the presentation model for the two operator-facing catalog
 // pages. It deliberately contains no generated API types.
 type PageData struct {
+	IconPage    *IconPage
 	Editor      *Service
 	Path        string
 	Title       string
@@ -46,6 +50,9 @@ type PageData struct {
 }
 
 type Service struct {
+	IconRef     string
+	Icon        LibraryIcon
+	DefaultIcon LibraryIcon
 	Standalone  bool
 	Address     string
 	EditError   string

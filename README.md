@@ -1,6 +1,6 @@
 # Balemoh
 
-Balemoh is a Go service. Local development uses Go 1.26.6 and the pinned
+Balemoh is a Go service. Local development uses Go 1.27 and the pinned
 dependencies and tools declared in `go.mod`.
 
 ## Development
@@ -206,3 +206,5 @@ run.
 See the [product roadmap](docs/roadmap.md), [discovery design](docs/superpowers/specs/2026-08-17-balemoh-discovery-design.md),
 and [Kubernetes/DevSpace plan](docs/superpowers/plans/2026-08-17-balemoh-kubernetes-devspace.md)
 for the adapter sequence and scope boundaries.
+
+See [Icon library](docs/icons.md) for catalog vendoring, uploads, and storage requirements.

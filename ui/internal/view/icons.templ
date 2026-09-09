@@ -1,0 +1,215 @@
+package view
+
+import (
+ "fmt"
+ "strings"
+ "strconv"
+ "github.com/araihu/goshtoso/components/button"
+ "github.com/araihu/goshtoso/components/card"
+ "github.com/araihu/goshtoso/components/combobox"
+ "github.com/araihu/goshtoso/components/fileinput"
+ "github.com/araihu/goshtoso/components/icon"
+ "github.com/araihu/goshtoso/components/link"
+ "github.com/araihu/goshtoso/components/pageheader"
+ "github.com/araihu/goshtoso/components/textinput"
+ "github.com/araihu/goshtoso/components/tagslist"
+)
+
+templ LibraryImage(i LibraryIcon) {
+ if i.Symbol != "" {
+  @icon.Icon(icon.Config{SpriteURL:i.SpriteURL, Symbol:icon.Symbol(i.Symbol), Decorative:true})
+ } else if i.URL != "" {
+  <img class="balemoh-library-image" src={i.URL} alt="" width="40" height="40" loading="lazy"/>
+ }
+}
+
+templ IconsContent(data IconPage) {
+ @pageheader.PageHeader(pageheader.Config{Title:"Icons",HideSeparator:true,Actions:IconPageActions(data)})
+ if (data.Editing != nil || data.Details != nil) && data.Error != "" {
+  <p role="alert">{data.Error}</p>
+ }
+ if data.Editing != nil {
+  @IconUploadForm(*data.Editing, "")
+ } else if data.Details != nil {
+  @IconDetails(*data.Details, "")
+ } else {
+  @IconSearch(data)
+  @IconResults(data)
+ }
+}
+
+templ IconSearch(data IconPage) {
+ <div class="balemoh-icon-search" hx-get={iconSearchPath(data.Picker)} hx-trigger="input delay:300ms, combobox:change" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="#icon-picker-results:replace" hx-include="this" hx-params="q,source" hx-replace-url={strconv.FormatBool(!data.Picker)}>
+  @textinput.TextInput(textinput.Config{ID:iconSearchID(data.Picker),Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
+  {{ config := combobox.Config{ID:iconSearchID(data.Picker)+"-sources",Name:"source",Label:"Icon sources",Placeholder:"All sources",Mode:combobox.ModeMultiple,EnableClearAll:true,DisablePersistence:true,Selected:data.Sources,Source:combobox.Source{Static:[]combobox.Option{{Value:"goshtoso",Label:"Goshtoso"},{Value:"selfhst",Label:"selfh.st"},{Value:"uploads",Label:"Uploads"}}}} }}
+  @combobox.Combobox(config,config.InitialState())
+ </div>
+}
+
+func iconSearchID(picker bool)string{if picker{return "picker-search"};return "icon-search"}
+func iconSearchPath(picker bool)string{if picker{return "/icons/picker"};return "/icons"}
+
+templ IconPageActions(data IconPage) {
+ if data.Editing == nil && data.Details == nil {
+  @button.Button(button.WithType("button"),button.WithAttrs(templ.Attributes{"x-data":"{}","x-on:click":"$dispatch('drawer:open', {id:'iconUpload'})","aria-haspopup":"dialog","aria-controls":"icon-upload-body"})) {
+   Upload icon
+  }
+ }
+}
+
+templ IconUploadDrawerBody(i LibraryIcon, message string) {
+ <div class="balemoh-icon-upload-body">
+  if message != "" {
+   <p role="alert">{message}</p>
+  }
+  @IconUploadForm(i, "icon-upload-body")
+ </div>
+}
+
+templ IconUploadForm(i LibraryIcon, target string) {
+ <form class="balemoh-editor balemoh-upload-form" method="post" action={templ.SafeURL(iconSaveURL(i.ID))} enctype="multipart/form-data"
+  if target != "" {
+   hx-post="/icons/upload" hx-encoding="multipart/form-data" hx-target={"#"+target} hx-swap="innerHTML" hx-disabled-elt="find button[type='submit']" hx-sync="this:drop"
+  }
+ >
+  if i.ID != "" {
+   @LibraryImage(i)
+   <p>{iconUsageLabel(len(i.UsedBy))}</p>
+   if len(i.UsedBy)>0 {
+    <p>{strings.Join(i.UsedBy,", ")}. Replacing this image updates these services.</p>
+   }
+  }
+  <input type="hidden" name="digest" value={i.Digest}/>
+  @textinput.TextInput(textinput.Config{ID:"icon-name",Name:"name",Label:"Name",Value:i.Name,Required:true,MaxLength:200})
+  <div>
+   <label for="icon-tags-input">Tags</label>
+   @tagslist.TagsList(tagslist.Config{ID:"icon-tags",Name:"tags",Values:strings.FieldsFunc(i.Tags,func(r rune)bool{return r==','}),Placeholder:"Add a tag",InputAttrs:templ.Attributes{"maxlength":"1000"}})
+  </div>
+  @fileinput.FileInput(fileinput.Config{ID:"icon-upload",Name:"image",Label:"Image",Appearance:fileinput.AppearanceUpload,Required:i.ID=="",Accept:"image/png,image/jpeg,image/webp,image/svg+xml",HelperText:"PNG, JPEG, WebP, or passive SVG. Up to 2 MiB and 4096 pixels. Leave empty to keep the current image."})
+  @button.Button(button.WithType("submit"),button.WithLoadingText("Saving…")) {
+   Save icon
+  }
+  if target != "" {
+   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"x-on:click":iconUploadCloseEvent(target)})) {
+    Cancel
+   }
+  } else {
+   @link.Link("/icons") {
+    Back to Icons
+   }
+  }
+ </form>
+ if i.ID!="" && len(i.UsedBy)==0 {
+  <details class="balemoh-icon-upload">
+   <summary>Delete icon</summary>
+   <p>This removes the unused uploaded icon.</p>
+   <form method="post" action={templ.SafeURL("/icons/"+i.ID+"/delete")}>
+    <input type="hidden" name="digest" value={i.Digest}/>
+    @button.Button(button.WithType("submit"),button.WithTone(button.ToneDanger)) {
+     Delete icon
+    }
+   </form>
+  </details>
+ }
+}
+
+func iconSaveURL(id string)string{if id==""{return "/icons/upload"};return "/icons/"+id+"/edit"}
+
+templ IconResults(data IconPage) {
+ <div id="icon-picker-results" class="balemoh-icon-results">
+  if data.Error!="" {
+   <p role="alert">{data.Error}</p>
+  }
+  <p role="status">{fmt.Sprintf("%d icons",data.Total)}</p>
+  <div class="balemoh-icon-grid">
+   @IconBatch(data)
+  </div>
+ </div>
+}
+
+templ IconBatch(data IconPage) {
+ for _,i:=range data.Icons {
+  if data.Picker {
+   @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,true)})
+  } else {
+   @link.Link(IconDetailsURL(i.ID),link.WithRootClass("balemoh-icon-details-link"),link.WithAttrs(templ.Attributes{"aria-label":"Details for "+i.Name,"aria-haspopup":"dialog","aria-controls":"icon-details-body","hx-get":IconDetailsURL(i.ID),"hx-target":"#icon-details-body","hx-swap":"innerHTML","hx-sync":"#icon-details-body:replace","hx-push-url":"false"})) {
+    @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,false)})
+   }
+  }
+ }
+ if data.Page*48<data.Total {
+  <div id="icon-scroll-next" class="balemoh-icon-more" x-data="{failed:false}" x-on:htmx:response-error="failed=true" x-on:htmx:send-error="failed=true">
+   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithLoadingText("Loading icons…"),button.WithAttrs(templ.Attributes{"hx-get":IconPageURL(data,data.Page+1),"hx-trigger":"intersect once, click","hx-target":"#icon-scroll-next","hx-swap":"outerHTML","hx-sync":"#icon-picker-results:drop","hx-params":"none","hx-push-url":"false","hx-replace-url":"false","hx-disabled-elt":"this"})) {
+    Load more icons
+   }
+   <p role="alert" x-show="failed" x-cloak>Could not load more icons. Try again.</p>
+  </div>
+ }
+}
+
+templ AttributionLinks() {
+ <nav class="balemoh-footer-links" aria-label="Attributions and licenses">
+  @link.Link("https://selfh.st/icons/",link.WithTarget("_blank")) {
+   Icons by selfh.st
+  }
+  @link.Link("/ui/icon-library/selfhst/LICENSES/selfhst.txt",link.WithTarget("_blank")) {
+   Icon license
+  }
+ </nav>
+}
+
+templ IconTileBody(i LibraryIcon, picker bool) {
+ <div class="balemoh-icon-tile-content" data-icon-id={i.ID}>
+     if picker {
+      @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-icon-choice"),button.WithAttrs(templ.Attributes{"aria-label":"Choose "+i.Name,"data-icon-id":i.ID,"data-icon-url":i.URL,"data-icon-symbol":i.Symbol,"data-icon-sprite":i.SpriteURL,"x-on:click":"$dispatch('icon-selected', {id:$el.dataset.iconId, url:$el.dataset.iconUrl, symbol:$el.dataset.iconSymbol, sprite:$el.dataset.iconSprite})"})) {
+       @LibraryImage(i)
+       <span class="balemoh-icon-name">{i.Name}</span>
+      }
+     } else {
+      @LibraryImage(i)
+      <strong class="balemoh-icon-name">{i.Name}</strong>
+      <small>{i.Source}</small>
+     }
+
+ </div>
+}
+
+templ IconDetails(i LibraryIcon, message string) {
+ <div class="balemoh-editor balemoh-icon-details">
+  if message != "" {
+   <p role="alert">{message}</p>
+  }
+  if i.ID != "" {
+   @LibraryImage(i)
+   <h3>{i.Name}</h3>
+   <dl>
+    <dt>Source</dt><dd>{i.Source}</dd>
+    if i.Tags!="" {
+     <dt>Tags</dt><dd>{i.Tags}</dd>
+    }
+    if i.License!="" {
+     <dt>License</dt><dd>{i.License}</dd>
+    }
+   </dl>
+   if i.LightURL!="" || i.DarkURL!="" {
+    <div class="balemoh-icon-variants">
+     if i.LightURL!="" {
+      <figure><img class="balemoh-icon-variant-light" src={i.LightURL} width="64" height="64" alt={i.Name+" light variant"}/><figcaption>Light variant</figcaption></figure>
+     }
+     if i.DarkURL!="" {
+      <figure><img class="balemoh-icon-variant-dark" src={i.DarkURL} width="64" height="64" alt={i.Name+" dark variant"}/><figcaption>Dark variant</figcaption></figure>
+     }
+    </div>
+   }
+   if i.Source=="uploads" {
+    <p>{iconUsageLabel(len(i.UsedBy))}</p>
+    if len(i.UsedBy)>0 {
+     <p>{strings.Join(i.UsedBy,", ")}</p>
+    }
+    @link.Link(IconEditURL(i.ID)) {
+     Manage icon
+    }
+   }
+  }
+ </div>
+}

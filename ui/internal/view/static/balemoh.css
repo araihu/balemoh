@@ -52,10 +52,19 @@ body {
 	overflow-wrap: anywhere;
 }
 
+.balemoh-service-avatar { flex-shrink: 0; }
 .balemoh-service-card-icon { display: flex; }
-.balemoh-service-card-icon svg { width: 2rem; height: 2rem; }
+.balemoh-service-card-icon svg,
+.balemoh-service-card-icon .balemoh-library-image { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
 .balemoh-card-addresses { display: flex; align-items: center; gap: .5rem; }
 .balemoh-card-addresses > a { min-width: 0; overflow-wrap: anywhere; }
+
+/* Extend the primary link across homepage cards; keep address menus above it. */
+.balemoh-service-grid .balemoh-service-card { position: relative; }
+.balemoh-service-grid .balemoh-card-addresses > a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.balemoh-service-grid .balemoh-card-addresses > a:focus-visible::after { outline: 2px solid currentColor; outline-offset: 2px; }
+.balemoh-service-grid .balemoh-card-addresses > div { position: relative; z-index: 1; }
+
 
 @media (min-width: 640px) {
 	.balemoh-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -105,11 +114,6 @@ body {
 	flex-wrap: wrap;
 }
 
-.balemoh-service-name svg {
-	width: 1.25rem;
-	height: 1.25rem;
-	flex-shrink: 0;
-}
 
 .balemoh-icon-button {
 	width: 2.5rem;
@@ -164,3 +168,37 @@ body {
 .balemoh-editor { padding: 1rem; display: grid; gap: 1.25rem; text-align: left; }
 .balemoh-editor .balemoh-editor { padding: 0; }
 .balemoh-editor-actions { display: flex; align-items: center; gap: 1rem; }
+
+.balemoh-icon-search,.balemoh-icon-filters{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:1rem 0}
+.balemoh-icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem}
+.balemoh-icon-more{grid-column:1/-1;text-align:center}
+.balemoh-footer-links{display:flex;flex-wrap:wrap;gap:1rem}
+.balemoh-icon-tile{min-width:0;height:12rem;text-align:center;overflow-wrap:anywhere}
+.balemoh-icon-details-link{display:block;min-width:0;color:inherit;text-decoration:none}
+.balemoh-icon-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;line-height:1.25rem;min-height:2.5rem;max-width:100%}
+.balemoh-icon-details{overflow-wrap:anywhere}
+.balemoh-icon-details dt{font-weight:600;margin-top:.75rem}
+.balemoh-icon-variants{display:flex;flex-wrap:wrap;gap:1rem}
+.balemoh-icon-variants img{object-fit:contain;padding:.5rem;border-radius:.5rem}
+.balemoh-icon-variant-light{background:#1e293b}
+.balemoh-icon-variant-dark{background:#f8fafc}
+.balemoh-icon-tile-content{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.balemoh-icon-search>:first-child{flex:1;min-width:12rem}
+.balemoh-icon-results{display:grid;gap:.75rem}
+.balemoh-icon-choice{display:flex;flex-direction:column;gap:.5rem;align-items:center;width:100%;min-height:90px;white-space:normal}
+.balemoh-library-image{object-fit:contain;flex-shrink:0;max-width:100%}
+.balemoh-icon-upload{margin:1rem 0}.balemoh-icon-upload>summary{cursor:pointer}
+.balemoh-upload-form{max-width:36rem;margin:1rem 0}
+.balemoh-icon-upload-body{padding:1rem;min-width:0}
+.balemoh-editor{min-width:0}.balemoh-editor>*{min-width:0}
+
+.balemoh-search-input input { border: 0; border-radius: 0; background: transparent; padding: 1rem 1rem 1rem 2.5rem; font-size: 1.1rem; }
+.balemoh-search-input { border-bottom: 1px solid var(--color-outline); }
+.balemoh-search-results { list-style: none; padding: .5rem; margin: 0; max-height: 55dvh; overflow-y: auto; }
+.balemoh-search-results li > a, .balemoh-search-results li > span { display: flex; align-items: center; gap: .75rem; padding: .5rem; min-height: 3rem; border-radius: .375rem; }
+.balemoh-search-results a:focus, .balemoh-search-results a:hover { background: color-mix(in srgb, currentColor 10%, transparent); outline: none; }
+.balemoh-search-name { flex-shrink: 0; }
+.balemoh-search-description, .balemoh-search-type { font-size: .75rem; opacity: .55; }
+.balemoh-search-description { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.balemoh-search-type { margin-left: auto; }
+@media (max-width: 480px) { .balemoh-search-description, .balemoh-search-type { display: none; } .balemoh-search-name { flex-shrink: 1; overflow-wrap: anywhere; } }

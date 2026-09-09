@@ -49,15 +49,50 @@ func TestServiceEditorCardAndDiscoveredPlaceholder(t *testing.T) {
 	if err := ServiceEditor(service).Render(context.Background(), &html); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`placeholder="https://discovered.example/"`, `value="https://custom.example/"`, `aria-label="Homepage card preview"`, `balemoh-service-card`, `Team workspace`, `href="https://custom.example/"`, `x-bind:src="iconPreview"`} {
+	for _, want := range []string{`placeholder="https://discovered.example/"`, `value="https://custom.example/"`, `aria-label="Homepage card preview"`, `balemoh-service-card`, `Team workspace`, `href="https://custom.example/"`, `x-bind:src="iconURL"`} {
 		if !strings.Contains(html.String(), want) {
 			t.Errorf("editor missing %s", want)
 		}
+	}
+	if strings.Index(html.String(), "</form>") > strings.Index(html.String(), "<dialog") {
+		t.Fatal("picker controls must not belong to the service save form")
+	}
+	if !strings.Contains(html.String(), `<dialog id="service-icon-picker"`) {
+		t.Fatal("editor must mount its icon picker dialog")
 	}
 	if service.Address != "https://custom.example/" {
 		t.Fatal("placeholder changed address override")
 	}
 	if discoveredAddress(Service{}) != "" {
 		t.Fatal("undiscovered address should have empty placeholder")
+	}
+}
+
+func TestDiscoveredAddressScheme(t *testing.T) {
+	for _, tc := range []struct{ url, want string }{
+		{"//app.example/", "https://app.example/"},
+		{"http://app.example/", "http://app.example/"},
+		{"https://app.example/", "https://app.example/"},
+		{"", ""},
+	} {
+		service := Service{Address: "https://custom.example/", Endpoints: []Endpoint{{URL: tc.url}}}
+		if got := discoveredAddress(service); got != tc.want {
+			t.Errorf("discoveredAddress(%q) = %q, want %q", tc.url, got, tc.want)
+		}
+	}
+}
+
+func TestHomepageSearchIsScopedToServices(t *testing.T) {
+	for _, services := range [][]Service{nil, {{DisplayName: `Team "A"`, Description: "Workspace", Endpoints: []Endpoint{{URL: "https://app.example/"}}}}} {
+		var html bytes.Buffer
+		if err := HomepageContent(PageData{Services: services}).Render(context.Background(), &html); err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(html.String(), `id="home-search"`) != (len(services) > 0) {
+			t.Fatal("search requires service cards")
+		}
+		if len(services) > 0 && (!strings.Contains(html.String(), "app.example") || !strings.Contains(html.String(), `id="home-search-modal"`) || !strings.Contains(html.String(), `x-on:keydown.arrow-down.prevent`)) {
+			t.Fatal("missing search data or shortcut")
+		}
 	}
 }

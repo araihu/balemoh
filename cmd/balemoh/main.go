@@ -94,6 +94,7 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 		catalogService,
 		sourceTokens,
 	)
+	handler = handler.WithIcons(sqlite.NewIconStore(db))
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, nil
 }

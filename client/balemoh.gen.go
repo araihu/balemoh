@@ -76,6 +76,17 @@ type HealthResponse struct {
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
 
+// IconUpload defines model for IconUpload.
+type IconUpload struct {
+	// Data Base64 image bytes. Omit to keep existing image.
+	Data *[]byte `json:"data,omitempty"`
+
+	// Digest Existing image revision required for updates.
+	Digest *string `json:"digest,omitempty"`
+	Name   string  `json:"name"`
+	Tags   string  `json:"tags"`
+}
+
 // ResourceObservation defines model for ResourceObservation.
 type ResourceObservation struct {
 	Endpoints []ServiceEndpoint `json:"endpoints"`
@@ -97,7 +108,10 @@ type ServiceCandidate struct {
 	Description string            `json:"description"`
 	DisplayName string            `json:"displayName"`
 	Endpoints   []ServiceEndpoint `json:"endpoints"`
-	Id          string            `json:"id"`
+
+	// Icon Local icon reference; empty uses discovery.
+	Icon *string `json:"icon,omitempty"`
+	Id   string  `json:"id"`
 
 	// Images Container images observed for the candidate, when available.
 	Images     []string          `json:"images"`
@@ -118,6 +132,9 @@ type ServiceEdit struct {
 	Address     string `json:"address"`
 	Description string `json:"description"`
 	DisplayName string `json:"displayName"`
+
+	// Icon Icon reference. Empty resets to discovery; omitted preserves selection.
+	Icon *string `json:"icon,omitempty"`
 }
 
 // ServiceEndpoint defines model for ServiceEndpoint.
@@ -146,11 +163,32 @@ type SourceRef struct {
 	Kind string `json:"kind"`
 }
 
+// UploadedIcon defines model for UploadedIcon.
+type UploadedIcon struct {
+	Digest string   `json:"digest"`
+	Id     string   `json:"id"`
+	Mime   string   `json:"mime"`
+	Name   string   `json:"name"`
+	Tags   string   `json:"tags"`
+	UsedBy []string `json:"usedBy"`
+}
+
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// DeleteIconParams defines parameters for DeleteIcon.
+type DeleteIconParams struct {
+	Digest string `form:"digest" json:"digest"`
+}
+
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
+
+// UploadIconJSONRequestBody defines body for UploadIcon for application/json ContentType.
+type UploadIconJSONRequestBody = IconUpload
+
+// UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
+type UpdateIconJSONRequestBody = IconUpload
 
 // EditStagingServiceJSONRequestBody defines body for EditStagingService for application/json ContentType.
 type EditStagingServiceJSONRequestBody = ServiceEdit
@@ -239,6 +277,25 @@ type ClientInterface interface {
 	// GetHomepageServices request
 	GetHomepageServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListIcons request
+	ListIcons(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UploadIconWithBody request with any body
+	UploadIconWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UploadIcon(ctx context.Context, body UploadIconJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteIcon request
+	DeleteIcon(ctx context.Context, iconID string, params *DeleteIconParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateIconWithBody request with any body
+	UpdateIconWithBody(ctx context.Context, iconID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateIcon(ctx context.Context, iconID string, body UpdateIconJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetIconImage request
+	GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetStagingServices request
 	GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -295,6 +352,90 @@ func (c *Client) ImportFederationSnapshot(ctx context.Context, body ImportFedera
 
 func (c *Client) GetHomepageServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetHomepageServicesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListIcons(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListIconsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UploadIconWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUploadIconRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UploadIcon(ctx context.Context, body UploadIconJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUploadIconRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteIcon(ctx context.Context, iconID string, params *DeleteIconParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteIconRequest(c.Server, iconID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateIconWithBody(ctx context.Context, iconID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateIconRequestWithBody(c.Server, iconID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateIcon(ctx context.Context, iconID string, body UpdateIconJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateIconRequest(c.Server, iconID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetIconImageRequest(c.Server, iconID)
 	if err != nil {
 		return nil, err
 	}
@@ -454,6 +595,211 @@ func NewGetHomepageServicesRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/homepage/services")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListIconsRequest generates requests for ListIcons
+func NewListIconsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/icons")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUploadIconRequest calls the generic UploadIcon builder with application/json body
+func NewUploadIconRequest(server string, body UploadIconJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUploadIconRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewUploadIconRequestWithBody generates requests for UploadIcon with any type of body
+func NewUploadIconRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/icons")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteIconRequest generates requests for DeleteIcon
+func NewDeleteIconRequest(server string, iconID string, params *DeleteIconParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "iconID", iconID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/icons/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "digest", params.Digest, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateIconRequest calls the generic UpdateIcon builder with application/json body
+func NewUpdateIconRequest(server string, iconID string, body UpdateIconJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateIconRequestWithBody(server, iconID, "application/json", bodyReader)
+}
+
+// NewUpdateIconRequestWithBody generates requests for UpdateIcon with any type of body
+func NewUpdateIconRequestWithBody(server string, iconID string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "iconID", iconID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/icons/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetIconImageRequest generates requests for GetIconImage
+func NewGetIconImageRequest(server string, iconID string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "iconID", iconID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/icons/%s/image", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -694,6 +1040,25 @@ type ClientWithResponsesInterface interface {
 	// GetHomepageServicesWithResponse request
 	GetHomepageServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHomepageServicesResponse, error)
 
+	// ListIconsWithResponse request
+	ListIconsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListIconsResponse, error)
+
+	// UploadIconWithBodyWithResponse request with any body
+	UploadIconWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadIconResponse, error)
+
+	UploadIconWithResponse(ctx context.Context, body UploadIconJSONRequestBody, reqEditors ...RequestEditorFn) (*UploadIconResponse, error)
+
+	// DeleteIconWithResponse request
+	DeleteIconWithResponse(ctx context.Context, iconID string, params *DeleteIconParams, reqEditors ...RequestEditorFn) (*DeleteIconResponse, error)
+
+	// UpdateIconWithBodyWithResponse request with any body
+	UpdateIconWithBodyWithResponse(ctx context.Context, iconID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateIconResponse, error)
+
+	UpdateIconWithResponse(ctx context.Context, iconID string, body UpdateIconJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateIconResponse, error)
+
+	// GetIconImageWithResponse request
+	GetIconImageWithResponse(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*GetIconImageResponse, error)
+
 	// GetStagingServicesWithResponse request
 	GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error)
 
@@ -804,6 +1169,154 @@ func (r GetHomepageServicesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetHomepageServicesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListIconsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]UploadedIcon
+}
+
+// Status returns HTTPResponse.Status
+func (r ListIconsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListIconsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListIconsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UploadIconResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *UploadedIcon
+}
+
+// Status returns HTTPResponse.Status
+func (r UploadIconResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UploadIconResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UploadIconResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteIconResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteIconResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteIconResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteIconResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateIconResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *UploadedIcon
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateIconResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateIconResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateIconResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetIconImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetIconImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetIconImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetIconImageResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -1000,6 +1513,67 @@ func (c *ClientWithResponses) GetHomepageServicesWithResponse(ctx context.Contex
 	return ParseGetHomepageServicesResponse(rsp)
 }
 
+// ListIconsWithResponse request returning *ListIconsResponse
+func (c *ClientWithResponses) ListIconsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListIconsResponse, error) {
+	rsp, err := c.ListIcons(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListIconsResponse(rsp)
+}
+
+// UploadIconWithBodyWithResponse request with arbitrary body returning *UploadIconResponse
+func (c *ClientWithResponses) UploadIconWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadIconResponse, error) {
+	rsp, err := c.UploadIconWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUploadIconResponse(rsp)
+}
+
+func (c *ClientWithResponses) UploadIconWithResponse(ctx context.Context, body UploadIconJSONRequestBody, reqEditors ...RequestEditorFn) (*UploadIconResponse, error) {
+	rsp, err := c.UploadIcon(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUploadIconResponse(rsp)
+}
+
+// DeleteIconWithResponse request returning *DeleteIconResponse
+func (c *ClientWithResponses) DeleteIconWithResponse(ctx context.Context, iconID string, params *DeleteIconParams, reqEditors ...RequestEditorFn) (*DeleteIconResponse, error) {
+	rsp, err := c.DeleteIcon(ctx, iconID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteIconResponse(rsp)
+}
+
+// UpdateIconWithBodyWithResponse request with arbitrary body returning *UpdateIconResponse
+func (c *ClientWithResponses) UpdateIconWithBodyWithResponse(ctx context.Context, iconID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateIconResponse, error) {
+	rsp, err := c.UpdateIconWithBody(ctx, iconID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateIconResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateIconWithResponse(ctx context.Context, iconID string, body UpdateIconJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateIconResponse, error) {
+	rsp, err := c.UpdateIcon(ctx, iconID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateIconResponse(rsp)
+}
+
+// GetIconImageWithResponse request returning *GetIconImageResponse
+func (c *ClientWithResponses) GetIconImageWithResponse(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*GetIconImageResponse, error) {
+	rsp, err := c.GetIconImage(ctx, iconID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetIconImageResponse(rsp)
+}
+
 // GetStagingServicesWithResponse request returning *GetStagingServicesResponse
 func (c *ClientWithResponses) GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error) {
 	rsp, err := c.GetStagingServices(ctx, reqEditors...)
@@ -1182,6 +1756,116 @@ func ParseGetHomepageServicesResponse(rsp *http.Response) (*GetHomepageServicesR
 		}
 		response.JSON503 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseListIconsResponse parses an HTTP response from a ListIconsWithResponse call
+func ParseListIconsResponse(rsp *http.Response) (*ListIconsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListIconsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []UploadedIcon
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUploadIconResponse parses an HTTP response from a UploadIconWithResponse call
+func ParseUploadIconResponse(rsp *http.Response) (*UploadIconResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UploadIconResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest UploadedIcon
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteIconResponse parses an HTTP response from a DeleteIconWithResponse call
+func ParseDeleteIconResponse(rsp *http.Response) (*DeleteIconResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteIconResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseUpdateIconResponse parses an HTTP response from a UpdateIconWithResponse call
+func ParseUpdateIconResponse(rsp *http.Response) (*UpdateIconResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateIconResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UploadedIcon
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetIconImageResponse parses an HTTP response from a GetIconImageWithResponse call
+func ParseGetIconImageResponse(rsp *http.Response) (*GetIconImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetIconImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

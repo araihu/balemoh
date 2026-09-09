@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/araihu/balemoh/client/iconassets"
 	"strings"
 	"time"
 
@@ -363,6 +364,7 @@ func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queri
 		candidate.DisplayName = edit.DisplayName
 		candidate.Description = edit.Description
 		candidate.Address = edit.Address
+		candidate.Icon = edit.IconRef
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return catalog.Candidate{}, fmt.Errorf("read service edit: %w", err)
 	}
@@ -414,6 +416,18 @@ func (s *CatalogStore) SaveEdit(ctx context.Context, id string, edit catalog.Edi
 	}
 	if err := q.SaveServiceEdit(ctx, sqlc.SaveServiceEditParams{ServiceID: id, DisplayName: edit.DisplayName, Description: edit.Description, Address: edit.Address}); err != nil {
 		return err
+	}
+	if edit.Icon != nil {
+		ref := *edit.Icon
+		if ref != "" && !iconassets.Has(ref) {
+			var exists int
+			if err := tx.QueryRowContext(ctx, "SELECT 1 FROM uploaded_icons WHERE id = ?", ref).Scan(&exists); err != nil {
+				return catalog.ErrInvalidEdit
+			}
+		}
+		if _, err := tx.ExecContext(ctx, "UPDATE service_edits SET icon_ref = ? WHERE service_id = ?", ref, id); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

@@ -2,7 +2,9 @@ package view
 
 import (
 	"github.com/araihu/goshtoso/components/button"
-	"github.com/araihu/goshtoso/components/fileinput"
+ "github.com/araihu/goshtoso/components/avatar"
+ "github.com/araihu/goshtoso/components/modal"
+
 	"github.com/araihu/goshtoso/components/form"
 	"github.com/araihu/goshtoso/components/link"
 	"github.com/araihu/goshtoso/components/table"
@@ -24,12 +26,15 @@ templ ServiceEditor(service Service) {
 		method="post"
 		action={ templ.SafeURL(EditURL(service.ID)) }
 		class="balemoh-editor"
+  data-icon-ref={service.IconRef} data-icon-url={service.Icon.URL} data-icon-symbol={service.Icon.Symbol} data-icon-sprite={service.Icon.SpriteURL}
+  x-data="{iconRef:$el.dataset.iconRef, iconURL:$el.dataset.iconUrl, iconSymbol:$el.dataset.iconSymbol, iconSprite:$el.dataset.iconSprite}"
+  x-on:icon-selected.window="iconRef=$event.detail.id; iconURL=$event.detail.url; iconSymbol=$event.detail.symbol; iconSprite=$event.detail.sprite; $dispatch('modal:close', {id:'service-icon-picker'})"
 		if !service.Standalone {
 			hx-post={ EditURL(service.ID) }
 			hx-target="#service-editor-body"
 			hx-swap="innerHTML"
 			hx-disabled-elt="find button[type='submit']"
-			hx-params="displayName,description,address"
+			hx-params="displayName,description,address,icon"
 		}
 	>
 		if service.EditError != "" {
@@ -38,15 +43,20 @@ templ ServiceEditor(service Service) {
 		@form.FieldGroup(form.FieldGroupConfig{Label: "Name", Required: true, Input: &textinput.Config{ID: "edit-name", Name: "displayName", Value: service.DisplayName, MaxLength: 200}})
 		@form.FieldGroup(form.FieldGroupConfig{Label: "Description", Textarea: &textarea.Config{ID: "edit-description", Name: "description", Value: service.Description, Rows: 3, InputAttrs: templ.Attributes{"maxlength": "2000"}}})
 		@form.FieldGroup(form.FieldGroupConfig{Label: "Homepage address", Hints: []string{"Leave blank to use discovered addresses."}, Input: &textinput.Config{ID: "edit-address", Name: "address", Type: textinput.TypeURL, Value: service.Address, Placeholder: discoveredAddress(service), MaxLength: 2048}})
-		<div x-data="{iconPreview: '', destroy() { if (this.iconPreview) URL.revokeObjectURL(this.iconPreview) }}" class="balemoh-editor">
-			<div aria-label="Homepage card preview">
-				@ServiceCard(service, ServiceIconPreview(service))
-			</div>
-			@fileinput.FileInput(fileinput.Config{Appearance: fileinput.AppearanceUpload, ID: "edit-icon-preview", Label: "Icon preview", Accept: "image/*", HelperText: "Preview only. Icon changes are not saved yet.", InputAttrs: templ.Attributes{"x-ref": "iconFile", "x-on:change": "if (iconPreview) URL.revokeObjectURL(iconPreview); iconPreview = $event.target.files[0] ? URL.createObjectURL($event.target.files[0]) : ''"}})
-			@button.Button(button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithSize(button.SizeSmall), button.WithAttrs(templ.Attributes{"x-on:click": "if (iconPreview) URL.revokeObjectURL(iconPreview); iconPreview = ''; $refs.iconFile.value = ''"})) {
-				Reset to discovery default
-			}
-		</div>
+
+  <input type="hidden" name="icon" x-bind:value="iconRef" value={service.IconRef}/>
+  <div class="balemoh-editor">
+   <div aria-label="Homepage card preview">
+ @ServiceCard(service, ServiceIconPreview(service))
+ </div>
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"$dispatch('modal:open', {id:'service-icon-picker'})","aria-haspopup":"dialog","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-params":"q,source","hx-sync":"#icon-picker-results:replace"})) {
+ Choose icon
+ }
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:open', {id:'service-icon-upload'})","aria-haspopup":"dialog","aria-controls":"service-icon-upload"})) { Upload icon }
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"iconRef=''; iconURL=''; iconSymbol=''; iconSprite=''"})) {
+ Reset to discovery default
+ }
+  </div>
 		<div class="balemoh-editor-actions">
 			@button.Button(button.WithType("submit"), button.WithLoadingText("Saving…")) {
 				Save changes
@@ -56,19 +66,52 @@ templ ServiceEditor(service Service) {
 			}
 		</div>
 	</form>
+   @modal.Dialog(modal.DialogConfig{ID:"service-icon-picker",Title:"Choose service icon",FullscreenMobile:true,Content:ServiceIconPicker()})
+   @modal.Dialog(modal.DialogConfig{ID:"service-icon-upload",Title:"Upload service icon",FullscreenMobile:true,Content:ServiceIconUpload()})
+}
+
+templ ServiceIconPicker() {
+ <div class="balemoh-editor">
+  @IconSearch(IconPage{Picker:true})
+  <div id="icon-picker-results"></div>
+  @link.Link("/icons",link.WithTarget("_blank")) { Upload or manage icons }
+ </div>
 }
 
 templ ServiceIconPreview(service Service) {
-	<span class="balemoh-service-card-icon">
-		<span x-show="!iconPreview">
-			@ServiceCardIcon(service)
-		</span>
-		<template x-if="iconPreview"><img x-bind:src="iconPreview" alt="Selected icon preview" width="32" height="32"/></template>
-	</span>
+ @avatar.Avatar(avatar.Config{Size: avatar.SizeXS, Shape: avatar.ShapeSquare, Icon: ServicePreviewGlyph(service), RootClass: "balemoh-service-avatar"})
+}
+templ ServicePreviewGlyph(service Service) {
+ <span class="balemoh-service-card-icon">
+  <span x-show="!iconRef">
+ @ServiceDefaultIcon(service)
+ </span>
+  <template x-if="iconRef && iconURL"><img class="balemoh-library-image" x-bind:src="iconURL" alt="Selected icon preview" width="32" height="32"/></template>
+  <template x-if="iconRef && iconSymbol"><svg width="32" height="32" aria-hidden="true"><use x-bind:href="iconSprite+'#'+iconSymbol"></use></svg></template>
+ </span>
+}
+templ ServiceDefaultIcon(service Service) {
+ @ServiceGlyph(Service{Icon: service.DefaultIcon, Source:service.Source, Resource:service.Resource})
 }
 
 templ EditedRow(service Service) {
 	<template>
 		@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, editedTableRow(service))
 	</template>
+}
+
+templ ServiceIconUpload() {
+ <div id="service-icon-upload-body">
+  @ServiceIconUploadBody(LibraryIcon{}, "")
+ </div>
+}
+templ ServiceIconUploadBody(i LibraryIcon, message string) {
+ if message != "" {
+  <p role="alert">{message}</p>
+ }
+ @IconUploadForm(i, "service-icon-upload-body")
+}
+func iconUploadCloseEvent(target string) string {
+ if target == "service-icon-upload-body" { return "$dispatch('modal:close', {id:'service-icon-upload'})" }
+ return "$dispatch('drawer:close', {id:'iconUpload'})"
 }

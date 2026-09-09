@@ -7,6 +7,7 @@ package generated
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -73,6 +74,17 @@ type HealthResponse struct {
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
 
+// IconUpload defines model for IconUpload.
+type IconUpload struct {
+	// Data Base64 image bytes. Omit to keep existing image.
+	Data *[]byte `json:"data,omitempty"`
+
+	// Digest Existing image revision required for updates.
+	Digest *string `json:"digest,omitempty"`
+	Name   string  `json:"name"`
+	Tags   string  `json:"tags"`
+}
+
 // ResourceObservation defines model for ResourceObservation.
 type ResourceObservation struct {
 	Endpoints []ServiceEndpoint `json:"endpoints"`
@@ -94,7 +106,10 @@ type ServiceCandidate struct {
 	Description string            `json:"description"`
 	DisplayName string            `json:"displayName"`
 	Endpoints   []ServiceEndpoint `json:"endpoints"`
-	Id          string            `json:"id"`
+
+	// Icon Local icon reference; empty uses discovery.
+	Icon *string `json:"icon,omitempty"`
+	Id   string  `json:"id"`
 
 	// Images Container images observed for the candidate, when available.
 	Images     []string          `json:"images"`
@@ -115,6 +130,9 @@ type ServiceEdit struct {
 	Address     string `json:"address"`
 	Description string `json:"description"`
 	DisplayName string `json:"displayName"`
+
+	// Icon Icon reference. Empty resets to discovery; omitted preserves selection.
+	Icon *string `json:"icon,omitempty"`
 }
 
 // ServiceEndpoint defines model for ServiceEndpoint.
@@ -143,11 +161,32 @@ type SourceRef struct {
 	Kind string `json:"kind"`
 }
 
+// UploadedIcon defines model for UploadedIcon.
+type UploadedIcon struct {
+	Digest string   `json:"digest"`
+	Id     string   `json:"id"`
+	Mime   string   `json:"mime"`
+	Name   string   `json:"name"`
+	Tags   string   `json:"tags"`
+	UsedBy []string `json:"usedBy"`
+}
+
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// DeleteIconParams defines parameters for DeleteIcon.
+type DeleteIconParams struct {
+	Digest string `form:"digest" json:"digest"`
+}
+
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
+
+// UploadIconJSONRequestBody defines body for UploadIcon for application/json ContentType.
+type UploadIconJSONRequestBody = IconUpload
+
+// UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
+type UpdateIconJSONRequestBody = IconUpload
 
 // EditStagingServiceJSONRequestBody defines body for EditStagingService for application/json ContentType.
 type EditStagingServiceJSONRequestBody = ServiceEdit
@@ -163,6 +202,21 @@ type ServerInterface interface {
 
 	// (GET /api/v1/homepage/services)
 	GetHomepageServices(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/v1/icons)
+	ListIcons(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/v1/icons)
+	UploadIcon(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/v1/icons/{iconID})
+	DeleteIcon(w http.ResponseWriter, r *http.Request, iconID string, params DeleteIconParams)
+
+	// (PUT /api/v1/icons/{iconID})
+	UpdateIcon(w http.ResponseWriter, r *http.Request, iconID string)
+
+	// (GET /api/v1/icons/{iconID}/image)
+	GetIconImage(w http.ResponseWriter, r *http.Request, iconID string)
 
 	// (GET /api/v1/staging/services)
 	GetStagingServices(w http.ResponseWriter, r *http.Request)
@@ -228,6 +282,128 @@ func (siw *ServerInterfaceWrapper) GetHomepageServices(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHomepageServices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListIcons operation middleware
+func (siw *ServerInterfaceWrapper) ListIcons(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListIcons(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadIcon operation middleware
+func (siw *ServerInterfaceWrapper) UploadIcon(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadIcon(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteIcon operation middleware
+func (siw *ServerInterfaceWrapper) DeleteIcon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "iconID" -------------
+	var iconID string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "iconID", r.PathValue("iconID"), &iconID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "iconID", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteIconParams
+
+	// ------------- Required query parameter "digest" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "digest", r.URL.Query(), &params.Digest, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "digest"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "digest", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteIcon(w, r, iconID, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateIcon operation middleware
+func (siw *ServerInterfaceWrapper) UpdateIcon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "iconID" -------------
+	var iconID string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "iconID", r.PathValue("iconID"), &iconID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "iconID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateIcon(w, r, iconID)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetIconImage operation middleware
+func (siw *ServerInterfaceWrapper) GetIconImage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "iconID" -------------
+	var iconID string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "iconID", r.PathValue("iconID"), &iconID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "iconID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetIconImage(w, r, iconID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -466,6 +642,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/discovery/sync", wrapper.SyncDiscovery)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/snapshots", wrapper.ImportFederationSnapshot)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/homepage/services", wrapper.GetHomepageServices)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons", wrapper.ListIcons)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/icons", wrapper.UploadIcon)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.DeleteIcon)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.UpdateIcon)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{iconID}/image", wrapper.GetIconImage)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}", wrapper.EditStagingService)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.UnpinStagingService)
