@@ -59,7 +59,7 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 	data.Page = min(data.Page, last)
 	start := (data.Page - 1) * 48
 	data.Icons = filtered[start:min(start+48, len(filtered))]
-	if data.Picker {
+	if data.Picker || (r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-picker-results") {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_ = view.IconResults(data).Render(r.Context(), w)

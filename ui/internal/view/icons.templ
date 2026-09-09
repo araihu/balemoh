@@ -22,7 +22,7 @@ templ LibraryImage(i LibraryIcon) {
 
 templ IconsContent(data IconPage) {
  @pageheader.PageHeader(pageheader.Config{Title:"Icons"})
- if data.Error != "" {
+ if data.Editing != nil && data.Error != "" {
   <p role="alert">{data.Error}</p>
  }
  if data.Editing != nil {
@@ -32,12 +32,9 @@ templ IconsContent(data IconPage) {
    <summary>Upload icon</summary>
    @IconUploadForm(LibraryIcon{})
   </details>
-  <form action="/icons" method="get" class="balemoh-icon-search">
+  <form action="/icons" method="get" class="balemoh-icon-search" hx-get="/icons" hx-trigger="input changed delay:300ms from:#icon-search, submit" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="this:replace" hx-replace-url="true">
    @textinput.TextInput(textinput.Config{ID:"icon-search",Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
    <input type="hidden" name="source" value={data.Source}/>
-   @button.Button(button.WithType("submit"),button.WithSize(button.SizeSmall)) {
-    Search
-   }
   </form>
   @IconResults(data)
  }
@@ -94,7 +91,7 @@ templ IconResults(data IconPage) {
     }
    }
   </nav>
-  if data.Picker&&data.Error!="" {
+  if data.Error!="" {
    <p role="alert">{data.Error}</p>
   }
   <p role="status">{fmt.Sprintf("%d icons",data.Total)}</p>
