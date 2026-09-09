@@ -12,6 +12,7 @@ import (
  "github.com/araihu/goshtoso/components/link"
  "github.com/araihu/goshtoso/components/pageheader"
  "github.com/araihu/goshtoso/components/textinput"
+ "github.com/araihu/goshtoso/components/tagslist"
 )
 
 templ LibraryImage(i LibraryIcon) {
@@ -80,7 +81,10 @@ templ IconUploadForm(i LibraryIcon, target string) {
   }
   <input type="hidden" name="digest" value={i.Digest}/>
   @textinput.TextInput(textinput.Config{ID:"icon-name",Name:"name",Label:"Name",Value:i.Name,Required:true,MaxLength:200})
-  @textinput.TextInput(textinput.Config{ID:"icon-tags",Name:"tags",Label:"Tags",Value:i.Tags,MaxLength:1000,Placeholder:"Comma-separated tags"})
+  <div>
+   <label for="icon-tags-input">Tags</label>
+   @tagslist.TagsList(tagslist.Config{ID:"icon-tags",Name:"tags",Values:strings.FieldsFunc(i.Tags,func(r rune)bool{return r==','}),Placeholder:"Add a tag",InputAttrs:templ.Attributes{"maxlength":"1000"}})
+  </div>
   @fileinput.FileInput(fileinput.Config{ID:"icon-upload",Name:"image",Label:"Image",Appearance:fileinput.AppearanceUpload,Required:i.ID=="",Accept:"image/png,image/jpeg,image/webp,image/svg+xml",HelperText:"PNG, JPEG, WebP, or passive SVG. Up to 2 MiB and 4096 pixels. Leave empty to keep the current image."})
   @button.Button(button.WithType("submit"),button.WithLoadingText("Saving…")) {
    Save icon

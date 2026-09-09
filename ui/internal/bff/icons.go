@@ -149,6 +149,13 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
+	var tagValues []string
+	for index := 0; index < len(r.PostForm); index++ {
+		if value := strings.TrimSpace(r.PostForm.Get(fmt.Sprintf("tags[%d]", index))); value != "" {
+			tagValues = append(tagValues, value)
+		}
+	}
+	tags := strings.Join(tagValues, ",")
 	var data []byte
 	file, _, err := r.FormFile("image")
 	if err == nil {
@@ -158,12 +165,12 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 	if err != nil {
-		s.iconUploadError(w, r, view.LibraryIcon{Name: r.FormValue("name"), Tags: r.FormValue("tags")}, "Unable to read image. Reselect your file to retry.")
+		s.iconUploadError(w, r, view.LibraryIcon{Name: r.FormValue("name"), Tags: tags}, "Unable to read image. Reselect your file to retry.")
 		return
 	}
 	id := r.PathValue("iconID")
 	revision := r.FormValue("digest")
-	upload := api.IconUpload{Name: r.FormValue("name"), Tags: r.FormValue("tags"), Digest: &revision}
+	upload := api.IconUpload{Name: r.FormValue("name"), Tags: tags, Digest: &revision}
 	if len(data) > 0 {
 		upload.Data = &data
 	}

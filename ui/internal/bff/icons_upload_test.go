@@ -21,7 +21,7 @@ func TestIconUploadErrorKeepsDrawerDraft(t *testing.T) {
 	r.Header.Set("HX-Target", "icon-upload-body")
 	w := httptest.NewRecorder()
 	(&server{}).iconUploadError(w, r, view.LibraryIcon{Name: "My icon", Tags: "custom,home"}, "Reselect your file to retry.")
-	for _, want := range []string{`value="My icon"`, `value="custom,home"`, `role="alert"`, "Reselect your file to retry.", `hx-post="/icons/upload"`, `hx-encoding="multipart/form-data"`, "Cancel"} {
+	for _, want := range []string{`value="My icon"`, `custom`, `home`, `data-tagslist`, `role="alert"`, "Reselect your file to retry.", `hx-post="/icons/upload"`, `hx-encoding="multipart/form-data"`, "Cancel"} {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Errorf("missing %q in recovery fragment", want)
 		}
@@ -40,6 +40,9 @@ func (c modalUploadCatalog) SaveIcon(_ context.Context, _ string, upload api.Ico
 	if c.failure {
 		return api.UploadedIcon{}, errors.New("invalid image")
 	}
+	if upload.Tags != "home,custom" {
+		panic("tags not serialized")
+	}
 	return api.UploadedIcon{Id: "upload:test", Name: upload.Name}, nil
 }
 func TestServiceIconUploadModal(t *testing.T) {
@@ -47,7 +50,8 @@ func TestServiceIconUploadModal(t *testing.T) {
 		var body bytes.Buffer
 		form := multipart.NewWriter(&body)
 		_ = form.WriteField("name", "My draft icon")
-		_ = form.WriteField("tags", "home,custom")
+		_ = form.WriteField("tags[0]", "home")
+		_ = form.WriteField("tags[1]", "custom")
 		_ = form.Close()
 		r := httptest.NewRequest("POST", "/icons/upload", &body)
 		r.Header.Set("Content-Type", form.FormDataContentType())
@@ -62,7 +66,7 @@ func TestServiceIconUploadModal(t *testing.T) {
 			t.Fatal("modal form lost target")
 		}
 		if failure {
-			for _, want := range []string{`value="My draft icon"`, `value="home,custom"`, `role="alert"`} {
+			for _, want := range []string{`value="My draft icon"`, `home`, `custom`, `data-tagslist`, `role="alert"`} {
 				if !strings.Contains(w.Body.String(), want) {
 					t.Errorf("missing %s", want)
 				}
