@@ -62,9 +62,21 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 	}
 	data.Total = len(filtered)
 	last := max(1, (data.Total+47)/48)
+	batch := r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-scroll-next"
+	if batch && data.Page > last {
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	data.Page = min(data.Page, last)
 	start := (data.Page - 1) * 48
 	data.Icons = filtered[start:min(start+48, len(filtered))]
+	if batch {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = view.IconBatch(data).Render(r.Context(), w)
+		return
+	}
 	if data.Picker || (r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-picker-results") {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")

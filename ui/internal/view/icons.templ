@@ -36,7 +36,7 @@ templ IconsContent(data IconPage) {
 }
 
 templ IconSearch(data IconPage) {
- <div class="balemoh-icon-search" hx-get={iconSearchPath(data.Picker)} hx-trigger="input delay:300ms, combobox:change" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="this:replace" hx-include="this" hx-params="q,source" hx-replace-url={strconv.FormatBool(!data.Picker)}>
+ <div class="balemoh-icon-search" hx-get={iconSearchPath(data.Picker)} hx-trigger="input delay:300ms, combobox:change" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="#icon-picker-results:replace" hx-include="this" hx-params="q,source" hx-replace-url={strconv.FormatBool(!data.Picker)}>
   @textinput.TextInput(textinput.Config{ID:iconSearchID(data.Picker),Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
   {{ config := combobox.Config{ID:iconSearchID(data.Picker)+"-sources",Name:"source",Label:"Icon sources",Placeholder:"All sources",Mode:combobox.ModeMultiple,EnableClearAll:true,DisablePersistence:true,Selected:data.Sources,Source:combobox.Source{Static:[]combobox.Option{{Value:"goshtoso",Label:"Goshtoso"},{Value:"selfhst",Label:"selfh.st"},{Value:"uploads",Label:"Uploads"}}}} }}
   @combobox.Combobox(config,config.InitialState())
@@ -116,37 +116,38 @@ templ IconResults(data IconPage) {
   }
   <p role="status">{fmt.Sprintf("%d icons",data.Total)}</p>
   <div class="balemoh-icon-grid">
-   for _,i:=range data.Icons {
-    @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,data.Picker)})
-   }
+   @IconBatch(data)
   </div>
-  <nav aria-label="Icon pages" class="balemoh-icon-filters">
-   if data.Page>1 {
-    @link.Link(IconPageURL(data,data.Page-1),link.WithAttrs(iconNavigationAttrs(data.Picker))) {
-     Previous
-    }
-   }
-   <span>{fmt.Sprintf("Page %d of %d",data.Page,max(1,(data.Total+47)/48))}</span>
-   if data.Page*48<data.Total {
-    @link.Link(IconPageURL(data,data.Page+1),link.WithAttrs(iconNavigationAttrs(data.Picker))) {
-     Next
-    }
-   }
-  </nav>
-  if !data.Picker {
-   @link.Link("https://selfh.st/icons/",link.WithTarget("_blank")) {
-    Icons by selfh.st
-   }
-   @link.Link("/ui/icon-library/selfhst/LICENSES/selfhst.txt",link.WithTarget("_blank")) {
-    License
-   }
-  }
  </div>
 }
-func iconNavigationAttrs(picker bool)templ.Attributes{if picker{return templ.Attributes{"hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-boost":"true", "hx-push-url":"false"}};return nil}
+
+templ IconBatch(data IconPage) {
+ for _,i:=range data.Icons {
+  @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,data.Picker)})
+ }
+ if data.Page*48<data.Total {
+  <div id="icon-scroll-next" class="balemoh-icon-more" x-data="{failed:false}" x-on:htmx:response-error="failed=true" x-on:htmx:send-error="failed=true">
+   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithLoadingText("Loading icons…"),button.WithAttrs(templ.Attributes{"hx-get":IconPageURL(data,data.Page+1),"hx-trigger":"intersect once, click","hx-target":"#icon-scroll-next","hx-swap":"outerHTML","hx-sync":"#icon-picker-results:drop","hx-params":"none","hx-push-url":"false","hx-replace-url":"false","hx-disabled-elt":"this"})) {
+    Load more icons
+   }
+   <p role="alert" x-show="failed" x-cloak>Could not load more icons. Try again.</p>
+  </div>
+ }
+}
+
+templ AttributionLinks() {
+ <nav class="balemoh-footer-links" aria-label="Attributions and licenses">
+  @link.Link("https://selfh.st/icons/",link.WithTarget("_blank")) {
+   Icons by selfh.st
+  }
+  @link.Link("/ui/icon-library/selfhst/LICENSES/selfhst.txt",link.WithTarget("_blank")) {
+   Icon license
+  }
+ </nav>
+}
 
 templ IconTileBody(i LibraryIcon, picker bool) {
- <div class="balemoh-icon-tile-content">
+ <div class="balemoh-icon-tile-content" data-icon-id={i.ID}>
      if picker {
       @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-icon-choice"),button.WithAttrs(templ.Attributes{"aria-label":"Choose "+i.Name,"data-icon-id":i.ID,"data-icon-url":i.URL,"data-icon-symbol":i.Symbol,"data-icon-sprite":i.SpriteURL,"x-on:click":"$dispatch('icon-selected', {id:$el.dataset.iconId, url:$el.dataset.iconUrl, symbol:$el.dataset.iconSymbol, sprite:$el.dataset.iconSprite})"})) {
        @LibraryImage(i)

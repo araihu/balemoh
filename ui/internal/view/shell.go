@@ -34,6 +34,7 @@ func ConsolePage(data PageData) templ.Component {
 			Interactions: consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true},
 			MainID:       "main-content",
 			ContentID:    "balemoh-content",
+			Footer:       AttributionLinks(),
 		},
 		consoleshell.Page{
 			Title:         data.Title,
