@@ -21,7 +21,7 @@ templ LibraryImage(i LibraryIcon) {
 }
 
 templ IconsContent(data IconPage) {
- @pageheader.PageHeader(pageheader.Config{Title:"Icons",Actions:IconPageActions(data)})
+ @pageheader.PageHeader(pageheader.Config{Title:"Icons",HideSeparator:true,Actions:IconPageActions(data)})
  if data.Editing != nil && data.Error != "" {
   <p role="alert">{data.Error}</p>
  }
