@@ -49,6 +49,11 @@ templ PageContent(data PageData) {
 	if data.Staging && data.Editor == nil {
 		@drawer.Drawer(drawer.Config{ID: "serviceEditor", Title: "Edit service", BodyID: "service-editor-body"})
 	}
+ if data.IconPage != nil && data.IconPage.Editing == nil {
+  @drawer.Drawer(drawer.Config{ID:"iconUpload",Title:"Upload icon",BodyID:"icon-upload-body"}) {
+   @IconUploadDrawerBody(LibraryIcon{}, "")
+  }
+ }
 }
 
 templ StagingActions() {

@@ -85,12 +85,12 @@ func (s *server) editIcon(w http.ResponseWriter, r *http.Request) {
 }
 func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 	if s.icons == nil {
-		s.renderIcons(w, r, "Uploads unavailable.")
+		s.iconUploadError(w, r, view.LibraryIcon{}, "Uploads unavailable.")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, (2<<20)+32768)
 	if err := r.ParseMultipartForm(2 << 20); err != nil {
-		s.renderIcons(w, r, "Choose an image up to 2 MiB.")
+		s.iconUploadError(w, r, view.LibraryIcon{}, "Choose an image up to 2 MiB.")
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
@@ -103,7 +103,7 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 	if err != nil {
-		s.renderIcons(w, r, "Unable to read image.")
+		s.iconUploadError(w, r, view.LibraryIcon{Name: r.FormValue("name"), Tags: r.FormValue("tags")}, "Unable to read image. Reselect your file to retry.")
 		return
 	}
 	id := r.PathValue("iconID")
@@ -117,10 +117,25 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 	saved, err := s.icons.SaveIcon(ctx, id, upload)
 	if err != nil {
 		draft := view.LibraryIcon{ID: id, Name: upload.Name, Tags: upload.Tags, Source: "uploads", Digest: revision}
-		s.render(w, r, view.PageData{Title: "Edit icon", Description: "Manage uploaded service icons.", Path: "/icons", Active: "nav-icons", IconPage: &view.IconPage{Editing: &draft, Error: "Icon was not saved. Use a PNG, JPEG, WebP, or passive SVG up to 2 MiB. If another edit changed it, reopen the icon. Reselect your file to retry."}}, 200)
+		s.iconUploadError(w, r, draft, "Icon was not saved. Use a PNG, JPEG, WebP, or passive SVG up to 2 MiB. If another edit changed it, reopen the icon. Reselect your file to retry.")
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-upload-body" {
+		w.Header().Set("HX-Redirect", "/icons?source=uploads")
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	redirect(w, r, view.IconEditURL(saved.Id))
+}
+
+func (s *server) iconUploadError(w http.ResponseWriter, r *http.Request, draft view.LibraryIcon, message string) {
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-upload-body" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = view.IconUploadDrawerBody(draft, message).Render(r.Context(), w)
+		return
+	}
+	s.render(w, r, view.PageData{Title: "Edit icon", Description: "Manage uploaded service icons.", Path: "/icons", Active: "nav-icons", IconPage: &view.IconPage{Editing: &draft, Error: message}}, http.StatusOK)
 }
 func (s *server) deleteIcon(w http.ResponseWriter, r *http.Request) {
 	if s.icons == nil {

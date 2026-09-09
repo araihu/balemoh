@@ -21,17 +21,13 @@ templ LibraryImage(i LibraryIcon) {
 }
 
 templ IconsContent(data IconPage) {
- @pageheader.PageHeader(pageheader.Config{Title:"Icons"})
+ @pageheader.PageHeader(pageheader.Config{Title:"Icons",Actions:IconPageActions(data)})
  if data.Editing != nil && data.Error != "" {
   <p role="alert">{data.Error}</p>
  }
  if data.Editing != nil {
-  @IconUploadForm(*data.Editing)
+  @IconUploadForm(*data.Editing, false)
  } else {
-  <details class="balemoh-icon-upload">
-   <summary>Upload icon</summary>
-   @IconUploadForm(LibraryIcon{})
-  </details>
   <form action="/icons" method="get" class="balemoh-icon-search" hx-get="/icons" hx-trigger="input changed delay:300ms from:#icon-search, submit" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="this:replace" hx-replace-url="true">
    @textinput.TextInput(textinput.Config{ID:"icon-search",Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
    <input type="hidden" name="source" value={data.Source}/>
@@ -40,8 +36,29 @@ templ IconsContent(data IconPage) {
  }
 }
 
-templ IconUploadForm(i LibraryIcon) {
- <form class="balemoh-editor balemoh-upload-form" method="post" action={templ.SafeURL(iconSaveURL(i.ID))} enctype="multipart/form-data">
+templ IconPageActions(data IconPage) {
+ if data.Editing == nil {
+  @button.Button(button.WithType("button"),button.WithAttrs(templ.Attributes{"x-data":"{}","x-on:click":"$dispatch('drawer:open', {id:'iconUpload'})","aria-haspopup":"dialog","aria-controls":"icon-upload-body"})) {
+   Upload icon
+  }
+ }
+}
+
+templ IconUploadDrawerBody(i LibraryIcon, message string) {
+ <div class="balemoh-icon-upload-body">
+  if message != "" {
+   <p role="alert">{message}</p>
+  }
+  @IconUploadForm(i, true)
+ </div>
+}
+
+templ IconUploadForm(i LibraryIcon, inDrawer bool) {
+ <form class="balemoh-editor balemoh-upload-form" method="post" action={templ.SafeURL(iconSaveURL(i.ID))} enctype="multipart/form-data"
+  if inDrawer {
+   hx-post="/icons/upload" hx-encoding="multipart/form-data" hx-target="#icon-upload-body" hx-swap="innerHTML" hx-disabled-elt="find button[type='submit']" hx-sync="this:drop"
+  }
+ >
   if i.ID != "" {
    @LibraryImage(i)
    <p>{iconUsageLabel(len(i.UsedBy))}</p>
@@ -53,11 +70,17 @@ templ IconUploadForm(i LibraryIcon) {
   @textinput.TextInput(textinput.Config{ID:"icon-name",Name:"name",Label:"Name",Value:i.Name,Required:true,MaxLength:200})
   @textinput.TextInput(textinput.Config{ID:"icon-tags",Name:"tags",Label:"Tags",Value:i.Tags,MaxLength:1000,Placeholder:"Comma-separated tags"})
   @fileinput.FileInput(fileinput.Config{ID:"icon-upload",Name:"image",Label:"Image",Appearance:fileinput.AppearanceUpload,Required:i.ID=="",Accept:"image/png,image/jpeg,image/webp,image/svg+xml",HelperText:"PNG, JPEG, WebP, or passive SVG. Up to 2 MiB and 4096 pixels. Leave empty to keep the current image."})
-  @button.Button(button.WithType("submit")) {
+  @button.Button(button.WithType("submit"),button.WithLoadingText("Saving…")) {
    Save icon
   }
-  @link.Link("/icons") {
-   Back to Icons
+  if inDrawer {
+   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('drawer:close', {id:'iconUpload'})"})) {
+    Cancel
+   }
+  } else {
+   @link.Link("/icons") {
+    Back to Icons
+   }
   }
  </form>
  if i.ID!="" && len(i.UsedBy)==0 {
