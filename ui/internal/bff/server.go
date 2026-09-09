@@ -27,6 +27,11 @@ const (
 
 // New returns the private, server-rendered UI BFF handler.
 func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
+	return NewWithIconHandler(catalog, requestTimeout, nil)
+}
+
+// NewWithIconHandler serves a runtime icon library alongside the UI.
+func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons http.Handler) (http.Handler, error) {
 	if catalog == nil {
 		return nil, errors.New("catalog client is required")
 	}
@@ -48,7 +53,9 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 		w.Header().Set("Content-Type", "image/png")
 		_, _ = w.Write(view.SocialPreview())
 	})
-	mux.Handle("GET /ui/icon-library/selfhst/", bundledIconsHandler())
+	if icons != nil {
+		mux.Handle("GET /ui/icon-library/selfhst/", http.StripPrefix("/ui/icon-library/selfhst/", icons))
+	}
 	mux.HandleFunc("GET /icons", server.iconsPage)
 	mux.HandleFunc("GET /icons/picker", server.iconsPage)
 	mux.HandleFunc("POST /icons/upload", server.uploadIcon)

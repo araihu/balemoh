@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-//go:embed selfhst
+//go:embed selfhst/catalog.json selfhst/LICENSES
 var Files embed.FS
 
 var Entries = load()

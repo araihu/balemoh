@@ -84,6 +84,29 @@ resources. Discovered candidates remain in staging until the user explicitly
 pins them. A port observation is not treated as an exact hostname; endpoint
 provenance records which adapter supplied the evidence.
 
+Staging groups explicit relationships automatically. A single HTTPRoute with a
+root path can group its path backends under that facing address. Backends also
+exposed under unrelated addresses remain separate. Route evidence retains Gateway
+and listener scope, exact versus prefix matches, and redirect destinations.
+Redirect-only routes attach only when their destination resolves unambiguously
+in that scope. Header-dependent, wildcard, and unsupported filter matches do not
+establish automatic relationships.
+
+Services with identical namespace, selectors, and target-port sets can be aliases
+when their facing addresses do not identify separate virtual hosts. Sharing Pods,
+labels, a namespace, or a hostname alone never proves equivalence. The root-path
+Service represents an app group; otherwise the lexically first Service does.
+Existing resource IDs and edits stay stored. A pin on any merged member pins the
+group, and unpinning clears its member pins. Display overrides belong to the
+representative resource; other members' saved overrides remain stored.
+
+LoadBalancer addresses, external IPs, ExternalName hosts, and NodePort node
+addresses are preserved as protocol-qualified endpoint observations. No HTTP
+scheme is inferred from a TCP port. NodePort discovery additionally requires
+read-only access to Nodes. Older snapshots without the new evidence retain
+Service-based grouping until discovery refreshes them.
+
+
 When `BALEMOH_CONTAINER_ENABLED=true`, the Docker-compatible adapter reads
 running containers from `BALEMOH_CONTAINER_HOST` and stages both individual
 containers and Compose services identified by Compose labels. Images and
@@ -189,7 +212,7 @@ The `kind` and `vind` pipelines create or connect the local cluster, then run
 the normal `dev` pipeline. The `homelab` pipeline additionally applies
 `devspace/httproute.yaml`, which binds the UI to the existing
 `default/internal-gateway` HTTPS listener at `balemoh.decastro.me`. The app's
-RBAC is read-only cluster-wide for Pods, Services, Ingresses, and HTTPRoutes;
+RBAC is read-only cluster-wide for Pods, Services, Nodes, Ingresses, and HTTPRoutes;
 the UI does not receive a Kubernetes token. `BALEMOH_KUBERNETES_NAMESPACE` is
 empty by default, so discovery lists those resources across all namespaces.
 Pod candidates are still emitted only when a Service, Ingress, or HTTPRoute

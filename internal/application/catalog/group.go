@@ -6,7 +6,8 @@ import (
 )
 
 // groupCandidates projects observations around stable Kubernetes Service IDs.
-// Edges never merge Services: shared routes and pods can belong to several groups.
+// Shared observations first attach to Services; versioned exposure evidence then
+// joins related groups without using names or shared Pods as app identity.
 func groupCandidates(candidates []Candidate) []Candidate {
 	type key struct {
 		source          SourceRef
@@ -92,7 +93,7 @@ func groupCandidates(candidates []Candidate) []Candidate {
 		}
 		return result[i].ID < result[j].ID
 	})
-	return result
+	return relatedCandidates(candidates, result)
 }
 
 // Route endpoint names identify their backend Service. Retain full route

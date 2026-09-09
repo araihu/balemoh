@@ -30,7 +30,10 @@ templ PageContent(data PageData) {
 		<div hidden x-data="{}" x-init={ successToastEvent(data.Notice) }></div>
 	}
 	<section class="balemoh-content" aria-label={ data.Title }>
-		if data.Staging {
+		if data.Editor != nil {
+ @pageheader.PageHeader(pageheader.Config{Title: data.Title, HideSeparator: true})
+ @link.Link("/staging") { Back to Staging }
+ } else if data.Staging {
 			@pageheader.PageHeader(pageheader.Config{
 				Title:       data.Title,
 				HideSeparator: true,
@@ -46,15 +49,15 @@ templ PageContent(data PageData) {
  @IconsContent(*data.IconPage)
  } else if data.Editor != nil {
 			@ServiceEditor(*data.Editor)
+ <h2>Resources</h2>
+ @ServiceResources(*data.Editor)
 		} else if data.Staging {
 			@StagingContent(data)
 		} else {
 			@HomepageContent(data)
 		}
 	</section>
-	if data.Staging && data.Editor == nil {
-		@drawer.Drawer(drawer.Config{ID: "serviceEditor", Title: "Edit service", BodyID: "service-editor-body"})
-	}
+
  if data.IconPage != nil && data.IconPage.Editing == nil && data.IconPage.Details == nil {
   @drawer.Drawer(drawer.Config{ID:"iconUpload",Title:"Upload icon",BodyID:"icon-upload-body"}) {
    @IconUploadDrawerBody(LibraryIcon{}, "")
@@ -272,7 +275,7 @@ templ ServiceSelection(service Service) {
 
 // Native disclosure composes in the public Table Cell slot, with keyboard support.
 templ ServiceResources(service Service) {
-	<details class="balemoh-resource-details">
+	<details class="balemoh-resource-details" open>
 		<summary aria-label={ resourceCount(service) + " for " + service.DisplayName }>{ resourceCount(service) }</summary>
 		<div class="balemoh-resource-list">
 			<small class="balemoh-muted">{ service.Source }</small>

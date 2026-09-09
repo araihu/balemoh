@@ -57,6 +57,8 @@ func TestParseEnvironmentRejectsUnsafeOrInvalidValues(t *testing.T) {
 		env  map[string]string
 		want string
 	}{
+		{name: "empty cache", env: map[string]string{"BALEMOH_UI_ICON_CACHE_DIR": " "}, want: "icon cache"},
+		{name: "invalid icon timeout", env: map[string]string{"BALEMOH_UI_ICON_STARTUP_TIMEOUT": "0s"}, want: "icon startup timeout"},
 		{name: "missing scheme", env: map[string]string{"BALEMOH_UI_API_BASE_URL": "127.0.0.1:8080"}, want: "absolute"},
 		{name: "credentials", env: map[string]string{"BALEMOH_UI_API_BASE_URL": "https://user:password@example.test"}, want: "credentials"},
 		{name: "query", env: map[string]string{"BALEMOH_UI_API_BASE_URL": "https://example.test?token=secret"}, want: "query"},

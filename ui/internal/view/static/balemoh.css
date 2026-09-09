@@ -155,11 +155,10 @@ body {
 .balemoh-resource-list { display: grid; gap: 1rem; margin-top: 1rem; min-width: 14rem; max-width: 18rem; overflow-wrap: anywhere; }
 .balemoh-resource-list section { display: grid; gap: .5rem; }
 
-.balemoh-col-select, .balemoh-col-service, .balemoh-col-address, .balemoh-col-resources { vertical-align: top; }
+.balemoh-col-select, .balemoh-col-service, .balemoh-col-address { vertical-align: top; }
 .balemoh-col-select { width: 5rem; }
 .balemoh-col-service { min-width: 10rem; }
 .balemoh-col-address { min-width: 12rem; }
-.balemoh-col-resources { width: 20rem; }
 
 .balemoh-pin-form.htmx-request { opacity: .6; }
 .balemoh-pin-form small { display: block; margin-top: .5rem; }

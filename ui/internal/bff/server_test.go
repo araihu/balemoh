@@ -106,10 +106,14 @@ func TestHandlerRendersHomepageAndStagingAction(t *testing.T) {
 	if staging.Code != http.StatusOK {
 		t.Fatalf("GET /staging status = %d, want 200", staging.Code)
 	}
-	for _, want := range []string{"Staging service", "ghcr.io/example/app:v1", `action="/staging/services/svc-stage/selection"`, `name="pinned" value="true"`, `onchange="this.form.requestSubmit()"`, `aria-label="Sync discovery"`} {
+	for _, want := range []string{"Staging service", `action="/staging/services/svc-stage/selection"`, `name="pinned" value="true"`, `onchange="this.form.requestSubmit()"`, `aria-label="Sync discovery"`} {
 		if !strings.Contains(staging.Body.String(), want) {
 			t.Errorf("GET /staging body missing %q", want)
 		}
+	}
+	detail := request(t, handler, http.MethodGet, "/staging/services/svc-stage/edit", "")
+	if detail.Code != http.StatusOK || !strings.Contains(detail.Body.String(), "ghcr.io/example/app:v1") {
+		t.Fatal("resource details missing from service page")
 	}
 	for _, unwanted := range []string{`>Status</`, `>Pin to homepage<`, `Pin selected`, `<code>svc-stage</code>`} {
 		if strings.Contains(staging.Body.String(), unwanted) {

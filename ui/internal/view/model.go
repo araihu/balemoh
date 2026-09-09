@@ -53,7 +53,6 @@ type Service struct {
 	IconRef     string
 	Icon        LibraryIcon
 	DefaultIcon LibraryIcon
-	Standalone  bool
 	Address     string
 	EditError   string
 	PinError    string
@@ -85,11 +84,7 @@ func serviceTableColumns(staging bool) []table.Column {
 	columns = append(columns,
 		table.Column{Key: "service", Label: "Service", Width: "balemoh-col-service"},
 		table.Column{Key: "endpoint", Label: "Address", Width: "balemoh-col-address"},
-		table.Column{Key: "resource", Label: "Resources", Width: "balemoh-col-resources"},
 	)
-	if staging {
-		columns = append(columns, table.Column{Key: "actions", Label: "Actions"})
-	}
 	return columns
 }
 
@@ -102,14 +97,12 @@ func serviceTableRows(data PageData) []table.Row {
 			Cells: map[string]table.Cell{
 				"select":   {Component: ServiceSelection(service)},
 				"service":  {Component: ServiceIdentity(service)},
-				"source":   {Text: service.Source, Code: true},
-				"resource": {Component: ServiceResources(service)},
 				"endpoint": {Component: GroupAddresses(service)},
-				"images":   {Component: ServiceImages(service)},
 			},
 		}
 		if data.Staging {
-			row.Cells["actions"] = table.Cell{Component: EditAction(service)}
+			row.Link = EditURL(service.ID)
+			row.LinkMode = table.LinkFull
 		}
 		rows = append(rows, row)
 	}
@@ -224,10 +217,4 @@ func groupAddresses(service Service) []string {
 func successToastEvent(message string) string {
 	payload, _ := json.Marshal(map[string]string{"kind": "toast", "tone": "success", "message": message})
 	return "$nextTick(() => $dispatch('notify', " + string(payload) + "))"
-}
-
-func editedTableRow(service Service) table.Row {
-	row := serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0]
-	row.AlpineAttrs["hx-swap-oob"] = "outerHTML"
-	return row
 }
