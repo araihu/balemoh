@@ -2,6 +2,9 @@ package view
 
 import (
 	"fmt"
+ "strings"
+ "strconv"
+ "github.com/araihu/goshtoso/components/textinput"
 	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/alert"
  "github.com/araihu/goshtoso/components/avatar"
@@ -73,11 +76,17 @@ templ SyncButton() {
 
 templ HomepageContent(data PageData) {
 	if len(data.Services) > 0 {
-		<div class="balemoh-service-grid">
-			for _, service := range data.Services {
-				@ServiceCard(service, ServiceCardIcon(service))
-			}
-		</div>
+  <div x-data="{query: ''}" x-on:keydown.window={homepageSearchKeys}>
+   @textinput.TextInput(textinput.Config{ID:"home-search",Type:textinput.TypeSearch,Label:"Search services",Placeholder:"Name, description, or address",Autocomplete:"off",InputAttrs:templ.Attributes{"x-ref":"search","x-model":"query","aria-keyshortcuts":"Meta+K Control+K","x-on:keydown.escape.prevent.stop":"query = ''; $el.blur()"}})
+   <div class="balemoh-service-grid" style="margin-top: 1rem">
+    for _, service := range data.Services {
+     <div data-home-service x-show={homeSearchMatch(service)}>
+      @ServiceCard(service, ServiceCardIcon(service))
+     </div>
+    }
+   </div>
+   <p role="status" x-cloak x-show={homeSearchEmpty(data.Services)}>No matching services.</p>
+  </div>
 	} else if data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
 			Title:       "No pinned services",
@@ -298,4 +307,26 @@ templ GroupAddresses(service Service) {
 
 templ StagingRow(service Service) {
 	@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
+}
+
+const homepageSearchKeys = `
+ const e = $event;
+ if (e.defaultPrevented || e.isComposing || e.altKey) return;
+ if ([...document.querySelectorAll('[role="dialog"], dialog[open], [role="menu"]')].some(el => el.getClientRects().length)) return;
+ if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+  e.preventDefault(); $refs.search.focus(); $refs.search.select(); return;
+ }
+ if (e.metaKey || e.ctrlKey || e.key.length !== 1 || e.key.trim() === '') return;
+ if (e.target.closest('input, textarea, select, [role="textbox"], [contenteditable]:not([contenteditable="false"])')) return;
+ e.preventDefault(); query += e.key; $refs.search.focus();
+`
+
+func homeSearchMatch(service Service) string {
+ text := strings.ToLower(service.DisplayName + " " + service.Description + " " + strings.Join(groupAddresses(service), " "))
+ return strconv.Quote(text) + ".includes(query.trim().toLowerCase())"
+}
+func homeSearchEmpty(services []Service) string {
+ matches := make([]string, 0, len(services))
+ for _, service := range services { matches = append(matches, homeSearchMatch(service)) }
+ return "!(" + strings.Join(matches, " || ") + ")"
 }

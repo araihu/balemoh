@@ -81,3 +81,18 @@ func TestDiscoveredAddressScheme(t *testing.T) {
 		}
 	}
 }
+
+func TestHomepageSearchIsScopedToServices(t *testing.T) {
+	for _, services := range [][]Service{nil, {{DisplayName: `Team "A"`, Description: "Workspace", Endpoints: []Endpoint{{URL: "https://app.example/"}}}}} {
+		var html bytes.Buffer
+		if err := HomepageContent(PageData{Services: services}).Render(context.Background(), &html); err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(html.String(), `id="home-search"`) != (len(services) > 0) {
+			t.Fatal("search requires service cards")
+		}
+		if len(services) > 0 && (!strings.Contains(html.String(), "app.example") || !strings.Contains(html.String(), `x-on:keydown.window`)) {
+			t.Fatal("missing search data or shortcut")
+		}
+	}
+}
