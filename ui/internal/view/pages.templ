@@ -78,8 +78,7 @@ templ SyncButton() {
 templ HomepageContent(data PageData) {
 	if len(data.Services) > 0 {
   <div x-data={homeSearchState} x-on:keydown.window={homepageSearchKeys}>
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"query = ''; $dispatch('modal:open', {id:'home-search-modal'})","aria-haspopup":"dialog","aria-controls":"home-search-modal","aria-keyshortcuts":"Meta+K Control+K"})) { Search services }
-   <div class="balemoh-service-grid" style="margin-top: 1rem">
+   <div class="balemoh-service-grid">
     for _, service := range data.Services {
       @ServiceCard(service, ServiceCardIcon(service))
     }
