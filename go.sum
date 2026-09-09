@@ -26,6 +26,8 @@ github.com/araihu/goshtoso v0.2.9-0.20260909001459-84fbecd0f036 h1:ZlTKBRrYGwl9t
 github.com/araihu/goshtoso v0.2.9-0.20260909001459-84fbecd0f036/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/araihu/goshtoso v0.2.9-0.20260909005241-6f6ab9751cac h1:sI4rFFh+pX65/vHlZksE5gb+8C91efsQ6ttLvExx1T4=
 github.com/araihu/goshtoso v0.2.9-0.20260909005241-6f6ab9751cac/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
+github.com/araihu/goshtoso v0.2.9-0.20260909012351-f0c4f94723d6 h1:xtMn+rJ7EfOcwqrUDovVpyrAa5XFVO7OKIdVfeYH3bA=
+github.com/araihu/goshtoso v0.2.9-0.20260909012351-f0c4f94723d6/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
 github.com/caarlos0/env/v11 v11.4.1 h1:fYwH0sWEsBSMPG7t4e/PEfTFzrWrpjyygXyUnWiSwEw=
