@@ -13,7 +13,7 @@ type CatalogStore interface {
 	Upsert(context.Context, Candidate) error
 	ReplaceSourceSnapshot(context.Context, Snapshot) (SnapshotApplyResult, error)
 	List(context.Context, bool) ([]Candidate, error)
-	SetPinned(context.Context, string, bool) (Candidate, error)
+	SetPinned(context.Context, string, bool, ...string) (Candidate, error)
 	SaveEdit(context.Context, string, Edit) error
 }
 
@@ -102,6 +102,7 @@ func (s *Service) Unpin(ctx context.Context, id string) (Candidate, error) {
 	if err != nil {
 		return Candidate{}, err
 	}
+	var related []string
 	for _, group := range groupCandidates(observations) {
 		if group.ID != id {
 			continue
@@ -112,14 +113,12 @@ func (s *Service) Unpin(ctx context.Context, id string) (Candidate, error) {
 		}
 		for _, member := range observations {
 			if member.ID != id && member.Source == group.Source && members[member.Resource] && member.PinnedAt != nil {
-				if _, err := s.store.SetPinned(ctx, member.ID, false); err != nil {
-					return Candidate{}, err
-				}
+				related = append(related, member.ID)
 			}
 		}
 		break
 	}
-	return s.store.SetPinned(ctx, id, false)
+	return s.store.SetPinned(ctx, id, false, related...)
 }
 
 func (s *Service) Sync(ctx context.Context) (SyncResult, error) {

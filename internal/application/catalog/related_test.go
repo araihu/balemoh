@@ -121,8 +121,11 @@ func TestUnknownRouteEvidencePreventsSharedBackendMerge(t *testing.T) {
 	web, api := relationCandidate("service", "web"), relationCandidate("service", "api")
 	route := relationRoute("app", "public", "app.test", "web", "api")
 	unknown := relationCandidate("httproute", "conditional")
-	unknown.Metadata["kubernetes.services"] = "apps/api"
-	if len(groupCandidates([]Candidate{web, api, route, unknown})) != 2 {
-		t.Fatal("backend with unknown routing was merged")
+	unknown.Metadata["kubernetes.services"] = " apps/api "
+	for _, evidence := range []string{"", "[]"} {
+		unknown.Metadata[ExposureMetadata] = evidence
+		if len(groupCandidates([]Candidate{web, api, route, unknown})) != 2 {
+			t.Fatal("backend with unknown routing was merged")
+		}
 	}
 }

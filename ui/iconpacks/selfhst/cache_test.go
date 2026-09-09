@@ -64,6 +64,32 @@ func TestEnsureReusesVerifiedCacheWithoutSourceFiles(t *testing.T) {
 	if err := verifyFile(files, "image.png", digest); err != nil {
 		t.Fatal(err)
 	}
+	revision := filepath.Join(pack, "revision-test", "library")
+	if err := os.MkdirAll(revision, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(revision, "image.png"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(revision, "new-revision"), nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := publishRevision(pack, "revision-test"); err != nil {
+		t.Fatal(err)
+	}
+	next, err := Ensure(context.Background(), directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker, err := next.Open("new-revision")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = marker.Close()
+	if err := verifyFile(files, "image.png", digest); err != nil {
+		t.Fatalf("old reader lost its revision: %v", err)
+	}
+
 	if _, err := os.Stat(filepath.Join(pack, ".iconpack.yaml")); !os.IsNotExist(err) {
 		t.Fatalf("warm cache unexpectedly prepared a source download: %v", err)
 	}

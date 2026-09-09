@@ -281,7 +281,7 @@ func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candida
 	return result, nil
 }
 
-func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool) (catalog.Candidate, error) {
+func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool, related ...string) (catalog.Candidate, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return catalog.Candidate{}, catalog.ErrNotFound
@@ -292,35 +292,38 @@ func (s *CatalogStore) SetPinned(ctx context.Context, id string, pinned bool) (c
 	}
 	defer func() { _ = tx.Rollback() }()
 	queries := s.queries.WithTx(tx)
+	for _, currentID := range append([]string{id}, related...) {
+		row, err := queries.GetDiscoveredService(ctx, currentID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return catalog.Candidate{}, catalog.ErrNotFound
+		}
+		if err != nil {
+			return catalog.Candidate{}, fmt.Errorf("read candidate pin state: %w", err)
+		}
+
+		if pinned && !row.PinnedAt.Valid {
+			now := time.Now().UTC().Format(time.RFC3339Nano)
+			if _, err := queries.PinDiscoveredService(ctx, sqlc.PinDiscoveredServiceParams{
+				PinnedAt:  sql.NullString{String: now, Valid: true},
+				UpdatedAt: now,
+				ID:        currentID,
+			}); err != nil {
+				return catalog.Candidate{}, fmt.Errorf("set candidate pin state: %w", err)
+			}
+		}
+		if !pinned && row.PinnedAt.Valid {
+			now := time.Now().UTC().Format(time.RFC3339Nano)
+			if _, err := queries.UnpinDiscoveredService(ctx, sqlc.UnpinDiscoveredServiceParams{
+				UpdatedAt: now,
+				ID:        currentID,
+			}); err != nil {
+				return catalog.Candidate{}, fmt.Errorf("clear candidate pin state: %w", err)
+			}
+		}
+
+	}
+
 	row, err := queries.GetDiscoveredService(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return catalog.Candidate{}, catalog.ErrNotFound
-	}
-	if err != nil {
-		return catalog.Candidate{}, fmt.Errorf("read candidate pin state: %w", err)
-	}
-
-	if pinned && !row.PinnedAt.Valid {
-		now := time.Now().UTC().Format(time.RFC3339Nano)
-		if _, err := queries.PinDiscoveredService(ctx, sqlc.PinDiscoveredServiceParams{
-			PinnedAt:  sql.NullString{String: now, Valid: true},
-			UpdatedAt: now,
-			ID:        id,
-		}); err != nil {
-			return catalog.Candidate{}, fmt.Errorf("set candidate pin state: %w", err)
-		}
-	}
-	if !pinned && row.PinnedAt.Valid {
-		now := time.Now().UTC().Format(time.RFC3339Nano)
-		if _, err := queries.UnpinDiscoveredService(ctx, sqlc.UnpinDiscoveredServiceParams{
-			UpdatedAt: now,
-			ID:        id,
-		}); err != nil {
-			return catalog.Candidate{}, fmt.Errorf("clear candidate pin state: %w", err)
-		}
-	}
-
-	row, err = queries.GetDiscoveredService(ctx, id)
 	if err != nil {
 		return catalog.Candidate{}, fmt.Errorf("read updated candidate pin state: %w", err)
 	}

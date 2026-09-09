@@ -96,8 +96,9 @@ Services with identical namespace, selectors, and target-port sets can be aliase
 when their facing addresses do not identify separate virtual hosts. Sharing Pods,
 labels, a namespace, or a hostname alone never proves equivalence. The root-path
 Service represents an app group; otherwise the lexically first Service does.
-Existing resource IDs and edits stay stored. A pin on any merged member pins the
-group, and unpinning clears its member pins. Display overrides belong to the
+Existing resource IDs and edits stay stored. Pinned non-Service resources remain
+explicit rows; they do not pin the Service representative. Pins propagate across
+merged Service groups, and unpinning the representative clears its member pins atomically. Display overrides belong to the
 representative resource; other members' saved overrides remain stored.
 
 LoadBalancer addresses, external IPs, ExternalName hosts, and NodePort node

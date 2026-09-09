@@ -35,6 +35,7 @@ func relatedCandidates(observations, groups []Candidate) []Candidate {
 		if json.Unmarshal([]byte(c.Metadata[ExposureMetadata]), &exposures) != nil {
 			if c.Resource.Kind == "httproute" || c.Resource.Kind == "ingress" {
 				for _, ref := range strings.Split(c.Metadata["kubernetes.services"], ",") {
+					ref = strings.TrimSpace(ref)
 					if i, ok := services[key(c.Source, ref)]; ok {
 						if owners[i] == nil {
 							owners[i] = map[string]bool{}
@@ -54,6 +55,7 @@ func relatedCandidates(observations, groups []Candidate) []Candidate {
 			}
 		}
 		for _, ref := range strings.Split(c.Metadata["kubernetes.services"], ",") {
+			ref = strings.TrimSpace(ref)
 			if i, ok := services[key(c.Source, ref)]; ok && !covered[ref] {
 				if owners[i] == nil {
 					owners[i] = map[string]bool{}

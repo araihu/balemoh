@@ -75,3 +75,7 @@ The existing homelab DevSpace deployment uses `/tmp/balemoh.db` without a PVC.
 It must migrate to persistent storage before uploaded icons can survive pod
 replacement. Local validation uses an isolated database restored from a backup;
 production data is never used for upload/delete tests.
+
+Cache repairs publish a new revision atomically. Existing processes keep their
+previous revision available. Old revisions remain on disk; remove an unused cache
+directory only after all UI processes using it have stopped.

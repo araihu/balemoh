@@ -42,6 +42,15 @@ func Ensure(ctx context.Context, directory string) (fs.FS, error) {
 	}
 	defer func() { _ = guard.Unlock(); _ = guard.Close() }()
 	output := filepath.Join(directory, "library")
+	if current, err := os.ReadFile(filepath.Join(directory, "CURRENT")); err == nil {
+		revision := string(current)
+		if filepath.Base(revision) != revision || !strings.HasPrefix(revision, "revision-") {
+			return nil, fmt.Errorf("invalid icon cache revision")
+		}
+		output = filepath.Join(directory, revision, "library")
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
 	if err := verify(ctx, os.DirFS(output)); err == nil {
 		return os.DirFS(output), nil
 	}
@@ -55,11 +64,16 @@ func Ensure(ctx context.Context, directory string) (fs.FS, error) {
 	if err := os.WriteFile(filepath.Join(directory, ".iconpack.lock.yaml"), lockfile, 0o600); err != nil {
 		return nil, err
 	}
-	staging, err := os.MkdirTemp(directory, ".download-")
+	staging, err := os.MkdirTemp(directory, "revision-")
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(staging)
+	published := false
+	defer func() {
+		if !published {
+			_ = os.RemoveAll(staging)
+		}
+	}()
 	candidate := filepath.Join(staging, "library")
 	// Trust stays false: runtime never establishes trust in new source content.
 	if _, err := iconpack.Generate(ctx, iconpack.Options{Library: true, ConfigPath: configPath, OutputDir: candidate}); err != nil {
@@ -68,14 +82,13 @@ func Ensure(ctx context.Context, directory string) (fs.FS, error) {
 	if err := verify(ctx, os.DirFS(candidate)); err != nil {
 		return nil, fmt.Errorf("verify downloaded icons: %w", err)
 	}
-	// Replace only this pack's invalid generated cache after verifying its replacement.
-	if err := os.RemoveAll(output); err != nil {
+	// Keep prior revisions available to already-running HTTP handlers.
+	if err := publishRevision(directory, filepath.Base(staging)); err != nil {
 		return nil, err
 	}
-	if err := os.Rename(candidate, output); err != nil {
-		return nil, err
-	}
-	return os.DirFS(output), nil
+	published = true
+	return os.DirFS(candidate), nil
+
 }
 
 func verify(ctx context.Context, files fs.FS) error {
@@ -110,4 +123,20 @@ func verifyFile(files fs.FS, name, digest string) error {
 		return fmt.Errorf("icon checksum mismatch: %s", name)
 	}
 	return nil
+}
+
+func publishRevision(directory, revision string) error {
+	pointer, err := os.CreateTemp(directory, ".current-")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(pointer.Name())
+	if _, err := pointer.WriteString(revision); err != nil {
+		_ = pointer.Close()
+		return err
+	}
+	if err := pointer.Close(); err != nil {
+		return err
+	}
+	return os.Rename(pointer.Name(), filepath.Join(directory, "CURRENT"))
 }
