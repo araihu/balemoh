@@ -59,6 +59,13 @@ body {
 .balemoh-card-addresses { display: flex; align-items: center; gap: .5rem; }
 .balemoh-card-addresses > a { min-width: 0; overflow-wrap: anywhere; }
 
+/* Extend the primary link across homepage cards; keep address menus above it. */
+.balemoh-service-grid .balemoh-service-card { position: relative; }
+.balemoh-service-grid .balemoh-card-addresses > a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.balemoh-service-grid .balemoh-card-addresses > a:focus-visible::after { outline: 2px solid currentColor; outline-offset: 2px; }
+.balemoh-service-grid .balemoh-card-addresses > div { position: relative; z-index: 1; }
+
+
 @media (min-width: 640px) {
 	.balemoh-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
