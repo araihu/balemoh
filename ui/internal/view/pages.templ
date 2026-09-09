@@ -83,7 +83,7 @@ templ HomepageContent(data PageData) {
       @ServiceCard(service, ServiceCardIcon(service))
     }
    </div>
-   @modal.Dialog(modal.DialogConfig{ID:"home-search-modal",Title:"Search services",FullscreenMobile:true,Content:HomeSearchResults(data.Services)})
+   @modal.Dialog(modal.DialogConfig{ID:"home-search-modal",Title:"Search services",Compact:true,Content:HomeSearchResults(data.Services)})
   </div>
 	} else if data.Error == "" {
 		@emptystate.EmptyState(emptystate.Config{
@@ -334,12 +334,17 @@ const homepageSearchKeys = `
 
 templ HomeSearchResults(services []Service) {
  <div x-on:keydown.arrow-down.prevent="move(1)" x-on:keydown.arrow-up.prevent="move(-1)">
-  @textinput.TextInput(textinput.Config{ID:"home-search",Type:textinput.TypeSearch,Label:"Search services",Placeholder:"Name, description, or address",Autocomplete:"off",HelperText:"Up/Down to navigate, Enter to open, Escape to close.",InputAttrs:templ.Attributes{"autofocus":true,"x-model":"query","x-on:keydown.escape.prevent.stop":"$dispatch('modal:close', {id:'home-search-modal'})","x-on:keydown.enter.prevent":"[...document.querySelectorAll('#home-search-results a')].find(el => el.getClientRects().length)?.click()"}})
+  @textinput.TextInput(textinput.Config{ID:"home-search",Type:textinput.TypeSearch,Placeholder:"Search services…",Autocomplete:"off",RootClass:"balemoh-search-input",InputAttrs:templ.Attributes{"aria-label":"Search services","autofocus":true,"x-model":"query","x-on:keydown.escape.prevent.stop":"$dispatch('modal:close', {id:'home-search-modal'})","x-on:keydown.enter.prevent":"[...document.querySelectorAll('#home-search-results a')].find(el => el.getClientRects().length)?.click()"}})
   <ul id="home-search-results" class="balemoh-search-results" aria-label="Matching services">
    for _, service := range services {
     <li x-show={homeSearchMatch(service)}>
      if addresses := groupAddresses(service); len(addresses)>0 {
-      @link.Link(addresses[0],link.WithTarget("_blank")) { {service.DisplayName} <span class="balemoh-muted">{service.Description}</span> }
+      @link.Link(addresses[0],link.WithTarget("_blank"),link.WithAttrs(templ.Attributes{"x-on:keydown.space.prevent.stop":"$el.click()"})) {
+       @ServiceCardIcon(service)
+       <span class="balemoh-search-name">{service.DisplayName}</span>
+       <span class="balemoh-search-description">{service.Description}</span>
+       <span class="balemoh-search-type">Service</span>
+      }
      } else {
       <span>{service.DisplayName} <span class="balemoh-muted">No public address</span></span>
      }
