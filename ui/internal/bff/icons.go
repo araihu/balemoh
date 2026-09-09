@@ -3,6 +3,7 @@ package bff
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	api "github.com/araihu/balemoh/client"
 	"github.com/araihu/balemoh/client/iconassets"
@@ -174,6 +175,18 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 		s.iconUploadError(w, r, draft, "Icon was not saved. Use a PNG, JPEG, WebP, or passive SVG up to 2 MiB. If another edit changed it, reopen the icon. Reselect your file to retry.")
 		return
 	}
+
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "service-icon-upload-body" {
+		events, _ := json.Marshal(map[string]any{
+			"icon-selected": map[string]string{"id": saved.Id, "url": view.IconImageURL(saved.Id), "symbol": "", "sprite": ""},
+			"modal:close":   map[string]string{"id": "service-icon-upload"},
+		})
+		w.Header().Set("HX-Trigger-After-Swap", string(events))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = view.ServiceIconUploadBody(view.LibraryIcon{}, "").Render(r.Context(), w)
+		return
+	}
 	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-upload-body" {
 		w.Header().Set("HX-Redirect", "/icons?source=uploads")
 		w.WriteHeader(http.StatusOK)
@@ -183,6 +196,13 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) iconUploadError(w http.ResponseWriter, r *http.Request, draft view.LibraryIcon, message string) {
+
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "service-icon-upload-body" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = view.ServiceIconUploadBody(draft, message).Render(r.Context(), w)
+		return
+	}
 	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-upload-body" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")

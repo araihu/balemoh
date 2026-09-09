@@ -1,9 +1,16 @@
 package bff
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	api "github.com/araihu/balemoh/client"
+	"mime/multipart"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/araihu/balemoh/ui/internal/view"
 )
@@ -21,5 +28,56 @@ func TestIconUploadErrorKeepsDrawerDraft(t *testing.T) {
 	}
 	if strings.Contains(w.Body.String(), "<html") || strings.Contains(w.Body.String(), "icon-picker-results") {
 		t.Fatal("upload error replaced drawer with full library")
+	}
+}
+
+type modalUploadCatalog struct {
+	IconCatalog
+	failure bool
+}
+
+func (c modalUploadCatalog) SaveIcon(_ context.Context, _ string, upload api.IconUpload) (api.UploadedIcon, error) {
+	if c.failure {
+		return api.UploadedIcon{}, errors.New("invalid image")
+	}
+	return api.UploadedIcon{Id: "upload:test", Name: upload.Name}, nil
+}
+func TestServiceIconUploadModal(t *testing.T) {
+	for _, failure := range []bool{false, true} {
+		var body bytes.Buffer
+		form := multipart.NewWriter(&body)
+		_ = form.WriteField("name", "My draft icon")
+		_ = form.WriteField("tags", "home,custom")
+		_ = form.Close()
+		r := httptest.NewRequest("POST", "/icons/upload", &body)
+		r.Header.Set("Content-Type", form.FormDataContentType())
+		r.Header.Set("HX-Request", "true")
+		r.Header.Set("HX-Target", "service-icon-upload-body")
+		w := httptest.NewRecorder()
+		(&server{icons: modalUploadCatalog{failure: failure}, timeout: time.Second}).uploadIcon(w, r)
+		if w.Code != 200 || w.Header().Get("HX-Redirect") != "" {
+			t.Fatal("modal upload must remain in editor")
+		}
+		if !strings.Contains(w.Body.String(), `hx-target="#service-icon-upload-body"`) {
+			t.Fatal("modal form lost target")
+		}
+		if failure {
+			for _, want := range []string{`value="My draft icon"`, `value="home,custom"`, `role="alert"`} {
+				if !strings.Contains(w.Body.String(), want) {
+					t.Errorf("missing %s", want)
+				}
+			}
+			if w.Header().Get("HX-Trigger-After-Swap") != "" {
+				t.Fatal("failed upload must not select or close")
+			}
+		} else {
+			var events map[string]map[string]string
+			if err := json.Unmarshal([]byte(w.Header().Get("HX-Trigger-After-Swap")), &events); err != nil {
+				t.Fatal(err)
+			}
+			if events["icon-selected"]["id"] != "upload:test" || events["modal:close"]["id"] != "service-icon-upload" {
+				t.Fatal(events)
+			}
+		}
 	}
 }

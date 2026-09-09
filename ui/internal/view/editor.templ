@@ -52,6 +52,7 @@ templ ServiceEditor(service Service) {
    @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"$dispatch('modal:open', {id:'service-icon-picker'})","aria-haspopup":"dialog","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-params":"q,source","hx-sync":"#icon-picker-results:replace"})) {
  Choose icon
  }
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:open', {id:'service-icon-upload'})","aria-haspopup":"dialog","aria-controls":"service-icon-upload"})) { Upload icon }
    @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"iconRef=''; iconURL=''; iconSymbol=''; iconSprite=''"})) {
  Reset to discovery default
  }
@@ -66,6 +67,7 @@ templ ServiceEditor(service Service) {
 		</div>
 	</form>
    @modal.Dialog(modal.DialogConfig{ID:"service-icon-picker",Title:"Choose service icon",FullscreenMobile:true,Content:ServiceIconPicker()})
+   @modal.Dialog(modal.DialogConfig{ID:"service-icon-upload",Title:"Upload service icon",FullscreenMobile:true,Content:ServiceIconUpload()})
 }
 
 templ ServiceIconPicker() {
@@ -96,4 +98,20 @@ templ EditedRow(service Service) {
 	<template>
 		@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, editedTableRow(service))
 	</template>
+}
+
+templ ServiceIconUpload() {
+ <div id="service-icon-upload-body">
+  @ServiceIconUploadBody(LibraryIcon{}, "")
+ </div>
+}
+templ ServiceIconUploadBody(i LibraryIcon, message string) {
+ if message != "" {
+  <p role="alert">{message}</p>
+ }
+ @IconUploadForm(i, "service-icon-upload-body")
+}
+func iconUploadCloseEvent(target string) string {
+ if target == "service-icon-upload-body" { return "$dispatch('modal:close', {id:'service-icon-upload'})" }
+ return "$dispatch('drawer:close', {id:'iconUpload'})"
 }

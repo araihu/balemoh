@@ -28,7 +28,7 @@ templ IconsContent(data IconPage) {
   <p role="alert">{data.Error}</p>
  }
  if data.Editing != nil {
-  @IconUploadForm(*data.Editing, false)
+  @IconUploadForm(*data.Editing, "")
  } else if data.Details != nil {
   @IconDetails(*data.Details, "")
  } else {
@@ -61,14 +61,14 @@ templ IconUploadDrawerBody(i LibraryIcon, message string) {
   if message != "" {
    <p role="alert">{message}</p>
   }
-  @IconUploadForm(i, true)
+  @IconUploadForm(i, "icon-upload-body")
  </div>
 }
 
-templ IconUploadForm(i LibraryIcon, inDrawer bool) {
+templ IconUploadForm(i LibraryIcon, target string) {
  <form class="balemoh-editor balemoh-upload-form" method="post" action={templ.SafeURL(iconSaveURL(i.ID))} enctype="multipart/form-data"
-  if inDrawer {
-   hx-post="/icons/upload" hx-encoding="multipart/form-data" hx-target="#icon-upload-body" hx-swap="innerHTML" hx-disabled-elt="find button[type='submit']" hx-sync="this:drop"
+  if target != "" {
+   hx-post="/icons/upload" hx-encoding="multipart/form-data" hx-target={"#"+target} hx-swap="innerHTML" hx-disabled-elt="find button[type='submit']" hx-sync="this:drop"
   }
  >
   if i.ID != "" {
@@ -85,8 +85,8 @@ templ IconUploadForm(i LibraryIcon, inDrawer bool) {
   @button.Button(button.WithType("submit"),button.WithLoadingText("Saving…")) {
    Save icon
   }
-  if inDrawer {
-   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('drawer:close', {id:'iconUpload'})"})) {
+  if target != "" {
+   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"x-on:click":iconUploadCloseEvent(target)})) {
     Cancel
    }
   } else {
