@@ -3,6 +3,7 @@ package view
 import (
 	"github.com/araihu/goshtoso/components/button"
  "github.com/araihu/goshtoso/components/avatar"
+ "github.com/araihu/goshtoso/components/modal"
 
 	"github.com/araihu/goshtoso/components/form"
 	"github.com/araihu/goshtoso/components/link"
@@ -26,8 +27,8 @@ templ ServiceEditor(service Service) {
 		action={ templ.SafeURL(EditURL(service.ID)) }
 		class="balemoh-editor"
   data-icon-ref={service.IconRef} data-icon-url={service.Icon.URL} data-icon-symbol={service.Icon.Symbol} data-icon-sprite={service.Icon.SpriteURL}
-  x-data="{iconRef:$el.dataset.iconRef, iconURL:$el.dataset.iconUrl, iconSymbol:$el.dataset.iconSymbol, iconSprite:$el.dataset.iconSprite, pickerOpen:false}"
-  x-on:icon-selected="iconRef=$event.detail.id; iconURL=$event.detail.url; iconSymbol=$event.detail.symbol; iconSprite=$event.detail.sprite; pickerOpen=false; $refs.chooseIcon.focus()"
+  x-data="{iconRef:$el.dataset.iconRef, iconURL:$el.dataset.iconUrl, iconSymbol:$el.dataset.iconSymbol, iconSprite:$el.dataset.iconSprite}"
+  x-on:icon-selected.window="iconRef=$event.detail.id; iconURL=$event.detail.url; iconSymbol=$event.detail.symbol; iconSprite=$event.detail.sprite; $dispatch('modal:close', {id:'service-icon-picker'})"
 		if !service.Standalone {
 			hx-post={ EditURL(service.ID) }
 			hx-target="#service-editor-body"
@@ -48,17 +49,10 @@ templ ServiceEditor(service Service) {
    <div aria-label="Homepage card preview">
  @ServiceCard(service, ServiceIconPreview(service))
  </div>
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"pickerOpen=!pickerOpen","x-bind:aria-expanded":"pickerOpen","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-params":"q,source","hx-sync":"#icon-picker-results:replace"})) {
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"$dispatch('modal:open', {id:'service-icon-picker'})","aria-haspopup":"dialog","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-params":"q,source","hx-sync":"#icon-picker-results:replace"})) {
  Choose icon
  }
-   <div id="service-icon-picker" x-show="pickerOpen" style="display:none" x-on:keydown.escape.stop="pickerOpen=false; $refs.chooseIcon.focus()">
-    @IconSearch(IconPage{Picker:true})
-    <div id="icon-picker-results"></div>
-    @link.Link("/icons",link.WithTarget("_blank")) {
- Upload or manage icons
- }
-   </div>
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"iconRef=''; iconURL=''; iconSymbol=''; iconSprite=''; pickerOpen=false"})) {
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"iconRef=''; iconURL=''; iconSymbol=''; iconSprite=''"})) {
  Reset to discovery default
  }
   </div>
@@ -71,6 +65,15 @@ templ ServiceEditor(service Service) {
 			}
 		</div>
 	</form>
+   @modal.Dialog(modal.DialogConfig{ID:"service-icon-picker",Title:"Choose service icon",FullscreenMobile:true,Content:ServiceIconPicker()})
+}
+
+templ ServiceIconPicker() {
+ <div class="balemoh-editor">
+  @IconSearch(IconPage{Picker:true})
+  <div id="icon-picker-results"></div>
+  @link.Link("/icons",link.WithTarget("_blank")) { Upload or manage icons }
+ </div>
 }
 
 templ ServiceIconPreview(service Service) {

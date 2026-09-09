@@ -54,6 +54,12 @@ func TestServiceEditorCardAndDiscoveredPlaceholder(t *testing.T) {
 			t.Errorf("editor missing %s", want)
 		}
 	}
+	if strings.Index(html.String(), "</form>") > strings.Index(html.String(), "<dialog") {
+		t.Fatal("picker controls must not belong to the service save form")
+	}
+	if !strings.Contains(html.String(), `<dialog id="service-icon-picker"`) {
+		t.Fatal("editor must mount its icon picker dialog")
+	}
 	if service.Address != "https://custom.example/" {
 		t.Fatal("placeholder changed address override")
 	}

@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/a-h/templ v0.3.1020
 	github.com/araihu/balemoh/client v0.0.0
-	github.com/araihu/goshtoso v0.2.9-0.20260909012351-f0c4f94723d6
+	github.com/araihu/goshtoso v0.2.9-0.20260909014021-41c4ced948ac
 	github.com/araihu/goshtoso-app-shells v0.1.9-0.20260909005723-30a998140c52
 	github.com/caarlos0/env/v11 v11.4.1
 )

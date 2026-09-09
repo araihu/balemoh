@@ -3,7 +3,7 @@ module github.com/araihu/balemoh/client
 go 1.27.0
 
 require (
-	github.com/araihu/goshtoso v0.2.9-0.20260909012351-f0c4f94723d6
+	github.com/araihu/goshtoso v0.2.9-0.20260909014021-41c4ced948ac
 	github.com/oapi-codegen/runtime v1.7.0
 )
 

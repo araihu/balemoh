@@ -183,6 +183,4 @@ body {
 .balemoh-icon-upload{margin:1rem 0}.balemoh-icon-upload>summary{cursor:pointer}
 .balemoh-upload-form{max-width:36rem;margin:1rem 0}
 .balemoh-icon-upload-body{padding:1rem;min-width:0}
-#service-icon-picker .balemoh-icon-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-#service-icon-picker{min-width:0;max-height:26rem;overflow-y:auto;padding:.25rem}
 .balemoh-editor{min-width:0}.balemoh-editor>*{min-width:0}
