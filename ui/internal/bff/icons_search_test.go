@@ -32,3 +32,27 @@ func TestIconSearchFragmentAndDirectNavigation(t *testing.T) {
 		}
 	}
 }
+
+func TestIconSourceFiltersCombineAndSurvivePagination(t *testing.T) {
+	handler, err := New(&fakeCatalog{}, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ query, count string }{
+		{"source=goshtoso", "67 icons"},
+		{"source=uploads", "0 icons"},
+		{"source=goshtoso&source=uploads", "67 icons"},
+		{"source=goshtoso&source=selfhst", "2960 icons"},
+		{"source=goshtoso&source=goshtoso", "67 icons"},
+		{"", "2960 icons"},
+	} {
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, httptest.NewRequest("GET", "/icons?"+tc.query, nil))
+		if !strings.Contains(w.Body.String(), tc.count) {
+			t.Errorf("%s: expected %s", tc.query, tc.count)
+		}
+		if tc.query == "source=goshtoso&source=uploads" && !strings.Contains(w.Body.String(), "source=goshtoso&amp;source=uploads") {
+			t.Fatal("pagination lost selected sources")
+		}
+	}
+}

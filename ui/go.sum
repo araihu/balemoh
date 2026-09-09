@@ -15,6 +15,8 @@ github.com/araihu/goshtoso v0.2.9-0.20260908235034-98a8ad7f0919 h1:uNEEuRwrRhzlY
 github.com/araihu/goshtoso v0.2.9-0.20260908235034-98a8ad7f0919/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/araihu/goshtoso v0.2.9-0.20260909000720-3161ef916233 h1:w5+WVm6WdEFyTdFuByB2TManpTOmyEDUazhhmFgUJ5U=
 github.com/araihu/goshtoso v0.2.9-0.20260909000720-3161ef916233/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
+github.com/araihu/goshtoso v0.2.9-0.20260909001459-84fbecd0f036 h1:ZlTKBRrYGwl9t1mgGwV5sw0Git59iawszTsgp5Pqt2I=
+github.com/araihu/goshtoso v0.2.9-0.20260909001459-84fbecd0f036/go.mod h1:7LEyqS/Uuqt/en4wWV7py6um3CR4rH/HVrtBupZzNsI=
 github.com/araihu/goshtoso-app-shells v0.1.9-0.20260908213236-a76b2b77163f h1:5pM7DPneqW4O+Sbvg/1Pau7HlYJLB9VG55piUdpgkss=
 github.com/araihu/goshtoso-app-shells v0.1.9-0.20260908213236-a76b2b77163f/go.mod h1:KdRzZN01fQ7dVUZ5y1E8baFbhVW4o9V1E9VW/KBBMtU=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=

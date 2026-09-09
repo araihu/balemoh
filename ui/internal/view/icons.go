@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/araihu/goshtoso/iconlibrary"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -12,11 +13,12 @@ type LibraryIcon struct {
 	UsedBy                                                                             []string
 }
 type IconPage struct {
-	Icons                        []LibraryIcon
-	Query, Source, Error, Notice string
-	Page, Total                  int
-	Picker                       bool
-	Editing                      *LibraryIcon
+	Icons                []LibraryIcon
+	Query, Error, Notice string
+	Sources              []string
+	Page, Total          int
+	Picker               bool
+	Editing              *LibraryIcon
 }
 
 func LibraryEntry(i iconlibrary.Icon) LibraryIcon {
@@ -44,7 +46,11 @@ func IconPageURL(data IconPage, page int) string {
 	if data.Picker {
 		path += "/picker"
 	}
-	return fmt.Sprintf("%s?q=%s&source=%s&page=%d", path, url.QueryEscape(data.Query), url.QueryEscape(data.Source), page)
+	query := url.Values{"q": {data.Query}, "page": {strconv.Itoa(page)}}
+	for _, source := range data.Sources {
+		query.Add("source", source)
+	}
+	return path + "?" + query.Encode()
 }
 
 func iconUsageLabel(count int) string {

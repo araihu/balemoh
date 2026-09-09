@@ -3,8 +3,10 @@ package view
 import (
  "fmt"
  "strings"
+ "strconv"
  "github.com/araihu/goshtoso/components/button"
  "github.com/araihu/goshtoso/components/card"
+ "github.com/araihu/goshtoso/components/combobox"
  "github.com/araihu/goshtoso/components/fileinput"
  "github.com/araihu/goshtoso/components/icon"
  "github.com/araihu/goshtoso/components/link"
@@ -28,13 +30,21 @@ templ IconsContent(data IconPage) {
  if data.Editing != nil {
   @IconUploadForm(*data.Editing, false)
  } else {
-  <form action="/icons" method="get" class="balemoh-icon-search" hx-get="/icons" hx-trigger="input changed delay:300ms from:#icon-search, submit" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="this:replace" hx-replace-url="true">
-   @textinput.TextInput(textinput.Config{ID:"icon-search",Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
-   <input type="hidden" name="source" value={data.Source}/>
-  </form>
+  @IconSearch(data)
   @IconResults(data)
  }
 }
+
+templ IconSearch(data IconPage) {
+ <div class="balemoh-icon-search" hx-get={iconSearchPath(data.Picker)} hx-trigger="input delay:300ms, combobox:change" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="this:replace" hx-include="this" hx-params="q,source" hx-replace-url={strconv.FormatBool(!data.Picker)}>
+  @textinput.TextInput(textinput.Config{ID:iconSearchID(data.Picker),Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
+  {{ config := combobox.Config{ID:iconSearchID(data.Picker)+"-sources",Name:"source",Label:"Icon sources",Placeholder:"All sources",Mode:combobox.ModeMultiple,EnableClearAll:true,DisablePersistence:true,Selected:data.Sources,Source:combobox.Source{Static:[]combobox.Option{{Value:"goshtoso",Label:"Goshtoso"},{Value:"selfhst",Label:"selfh.st"},{Value:"uploads",Label:"Uploads"}}}} }}
+  @combobox.Combobox(config,config.InitialState())
+ </div>
+}
+
+func iconSearchID(picker bool)string{if picker{return "picker-search"};return "icon-search"}
+func iconSearchPath(picker bool)string{if picker{return "/icons/picker"};return "/icons"}
 
 templ IconPageActions(data IconPage) {
  if data.Editing == nil {
@@ -101,19 +111,6 @@ func iconSaveURL(id string)string{if id==""{return "/icons/upload"};return "/ico
 
 templ IconResults(data IconPage) {
  <div id="icon-picker-results" class="balemoh-icon-results">
-  <nav aria-label="Icon sources" class="balemoh-icon-filters">
-   for _,source:=range []string{"","goshtoso","selfhst","uploads"} {
-    @link.Link(IconPageURL(IconPage{Picker:data.Picker,Query:data.Query,Source:source},1),link.WithAttrs(iconNavigationAttrs(data.Picker))) {
-     if source=="" {
-      All
-     } else if source=="selfhst" {
-      selfh.st
-     } else {
-      {source}
-     }
-    }
-   }
-  </nav>
   if data.Error!="" {
    <p role="alert">{data.Error}</p>
   }

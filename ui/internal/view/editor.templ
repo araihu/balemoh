@@ -47,11 +47,11 @@ templ ServiceEditor(service Service) {
    <div aria-label="Homepage card preview">
  @ServiceCard(service, ServiceIconPreview(service))
  </div>
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"pickerOpen=!pickerOpen","x-bind:aria-expanded":"pickerOpen","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML"})) {
+   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"pickerOpen=!pickerOpen","x-bind:aria-expanded":"pickerOpen","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-params":"q,source"})) {
  Choose icon
  }
    <div id="service-icon-picker" x-show="pickerOpen" style="display:none" x-on:keydown.escape.stop="pickerOpen=false; $refs.chooseIcon.focus()">
-    @textinput.TextInput(textinput.Config{ID:"picker-search",Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Placeholder:"Name or tag",InputAttrs:templ.Attributes{"hx-get":"/icons/picker","hx-trigger":"input changed delay:300ms, search","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-params":"q","hx-include":"this"}})
+    @IconSearch(IconPage{Picker:true})
     <div id="icon-picker-results"></div>
     @link.Link("/icons",link.WithTarget("_blank")) {
  Upload or manage icons

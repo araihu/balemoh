@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,7 +38,12 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	list, err := s.iconList(ctx)
-	data := view.IconPage{Query: strings.TrimSpace(r.URL.Query().Get("q")), Source: r.URL.Query().Get("source"), Page: 1, Picker: r.URL.Path == "/icons/picker", Error: message}
+	data := view.IconPage{Query: strings.TrimSpace(r.URL.Query().Get("q")), Page: 1, Picker: r.URL.Path == "/icons/picker", Error: message}
+	for _, source := range []string{"goshtoso", "selfhst", "uploads"} {
+		if slices.Contains(r.URL.Query()["source"], source) {
+			data.Sources = append(data.Sources, source)
+		}
+	}
 	if err != nil && data.Error == "" {
 		data.Error = "Uploaded icons are unavailable. Bundled icons are still searchable."
 	}
@@ -46,7 +52,7 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 	}
 	filtered := []view.LibraryIcon{}
 	for _, i := range list {
-		if data.Source != "" && data.Source != i.Source {
+		if len(data.Sources) > 0 && !slices.Contains(data.Sources, i.Source) {
 			continue
 		}
 		if data.Query != "" && !strings.Contains(strings.ToLower(i.Name+" "+i.ID+" "+i.Tags), strings.ToLower(data.Query)) {
