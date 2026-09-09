@@ -14,6 +14,7 @@ type CatalogStore interface {
 	ReplaceSourceSnapshot(context.Context, Snapshot) (SnapshotApplyResult, error)
 	List(context.Context, bool) ([]Candidate, error)
 	SetPinned(context.Context, string, bool) (Candidate, error)
+	SaveEdit(context.Context, string, Edit) error
 }
 
 type Discoverer interface {
@@ -41,6 +42,7 @@ type UseCase interface {
 	Pin(context.Context, string) (Candidate, error)
 	Unpin(context.Context, string) (Candidate, error)
 	Sync(context.Context) (SyncResult, error)
+	Edit(context.Context, string, Edit) error
 }
 
 type SyncResult struct {

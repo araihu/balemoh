@@ -39,6 +39,7 @@ type ResourceObservation struct {
 }
 
 type Candidate struct {
+	Address     string                // Local homepage address override; empty uses discovery.
 	Resources   []ResourceObservation // Read projection only; discovery snapshots stay resource-based.
 	ID          string
 	Source      SourceRef

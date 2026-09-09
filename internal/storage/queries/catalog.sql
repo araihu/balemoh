@@ -168,3 +168,12 @@ UPDATE discovered_services
 SET pinned_at = NULL,
     updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id);
+
+-- name: GetServiceEdit :one
+SELECT * FROM service_edits WHERE service_id = ?;
+
+-- name: SaveServiceEdit :exec
+INSERT INTO service_edits (service_id, display_name, description, address)
+VALUES (?, ?, ?, ?)
+ON CONFLICT (service_id) DO UPDATE SET display_name = excluded.display_name,
+ description = excluded.description, address = excluded.address;

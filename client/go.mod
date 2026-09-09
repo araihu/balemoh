@@ -1,6 +1,6 @@
 module github.com/araihu/balemoh/client
 
-go 1.26.5
+go 1.27.0
 
 require github.com/oapi-codegen/runtime v1.7.0
 

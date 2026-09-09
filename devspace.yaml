@@ -54,7 +54,7 @@ deployments:
       values:
         containers:
         - name: balemoh-ui
-          image: golang:1.26-alpine
+          image: golang:1.27-alpine
           workingDir: /workspace
           command:
           - sh
@@ -112,6 +112,7 @@ dev:
       app.kubernetes.io/name: devspace-app
       app.kubernetes.io/component: ui
     container: balemoh-ui
+    devImage: golang:1.27-alpine
     namespace: "${BALEMOH_NAMESPACE}"
     command:
     - sh

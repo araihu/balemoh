@@ -35,6 +35,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/staging/services/{serviceId}:
+    parameters:
+      - name: serviceId
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      operationId: EditStagingService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceEdit'
+      responses:
+        '204':
+          description: Local presentation saved, independently of discovery
+        '400':
+          description: Invalid edit
+        '404':
+          description: Service not found
+        '503':
+          description: Catalog unavailable
   /api/v1/staging/services/{serviceId}/pin:
     parameters:
       - name: serviceId
@@ -256,6 +280,22 @@ components:
           type: array
           items:
             type: string
+    ServiceEdit:
+      type: object
+      additionalProperties: false
+      required: [displayName, description, address]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        address:
+          type: string
+          maxLength: 2048
+          description: Absolute HTTP(S) homepage address; empty uses discovery
     ServiceCandidate:
       type: object
       required:
@@ -271,6 +311,9 @@ components:
         - pinned
         - pinnedAt
       properties:
+        address:
+          type: string
+          description: Local homepage address override; empty uses discovery
         resources:
           type: array
           description: Resource evidence grouped under this Service; pin identity remains the Service ID.

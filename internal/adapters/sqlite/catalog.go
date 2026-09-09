@@ -358,6 +358,14 @@ func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queri
 		Images:      images,
 		ObservedAt:  observedAt,
 	}
+	edit, err := queries.GetServiceEdit(ctx, row.ID)
+	if err == nil {
+		candidate.DisplayName = edit.DisplayName
+		candidate.Description = edit.Description
+		candidate.Address = edit.Address
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return catalog.Candidate{}, fmt.Errorf("read service edit: %w", err)
+	}
 	if row.PinnedAt.Valid {
 		pinnedAt, err := time.Parse(time.RFC3339Nano, row.PinnedAt.String)
 		if err != nil {
@@ -387,3 +395,25 @@ func (s *CatalogStore) candidateFromRow(ctx context.Context, queries *sqlc.Queri
 }
 
 var _ catalog.CatalogStore = (*CatalogStore)(nil)
+
+func (s *CatalogStore) SaveEdit(ctx context.Context, id string, edit catalog.Edit) error {
+	edit = edit.Normalize()
+	if err := edit.Validate(); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := s.queries.WithTx(tx)
+	if _, err := q.GetDiscoveredService(ctx, id); errors.Is(err, sql.ErrNoRows) {
+		return catalog.ErrNotFound
+	} else if err != nil {
+		return err
+	}
+	if err := q.SaveServiceEdit(ctx, sqlc.SaveServiceEditParams{ServiceID: id, DisplayName: edit.DisplayName, Description: edit.Description, Address: edit.Address}); err != nil {
+		return err
+	}
+	return tx.Commit()
+}

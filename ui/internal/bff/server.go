@@ -43,8 +43,14 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 		_, _ = w.Write(uiassets.IconSprite)
 	})
 	mux.HandleFunc("GET /ui/balemoh.css", server.serveCSS)
+	mux.HandleFunc("GET /ui/social-v1.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(view.SocialPreview())
+	})
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
+	mux.HandleFunc("GET /staging/services/{serviceID}/edit", server.edit)
+	mux.HandleFunc("POST /staging/services/{serviceID}/edit", server.saveEdit)
 	mux.HandleFunc("POST /staging/sync", server.sync)
 	mux.HandleFunc("POST /staging/services/{serviceID}/selection", server.setPin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/pin", server.pin)
@@ -272,6 +278,8 @@ func noticeText(value string) string {
 		return "The service is now visible on the homepage."
 	case "unpinned":
 		return "The service was removed from the homepage."
+	case "edited":
+		return "Service updated."
 	case "synced":
 		return "Discovery completed; the candidate list is current."
 	default:
@@ -321,6 +329,7 @@ func mapService(service api.ServiceCandidate) view.Service {
 		Resources:   resources,
 		ID:          service.Id,
 		DisplayName: displayName,
+		Address:     pointerValue(service.Address),
 		Description: service.Description,
 		Source:      source,
 		Resource:    resource,
@@ -329,4 +338,11 @@ func mapService(service api.ServiceCandidate) view.Service {
 		Endpoints:   endpoints,
 		Images:      append([]string(nil), service.Images...),
 	}
+}
+
+func pointerValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

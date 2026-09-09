@@ -379,3 +379,17 @@ func TestCheckboxHTMXReturnsOnlyChangedRow(t *testing.T) {
 		t.Fatal("unknown state should retain row with client recovery")
 	}
 }
+
+func (f *fakeCatalog) Edit(_ context.Context, id string, edit client.ServiceEdit) error {
+	if f.mutationErr != nil {
+		return f.mutationErr
+	}
+	for i := range f.staging {
+		if f.staging[i].Id == id {
+			f.staging[i].DisplayName = edit.DisplayName
+			f.staging[i].Description = edit.Description
+			f.staging[i].Address = &edit.Address
+		}
+	}
+	return nil
+}

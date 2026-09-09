@@ -35,8 +35,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := db.QueryRowContext(context.Background(), "SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 4 || dirty {
-		t.Fatalf("schema_migrations = (version %d, dirty %t), want (4, false)", version, dirty)
+	if version != 5 || dirty {
+		t.Fatalf("schema_migrations = (version %d, dirty %t), want (5, false)", version, dirty)
 	}
 }
 

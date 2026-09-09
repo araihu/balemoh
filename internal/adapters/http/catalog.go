@@ -1,7 +1,9 @@
 package http
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -98,6 +100,7 @@ func serviceCandidate(candidate catalog.Candidate) generated.ServiceCandidate {
 	}
 	return generated.ServiceCandidate{
 		Resources:   &resources,
+		Address:     &candidate.Address,
 		Id:          candidate.ID,
 		Source:      generated.SourceRef{Kind: candidate.Source.Kind, Id: candidate.Source.ID},
 		Resource:    resource,
@@ -131,3 +134,28 @@ func writeCatalogUnavailable(w http.ResponseWriter) {
 }
 
 var _ generated.ServerInterface = Handler{}
+
+func (h Handler) EditStagingService(w http.ResponseWriter, r *http.Request, serviceID string) {
+	r.Body = http.MaxBytesReader(w, r.Body, 16384)
+	var edit generated.ServiceEdit
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&edit); err != nil {
+		http.Error(w, "Invalid edit", http.StatusBadRequest)
+		return
+	}
+	if err := dec.Decode(new(any)); err != io.EOF {
+		http.Error(w, "Invalid edit", http.StatusBadRequest)
+		return
+	}
+	err := h.catalog.Edit(r.Context(), serviceID, catalog.Edit{DisplayName: edit.DisplayName, Description: edit.Description, Address: edit.Address})
+	if errors.Is(err, catalog.ErrInvalidEdit) {
+		http.Error(w, "Invalid edit", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		writeCatalogError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

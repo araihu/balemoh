@@ -14,6 +14,7 @@ import (
 type Catalog interface {
 	Homepage(context.Context) ([]api.ServiceCandidate, error)
 	Staging(context.Context) ([]api.ServiceCandidate, error)
+	Edit(context.Context, string, api.ServiceEdit) error
 	Pin(context.Context, string) error
 	Unpin(context.Context, string) error
 	Sync(context.Context) (api.DiscoverySyncResponse, error)
@@ -107,3 +108,14 @@ func (e *upstreamError) Error() string {
 }
 
 func (e *upstreamError) Unwrap() error { return e.cause }
+
+func (c *APIClient) Edit(ctx context.Context, id string, edit api.ServiceEdit) error {
+	response, err := c.client.EditStagingServiceWithResponse(ctx, id, edit)
+	if err != nil {
+		return &upstreamError{operation: "edit", cause: err}
+	}
+	if response.StatusCode() != http.StatusNoContent {
+		return &upstreamError{operation: "edit", status: response.StatusCode()}
+	}
+	return nil
+}

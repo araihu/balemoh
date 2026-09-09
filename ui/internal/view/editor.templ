@@ -1,0 +1,74 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/fileinput"
+	"github.com/araihu/goshtoso/components/form"
+	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/table"
+	"github.com/araihu/goshtoso/components/textarea"
+	"github.com/araihu/goshtoso/components/textinput"
+	"net/url"
+)
+
+func EditURL(id string) string { return "/staging/services/" + url.PathEscape(id) + "/edit" }
+
+templ EditAction(service Service) {
+	@link.Link(EditURL(service.ID), link.WithAttrs(templ.Attributes{"hx-get": EditURL(service.ID), "hx-target": "#service-editor-body", "hx-swap": "innerHTML", "aria-label": "Edit " + service.DisplayName, "data-service-id": service.ID, "x-on:service-edited.window": "if ($event.detail.id === $el.dataset.serviceId) $el.focus({preventScroll:true})"})) {
+		Edit
+	}
+}
+
+templ ServiceEditor(service Service) {
+	<form
+		method="post"
+		action={ templ.SafeURL(EditURL(service.ID)) }
+		class="balemoh-editor"
+		if !service.Standalone {
+			hx-post={ EditURL(service.ID) }
+			hx-target="#service-editor-body"
+			hx-swap="innerHTML"
+			hx-disabled-elt="find button[type='submit']"
+			hx-params="displayName,description,address"
+		}
+	>
+		if service.EditError != "" {
+			<p role="alert">{ service.EditError }</p>
+		}
+		@form.FieldGroup(form.FieldGroupConfig{Label: "Name", Required: true, Input: &textinput.Config{ID: "edit-name", Name: "displayName", Value: service.DisplayName, MaxLength: 200}})
+		@form.FieldGroup(form.FieldGroupConfig{Label: "Description", Textarea: &textarea.Config{ID: "edit-description", Name: "description", Value: service.Description, Rows: 3, InputAttrs: templ.Attributes{"maxlength": "2000"}}})
+		@form.FieldGroup(form.FieldGroupConfig{Label: "Homepage address", Hints: []string{"Leave blank to use discovered addresses."}, Input: &textinput.Config{ID: "edit-address", Name: "address", Type: textinput.TypeURL, Value: service.Address, Placeholder: discoveredAddress(service), MaxLength: 2048}})
+		<div x-data="{iconPreview: '', destroy() { if (this.iconPreview) URL.revokeObjectURL(this.iconPreview) }}" class="balemoh-editor">
+			<div aria-label="Homepage card preview">
+				@ServiceCard(service, ServiceIconPreview(service))
+			</div>
+			@fileinput.FileInput(fileinput.Config{Appearance: fileinput.AppearanceUpload, ID: "edit-icon-preview", Label: "Icon preview", Accept: "image/*", HelperText: "Preview only. Icon changes are not saved yet.", InputAttrs: templ.Attributes{"x-ref": "iconFile", "x-on:change": "if (iconPreview) URL.revokeObjectURL(iconPreview); iconPreview = $event.target.files[0] ? URL.createObjectURL($event.target.files[0]) : ''"}})
+			@button.Button(button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithSize(button.SizeSmall), button.WithAttrs(templ.Attributes{"x-on:click": "if (iconPreview) URL.revokeObjectURL(iconPreview); iconPreview = ''; $refs.iconFile.value = ''"})) {
+				Reset to discovery default
+			}
+		</div>
+		<div class="balemoh-editor-actions">
+			@button.Button(button.WithType("submit"), button.WithLoadingText("Saving…")) {
+				Save changes
+			}
+			@link.Link("/staging", link.WithAttrs(templ.Attributes{"x-on:click": "if (document.getElementById('service-editor-body')) { $event.preventDefault(); $dispatch('drawer:close', {id:'serviceEditor'}) }"})) {
+				Cancel
+			}
+		</div>
+	</form>
+}
+
+templ ServiceIconPreview(service Service) {
+	<span class="balemoh-service-card-icon">
+		<span x-show="!iconPreview">
+			@ServiceCardIcon(service)
+		</span>
+		<template x-if="iconPreview"><img x-bind:src="iconPreview" alt="Selected icon preview" width="32" height="32"/></template>
+	</span>
+}
+
+templ EditedRow(service Service) {
+	<template>
+		@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, editedTableRow(service))
+	</template>
+}

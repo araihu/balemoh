@@ -1,16 +1,41 @@
 package view
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
 
+	"github.com/araihu/goshtoso/components/dropdown"
 	"github.com/araihu/goshtoso/components/table"
+	"github.com/araihu/goshtoso/components/tooltip"
 )
+
+func addressLabel(address string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://"), "//")
+}
+
+func discoveredAddress(service Service) string {
+	service.Address = ""
+	if addresses := groupAddresses(service); len(addresses) > 0 {
+		return addresses[0]
+	}
+	return ""
+}
+
+func addressMenuItems(addresses []string) []dropdown.Item {
+	items := make([]dropdown.Item, 0, len(addresses))
+	for _, address := range addresses {
+		items = append(items, dropdown.Item{Label: addressLabel(address), Href: address, Target: "_blank"})
+	}
+	return items
+}
 
 // PageData is the presentation model for the two operator-facing catalog
 // pages. It deliberately contains no generated API types.
 type PageData struct {
+	Editor      *Service
+	Path        string
 	Title       string
 	Description string
 	Active      string
@@ -21,6 +46,9 @@ type PageData struct {
 }
 
 type Service struct {
+	Standalone  bool
+	Address     string
+	EditError   string
 	PinError    string
 	Resources   []Service
 	ID          string
@@ -45,13 +73,17 @@ type Endpoint struct {
 func serviceTableColumns(staging bool) []table.Column {
 	columns := []table.Column{}
 	if staging {
-		columns = append(columns, table.Column{Key: "select", Label: "Pinned", Width: "balemoh-col-select"})
+		columns = append(columns, table.Column{Key: "select", Label: "Pinned", HeaderSuffix: tooltip.Help("pinning-help", "How pinning works", "Check to pin a service to your homepage. Uncheck to remove it. Changes save immediately."), Width: "balemoh-col-select"})
 	}
-	return append(columns,
+	columns = append(columns,
 		table.Column{Key: "service", Label: "Service", Width: "balemoh-col-service"},
 		table.Column{Key: "endpoint", Label: "Address", Width: "balemoh-col-address"},
 		table.Column{Key: "resource", Label: "Resources", Width: "balemoh-col-resources"},
 	)
+	if staging {
+		columns = append(columns, table.Column{Key: "actions", Label: "Actions"})
+	}
+	return columns
 }
 
 func serviceTableRows(data PageData) []table.Row {
@@ -69,8 +101,8 @@ func serviceTableRows(data PageData) []table.Row {
 				"images":   {Component: ServiceImages(service)},
 			},
 		}
-		if !data.Staging {
-			row.Actions = ServiceActions(service)
+		if data.Staging {
+			row.Cells["actions"] = table.Cell{Component: EditAction(service)}
 		}
 		rows = append(rows, row)
 	}
@@ -168,6 +200,9 @@ func resourceMembers(service Service) []Service {
 	return []Service{service}
 }
 func groupAddresses(service Service) []string {
+	if service.Address != "" {
+		return []string{service.Address}
+	}
 	addresses := []string{}
 	seen := map[string]bool{}
 	for _, endpoint := range service.Endpoints {
@@ -177,4 +212,15 @@ func groupAddresses(service Service) []string {
 		}
 	}
 	return addresses
+}
+
+func successToastEvent(message string) string {
+	payload, _ := json.Marshal(map[string]string{"kind": "toast", "tone": "success", "message": message})
+	return "$nextTick(() => $dispatch('notify', " + string(payload) + "))"
+}
+
+func editedTableRow(service Service) table.Row {
+	row := serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0]
+	row.AlpineAttrs["hx-swap-oob"] = "outerHTML"
+	return row
 }
