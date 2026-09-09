@@ -19,6 +19,7 @@ type IconPage struct {
 	Page, Total          int
 	Picker               bool
 	Editing              *LibraryIcon
+	Details              *LibraryIcon
 }
 
 func LibraryEntry(i iconlibrary.Icon) LibraryIcon {
@@ -39,8 +40,9 @@ func LibraryEntry(i iconlibrary.Icon) LibraryIcon {
 	}
 	return v
 }
-func IconImageURL(id string) string { return "/icons/" + url.PathEscape(id) + "/image" }
-func IconEditURL(id string) string  { return "/icons/" + url.PathEscape(id) + "/edit" }
+func IconImageURL(id string) string   { return "/icons/" + url.PathEscape(id) + "/image" }
+func IconEditURL(id string) string    { return "/icons/" + url.PathEscape(id) + "/edit" }
+func IconDetailsURL(id string) string { return "/icons/" + url.PathEscape(id) + "/details" }
 func IconPageURL(data IconPage, page int) string {
 	path := "/icons"
 	if data.Picker {

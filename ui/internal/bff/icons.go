@@ -1,6 +1,7 @@
 package bff
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	api "github.com/araihu/balemoh/client"
@@ -100,6 +101,41 @@ func (s *server) editIcon(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	http.NotFound(w, r)
+}
+
+func (s *server) iconDetails(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	list, err := s.iconList(ctx)
+	var selected view.LibraryIcon
+	status, message := http.StatusNotFound, "This icon is no longer available."
+	if err != nil {
+		status, message = http.StatusServiceUnavailable, "Unable to load this icon. Try again."
+	}
+	for _, i := range list {
+		if i.ID == r.PathValue("iconID") {
+			selected, status, message = i, http.StatusOK, ""
+			break
+		}
+	}
+	if r.Header.Get("HX-Request") != "true" {
+		title := "Icon details"
+		if selected.Name != "" {
+			title = selected.Name + " icon"
+		}
+		s.render(w, r, view.PageData{Title: title, Description: "Icon source, license, and available variants in the Balemoh library.", Path: view.IconDetailsURL(r.PathValue("iconID")), Active: "nav-icons", IconPage: &view.IconPage{Details: &selected, Error: message}}, status)
+		return
+	}
+	var body bytes.Buffer
+	if err := view.IconDetails(selected, message).Render(r.Context(), &body); err != nil {
+		http.Error(w, "Unable to render icon details.", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Balemoh-Status", strconv.Itoa(status))
+	w.Header().Set("HX-Trigger-After-Swap", `{"drawer:open":{"id":"iconDetails"}}`)
+	_, _ = w.Write(body.Bytes())
 }
 func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 	if s.icons == nil {

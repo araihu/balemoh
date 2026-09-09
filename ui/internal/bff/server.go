@@ -53,6 +53,7 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 	mux.HandleFunc("GET /icons/picker", server.iconsPage)
 	mux.HandleFunc("POST /icons/upload", server.uploadIcon)
 	mux.HandleFunc("GET /icons/{iconID}/edit", server.editIcon)
+	mux.HandleFunc("GET /icons/{iconID}/details", server.iconDetails)
 	mux.HandleFunc("POST /icons/{iconID}/edit", server.uploadIcon)
 	mux.HandleFunc("POST /icons/{iconID}/delete", server.deleteIcon)
 	mux.HandleFunc("GET /icons/{iconID}/image", server.iconImage)

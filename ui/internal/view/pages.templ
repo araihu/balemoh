@@ -50,10 +50,11 @@ templ PageContent(data PageData) {
 	if data.Staging && data.Editor == nil {
 		@drawer.Drawer(drawer.Config{ID: "serviceEditor", Title: "Edit service", BodyID: "service-editor-body"})
 	}
- if data.IconPage != nil && data.IconPage.Editing == nil {
+ if data.IconPage != nil && data.IconPage.Editing == nil && data.IconPage.Details == nil {
   @drawer.Drawer(drawer.Config{ID:"iconUpload",Title:"Upload icon",BodyID:"icon-upload-body"}) {
    @IconUploadDrawerBody(LibraryIcon{}, "")
   }
+  @drawer.Drawer(drawer.Config{ID:"iconDetails",Title:"Icon details",BodyID:"icon-details-body"})
  }
 }
 

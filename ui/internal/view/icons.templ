@@ -24,11 +24,13 @@ templ LibraryImage(i LibraryIcon) {
 
 templ IconsContent(data IconPage) {
  @pageheader.PageHeader(pageheader.Config{Title:"Icons",HideSeparator:true,Actions:IconPageActions(data)})
- if data.Editing != nil && data.Error != "" {
+ if (data.Editing != nil || data.Details != nil) && data.Error != "" {
   <p role="alert">{data.Error}</p>
  }
  if data.Editing != nil {
   @IconUploadForm(*data.Editing, false)
+ } else if data.Details != nil {
+  @IconDetails(*data.Details, "")
  } else {
   @IconSearch(data)
   @IconResults(data)
@@ -47,7 +49,7 @@ func iconSearchID(picker bool)string{if picker{return "picker-search"};return "i
 func iconSearchPath(picker bool)string{if picker{return "/icons/picker"};return "/icons"}
 
 templ IconPageActions(data IconPage) {
- if data.Editing == nil {
+ if data.Editing == nil && data.Details == nil {
   @button.Button(button.WithType("button"),button.WithAttrs(templ.Attributes{"x-data":"{}","x-on:click":"$dispatch('drawer:open', {id:'iconUpload'})","aria-haspopup":"dialog","aria-controls":"icon-upload-body"})) {
    Upload icon
   }
@@ -123,7 +125,13 @@ templ IconResults(data IconPage) {
 
 templ IconBatch(data IconPage) {
  for _,i:=range data.Icons {
-  @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,data.Picker)})
+  if data.Picker {
+   @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,true)})
+  } else {
+   @link.Link(IconDetailsURL(i.ID),link.WithRootClass("balemoh-icon-details-link"),link.WithAttrs(templ.Attributes{"aria-label":"Details for "+i.Name,"aria-haspopup":"dialog","aria-controls":"icon-details-body","hx-get":IconDetailsURL(i.ID),"hx-target":"#icon-details-body","hx-swap":"innerHTML","hx-sync":"#icon-details-body:replace","hx-push-url":"false"})) {
+    @card.Card(card.Config{RootClass:"balemoh-icon-tile",Body:IconTileBody(i,false)})
+   }
+  }
  }
  if data.Page*48<data.Total {
   <div id="icon-scroll-next" class="balemoh-icon-more" x-data="{failed:false}" x-on:htmx:response-error="failed=true" x-on:htmx:send-error="failed=true">
@@ -151,30 +159,53 @@ templ IconTileBody(i LibraryIcon, picker bool) {
      if picker {
       @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-icon-choice"),button.WithAttrs(templ.Attributes{"aria-label":"Choose "+i.Name,"data-icon-id":i.ID,"data-icon-url":i.URL,"data-icon-symbol":i.Symbol,"data-icon-sprite":i.SpriteURL,"x-on:click":"$dispatch('icon-selected', {id:$el.dataset.iconId, url:$el.dataset.iconUrl, symbol:$el.dataset.iconSymbol, sprite:$el.dataset.iconSprite})"})) {
        @LibraryImage(i)
-       <span>{i.Name}</span>
+       <span class="balemoh-icon-name">{i.Name}</span>
       }
      } else {
       @LibraryImage(i)
-      <strong>{i.Name}</strong>
+      <strong class="balemoh-icon-name">{i.Name}</strong>
       <small>{i.Source}</small>
-      if i.Source=="uploads" {
-       @link.Link(IconEditURL(i.ID)) {
-        Manage
-       }
-      } else {
-       <details>
-        <summary>Details</summary>
-        <p>{i.Tags}</p>
-        <p>{i.License}</p>
-        if i.LightURL!="" {
-         <img src={i.LightURL} width="40" height="40" alt={i.Name+" light variant"} loading="lazy"/>
-        }
-        if i.DarkURL!="" {
-         <img src={i.DarkURL} width="40" height="40" alt={i.Name+" dark variant"} loading="lazy"/>
-        }
-       </details>
-      }
      }
 
+ </div>
+}
+
+templ IconDetails(i LibraryIcon, message string) {
+ <div class="balemoh-editor balemoh-icon-details">
+  if message != "" {
+   <p role="alert">{message}</p>
+  }
+  if i.ID != "" {
+   @LibraryImage(i)
+   <h3>{i.Name}</h3>
+   <dl>
+    <dt>Source</dt><dd>{i.Source}</dd>
+    if i.Tags!="" {
+     <dt>Tags</dt><dd>{i.Tags}</dd>
+    }
+    if i.License!="" {
+     <dt>License</dt><dd>{i.License}</dd>
+    }
+   </dl>
+   if i.LightURL!="" || i.DarkURL!="" {
+    <div class="balemoh-icon-variants">
+     if i.LightURL!="" {
+      <figure><img class="balemoh-icon-variant-light" src={i.LightURL} width="64" height="64" alt={i.Name+" light variant"}/><figcaption>Light variant</figcaption></figure>
+     }
+     if i.DarkURL!="" {
+      <figure><img class="balemoh-icon-variant-dark" src={i.DarkURL} width="64" height="64" alt={i.Name+" dark variant"}/><figcaption>Dark variant</figcaption></figure>
+     }
+    </div>
+   }
+   if i.Source=="uploads" {
+    <p>{iconUsageLabel(len(i.UsedBy))}</p>
+    if len(i.UsedBy)>0 {
+     <p>{strings.Join(i.UsedBy,", ")}</p>
+    }
+    @link.Link(IconEditURL(i.ID)) {
+     Manage icon
+    }
+   }
+  }
  </div>
 }
