@@ -28,6 +28,7 @@ templ PageContent(data PageData) {
 		if data.Staging {
 			@pageheader.PageHeader(pageheader.Config{
 				Title:       data.Title,
+				HideSeparator: true,
 				TitleSuffix: tooltip.Help("staging-help", "About Staging", data.Description),
 				TitleAttrs:  templ.Attributes{"id": "balemoh-page-heading"},
 				Actions:     StagingActions(),
