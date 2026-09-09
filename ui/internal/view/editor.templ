@@ -7,19 +7,12 @@ import (
 
 	"github.com/araihu/goshtoso/components/form"
 	"github.com/araihu/goshtoso/components/link"
-	"github.com/araihu/goshtoso/components/table"
 	"github.com/araihu/goshtoso/components/textarea"
 	"github.com/araihu/goshtoso/components/textinput"
 	"net/url"
 )
 
 func EditURL(id string) string { return "/staging/services/" + url.PathEscape(id) + "/edit" }
-
-templ EditAction(service Service) {
-	@link.Link(EditURL(service.ID), link.WithAttrs(templ.Attributes{"hx-get": EditURL(service.ID), "hx-target": "#service-editor-body", "hx-swap": "innerHTML", "aria-label": "Edit " + service.DisplayName, "data-service-id": service.ID, "x-on:service-edited.window": "if ($event.detail.id === $el.dataset.serviceId) $el.focus({preventScroll:true})"})) {
-		Edit
-	}
-}
 
 templ ServiceEditor(service Service) {
 	<form
@@ -29,13 +22,7 @@ templ ServiceEditor(service Service) {
   data-icon-ref={service.IconRef} data-icon-url={service.Icon.URL} data-icon-symbol={service.Icon.Symbol} data-icon-sprite={service.Icon.SpriteURL}
   x-data="{iconRef:$el.dataset.iconRef, iconURL:$el.dataset.iconUrl, iconSymbol:$el.dataset.iconSymbol, iconSprite:$el.dataset.iconSprite}"
   x-on:icon-selected.window="iconRef=$event.detail.id; iconURL=$event.detail.url; iconSymbol=$event.detail.symbol; iconSprite=$event.detail.sprite; $dispatch('modal:close', {id:'service-icon-picker'})"
-		if !service.Standalone {
-			hx-post={ EditURL(service.ID) }
-			hx-target="#service-editor-body"
-			hx-swap="innerHTML"
-			hx-disabled-elt="find button[type='submit']"
-			hx-params="displayName,description,address,icon"
-		}
+
 	>
 		if service.EditError != "" {
 			<p role="alert">{ service.EditError }</p>
@@ -61,7 +48,7 @@ templ ServiceEditor(service Service) {
 			@button.Button(button.WithType("submit"), button.WithLoadingText("Saving…")) {
 				Save changes
 			}
-			@link.Link("/staging", link.WithAttrs(templ.Attributes{"x-on:click": "if (document.getElementById('service-editor-body')) { $event.preventDefault(); $dispatch('drawer:close', {id:'serviceEditor'}) }"})) {
+			@link.Link("/staging") {
 				Cancel
 			}
 		</div>
@@ -92,12 +79,6 @@ templ ServicePreviewGlyph(service Service) {
 }
 templ ServiceDefaultIcon(service Service) {
  @ServiceGlyph(Service{Icon: service.DefaultIcon, Source:service.Source, Resource:service.Resource})
-}
-
-templ EditedRow(service Service) {
-	<template>
-		@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, editedTableRow(service))
-	</template>
 }
 
 templ ServiceIconUpload() {

@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/araihu/balemoh/ui/iconpacks/selfhst"
 	"github.com/araihu/balemoh/ui/internal/bff"
 	"github.com/araihu/balemoh/ui/internal/config"
 )
@@ -33,7 +35,10 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	handler, err := bff.New(apiClient, options.RequestTimeout)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	icons := startIconCache(ctx, options.IconCacheDir, options.IconStartupTimeout, selfhst.Ensure, slog.Default())
+	handler, err := bff.NewWithIconHandler(apiClient, options.RequestTimeout, icons)
 	if err != nil {
 		return fmt.Errorf("create UI handler: %w", err)
 	}

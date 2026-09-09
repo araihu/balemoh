@@ -136,6 +136,22 @@ func (d *Discoverer) discoverServices(ctx context.Context, observedAt time.Time,
 	if err != nil {
 		return nil, nil, fmt.Errorf("list Kubernetes Services: %w", err)
 	}
+	var nodes []corev1.Node
+	needsNodes := false
+	for _, service := range list.Items {
+		for _, port := range service.Spec.Ports {
+			if port.NodePort > 0 {
+				needsNodes = true
+			}
+		}
+	}
+	if needsNodes {
+		list, err := d.coreClient.Nodes().List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, nil, fmt.Errorf("list Kubernetes Nodes for NodePort discovery: %w", err)
+		}
+		nodes = list.Items
+	}
 	selected := make(map[serviceRef]corev1.Service, len(list.Items))
 	candidates := make([]catalog.Candidate, 0, len(list.Items))
 	for _, service := range list.Items {
@@ -149,13 +165,15 @@ func (d *Discoverer) discoverServices(ctx context.Context, observedAt time.Time,
 		selected[ref] = service
 		candidate := d.newCandidate("service", service.Namespace, service.Name, "Kubernetes Service", service.Labels, observedAt)
 		candidate.Metadata["service.type"] = string(service.Spec.Type)
+		candidate.Metadata[catalog.BackendMetadata] = backendIdentity(service)
 		if external {
 			candidate.Metadata["service.external"] = "true"
 			if externalName := strings.TrimSpace(service.Spec.ExternalName); externalName != "" {
 				candidate.Metadata["service.externalName"] = externalName
 			}
 		}
-		candidate.Endpoints = serviceEndpoints(service)
+		candidate.Endpoints = append(serviceEndpoints(service), externalServiceEndpoints(service)...)
+		candidate.Endpoints = append(candidate.Endpoints, nodeServiceEndpoints(service, nodes)...)
 		candidates = append(candidates, candidate)
 	}
 	return candidates, selected, nil
@@ -218,6 +236,10 @@ func (d *Discoverer) discoverHTTPRoutes(ctx context.Context, observedAt time.Tim
 	for index := range list.Items {
 		route := &list.Items[index]
 		candidate := d.newCandidate("httproute", route.GetNamespace(), route.GetName(), "Kubernetes HTTPRoute", route.GetLabels(), observedAt)
+		if evidence := routeExposures(route); len(evidence) > 0 {
+			raw, _ := json.Marshal(evidence)
+			candidate.Metadata[catalog.ExposureMetadata] = string(raw)
+		}
 		endpoints, refs, err := httpRouteEndpoints(route)
 		if err != nil {
 			return nil, nil, fmt.Errorf("read Kubernetes HTTPRoute %s/%s: %w", route.GetNamespace(), route.GetName(), err)

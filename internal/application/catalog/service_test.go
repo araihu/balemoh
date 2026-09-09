@@ -69,7 +69,12 @@ func (f *fakeStore) List(_ context.Context, pinned bool) ([]Candidate, error) {
 	return result, nil
 }
 
-func (f *fakeStore) SetPinned(_ context.Context, id string, pinned bool) (Candidate, error) {
+func (f *fakeStore) SetPinned(ctx context.Context, id string, pinned bool, related ...string) (Candidate, error) {
+	for _, member := range related {
+		if _, err := f.SetPinned(ctx, member, pinned); err != nil {
+			return Candidate{}, err
+		}
+	}
 	f.setPins = append(f.setPins, struct {
 		id     string
 		pinned bool

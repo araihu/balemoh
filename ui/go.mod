@@ -5,15 +5,17 @@ go 1.27.0
 require (
 	github.com/a-h/templ v0.3.1020
 	github.com/araihu/balemoh/client v0.0.0
-	github.com/araihu/goshtoso v0.2.9-0.20260909033241-d881cbbe3189
+	github.com/araihu/goshtoso v0.2.11-0.20260909173354-6a5612c630d4
 	github.com/araihu/goshtoso-app-shells v0.1.9-0.20260909005723-30a998140c52
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/gofrs/flock v0.13.1
 )
 
 require (
 	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
+	github.com/araihu/muamba v0.0.5 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cli/browser v1.3.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
@@ -25,6 +27,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/oapi-codegen/runtime v1.7.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/image v0.46.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.58.0 // indirect

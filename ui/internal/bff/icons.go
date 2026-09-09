@@ -9,7 +9,6 @@ import (
 	"github.com/araihu/balemoh/client/iconassets"
 	"github.com/araihu/balemoh/ui/internal/view"
 	"io"
-	"io/fs"
 	"net/http"
 	"slices"
 	"sort"
@@ -253,17 +252,6 @@ func (s *server) iconImage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
 	w.Header().Set("Cache-Control", "no-cache")
 	_, _ = w.Write(data)
-}
-func bundledIconsHandler() http.Handler {
-	sub, err := fs.Sub(iconassets.Files, "selfhst")
-	if err != nil {
-		panic(err)
-	}
-	h := http.StripPrefix("/ui/icon-library/selfhst/", http.FileServer(http.FS(sub)))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		h.ServeHTTP(w, r)
-	})
 }
 
 func resolveIcon(ref string) view.LibraryIcon {

@@ -373,3 +373,40 @@ func TestCatalogStoreSurvivesDatabaseRestart(t *testing.T) {
 		t.Fatalf("services after restart = %#v, want candidate %q", services, candidate.ID)
 	}
 }
+
+func TestGroupedUnpinRollsBackOnMemberFailure(t *testing.T) {
+	db := newCatalogTestDatabase(t)
+	store := NewCatalogStore(db)
+	ctx := context.Background()
+	a, b := catalogTestCandidate("a", time.Now()), catalogTestCandidate("b", time.Now())
+	for _, candidate := range []catalog.Candidate{a, b} {
+		if err := store.Upsert(ctx, candidate); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, id := range []string{a.ID, b.ID} {
+		if _, err := store.SetPinned(ctx, id, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(`CREATE TRIGGER reject_unpin BEFORE UPDATE OF pinned_at ON discovered_services WHEN NEW.id = '` + b.ID + `' AND NEW.pinned_at IS NULL BEGIN SELECT RAISE(ABORT, 'test failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetPinned(ctx, a.ID, false, b.ID); err == nil {
+		t.Fatal("expected unpin failure")
+	}
+	pinned, err := store.List(ctx, true)
+	if err != nil || len(pinned) != 2 {
+		t.Fatalf("partial unpin: %d %v", len(pinned), err)
+	}
+	if _, err := db.Exec(`DROP TRIGGER reject_unpin`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetPinned(ctx, a.ID, false, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	pinned, err = store.List(ctx, true)
+	if err != nil || len(pinned) != 0 {
+		t.Fatalf("unpin failed: %d %v", len(pinned), err)
+	}
+}

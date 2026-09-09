@@ -12,7 +12,6 @@ import (
 )
 
 // Options configures the Balemoh server-rendered UI BFF.
-//
 type Options struct {
 	// HTTPAddr is the address where the UI BFF listens.
 	HTTPAddr string `env:"BALEMOH_UI_HTTP_ADDR" envDefault:":8081"`
@@ -20,6 +19,10 @@ type Options struct {
 	APIBaseURL string `env:"BALEMOH_UI_API_BASE_URL" envDefault:"http://127.0.0.1:8080"`
 	// RequestTimeout bounds one UI-to-API request.
 	RequestTimeout time.Duration `env:"BALEMOH_UI_REQUEST_TIMEOUT" envDefault:"5s"`
+	// IconCacheDir stores downloaded, verified icon packs across restarts.
+	IconCacheDir string `env:"BALEMOH_UI_ICON_CACHE_DIR" envDefault:"./data/icons"`
+	// IconStartupTimeout bounds background icon download and cache verification.
+	IconStartupTimeout time.Duration `env:"BALEMOH_UI_ICON_STARTUP_TIMEOUT" envDefault:"10m"`
 	// ShutdownTimeout bounds graceful UI shutdown.
 	ShutdownTimeout time.Duration `env:"BALEMOH_UI_SHUTDOWN_TIMEOUT" envDefault:"5s"`
 }
@@ -52,6 +55,7 @@ func ParseEnvironment(values map[string]string) (Options, error) {
 }
 
 func normalize(options Options) Options {
+	options.IconCacheDir = strings.TrimSpace(options.IconCacheDir)
 	options.HTTPAddr = strings.TrimSpace(options.HTTPAddr)
 	options.APIBaseURL = strings.TrimSpace(options.APIBaseURL)
 	return options
@@ -62,6 +66,12 @@ func normalize(options Options) Options {
 func (o Options) Validate() error {
 	if strings.TrimSpace(o.HTTPAddr) == "" {
 		return fmt.Errorf("UI HTTP address must not be empty")
+	}
+	if strings.TrimSpace(o.IconCacheDir) == "" {
+		return fmt.Errorf("icon cache directory must not be empty")
+	}
+	if o.IconStartupTimeout <= 0 {
+		return fmt.Errorf("icon startup timeout must be positive")
 	}
 	if o.RequestTimeout <= 0 {
 		return fmt.Errorf("request timeout must be positive")

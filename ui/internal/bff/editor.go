@@ -1,12 +1,9 @@
 package bff
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -76,36 +73,13 @@ func (s *server) saveEdit(w http.ResponseWriter, r *http.Request) {
 		s.renderEditor(w, r, service, http.StatusServiceUnavailable)
 		return
 	}
-	if r.Header.Get("HX-Request") != "true" {
-		redirect(w, r, "/staging?notice=edited")
-		return
-	}
-	var body bytes.Buffer
-	if err := view.EditedRow(service).Render(r.Context(), &body); err != nil {
-		http.Error(w, "Unable to render saved service. Refresh staging.", 500)
-		return
-	}
-	events, _ := json.Marshal(map[string]any{"drawer:close": map[string]string{"id": "serviceEditor"}, "service-edited": map[string]string{"id": service.ID}, "notify": map[string]string{"kind": "toast", "tone": "success", "message": "Service updated."}})
-	w.Header().Set("HX-Trigger-After-Settle", string(events))
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	_, _ = w.Write(body.Bytes())
+	redirect(w, r, "/staging?notice=edited")
 }
 
 func (s *server) renderEditor(w http.ResponseWriter, r *http.Request, service view.Service, status int) {
-	if r.Header.Get("HX-Request") != "true" {
-		service.Standalone = true
-		s.render(w, r, view.PageData{Title: "Edit service", Description: "Edit the service name, description, and homepage address.", Path: view.EditURL(service.ID), Active: "nav-staging", Staging: true, Editor: &service}, status)
-		return
+	title := service.DisplayName
+	if title == "" {
+		title = "Service details"
 	}
-	var body bytes.Buffer
-	if err := view.ServiceEditor(service).Render(r.Context(), &body); err != nil {
-		http.Error(w, "Unable to render editor.", 500)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("X-Balemoh-Status", strconv.Itoa(status))
-	w.Header().Set("HX-Trigger-After-Swap", `{"drawer:open":{"id":"serviceEditor"}}`)
-	_, _ = w.Write(body.Bytes())
+	s.render(w, r, view.PageData{Title: title, Description: "Review discovered resources and edit this service's name, description, address, and icon.", Path: view.EditURL(service.ID), Active: "nav-staging", Staging: true, Editor: &service}, status)
 }
