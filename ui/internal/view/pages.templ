@@ -20,6 +20,7 @@ import (
 	"github.com/araihu/goshtoso/components/link"
 	"github.com/araihu/goshtoso/components/pageheader"
 	"github.com/araihu/goshtoso/components/table"
+ "github.com/araihu/goshtoso/components/tabs"
 	"github.com/araihu/goshtoso/components/toast"
 	"github.com/araihu/goshtoso/components/tooltip"
 )
@@ -32,7 +33,7 @@ templ PageContent(data PageData) {
 	<section class="balemoh-content" aria-label={ data.Title }>
 		if data.Editor != nil {
  @pageheader.PageHeader(pageheader.Config{Title: data.Title, HideSeparator: true})
- @link.Link("/staging") { Back to Staging }
+ @link.Link(stagingURL(data.Editor.State())) { Back to Staging }
  } else if data.Staging {
 			@pageheader.PageHeader(pageheader.Config{
 				Title:       data.Title,
@@ -43,12 +44,15 @@ templ PageContent(data PageData) {
 			})
 		}
 		if data.Error != "" {
-			@alert.Alert(alert.Config{Title: "Catálogo indisponível", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
+			<div tabindex="-1" x-data="{}" x-init="$el.focus()">
+ @alert.Alert(alert.Config{Title: "Request could not be completed", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
+ </div>
 		}
 		if data.IconPage != nil {
  @IconsContent(*data.IconPage)
  } else if data.Editor != nil {
 			@ServiceEditor(*data.Editor)
+ @ServiceLifecycle(*data.Editor)
  <h2>Resources</h2>
  @ServiceResources(*data.Editor)
 		} else if data.Staging {
@@ -149,16 +153,20 @@ templ AddressCountTrigger(service Service, count int) {
 }
 
 templ StagingContent(data PageData) {
-	if len(data.Services) > 0 {
-		@ServiceTable(data)
-	} else if data.Error == "" {
-		@emptystate.EmptyState(emptystate.Config{
-			Title:       "No candidates yet",
-			Description: "Run discovery again when a cluster or host is connected to this Balemoh instance.",
-			Action:      SyncAction(),
-			RootClass:   "balemoh-empty-state",
-		})
-	}
+ @tabs.Tabs(tabs.Config{ID:"staging-status",DefaultTab:data.Status,SyncHash:true,Tabs:stagingTabs(data)})
+}
+
+func stagingTabs(data PageData) []tabs.Tab {
+ result := []tabs.Tab{}
+ for _, state := range []string{"live","missing","hidden"} {
+  filtered := data
+  filtered.Status=state
+  filtered.Services=nil
+  for _, service := range data.Services {if service.State()==state {filtered.Services=append(filtered.Services,service)}}
+  label:=strings.ToUpper(state[:1])+state[1:]
+  result=append(result,tabs.Tab{ID:state,Label:label,Badge:strconv.Itoa(len(filtered.Services)),Content:ServiceTable(filtered)})
+ }
+ return result
 }
 
 templ SyncAction() {
@@ -179,9 +187,9 @@ templ ServiceTable(data PageData) {
 	if len(data.Services) > 0 {
 		<div class="balemoh-table-scroll">
 			@table.Table(table.Config{
-				ID:        "balemoh-services",
+				ID:        "balemoh-services-" + data.Status,
 				Caption:   "Discovered Balemoh services",
-				Columns:   serviceTableColumns(data.Staging),
+				Columns:   serviceTableColumns(data.Staging && data.Status != "missing" && data.Status != "hidden"),
 				Rows:      serviceTableRows(data),
 				RootClass: "balemoh-service-table",
 			})

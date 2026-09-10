@@ -1,0 +1,39 @@
+package view
+
+import (
+ "github.com/araihu/goshtoso/components/button"
+ "github.com/araihu/goshtoso/components/modal"
+)
+
+templ ServiceLifecycle(service Service) {
+ <section aria-label="Service visibility" class="balemoh-editor" x-data="{}">
+  <h2>Service visibility</h2>
+  if service.State()=="hidden" {
+   <p>Hidden from the homepage. Your settings and pin choice are preserved.</p>
+   @LifecycleForm(service,"show","Show service")
+  } else if !service.Missing {
+   <p>Hide this service without deleting its settings or changing Kubernetes.</p>
+   @LifecycleForm(service,"hide","Hide service")
+  }
+  if service.Missing {
+   <p>Missing from the last successful discovery. It will return automatically if rediscovered.</p>
+   @button.Button(button.WithTone(button.ToneDanger),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:open', {id:'delete-missing'})","aria-haspopup":"dialog","aria-controls":"delete-missing"})) { Delete permanently }
+   @modal.Dialog(modal.DialogConfig{ID:"delete-missing",Title:"Delete missing service?",Content:DeleteMissingConfirmation(service)})
+  }
+ </section>
+}
+
+templ DeleteMissingConfirmation(service Service) {
+ <p>{ "Permanently delete " + service.DisplayName + " and its saved name, description, address, icon selection, and pin choice? Shared uploaded icon files are kept. This does not delete Kubernetes resources." }</p>
+ @LifecycleForm(service,"purge","Delete permanently")
+ @button.Button(button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:close', {id:'delete-missing'})"})) { Cancel }
+}
+
+templ LifecycleForm(service Service, action, label string) {
+ <form method="post" action={templ.SafeURL(lifecycleURL(service.ID))} x-on:submit="$el.querySelector('button[type=submit]').disabled=true">
+  <input type="hidden" name="action" value={action}/>
+  @button.Button(button.WithType("submit"),button.WithTone(lifecycleTone(action))) { {label} }
+ </form>
+}
+
+func lifecycleTone(action string) button.Tone { if action=="purge" { return button.ToneDanger };return button.ToneAlternate }

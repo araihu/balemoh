@@ -39,6 +39,8 @@ type ResourceObservation struct {
 }
 
 type Candidate struct {
+	Missing     bool                  // Absent from the most recent successful source snapshot.
+	Hidden      bool                  // Local suppression; discovery never clears this flag.
 	Icon        string                // Local icon reference; empty uses discovery.
 	Address     string                // Local homepage address override; empty uses discovery.
 	Resources   []ResourceObservation // Read projection only; discovery snapshots stay resource-based.
@@ -236,3 +238,16 @@ func (c Candidate) Validate() error {
 	}
 	return nil
 }
+
+// Status combines source presence and the user's local visibility choice.
+func (c Candidate) Status() string {
+	if c.Hidden {
+		return "hidden"
+	}
+	if c.Missing {
+		return "missing"
+	}
+	return "live"
+}
+
+var ErrConflict = errors.New("service state no longer permits this action")

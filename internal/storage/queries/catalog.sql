@@ -39,7 +39,8 @@ ON CONFLICT (id) DO UPDATE SET
     metadata_json = excluded.metadata_json,
     images_json = excluded.images_json,
     observed_at = excluded.observed_at,
-    updated_at = excluded.updated_at;
+    updated_at = excluded.updated_at,
+    missing = 0;
 
 -- name: GetDiscoveredService :one
 SELECT
@@ -55,6 +56,8 @@ SELECT
     images_json,
     observed_at,
     pinned_at,
+    missing,
+    hidden,
     created_at,
     updated_at
 FROM discovered_services
@@ -75,6 +78,8 @@ SELECT
     images_json,
     observed_at,
     pinned_at,
+    missing,
+    hidden,
     created_at,
     updated_at
 FROM discovered_services
@@ -94,6 +99,8 @@ SELECT
     images_json,
     observed_at,
     pinned_at,
+    missing,
+    hidden,
     created_at,
     updated_at
 FROM discovered_services

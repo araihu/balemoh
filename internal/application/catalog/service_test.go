@@ -15,6 +15,7 @@ type fakeStore struct {
 	upserts      []Candidate
 	replacements []Snapshot
 	replaceErr   error
+	skipSnapshot bool
 	setPins      []struct {
 		id     string
 		pinned bool
@@ -31,6 +32,9 @@ func (f *fakeStore) Upsert(_ context.Context, candidate Candidate) error {
 }
 
 func (f *fakeStore) ReplaceSourceSnapshot(_ context.Context, snapshot Snapshot) (SnapshotApplyResult, error) {
+	if f.skipSnapshot {
+		return SnapshotApplyResult{}, nil
+	}
 	if f.replaceErr != nil {
 		return SnapshotApplyResult{}, f.replaceErr
 	}
@@ -42,16 +46,18 @@ func (f *fakeStore) ReplaceSourceSnapshot(_ context.Context, snapshot Snapshot) 
 	for _, candidate := range snapshot.Candidates {
 		if existing, ok := f.candidates[candidate.ID]; ok && existing.PinnedAt != nil {
 			candidate.PinnedAt = existing.PinnedAt
+			candidate.Hidden = existing.Hidden
 		}
 		f.candidates[candidate.ID] = candidate
 		keep[candidate.ID] = struct{}{}
 	}
 	for id, candidate := range f.candidates {
-		if candidate.Source != snapshot.Source || candidate.PinnedAt != nil {
+		if candidate.Source != snapshot.Source {
 			continue
 		}
 		if _, ok := keep[id]; !ok {
-			delete(f.candidates, id)
+			candidate.Missing = true
+			f.candidates[id] = candidate
 		}
 	}
 	return SnapshotApplyResult{Applied: true, Candidates: len(snapshot.Candidates)}, nil
@@ -200,8 +206,8 @@ func TestServiceSyncValidatesAndUpsertsDiscoveries(t *testing.T) {
 	if result.Sources != 2 || result.Candidates != 2 {
 		t.Fatalf("Sync() result = %#v, want sources=2 candidates=2", result)
 	}
-	if len(store.upserts) != 2 {
-		t.Fatalf("upsert count = %d, want 2", len(store.upserts))
+	if len(store.replacements) != 2 {
+		t.Fatalf("snapshot count = %d, want 2", len(store.replacements))
 	}
 }
 
@@ -296,8 +302,8 @@ func TestServiceImportSnapshotReconcilesSourceWithoutDeletingPins(t *testing.T) 
 	if err != nil {
 		t.Fatalf("ImportSnapshot() error = %v", err)
 	}
-	if _, ok := store.candidates[stale.ID]; ok {
-		t.Fatal("stale unpinned candidate remains")
+	if got, ok := store.candidates[stale.ID]; !ok || !got.Missing {
+		t.Fatal("absent candidate must be retained as missing")
 	}
 	if _, ok := store.candidates[pinned.ID]; !ok {
 		t.Fatal("pinned candidate was deleted")
@@ -332,3 +338,72 @@ func TestServiceImportSnapshotRejectsMixedSourcesBeforeWriting(t *testing.T) {
 }
 
 func (f *fakeStore) SaveEdit(context.Context, string, Edit) error { return nil }
+
+func (f *fakeStore) Lifecycle(_ context.Context, id, action string) error {
+	var observations []Candidate
+	for _, c := range f.candidates {
+		observations = append(observations, c)
+	}
+	ids, err := LifecycleTargets(observations, id, action)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		c := f.candidates[id]
+		switch action {
+		case "hide":
+			c.Hidden = true
+		case "show":
+			c.Hidden = false
+		case "purge":
+			delete(f.candidates, id)
+			continue
+		}
+		f.candidates[id] = c
+	}
+	return nil
+}
+
+func TestFailedDiscoveryDoesNotMarkMissing(t *testing.T) {
+	c := testCandidate("grafana")
+	store := &fakeStore{candidates: map[string]Candidate{c.ID: c}}
+	service := NewService(store, fakeDiscoverer{name: "kubernetes", err: errors.New("forbidden")})
+	if _, err := service.Sync(context.Background()); err == nil {
+		t.Fatal("expected scan error")
+	}
+	if len(store.replacements) != 0 || store.candidates[c.ID].Missing {
+		t.Fatal("failed scan changed presence")
+	}
+}
+
+func TestSyncDoesNotPublishRejectedSnapshot(t *testing.T) {
+	publisher := &fakePublisher{}
+	c := relationCandidate("service", "app")
+	service := NewServiceWithPublisher(&fakeStore{skipSnapshot: true}, publisher, fakeDiscoverer{name: "test", candidates: []Candidate{c}})
+	result, err := service.Sync(context.Background())
+	if err != nil || result.Candidates != 0 || len(publisher.snapshots) != 0 {
+		t.Fatalf("result=%+v published=%d err=%v", result, len(publisher.snapshots), err)
+	}
+}
+
+func TestMissingRouteRemainsSeparateFromLiveService(t *testing.T) {
+	service := relationCandidate("service", "app")
+	route := relationRoute("old", "public", "old.test", "app")
+	route.Missing = true
+	observations := []Candidate{service, route}
+	groups := groupCandidates(observations)
+	if len(groups) != 2 {
+		t.Fatalf("groups=%+v", groups)
+	}
+	for _, g := range groups {
+		if g.ID == service.ID && (len(g.Resources) != 1 || len(g.Endpoints) != 0) {
+			t.Fatalf("live group contains missing route: %+v", g)
+		}
+	}
+	for _, tc := range []struct{ id, action string }{{service.ID, "hide"}, {route.ID, "purge"}} {
+		ids, err := LifecycleTargets(observations, tc.id, tc.action)
+		if err != nil || len(ids) != 1 || ids[0] != tc.id {
+			t.Fatalf("targets=%v err=%v", ids, err)
+		}
+	}
+}

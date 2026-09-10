@@ -34,6 +34,48 @@ func (e HealthResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for ServiceCandidateStatus.
+const (
+	Hidden  ServiceCandidateStatus = "hidden"
+	Live    ServiceCandidateStatus = "live"
+	Missing ServiceCandidateStatus = "missing"
+)
+
+// Valid indicates whether the value is a known member of the ServiceCandidateStatus enum.
+func (e ServiceCandidateStatus) Valid() bool {
+	switch e {
+	case Hidden:
+		return true
+	case Live:
+		return true
+	case Missing:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChangeServiceLifecycleJSONBodyAction.
+const (
+	Hide  ChangeServiceLifecycleJSONBodyAction = "hide"
+	Purge ChangeServiceLifecycleJSONBodyAction = "purge"
+	Show  ChangeServiceLifecycleJSONBodyAction = "show"
+)
+
+// Valid indicates whether the value is a known member of the ChangeServiceLifecycleJSONBodyAction enum.
+func (e ChangeServiceLifecycleJSONBodyAction) Valid() bool {
+	switch e {
+	case Hide:
+		return true
+	case Purge:
+		return true
+	case Show:
+		return true
+	default:
+		return false
+	}
+}
+
 // DiscoverySyncResponse defines model for DiscoverySyncResponse.
 type DiscoverySyncResponse struct {
 	Candidates int32 `json:"candidates"`
@@ -112,17 +154,26 @@ type ServiceCandidate struct {
 	Id   string  `json:"id"`
 
 	// Images Container images observed for the candidate, when available.
-	Images     []string          `json:"images"`
-	Metadata   map[string]string `json:"metadata"`
-	ObservedAt time.Time         `json:"observedAt"`
-	Pinned     bool              `json:"pinned"`
-	PinnedAt   *time.Time        `json:"pinnedAt"`
-	Resource   ResourceRef       `json:"resource"`
+	Images   []string          `json:"images"`
+	Metadata map[string]string `json:"metadata"`
+
+	// Missing Absent from the latest successful source snapshot, including when hidden.
+	Missing    bool        `json:"missing"`
+	ObservedAt time.Time   `json:"observedAt"`
+	Pinned     bool        `json:"pinned"`
+	PinnedAt   *time.Time  `json:"pinnedAt"`
+	Resource   ResourceRef `json:"resource"`
 
 	// Resources Resource evidence grouped under this Service; pin identity remains the Service ID.
 	Resources *[]ResourceObservation `json:"resources,omitempty"`
 	Source    SourceRef              `json:"source"`
+
+	// Status Hidden takes precedence over missing until the user shows the service again.
+	Status ServiceCandidateStatus `json:"status"`
 }
+
+// ServiceCandidateStatus Hidden takes precedence over missing until the user shows the service again.
+type ServiceCandidateStatus string
 
 // ServiceEdit defines model for ServiceEdit.
 type ServiceEdit struct {
@@ -179,6 +230,14 @@ type DeleteIconParams struct {
 	Digest string `form:"digest" json:"digest"`
 }
 
+// ChangeServiceLifecycleJSONBody defines parameters for ChangeServiceLifecycle.
+type ChangeServiceLifecycleJSONBody struct {
+	Action ChangeServiceLifecycleJSONBodyAction `json:"action"`
+}
+
+// ChangeServiceLifecycleJSONBodyAction defines parameters for ChangeServiceLifecycle.
+type ChangeServiceLifecycleJSONBodyAction string
+
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
 
@@ -190,6 +249,9 @@ type UpdateIconJSONRequestBody = IconUpload
 
 // EditStagingServiceJSONRequestBody defines body for EditStagingService for application/json ContentType.
 type EditStagingServiceJSONRequestBody = ServiceEdit
+
+// ChangeServiceLifecycleJSONRequestBody defines body for ChangeServiceLifecycle for application/json ContentType.
+type ChangeServiceLifecycleJSONRequestBody ChangeServiceLifecycleJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -223,6 +285,9 @@ type ServerInterface interface {
 
 	// (PUT /api/v1/staging/services/{serviceId})
 	EditStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
+
+	// (POST /api/v1/staging/services/{serviceId}/lifecycle)
+	ChangeServiceLifecycle(w http.ResponseWriter, r *http.Request, serviceId string)
 
 	// (DELETE /api/v1/staging/services/{serviceId}/pin)
 	UnpinStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
@@ -453,6 +518,32 @@ func (siw *ServerInterfaceWrapper) EditStagingService(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// ChangeServiceLifecycle operation middleware
+func (siw *ServerInterfaceWrapper) ChangeServiceLifecycle(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "serviceId" -------------
+	var serviceId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceId", r.PathValue("serviceId"), &serviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "serviceId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangeServiceLifecycle(w, r, serviceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // UnpinStagingService operation middleware
 func (siw *ServerInterfaceWrapper) UnpinStagingService(w http.ResponseWriter, r *http.Request) {
 
@@ -649,6 +740,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{iconID}/image", wrapper.GetIconImage)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}", wrapper.EditStagingService)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/lifecycle", wrapper.ChangeServiceLifecycle)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.UnpinStagingService)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.PinStagingService)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/healthz", wrapper.GetHealthz)

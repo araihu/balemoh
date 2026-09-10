@@ -69,6 +69,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /staging/services/{serviceID}/edit", server.edit)
 	mux.HandleFunc("POST /staging/services/{serviceID}/edit", server.saveEdit)
 	mux.HandleFunc("POST /staging/sync", server.sync)
+	mux.HandleFunc("POST /staging/services/{serviceID}/lifecycle", server.lifecycle)
 	mux.HandleFunc("POST /staging/services/{serviceID}/selection", server.setPin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/pin", server.pin)
 	mux.HandleFunc("POST /staging/services/{serviceID}/unpin", server.unpin)
@@ -251,10 +252,11 @@ func (s *server) renderStaging(w http.ResponseWriter, r *http.Request, notice, e
 	}
 	s.render(w, r, view.PageData{
 		Title:       "Staging",
-		Description: "Review discovered candidates and pin the services that belong on your homepage.",
+		Description: "Review live, missing, and hidden services. Only live pinned services appear on the homepage.",
 		Active:      "nav-staging",
 		Services:    mapServices(services),
 		Staging:     true,
+		Status:      r.URL.Query().Get("status"),
 		Error:       errorMessage,
 		Notice:      notice,
 	}, status)
@@ -296,6 +298,12 @@ func noticeText(value string) string {
 		return "The service is now visible on the homepage."
 	case "unpinned":
 		return "The service was removed from the homepage."
+	case "hide":
+		return "Service hidden. Settings and pin choice preserved."
+	case "show":
+		return "Service is no longer hidden."
+	case "purge":
+		return "Missing service permanently deleted."
 	case "edited":
 		return "Service updated."
 	case "synced":
@@ -345,6 +353,7 @@ func mapService(service api.ServiceCandidate) view.Service {
 	}
 	iconRef, selected, defaultIcon := serviceIcon(service)
 	return view.Service{
+		Status: string(service.Status), Missing: service.Missing,
 		IconRef: iconRef, Icon: selected, DefaultIcon: defaultIcon,
 		Resources:   resources,
 		ID:          service.Id,

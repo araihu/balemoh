@@ -8,7 +8,7 @@ import (
 
 // relatedCandidates only joins groups with explicit, versioned discovery evidence.
 // Older snapshots retain their original conservative Service projection.
-func relatedCandidates(observations, groups []Candidate) []Candidate {
+func relatedPresentCandidates(observations, groups []Candidate) []Candidate {
 	parents := make([]int, len(groups))
 	for i := range parents {
 		parents[i] = i
@@ -124,7 +124,9 @@ func relatedCandidates(observations, groups []Candidate) []Candidate {
 			}
 			for _, e := range es {
 				if i, ok := services[key(c.Source, e.Service)]; ok && exclusivelyOwned(i, address) && exclusivelyOwned(anchor, address) {
-					parents[root(i)] = root(anchor)
+					if groups[i].Missing == groups[anchor].Missing {
+						parents[root(i)] = root(anchor)
+					}
 				}
 			}
 		}
@@ -156,7 +158,9 @@ func relatedCandidates(observations, groups []Candidate) []Candidate {
 					}
 				}
 				if compatible {
-					parents[root(i)] = root(prior)
+					if groups[i].Missing == groups[prior].Missing {
+						parents[root(i)] = root(prior)
+					}
 				}
 			} else {
 				backends[signature] = i
@@ -215,7 +219,9 @@ func relatedCandidates(observations, groups []Candidate) []Candidate {
 			destination = best
 		}
 		if valid && destination >= 0 {
-			parents[root(i)] = root(destination)
+			if groups[i].Missing == groups[destination].Missing {
+				parents[root(i)] = root(destination)
+			}
 		}
 	}
 	members := map[int][]int{}
@@ -248,6 +254,7 @@ func relatedCandidates(observations, groups []Candidate) []Candidate {
 		seenImages := map[string]bool{}
 		for _, i := range indices {
 			member := groups[i]
+			g.Hidden = g.Hidden || member.Hidden
 			if g.PinnedAt == nil && member.PinnedAt != nil {
 				g.PinnedAt = member.PinnedAt
 			}
@@ -315,4 +322,31 @@ func scopeAddressSubset(a, b string) bool {
 		}
 	}
 	return true
+}
+
+// Missing evidence must never connect live services. Retain historical grouping
+// for missing rows while grouping current resources only from current evidence.
+func relatedCandidates(observations, groups []Candidate) []Candidate {
+	var result []Candidate
+	for _, missing := range []bool{false, true} {
+		var evidence, rows []Candidate
+		for _, c := range observations {
+			if c.Missing == missing {
+				evidence = append(evidence, c)
+			}
+		}
+		for _, c := range groups {
+			if c.Missing == missing {
+				rows = append(rows, c)
+			}
+		}
+		result = append(result, relatedPresentCandidates(evidence, rows)...)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].DisplayName != result[j].DisplayName {
+			return result[i].DisplayName < result[j].DisplayName
+		}
+		return result[i].ID < result[j].ID
+	})
+	return result
 }
