@@ -45,9 +45,11 @@ func (s *server) lifecycle(w http.ResponseWriter, r *http.Request) {
 	}
 	if action == "show" {
 		service, status := s.findService(ctx, r.PathValue("serviceID"))
-		if status == 200 {
-			state = service.State()
+		if status != http.StatusOK {
+			redirect(w, r, "/staging?notice="+action)
+			return
 		}
+		state = service.State()
 	}
 	redirect(w, r, "/staging?notice="+action+"&status="+state+"#"+state)
 }

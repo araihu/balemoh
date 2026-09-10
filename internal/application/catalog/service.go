@@ -151,14 +151,19 @@ func (s *Service) Sync(ctx context.Context) (SyncResult, error) {
 		for index := range batches {
 			batches[index].ObservedAt = startedAt
 		}
+		applied := make([]Snapshot, 0, len(batches))
 		for _, snapshot := range batches {
-			if _, err := s.store.ReplaceSourceSnapshot(ctx, snapshot); err != nil {
+			stored, err := s.store.ReplaceSourceSnapshot(ctx, snapshot)
+			if err != nil {
 				return result, fmt.Errorf("store snapshot from %s: %w", discoverer.Name(), err)
 			}
-			result.Candidates += len(snapshot.Candidates)
+			if stored.Applied {
+				applied = append(applied, snapshot)
+			}
+			result.Candidates += stored.Candidates
 		}
 		if s.publisher != nil {
-			for _, snapshot := range batches {
+			for _, snapshot := range applied {
 				if err := s.publisher.Publish(ctx, snapshot); err != nil {
 					return result, fmt.Errorf("publish snapshot from %s: %w", discoverer.Name(), err)
 				}

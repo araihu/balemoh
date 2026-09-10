@@ -15,6 +15,7 @@ type fakeStore struct {
 	upserts      []Candidate
 	replacements []Snapshot
 	replaceErr   error
+	skipSnapshot bool
 	setPins      []struct {
 		id     string
 		pinned bool
@@ -31,6 +32,9 @@ func (f *fakeStore) Upsert(_ context.Context, candidate Candidate) error {
 }
 
 func (f *fakeStore) ReplaceSourceSnapshot(_ context.Context, snapshot Snapshot) (SnapshotApplyResult, error) {
+	if f.skipSnapshot {
+		return SnapshotApplyResult{}, nil
+	}
 	if f.replaceErr != nil {
 		return SnapshotApplyResult{}, f.replaceErr
 	}
@@ -369,5 +373,37 @@ func TestFailedDiscoveryDoesNotMarkMissing(t *testing.T) {
 	}
 	if len(store.replacements) != 0 || store.candidates[c.ID].Missing {
 		t.Fatal("failed scan changed presence")
+	}
+}
+
+func TestSyncDoesNotPublishRejectedSnapshot(t *testing.T) {
+	publisher := &fakePublisher{}
+	c := relationCandidate("service", "app")
+	service := NewServiceWithPublisher(&fakeStore{skipSnapshot: true}, publisher, fakeDiscoverer{name: "test", candidates: []Candidate{c}})
+	result, err := service.Sync(context.Background())
+	if err != nil || result.Candidates != 0 || len(publisher.snapshots) != 0 {
+		t.Fatalf("result=%+v published=%d err=%v", result, len(publisher.snapshots), err)
+	}
+}
+
+func TestMissingRouteRemainsSeparateFromLiveService(t *testing.T) {
+	service := relationCandidate("service", "app")
+	route := relationRoute("old", "public", "old.test", "app")
+	route.Missing = true
+	observations := []Candidate{service, route}
+	groups := groupCandidates(observations)
+	if len(groups) != 2 {
+		t.Fatalf("groups=%+v", groups)
+	}
+	for _, g := range groups {
+		if g.ID == service.ID && (len(g.Resources) != 1 || len(g.Endpoints) != 0) {
+			t.Fatalf("live group contains missing route: %+v", g)
+		}
+	}
+	for _, tc := range []struct{ id, action string }{{service.ID, "hide"}, {route.ID, "purge"}} {
+		ids, err := LifecycleTargets(observations, tc.id, tc.action)
+		if err != nil || len(ids) != 1 || ids[0] != tc.id {
+			t.Fatalf("targets=%v err=%v", ids, err)
+		}
 	}
 }
