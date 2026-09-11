@@ -232,3 +232,17 @@ and [Kubernetes/DevSpace plan](docs/superpowers/plans/2026-08-17-balemoh-kuberne
 for the adapter sequence and scope boundaries.
 
 See [Icon library](docs/icons.md) for catalog vendoring, uploads, and storage requirements.
+
+## Production image
+
+The source-owned `Publish image` workflow runs manually from `main`. It checks
+both processes in a non-root, read-only container before publishing amd64 and
+arm64 images to `ghcr.io/araihu/balemoh`. Deploy the resulting immutable digest.
+
+The image starts `/balemoh` by default. Set the container command to
+`/balemoh-ui` for the UI. Mount persistent storage at `/data`; the image uses
+`/data/balemoh.db` for SQLite and `/data/icons` for the UI icon cache. The UI
+needs `BALEMOH_UI_API_BASE_URL` pointing to the API. Kubernetes discovery uses
+read-only RBAC on the API service account; the UI needs no Kubernetes token.
+
+Container check: `bash hack/smoke-image.sh IMAGE`.

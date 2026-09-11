@@ -7,3 +7,5 @@ data
 *.db-shm
 *.db-wal
 vendor
+.worktrees
+ui/data
