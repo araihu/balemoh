@@ -39,7 +39,7 @@ templ IconsContent(data IconPage) {
 }
 
 templ IconSearch(data IconPage) {
- <div class="balemoh-icon-search" hx-get={iconSearchPath(data.Picker)} hx-trigger="input delay:300ms, combobox:change" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="#icon-picker-results:replace" hx-include="this" hx-params="q,source" hx-replace-url={strconv.FormatBool(!data.Picker)}>
+ <div class="balemoh-icon-search" hx-get={iconSearchPath(data.Picker)} hx-trigger="input delay:300ms, combobox:change" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="#icon-picker-results:replace" hx-include="this" hx-replace-url={strconv.FormatBool(!data.Picker)}>
   @textinput.TextInput(textinput.Config{ID:iconSearchID(data.Picker),Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
   {{ config := combobox.Config{ID:iconSearchID(data.Picker)+"-sources",Name:"source",Label:"Icon sources",Placeholder:"All sources",Mode:combobox.ModeMultiple,EnableClearAll:true,DisablePersistence:true,Selected:data.Sources,Source:combobox.Source{Static:[]combobox.Option{{Value:"goshtoso",Label:"Goshtoso"},{Value:"selfhst",Label:"selfh.st"},{Value:"uploads",Label:"Uploads"}}}} }}
   @combobox.Combobox(config,config.InitialState())
@@ -69,7 +69,7 @@ templ IconUploadDrawerBody(i LibraryIcon, message string) {
 templ IconUploadForm(i LibraryIcon, target string) {
  <form class="balemoh-editor balemoh-upload-form" method="post" action={templ.SafeURL(iconSaveURL(i.ID))} enctype="multipart/form-data"
   if target != "" {
-   hx-post="/icons/upload" hx-encoding="multipart/form-data" hx-target={"#"+target} hx-swap="innerHTML" hx-disabled-elt="find button[type='submit']" hx-sync="this:drop"
+   hx-post="/icons/upload" hx-encoding="multipart/form-data" hx-target={"#"+target} hx-swap="innerHTML" hx-disable="find button[type='submit']" hx-sync="this:drop"
   }
  >
   if i.ID != "" {
@@ -138,8 +138,8 @@ templ IconBatch(data IconPage) {
   }
  }
  if data.Page*48<data.Total {
-  <div id="icon-scroll-next" class="balemoh-icon-more" x-data="{failed:false}" x-on:htmx:response-error="failed=true" x-on:htmx:send-error="failed=true">
-   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithLoadingText("Loading icons…"),button.WithAttrs(templ.Attributes{"hx-get":IconPageURL(data,data.Page+1),"hx-trigger":"intersect once, click","hx-target":"#icon-scroll-next","hx-swap":"outerHTML","hx-sync":"#icon-picker-results:drop","hx-params":"none","hx-push-url":"false","hx-replace-url":"false","hx-disabled-elt":"this"})) {
+  <div id="icon-scroll-next" class="balemoh-icon-more" x-data="{failed:false}" x-on:htmx:response:error="failed=true" x-on:htmx:error="failed=true">
+   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithLoadingText("Loading icons…"),button.WithAttrs(templ.Attributes{"hx-get":IconPageURL(data,data.Page+1),"hx-trigger":"intersect once, click","hx-target":"#icon-scroll-next","hx-swap":"outerHTML","hx-sync":"#icon-picker-results:drop","hx-push-url":"false","hx-replace-url":"false","hx-disable":"this","hx-status:4xx":"swap:none","hx-status:5xx":"swap:none"})) {
     Load more icons
    }
    <p role="alert" x-show="failed" x-cloak>Could not load more icons. Try again.</p>

@@ -186,7 +186,7 @@ func ServiceEditor(service Service) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = button.Button(button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithAttrs(templ.Attributes{"x-ref": "chooseIcon", "x-on:click": "$dispatch('modal:open', {id:'service-icon-picker'})", "aria-haspopup": "dialog", "aria-controls": "service-icon-picker", "hx-get": "/icons/picker", "hx-target": "#icon-picker-results", "hx-swap": "outerHTML", "hx-include": "#picker-search, #picker-search-sources", "hx-params": "q,source", "hx-sync": "#icon-picker-results:replace"})).Render(templ.WithChildren(ctx, templ_7745c5c3_Var9), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = button.Button(button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithAttrs(templ.Attributes{"x-ref": "chooseIcon", "x-on:click": "$dispatch('modal:open', {id:'service-icon-picker'})", "aria-haspopup": "dialog", "aria-controls": "service-icon-picker", "hx-get": "/icons/picker", "hx-target": "#icon-picker-results", "hx-swap": "outerHTML", "hx-include": "#picker-search, #picker-search-sources", "hx-sync": "#icon-picker-results:replace"})).Render(templ.WithChildren(ctx, templ_7745c5c3_Var9), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

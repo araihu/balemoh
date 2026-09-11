@@ -25,10 +25,13 @@ Configuration is documented in
 - `BALEMOH_UI_API_BASE_URL` defaults to `http://127.0.0.1:8080`.
 - request and shutdown timeouts default to `5s`.
 
-The BFF exposes document routes for `/` and `/staging`, and native HTML form
-actions for staging sync, pin, and unpin. Mutations use POST/Redirect/GET;
-HTMX is intentionally disabled for this first slice so links and forms remain
-usable without JavaScript.
+The UI pins Goshtoso v0.3.0 with HTMX 4.0.0 and Alpine.js 3.17.2. Runtime
+assets are served locally through Goshtoso and the compatible App Shells module.
+Navigation and service editing use native links and POST/Redirect/GET. Pin
+checkboxes, icon search, details, and uploads use HTMX fragments identified by
+`HX-Request-Type: partial` and `HX-Target: div#<id>`. Error fragments retain
+their HTTP status; unconfirmed pin state returns `HX-Reswap: none` to preserve
+the row and show recovery.
 
 ## Design brief
 

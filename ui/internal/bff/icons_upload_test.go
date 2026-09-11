@@ -17,8 +17,8 @@ import (
 
 func TestIconUploadErrorKeepsDrawerDraft(t *testing.T) {
 	r := httptest.NewRequest("POST", "/icons/upload", nil)
-	r.Header.Set("HX-Request", "true")
-	r.Header.Set("HX-Target", "icon-upload-body")
+	r.Header.Set("HX-Request-Type", "partial")
+	r.Header.Set("HX-Target", "div#icon-upload-body")
 	w := httptest.NewRecorder()
 	(&server{}).iconUploadError(w, r, view.LibraryIcon{Name: "My icon", Tags: "custom,home"}, "Reselect your file to retry.")
 	for _, want := range []string{`value="My icon"`, `custom`, `home`, `data-tagslist`, `role="alert"`, "Reselect your file to retry.", `hx-post="/icons/upload"`, `hx-encoding="multipart/form-data"`, "Cancel"} {
@@ -55,8 +55,8 @@ func TestServiceIconUploadModal(t *testing.T) {
 		_ = form.Close()
 		r := httptest.NewRequest("POST", "/icons/upload", &body)
 		r.Header.Set("Content-Type", form.FormDataContentType())
-		r.Header.Set("HX-Request", "true")
-		r.Header.Set("HX-Target", "service-icon-upload-body")
+		r.Header.Set("HX-Request-Type", "partial")
+		r.Header.Set("HX-Target", "div#service-icon-upload-body")
 		w := httptest.NewRecorder()
 		(&server{icons: modalUploadCatalog{failure: failure}, timeout: time.Second}).uploadIcon(w, r)
 		if w.Code != 200 || w.Header().Get("HX-Redirect") != "" {
@@ -71,12 +71,12 @@ func TestServiceIconUploadModal(t *testing.T) {
 					t.Errorf("missing %s", want)
 				}
 			}
-			if w.Header().Get("HX-Trigger-After-Swap") != "" {
+			if w.Header().Get("HX-Trigger") != "" {
 				t.Fatal("failed upload must not select or close")
 			}
 		} else {
 			var events map[string]map[string]string
-			if err := json.Unmarshal([]byte(w.Header().Get("HX-Trigger-After-Swap")), &events); err != nil {
+			if err := json.Unmarshal([]byte(w.Header().Get("HX-Trigger")), &events); err != nil {
 				t.Fatal(err)
 			}
 			if events["icon-selected"]["id"] != "upload:test" || events["modal:close"]["id"] != "service-icon-upload" {

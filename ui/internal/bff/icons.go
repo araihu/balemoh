@@ -63,7 +63,7 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 	}
 	data.Total = len(filtered)
 	last := max(1, (data.Total+47)/48)
-	batch := r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-scroll-next"
+	batch := r.Header.Get("HX-Request-Type") == "partial" && r.Header.Get("HX-Target") == "div#icon-scroll-next"
 	if batch && data.Page > last {
 		w.Header().Set("Cache-Control", "no-store")
 		w.WriteHeader(http.StatusOK)
@@ -78,7 +78,7 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 		_ = view.IconBatch(data).Render(r.Context(), w)
 		return
 	}
-	if data.Picker || (r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-picker-results") {
+	if data.Picker || (r.Header.Get("HX-Request-Type") == "partial" && r.Header.Get("HX-Target") == "div#icon-picker-results") {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_ = view.IconResults(data).Render(r.Context(), w)
@@ -118,7 +118,7 @@ func (s *server) iconDetails(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	if r.Header.Get("HX-Request") != "true" {
+	if r.Header.Get("HX-Request-Type") != "partial" {
 		title := "Icon details"
 		if selected.Name != "" {
 			title = selected.Name + " icon"
@@ -133,8 +133,8 @@ func (s *server) iconDetails(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("X-Balemoh-Status", strconv.Itoa(status))
-	w.Header().Set("HX-Trigger-After-Swap", `{"drawer:open":{"id":"iconDetails"}}`)
+	w.Header().Set("HX-Trigger", `{"drawer:open":{"id":"iconDetails"}}`)
+	w.WriteHeader(status)
 	_, _ = w.Write(body.Bytes())
 }
 func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
@@ -182,18 +182,18 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "service-icon-upload-body" {
+	if r.Header.Get("HX-Request-Type") == "partial" && r.Header.Get("HX-Target") == "div#service-icon-upload-body" {
 		events, _ := json.Marshal(map[string]any{
 			"icon-selected": map[string]string{"id": saved.Id, "url": view.IconImageURL(saved.Id), "symbol": "", "sprite": ""},
 			"modal:close":   map[string]string{"id": "service-icon-upload"},
 		})
-		w.Header().Set("HX-Trigger-After-Swap", string(events))
+		w.Header().Set("HX-Trigger", string(events))
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_ = view.ServiceIconUploadBody(view.LibraryIcon{}, "").Render(r.Context(), w)
 		return
 	}
-	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-upload-body" {
+	if r.Header.Get("HX-Request-Type") == "partial" && r.Header.Get("HX-Target") == "div#icon-upload-body" {
 		w.Header().Set("HX-Redirect", "/icons?source=uploads")
 		w.WriteHeader(http.StatusOK)
 		return
@@ -203,13 +203,13 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) iconUploadError(w http.ResponseWriter, r *http.Request, draft view.LibraryIcon, message string) {
 
-	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "service-icon-upload-body" {
+	if r.Header.Get("HX-Request-Type") == "partial" && r.Header.Get("HX-Target") == "div#service-icon-upload-body" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_ = view.ServiceIconUploadBody(draft, message).Render(r.Context(), w)
 		return
 	}
-	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "icon-upload-body" {
+	if r.Header.Get("HX-Request-Type") == "partial" && r.Header.Get("HX-Target") == "div#icon-upload-body" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_ = view.IconUploadDrawerBody(draft, message).Render(r.Context(), w)
