@@ -350,18 +350,18 @@ func TestCheckboxHTMXReturnsOnlyChangedRow(t *testing.T) {
 	}
 	submit := func(body string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(http.MethodPost, "/staging/services/svc-1/selection", strings.NewReader(body))
-		r.Header.Set("HX-Request", "true")
+		r.Header.Set("HX-Request-Type", "partial")
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		return w
 	}
 	response := submit("pinned=true")
-	if response.Code != 200 || response.Header().Get("Location") != "" || response.Header().Get("X-Balemoh-Status") != "200" {
+	if response.Code != 200 || response.Header().Get("Location") != "" {
 		t.Fatal("fragment unexpectedly redirects or fails")
 	}
 	html := response.Body.String()
-	if !strings.HasPrefix(html, "<tr") || strings.Contains(html, "<html") || strings.Contains(html, "service-row-svc-2") || !strings.Contains(html, `value="true" checked`) {
+	if !strings.Contains(html, "autofocus") || !strings.HasPrefix(html, "<tr") || strings.Contains(html, "<html") || strings.Contains(html, "service-row-svc-2") || !strings.Contains(html, `value="true" checked`) {
 		t.Fatalf("wrong fragment: %s", html)
 	}
 	response = submit("")
@@ -370,16 +370,16 @@ func TestCheckboxHTMXReturnsOnlyChangedRow(t *testing.T) {
 	}
 	catalog.mutationErr = errors.New("private")
 	response = submit("pinned=true")
-	if response.Code != 200 || response.Header().Get("X-Balemoh-Status") != "503" || !strings.Contains(response.Body.String(), pageMutationError) || strings.Contains(response.Body.String(), `value="true" checked`) {
+	if response.Code != 503 || !strings.Contains(response.Body.String(), pageMutationError) || strings.Contains(response.Body.String(), `value="true" checked`) {
 		t.Fatal("error must swap authoritative row with safe message")
 	}
 	response = submit("pinned=invalid")
-	if response.Header().Get("X-Balemoh-Status") != "400" || !strings.HasPrefix(response.Body.String(), "<tr") {
+	if response.Code != 400 || !strings.HasPrefix(response.Body.String(), "<tr") {
 		t.Fatal("invalid input returned full page")
 	}
 	catalog.stagingErr = errors.New("offline")
 	response = submit("pinned=true")
-	if response.Code != 503 || strings.Contains(response.Body.String(), "<tr") {
+	if response.Code != 503 || response.Header().Get("HX-Reswap") != "none" || strings.Contains(response.Body.String(), "<tr") {
 		t.Fatal("unknown state should retain row with client recovery")
 	}
 }

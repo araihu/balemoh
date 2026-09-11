@@ -12,11 +12,11 @@ func TestIconDetailsFragmentAndStandalonePage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, fragment := range []bool{false, true} {
+	for _, requestType := range []string{"", "full", "partial"} {
+		fragment := requestType == "partial"
 		r := httptest.NewRequest("GET", "/icons/selfhst:authgear/details", nil)
-		if fragment {
-			r.Header.Set("HX-Request", "true")
-		}
+		r.Header.Set("HX-Request", "true")
+		r.Header.Set("HX-Request-Type", requestType)
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		body := w.Body.String()
@@ -29,7 +29,7 @@ func TestIconDetailsFragmentAndStandalonePage(t *testing.T) {
 			t.Fatalf("status %d", w.Code)
 		}
 		if fragment {
-			if strings.Contains(body, "<html") || !strings.Contains(w.Header().Get("HX-Trigger-After-Swap"), "iconDetails") {
+			if strings.Contains(body, "<html") || !strings.Contains(w.Header().Get("HX-Trigger"), "iconDetails") {
 				t.Fatal("incorrect drawer fragment")
 			}
 		} else if !strings.Contains(body, `href="https://balemoh.decastro.me/icons/selfhst:authgear/details"`) {
@@ -37,10 +37,10 @@ func TestIconDetailsFragmentAndStandalonePage(t *testing.T) {
 		}
 	}
 	r := httptest.NewRequest("GET", "/icons/missing/details", nil)
-	r.Header.Set("HX-Request", "true")
+	r.Header.Set("HX-Request-Type", "partial")
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, r)
-	if w.Code != 200 || !strings.Contains(w.Body.String(), `role="alert"`) || w.Header().Get("X-Balemoh-Status") == "200" {
+	if w.Code != 503 || !strings.Contains(w.Body.String(), `role="alert"`) {
 		t.Fatal("missing icon must show swappable recovery message")
 	}
 }

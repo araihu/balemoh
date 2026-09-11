@@ -51,24 +51,25 @@ type PageData struct {
 }
 
 type Service struct {
-	Status      string
-	Missing     bool
-	IconRef     string
-	Icon        LibraryIcon
-	DefaultIcon LibraryIcon
-	Address     string
-	EditError   string
-	PinError    string
-	Resources   []Service
-	ID          string
-	DisplayName string
-	Description string
-	Source      string
-	Resource    string
-	Namespace   string
-	Pinned      bool
-	Endpoints   []Endpoint
-	Images      []string
+	Status       string
+	Missing      bool
+	IconRef      string
+	Icon         LibraryIcon
+	DefaultIcon  LibraryIcon
+	Address      string
+	EditError    string
+	PinError     string
+	PinAutofocus bool
+	Resources    []Service
+	ID           string
+	DisplayName  string
+	Description  string
+	Source       string
+	Resource     string
+	Namespace    string
+	Pinned       bool
+	Endpoints    []Endpoint
+	Images       []string
 }
 
 type Endpoint struct {
@@ -96,7 +97,7 @@ func serviceTableRows(data PageData) []table.Row {
 	for _, service := range data.Services {
 		row := table.Row{
 			ID:          service.ID,
-			AlpineAttrs: map[string]string{"id": "service-row-" + service.ID, "hx-on::after-settle": "this.querySelector('input[name=pinned]')?.focus({preventScroll:true})"},
+			AlpineAttrs: map[string]string{"id": "service-row-" + service.ID},
 			Cells: map[string]table.Cell{
 				"select":   {Component: ServiceSelection(service)},
 				"service":  {Component: ServiceIdentity(service)},

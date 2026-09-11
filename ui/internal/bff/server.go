@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -162,7 +161,7 @@ func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		if r.Header.Get("HX-Request") == "true" {
+		if r.Header.Get("HX-Request-Type") == "partial" {
 			service.Pinned = desired
 			s.renderPinRow(w, r, mapService(service), http.StatusOK)
 			return
@@ -177,10 +176,9 @@ func (s *server) setPin(w http.ResponseWriter, r *http.Request) {
 	s.pinError(w, r, "This service is no longer available. Refresh discovery.", http.StatusConflict)
 }
 
-// Expected HTMX errors swap a row with fresh server state. The status header
-// preserves the outcome while HTTP 200 allows the standard HTMX swap policy.
+// HTMX 4 swaps error responses, so return fresh server state when available.
 func (s *server) pinError(w http.ResponseWriter, r *http.Request, message string, status int) {
-	if r.Header.Get("HX-Request") != "true" {
+	if r.Header.Get("HX-Request-Type") != "partial" {
 		s.renderStaging(w, r, "", message, status)
 		return
 	}
@@ -198,18 +196,21 @@ func (s *server) pinError(w http.ResponseWriter, r *http.Request, message string
 		}
 	}
 	// Without current catalog state, keep the existing row and show recovery.
+	w.Header().Set("HX-Reswap", "none")
 	http.Error(w, "Unable to confirm pin state. Refresh staging.", status)
 }
 
 func (s *server) renderPinRow(w http.ResponseWriter, r *http.Request, service view.Service, status int) {
+	service.PinAutofocus = true
 	var body bytes.Buffer
 	if err := view.StagingRow(service).Render(r.Context(), &body); err != nil {
+		w.Header().Set("HX-Reswap", "none")
 		http.Error(w, "Unable to render service row.", 500)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("X-Balemoh-Status", strconv.Itoa(status))
+	w.WriteHeader(status)
 	_, _ = io.Copy(w, &body)
 }
 

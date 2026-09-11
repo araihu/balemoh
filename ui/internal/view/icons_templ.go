@@ -178,14 +178,14 @@ func IconSearch(data IconPage) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" hx-trigger=\"input delay:300ms, combobox:change\" hx-target=\"#icon-picker-results\" hx-swap=\"outerHTML\" hx-sync=\"#icon-picker-results:replace\" hx-include=\"this\" hx-params=\"q,source\" hx-replace-url=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" hx-trigger=\"input delay:300ms, combobox:change\" hx-target=\"#icon-picker-results\" hx-swap=\"outerHTML\" hx-sync=\"#icon-picker-results:replace\" hx-include=\"this\" hx-replace-url=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(!data.Picker))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 42, Col: 298}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 42, Col: 277}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 		if templ_7745c5c3_Err != nil {
@@ -382,7 +382,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-swap=\"innerHTML\" hx-disabled-elt=\"find button[type='submit']\" hx-sync=\"this:drop\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-swap=\"innerHTML\" hx-disable=\"find button[type='submit']\" hx-sync=\"this:drop\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -738,7 +738,7 @@ func IconBatch(data IconPage) templ.Component {
 			}
 		}
 		if data.Page*48 < data.Total {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div id=\"icon-scroll-next\" class=\"balemoh-icon-more\" x-data=\"{failed:false}\" x-on:htmx:response-error=\"failed=true\" x-on:htmx:send-error=\"failed=true\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div id=\"icon-scroll-next\" class=\"balemoh-icon-more\" x-data=\"{failed:false}\" x-on:htmx:response:error=\"failed=true\" x-on:htmx:error=\"failed=true\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -760,7 +760,7 @@ func IconBatch(data IconPage) templ.Component {
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithLoadingText("Loading icons…"), button.WithAttrs(templ.Attributes{"hx-get": IconPageURL(data, data.Page+1), "hx-trigger": "intersect once, click", "hx-target": "#icon-scroll-next", "hx-swap": "outerHTML", "hx-sync": "#icon-picker-results:drop", "hx-params": "none", "hx-push-url": "false", "hx-replace-url": "false", "hx-disabled-elt": "this"})).Render(templ.WithChildren(ctx, templ_7745c5c3_Var29), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithLoadingText("Loading icons…"), button.WithAttrs(templ.Attributes{"hx-get": IconPageURL(data, data.Page+1), "hx-trigger": "intersect once, click", "hx-target": "#icon-scroll-next", "hx-swap": "outerHTML", "hx-sync": "#icon-picker-results:drop", "hx-push-url": "false", "hx-replace-url": "false", "hx-disable": "this", "hx-status:4xx": "swap:none", "hx-status:5xx": "swap:none"})).Render(templ.WithChildren(ctx, templ_7745c5c3_Var29), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -12,11 +12,13 @@ func TestIconSearchFragmentAndDirectNavigation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, fragment := range []bool{false, true} {
+	for _, requestType := range []string{"", "full", "partial"} {
+		fragment := requestType == "partial"
 		r := httptest.NewRequest("GET", "/icons?q=appflowy&source=selfhst&page=9", nil)
+		r.Header.Set("HX-Request", "true")
+		r.Header.Set("HX-Request-Type", requestType)
 		if fragment {
-			r.Header.Set("HX-Request", "true")
-			r.Header.Set("HX-Target", "icon-picker-results")
+			r.Header.Set("HX-Target", "div#icon-picker-results")
 		}
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
@@ -43,8 +45,8 @@ func TestIconScrollReturnsOnlyRemainingCards(t *testing.T) {
 		count int
 	}{{"1", 48}, {"2", 19}, {"3", 0}} {
 		r := httptest.NewRequest("GET", "/icons?source=goshtoso&page="+tc.page, nil)
-		r.Header.Set("HX-Request", "true")
-		r.Header.Set("HX-Target", "icon-scroll-next")
+		r.Header.Set("HX-Request-Type", "partial")
+		r.Header.Set("HX-Target", "div#icon-scroll-next")
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		body := w.Body.String()

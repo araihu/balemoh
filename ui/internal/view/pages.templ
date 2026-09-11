@@ -253,16 +253,16 @@ templ ServiceSelection(service Service) {
 		hx-post={ serviceActionURL(service.ID, "selection") }
 		hx-target="closest tr"
 		hx-swap="outerHTML"
-		hx-disabled-elt="find input"
+		hx-disable="find input"
 		hx-sync="this:drop"
-		hx-on::after-request="if (!event.detail.successful) { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }"
+		hx-on::finally:request="if (event.detail.ctx.status.startsWith('error:') || event.detail.ctx.hx?.reswap === 'none') { queueMicrotask(() => { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }); }"
 	>
 		@checkbox.Checkbox(checkbox.Config{
 			ID:         "select-" + service.ID,
 			Name:       "pinned",
 			Value:      "true",
 			Checked:    service.Pinned,
-			InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
+			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
 		})
 		if service.PinError != "" {
 			<small role="alert">{ service.PinError }</small>

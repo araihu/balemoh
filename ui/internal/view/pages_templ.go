@@ -1149,7 +1149,7 @@ func ServiceSelection(service Service) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" hx-target=\"closest tr\" hx-swap=\"outerHTML\" hx-disabled-elt=\"find input\" hx-sync=\"this:drop\" hx-on::after-request=\"if (!event.detail.successful) { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" hx-target=\"closest tr\" hx-swap=\"outerHTML\" hx-disable=\"find input\" hx-sync=\"this:drop\" hx-on::finally:request=\"if (event.detail.ctx.status.startsWith('error:') || event.detail.ctx.hx?.reswap === 'none') { queueMicrotask(() => { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }); }\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1158,7 +1158,7 @@ func ServiceSelection(service Service) templ.Component {
 			Name:       "pinned",
 			Value:      "true",
 			Checked:    service.Pinned,
-			InputAttrs: templ.Attributes{"aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
+			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
