@@ -58,6 +58,25 @@ report preparation start, completion with elapsed time, failure, or cancellation
 Preparation runs once per process and is cancelled on shutdown; restarting retries
 a failed preparation. Icons become available without restarting after success.
 
+Goshtoso v0.3.2 uses Muamba v0.0.6 to stage verified source files on disk and
+process one image at a time. The generator retains catalog metadata rather than
+a complete in-memory snapshot of the PNG files. Integrity checks, source locks,
+deterministic output, and refusal to overwrite different output remain enabled.
+
+The opt-in integration test downloads the locked archive into an empty cache,
+checks HTTP 503 before preparation, verifies the served PNG hash after HTTP 200,
+and checks reuse of the prepared cache. To measure process RSS on Linux without
+including compilation, run from `ui/`:
+
+```sh
+GOWORK=off go test -tags=integration -c -o /tmp/balemoh-icon-cache.test ./cmd/balemoh-ui
+/usr/bin/time -v /tmp/balemoh-icon-cache.test \
+  -test.run '^TestSelfhstColdCachePublishesVerifiedHTTP$' -test.v -test.timeout 30m
+```
+
+This local process measurement does not include the pod's filesystem page cache.
+Keep the homelab's 2 GiB UI limit until a deployed cold-cache run has been measured.
+
 The current GitHub source archive is about 307 MiB, although the selected PNG
 files total about 142 MiB. First startup needs network access and disk space for
 the archive, source cache, and generated library. Later starts need neither a

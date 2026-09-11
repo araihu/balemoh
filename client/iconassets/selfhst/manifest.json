@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "tool": "goshtoso-iconpack",
-  "release": "",
+  "release": "iconpack-8398f6cb0e5d",
   "identityRevision": 0,
-  "catalogSchemaVersion": 0,
-  "catalogSha256": "",
+  "catalogSchemaVersion": 1,
+  "catalogSha256": "a411b62b20f701e4b4c8868d0c64401b713bfb8ad0cf9de88ec911fe242681a4",
   "releaseJsonSha256": "",
   "checksumsSha256": "",
   "sourceKind": "muamba-snapshot",
