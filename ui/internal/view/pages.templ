@@ -48,7 +48,9 @@ templ PageContent(data PageData) {
  @alert.Alert(alert.Config{Title: "Request could not be completed", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
  </div>
 		}
-		if data.IconPage != nil {
+		if data.HostsPage != nil {
+ @HostsContent(*data.HostsPage, data.Error == "")
+ } else if data.IconPage != nil {
  @IconsContent(*data.IconPage)
  } else if data.Editor != nil {
 			@ServiceEditor(*data.Editor)

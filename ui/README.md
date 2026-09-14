@@ -9,6 +9,11 @@ The UI deliberately does not import the root module's `internal/` packages.
 This keeps the browser-facing composition replaceable when a Balemoh instance
 later becomes a gateway for other clusters and Docker hosts.
 
+The Hosts sidebar item opens `/hosts`, listing each discovered Kubernetes cluster
+and Docker host once by source kind and ID. It uses the full catalog, including
+pinned, hidden, and missing entries. Sources without catalog observations do not
+appear. The page is read-only and uses the existing console shell and table.
+
 ## Local run
 
 Start the API, then run the UI from this directory:
