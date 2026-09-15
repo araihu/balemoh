@@ -65,6 +65,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /icons/{iconID}/image", server.iconImage)
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
+	mux.HandleFunc("GET /hosts", server.hosts)
 	mux.HandleFunc("GET /staging/services/{serviceID}/edit", server.edit)
 	mux.HandleFunc("POST /staging/services/{serviceID}/edit", server.saveEdit)
 	mux.HandleFunc("POST /staging/sync", server.sync)

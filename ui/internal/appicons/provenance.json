@@ -1,20 +1,44 @@
 {
   "schemaVersion": 1,
   "tool": "goshtoso-iconpack",
-  "release": "iconpack-77e5cb96fdde",
-  "catalogSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+  "release": "iconpack-81498d40a7c2",
+  "catalogSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
   "sourceKind": "muamba-snapshot",
   "archiveSha256": "",
-  "sourceConfigSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
-  "sourceLockSha256": "6c62389413f917eaf3b4fc798c687a4b38dab5620b7b52cbcd5c96293fd7e5a5",
+  "sourceConfigSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+  "sourceLockSha256": "019acd6f81439649939cf5d5b045cd86ac76d75b68e7909f11d603990054dcd9",
   "sources": [
+    {
+      "namespace": "custom",
+      "product": "docker",
+      "spritePath": "",
+      "spriteSha256": "",
+      "manifestPath": ".iconpack.yaml",
+      "manifestSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+      "provenancePath": "",
+      "provenanceSha256": "",
+      "licensePath": "docker/LICENSE",
+      "licenseSha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664"
+    },
+    {
+      "namespace": "custom",
+      "product": "heroicons",
+      "spritePath": "",
+      "spriteSha256": "",
+      "manifestPath": ".iconpack.yaml",
+      "manifestSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+      "provenancePath": "",
+      "provenanceSha256": "",
+      "licensePath": "heroicons/LICENSE",
+      "licenseSha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+    },
     {
       "namespace": "custom",
       "product": "kubernetes",
       "spritePath": "",
       "spriteSha256": "",
       "manifestPath": ".iconpack.yaml",
-      "manifestSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+      "manifestSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
       "provenancePath": "",
       "provenanceSha256": "",
       "licensePath": "kubernetes/LICENSE",
@@ -22,6 +46,20 @@
     }
   ],
   "assets": [
+    {
+      "canonicalName": "docker-docker",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08/icons/docker/docker-plain.svg:docker.svg",
+      "license": "MIT",
+      "path": "docker/docker.svg",
+      "sha256": "d1a89aff773fa3e6bab3df98a3d9d685f5f9ddf4af9ec60ce5dc83ea8a83804a"
+    },
+    {
+      "canonicalName": "heroicons-server",
+      "source": "https://raw.githubusercontent.com/tailwindlabs/heroicons/0435d4ca364a608cc75e2f8683d374e55abbae26/optimized/24/solid/server.svg:server.svg",
+      "license": "MIT",
+      "path": "heroicons/server.svg",
+      "sha256": "40f0dde99467b1fab549373c2beab7a68576e90e1718e3a5fb30319700a24560"
+    },
     {
       "canonicalName": "kubernetes-kubernetes",
       "source": "https://raw.githubusercontent.com/devicons/devicon/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08/icons/kubernetes/kubernetes-plain.svg:kubernetes.svg",

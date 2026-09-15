@@ -48,12 +48,13 @@ templ PageContent(data PageData) {
  @alert.Alert(alert.Config{Title: "Request could not be completed", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
  </div>
 		}
-		if data.IconPage != nil {
+		if data.HostsPage != nil {
+ @HostsContent(*data.HostsPage, data.Error == "")
+ } else if data.IconPage != nil {
  @IconsContent(*data.IconPage)
  } else if data.Editor != nil {
 			@ServiceEditor(*data.Editor)
  @ServiceLifecycle(*data.Editor)
- <h2>Resources</h2>
  @ServiceResources(*data.Editor)
 		} else if data.Staging {
 			@StagingContent(data)
@@ -212,39 +213,6 @@ templ ServiceIdentity(service Service) {
 	</div>
 }
 
-templ ServiceEndpoints(service Service) {
-	<div class="balemoh-endpoint-list">
-		if len(service.Endpoints) == 0 {
-			<span class="balemoh-muted">No endpoint</span>
-		} else {
-			for _, endpoint := range service.Endpoints {
-				if href := endpointHref(endpoint.URL); href != "" {
-					@link.Link(href, link.WithTarget("_blank")) {
-						{ endpointSummary(endpoint) }
-					}
-				} else {
-					<span>{ endpointSummary(endpoint) }</span>
-				}
-				if endpoint.Provenance != "" {
-					<small>{ endpoint.Provenance }</small>
-				}
-			}
-		}
-	</div>
-}
-
-templ ServiceImages(service Service) {
-	<div class="balemoh-image-list">
-		if len(service.Images) == 0 {
-			<span class="balemoh-muted">Not observed</span>
-		} else {
-			for _, image := range service.Images {
-				<code>{ image }</code>
-			}
-		}
-	</div>
-}
-
 templ ServiceSelection(service Service) {
 	<form
 		method="post"
@@ -279,25 +247,6 @@ templ ServiceSelection(service Service) {
 			}
 		</noscript>
 	</form>
-}
-
-// Native disclosure composes in the public Table Cell slot, with keyboard support.
-templ ServiceResources(service Service) {
-	<details class="balemoh-resource-details" open>
-		<summary aria-label={ resourceCount(service) + " for " + service.DisplayName }>{ resourceCount(service) }</summary>
-		<div class="balemoh-resource-list">
-			<small class="balemoh-muted">{ service.Source }</small>
-			for _, member := range resourceMembers(service) {
-				<section>
-					<strong>{ resourceLabel(member) }</strong>
-					@ServiceEndpoints(member)
-					if len(member.Images) > 0 {
-						@ServiceImages(member)
-					}
-				</section>
-			}
-		</div>
-	</details>
 }
 
 templ GroupAddresses(service Service) {

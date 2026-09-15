@@ -1,0 +1,105 @@
+package view
+
+import (
+	"fmt"
+	"strconv"
+	"time"
+	"github.com/araihu/balemoh/ui/internal/appicons"
+	"github.com/araihu/goshtoso/components/avatar"
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/emptystate"
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/table"
+)
+
+type Host struct {
+	Name string
+	Kind string
+	Services int
+	ObservedAt time.Time
+}
+
+type HostsPage struct {
+	Hosts []Host
+}
+
+func hostRows(hosts []Host) []table.Row {
+	rows := make([]table.Row, 0, len(hosts))
+	for i, host := range hosts {
+		id := fmt.Sprintf("host-%d", i)
+		rows = append(rows, table.Row{
+			ID: id,
+			Cells: map[string]table.Cell{"host": {Component: HostToggle(host, id)}},
+			Expandable: true,
+			Detail: HostDetails(host, id),
+		})
+	}
+	return rows
+}
+
+templ HostToggle(host Host, id string) {
+	@button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithRootClass("balemoh-host-toggle"), button.WithID(id+"-toggle"), button.WithAttrs(templ.Attributes{
+		"aria-expanded": "false",
+		"aria-controls": id+"-details",
+		"x-bind:aria-expanded": fmt.Sprintf("!!openRows['%s']", id),
+		"x-on:click.stop": fmt.Sprintf("openRows['%s'] = !openRows['%s']", id, id),
+	})) {
+		@HostIdentity(host)
+	}
+}
+
+templ HostDetails(host Host, id string) {
+	<dl id={ id+"-details" } class="balemoh-editor" aria-labelledby={ id+"-toggle" }>
+		<div><dt><strong>Type</strong></dt><dd>{ host.Kind }</dd></div>
+		<div><dt><strong>Catalog services</strong></dt><dd>{ strconv.Itoa(host.Services) }</dd></div>
+		<div>
+			<dt><strong>Last observed</strong></dt>
+			<dd>
+				if host.ObservedAt.IsZero() {
+					Not available
+				} else {
+					<time datetime={ host.ObservedAt.UTC().Format(time.RFC3339) }>{ host.ObservedAt.UTC().Format("2006-01-02 15:04:05 UTC") }</time>
+				}
+			</dd>
+		</div>
+	</dl>
+}
+
+templ HostIdentity(host Host) {
+	<span class="balemoh-service-name">
+		@avatar.Avatar(avatar.Config{Size: avatar.SizeXS, Shape: avatar.ShapeSquare, Icon: HostGlyph(host), RootClass: "balemoh-service-avatar"})
+		<span>{ host.Name }</span>
+	</span>
+}
+
+templ HostGlyph(host Host) {
+	<span class="balemoh-service-card-icon">
+		switch host.Kind {
+			case "Kubernetes cluster":
+				@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Decorative: true})
+			case "Docker host":
+				@appicons.Icon(appicons.Config{Symbol: appicons.IconDockerDocker, Decorative: true})
+			default:
+				@appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})
+		}
+	</span>
+}
+
+templ HostsContent(page HostsPage, available bool) {
+	@pageheader.PageHeader(pageheader.Config{Title: "Hosts", HideSeparator: true})
+	if available {
+		if len(page.Hosts) == 0 {
+			@emptystate.EmptyState(emptystate.Config{
+				Title: "No hosts discovered",
+				Description: "Hosts appear after Kubernetes discovery or a Docker agent reports services.",
+			})
+		} else {
+			@table.Table(table.Config{
+				ID: "hosts-table",
+				Caption: "Discovered Kubernetes clusters and Docker hosts",
+				Columns: []table.Column{{Key: "host", Label: "Host"}},
+				Rows: hostRows(page.Hosts),
+			})
+		}
+	}
+}

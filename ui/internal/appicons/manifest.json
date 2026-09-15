@@ -1,21 +1,41 @@
 {
   "schemaVersion": 1,
   "tool": "goshtoso-iconpack",
-  "release": "iconpack-77e5cb96fdde",
+  "release": "iconpack-81498d40a7c2",
   "identityRevision": 1,
   "catalogSchemaVersion": 1,
-  "catalogSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
+  "catalogSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
   "releaseJsonSha256": "",
   "checksumsSha256": "",
   "sourceKind": "muamba-snapshot",
   "archiveSha256": "",
-  "sourceConfigSha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020",
-  "sourceLockSha256": "6c62389413f917eaf3b4fc798c687a4b38dab5620b7b52cbcd5c96293fd7e5a5",
+  "sourceConfigSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+  "sourceLockSha256": "019acd6f81439649939cf5d5b045cd86ac76d75b68e7909f11d603990054dcd9",
   "package": "appicons",
   "constPrefix": "Icon",
   "spriteUrl": "/ui/icons/sprite.svg",
   "iconifyPrefix": "appicons",
   "assets": [
+    {
+      "canonicalName": "docker-docker",
+      "namespace": "custom",
+      "product": "docker",
+      "path": "docker/docker.svg",
+      "spriteSymbol": "docker-docker",
+      "colorBehavior": "currentColor",
+      "sha256": "d1a89aff773fa3e6bab3df98a3d9d685f5f9ddf4af9ec60ce5dc83ea8a83804a",
+      "goIdentifier": "IconDockerDocker"
+    },
+    {
+      "canonicalName": "heroicons-server",
+      "namespace": "custom",
+      "product": "heroicons",
+      "path": "heroicons/server.svg",
+      "spriteSymbol": "heroicons-server",
+      "colorBehavior": "currentColor",
+      "sha256": "40f0dde99467b1fab549373c2beab7a68576e90e1718e3a5fb30319700a24560",
+      "goIdentifier": "IconHeroiconsServer"
+    },
     {
       "canonicalName": "kubernetes-kubernetes",
       "namespace": "custom",
@@ -29,6 +49,18 @@
   ],
   "files": [
     {
+      "path": "LICENSES/docker-LICENSE.txt",
+      "mode": "0644",
+      "bytes": 1072,
+      "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664"
+    },
+    {
+      "path": "LICENSES/heroicons-LICENSE.txt",
+      "mode": "0644",
+      "bytes": 1071,
+      "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+    },
+    {
       "path": "LICENSES/kubernetes-LICENSE.txt",
       "mode": "0644",
       "bytes": 1072,
@@ -37,38 +69,38 @@
     {
       "path": "NOTICE",
       "mode": "0644",
-      "bytes": 163,
-      "sha256": "763e8ab11772b35df1292eccd520fee4a97f589f44384b6c1180ad1b1ba8d309"
+      "bytes": 474,
+      "sha256": "db9a842b862bfec27090b83eb6cb73b4025dc2440c2010fd2a94e5a313a12dd8"
     },
     {
       "path": "PROVENANCE/.iconpack.yaml",
       "mode": "0644",
-      "bytes": 382,
-      "sha256": "77e5cb96fdde8f293384e2897a47890f02f0ba3cb4298e3f014566dbce754020"
+      "bytes": 1077,
+      "sha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9"
     },
     {
       "path": "icons.json",
       "mode": "0644",
-      "bytes": 4629,
-      "sha256": "88b36636fa866ec399a6767538ad0be92bc0af97c44f472564ea7c250f4564e5"
+      "bytes": 6216,
+      "sha256": "4ae5ce27da2426c645a702ecb7e8a3f1bc79a876b5d8e78b091461a9f45faca1"
     },
     {
       "path": "icons_gen.go",
       "mode": "0644",
-      "bytes": 1288,
-      "sha256": "c1734c0697855352298416c7d1a88841abb8aaf3bcb6a79bd21a1e89eda1874e"
+      "bytes": 1842,
+      "sha256": "c0dee34b48fe9f18ad297c7b0f524208d8f0177a89530f2947294536ec76d759"
     },
     {
       "path": "provenance.json",
       "mode": "0644",
-      "bytes": 1279,
-      "sha256": "5c6a10d3718d5344956ec07f08fcc98e197072fa03844bbb713c831747686023"
+      "bytes": 2867,
+      "sha256": "ebf0a70a13a4e3ed60b14b0fec2fd1e73bc9659ba40b1464128ad107295455a3"
     },
     {
       "path": "sprite.svg",
       "mode": "0644",
-      "bytes": 4598,
-      "sha256": "1a8e4a4575d34dfc38a57c098768fa7d2188c992fe464e0f400540fa7444baf6"
+      "bytes": 6126,
+      "sha256": "b9043ea76dd100d4341170d21e5776908c837180858728528b9e7552e62ae1f8"
     }
   ]
 }
