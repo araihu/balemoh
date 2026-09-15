@@ -1,0 +1,97 @@
+package view
+
+import (
+	"fmt"
+	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/codeblock"
+	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/panel"
+	"github.com/araihu/goshtoso/components/table"
+	"strings"
+)
+
+// Resource panels use the editor's full width, keeping discovery evidence grouped.
+templ ServiceResources(service Service) {
+	<section class="balemoh-resource-panels" aria-labelledby="service-resources-heading">
+		<div>
+			<div class="balemoh-resource-heading">
+				<h2 id="service-resources-heading">Resources</h2>
+				@badge.Badge(badge.Config{Label: resourceCount(service)})
+			</div>
+			<p class="balemoh-muted">{ service.Source }</p>
+		</div>
+		for i, member := range resourceMembers(service) {
+			@panel.Panel(panel.Config{
+				Header:    ResourceHeading(member),
+				Body:      ResourceData(member, i),
+				RootClass: "balemoh-resource-panel",
+			})
+		}
+	</section>
+}
+
+templ ResourceHeading(member Service) {
+	{{ kind, name, found := strings.Cut(member.Resource, "/") }}
+	<div class="balemoh-resource-heading">
+		if found {
+			@badge.Badge(badge.Config{Label: kind})
+			<h3>{ name }</h3>
+		} else {
+			<h3>{ member.Resource }</h3>
+		}
+	</div>
+	if member.Namespace != "" {
+		<p class="balemoh-muted">Namespace: { member.Namespace }</p>
+	}
+}
+
+func resourceEndpointRows(endpoints []Endpoint) []table.Row {
+	rows := make([]table.Row, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		rows = append(rows, table.Row{Cells: map[string]table.Cell{
+			"endpoint": {Component: ResourceEndpoint(endpoint)},
+		}})
+	}
+	return rows
+}
+
+templ ResourceEndpoint(endpoint Endpoint) {
+	<div class="balemoh-resource-endpoint">
+		<strong>{ endpointSummary(endpoint) }</strong>
+		if href := endpointHref(endpoint.URL); href != "" {
+			@link.Link(href, link.WithTarget("_blank")) {
+				{ addressLabel(href) }
+			}
+		} else if endpoint.URL != "" {
+			<span>{ endpoint.URL }</span>
+		} else {
+			<span class="balemoh-muted">No public address</span>
+		}
+	</div>
+	if endpoint.Provenance != "" {
+		<small class="balemoh-muted">{ endpoint.Provenance }</small>
+	}
+}
+
+templ ResourceData(member Service, index int) {
+	<div class="balemoh-resource-body">
+		if len(member.Endpoints) > 0 {
+			@table.Table(table.Config{
+				ID:      fmt.Sprintf("resource-%d-endpoints", index),
+				Caption: "Endpoints for " + resourceLabel(member),
+				Columns: []table.Column{{Key: "endpoint", Label: "Endpoints"}},
+				Rows:    resourceEndpointRows(member.Endpoints),
+			})
+		} else {
+			<p class="balemoh-muted">No endpoints observed</p>
+		}
+		for i, image := range member.Images {
+			<div class="balemoh-resource-image">
+				@codeblock.CodeBlock(codeblock.Config{
+					ID:       fmt.Sprintf("resource-%d-image-%d", index, i),
+					Language: "text", Label: "Container image", Code: image, Density: codeblock.DensityCompact,
+				})
+			</div>
+		}
+	</div>
+}
