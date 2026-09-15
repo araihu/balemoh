@@ -26,10 +26,18 @@ func (s *server) hosts(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, data, http.StatusServiceUnavailable)
 		return
 	}
-	seen := make(map[api.SourceRef]bool)
+	hostIndex := make(map[api.SourceRef]int)
 	for _, service := range services {
 		source := service.Source
-		if seen[source] || source.Id == "" {
+		if source.Id == "" {
+			continue
+		}
+		if index, exists := hostIndex[source]; exists {
+			host := &data.HostsPage.Hosts[index]
+			host.Services++
+			if service.ObservedAt.After(host.ObservedAt) {
+				host.ObservedAt = service.ObservedAt
+			}
 			continue
 		}
 		kind := ""
@@ -41,8 +49,10 @@ func (s *server) hosts(w http.ResponseWriter, r *http.Request) {
 		default:
 			kind = "Unknown host"
 		}
-		seen[source] = true
-		data.HostsPage.Hosts = append(data.HostsPage.Hosts, view.Host{Name: source.Id, Kind: kind})
+		hostIndex[source] = len(data.HostsPage.Hosts)
+		data.HostsPage.Hosts = append(data.HostsPage.Hosts, view.Host{
+			Name: source.Id, Kind: kind, Services: 1, ObservedAt: service.ObservedAt,
+		})
 	}
 	sort.Slice(data.HostsPage.Hosts, func(i, j int) bool {
 		a, b := data.HostsPage.Hosts[i], data.HostsPage.Hosts[j]

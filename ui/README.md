@@ -15,6 +15,9 @@ pinned, hidden, and missing entries. Sources without catalog observations do not
 appear. The page is read-only and uses the existing console shell and table.
 Rows show Kubernetes or Docker avatars. Unrecognized source kinds appear as
 "Unknown host" with a Heroicons server avatar.
+Expand a host row to see its type, catalog service count, and latest observation
+time. Counts include pinned, hidden, and missing services; timestamps do not
+indicate current host health.
 
 ## Local run
 

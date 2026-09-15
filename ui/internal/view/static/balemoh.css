@@ -114,6 +114,12 @@ body {
 	flex-wrap: wrap;
 }
 
+.balemoh-host-toggle {
+	white-space: normal;
+	text-align: left;
+	overflow-wrap: anywhere;
+}
+
 
 .balemoh-icon-button {
 	width: 2.5rem;

@@ -13,10 +13,12 @@ import (
 )
 
 func TestHostsListsDistinctDiscoverySources(t *testing.T) {
+	latest := time.Date(2026, 9, 15, 12, 30, 0, 0, time.UTC)
 	catalog := &fakeCatalog{staging: []api.ServiceCandidate{
-		{Source: api.SourceRef{Kind: "container", Id: "raspi"}},
+		{Source: api.SourceRef{Kind: "container", Id: "raspi"}, ObservedAt: latest.Add(-time.Hour)},
 		{Source: api.SourceRef{Kind: "container", Id: "bastion"}},
-		{Source: api.SourceRef{Kind: "container", Id: "raspi"}, Pinned: true},
+		{Source: api.SourceRef{Kind: "container", Id: "raspi"}, Pinned: true, ObservedAt: latest},
+		{Source: api.SourceRef{Kind: "container", Id: "raspi"}, Missing: true, ObservedAt: latest.Add(-2 * time.Hour)},
 		{Source: api.SourceRef{Kind: "kubernetes", Id: "devspace-local"}, Status: "hidden"},
 		{Source: api.SourceRef{Kind: "kubernetes", Id: "devspace-local"}},
 		{Source: api.SourceRef{Kind: "other", Id: "unsupported-source"}},
@@ -50,6 +52,31 @@ func TestHostsListsDistinctDiscoverySources(t *testing.T) {
 	if catalog.syncCalls != 0 || len(catalog.pinnedIDs) != 0 || len(catalog.unpinnedIDs) != 0 {
 		t.Fatal("listing hosts mutated the catalog")
 	}
+	for _, want := range []string{
+		`aria-controls="host-2-details"`,
+		`id="host-2-details"`,
+		`<dd>3</dd>`,
+		`datetime="2026-09-15T12:30:00Z"`,
+		`Not available`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing accordion host data: %s", want)
+		}
+	}
+	doc, err := html.Parse(strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var checkHeaders func(*html.Node)
+	checkHeaders = func(n *html.Node) {
+		if n.Data == "th" && n.FirstChild != nil && n.FirstChild.Data == "Type" {
+			t.Error("Type must be in host details, not a table column")
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			checkHeaders(c)
+		}
+	}
+	checkHeaders(doc)
 }
 
 func TestHostsEmptyErrorAndSourceIdentity(t *testing.T) {
