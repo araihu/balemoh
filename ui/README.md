@@ -13,6 +13,8 @@ The Hosts sidebar item opens `/hosts`, listing each discovered Kubernetes cluste
 and Docker host once by source kind and ID. It uses the full catalog, including
 pinned, hidden, and missing entries. Sources without catalog observations do not
 appear. The page is read-only and uses the existing console shell and table.
+Rows show Kubernetes or Docker avatars. Unrecognized source kinds appear as
+"Unknown host" with a Heroicons server avatar.
 
 ## Local run
 

@@ -39,7 +39,7 @@ func (s *server) hosts(w http.ResponseWriter, r *http.Request) {
 		case "container":
 			kind = "Docker host"
 		default:
-			continue
+			kind = "Unknown host"
 		}
 		seen[source] = true
 		data.HostsPage.Hosts = append(data.HostsPage.Hosts, view.Host{Name: source.Id, Kind: kind})
@@ -47,7 +47,10 @@ func (s *server) hosts(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(data.HostsPage.Hosts, func(i, j int) bool {
 		a, b := data.HostsPage.Hosts[i], data.HostsPage.Hosts[j]
 		if a.Kind != b.Kind {
-			return a.Kind == "Kubernetes cluster"
+			if a.Kind == "Kubernetes cluster" || b.Kind == "Kubernetes cluster" {
+				return a.Kind == "Kubernetes cluster"
+			}
+			return a.Kind < b.Kind
 		}
 		return a.Name < b.Name
 	})

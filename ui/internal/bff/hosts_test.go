@@ -31,13 +31,18 @@ func TestHostsListsDistinctDiscoverySources(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d", w.Code)
 	}
-	for _, name := range []string{"raspi", "bastion", "devspace-local"} {
+	for _, name := range []string{"raspi", "bastion", "devspace-local", "unsupported-source"} {
 		if strings.Count(body, ">"+name+"<") != 1 {
 			t.Errorf("expected one row for %s", name)
 		}
 	}
-	if strings.Contains(body, "unsupported-source") || !strings.Contains(body, "Kubernetes cluster") || !strings.Contains(body, "Docker host") {
+	if !strings.Contains(body, "Unknown host") || !strings.Contains(body, "Kubernetes cluster") || !strings.Contains(body, "Docker host") {
 		t.Error("incorrect host types")
+	}
+	for symbol, count := range map[string]int{"kubernetes-kubernetes": 1, "docker-docker": 2, "heroicons-server": 1} {
+		if strings.Count(body, "/ui/icons/sprite.svg#"+symbol+"\"") != count {
+			t.Errorf("expected %d host avatars using %s", count, symbol)
+		}
 	}
 	if strings.Index(body, ">devspace-local<") > strings.Index(body, ">bastion<") || strings.Index(body, ">bastion<") > strings.Index(body, ">raspi<") {
 		t.Error("expected clusters first, then hosts sorted by name")

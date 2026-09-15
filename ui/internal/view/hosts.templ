@@ -1,6 +1,8 @@
 package view
 
 import (
+	"github.com/araihu/balemoh/ui/internal/appicons"
+	"github.com/araihu/goshtoso/components/avatar"
 	"github.com/araihu/goshtoso/components/emptystate"
 	"github.com/araihu/goshtoso/components/pageheader"
 	"github.com/araihu/goshtoso/components/table"
@@ -19,11 +21,31 @@ func hostRows(hosts []Host) []table.Row {
 	rows := make([]table.Row, 0, len(hosts))
 	for _, host := range hosts {
 		rows = append(rows, table.Row{Cells: map[string]table.Cell{
-			"host": {Text: host.Name},
+			"host": {Component: HostIdentity(host)},
 			"kind": {Text: host.Kind},
 		}})
 	}
 	return rows
+}
+
+templ HostIdentity(host Host) {
+	<div class="balemoh-service-name">
+		@avatar.Avatar(avatar.Config{Size: avatar.SizeXS, Shape: avatar.ShapeSquare, Icon: HostGlyph(host), RootClass: "balemoh-service-avatar"})
+		<span>{ host.Name }</span>
+	</div>
+}
+
+templ HostGlyph(host Host) {
+	<span class="balemoh-service-card-icon">
+		switch host.Kind {
+			case "Kubernetes cluster":
+				@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Decorative: true})
+			case "Docker host":
+				@appicons.Icon(appicons.Config{Symbol: appicons.IconDockerDocker, Decorative: true})
+			default:
+				@appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})
+		}
+	</span>
 }
 
 templ HostsContent(page HostsPage, available bool) {
