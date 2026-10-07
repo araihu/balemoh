@@ -20,3 +20,9 @@
 
 - User requested chart captions and exact-value disclosures removed. Clear the public Caption field. Charts v0.0.3 has no disclosure visibility option, so scoped CSS hides its native details element under the application-owned host chart container. Remove the now-unused disclosure morph hook and scroll region. Replace this selector when Charts exposes a visibility option.
 - Absolutely positioned table captions and hidden chart controls escaped the shell's main scroll area and enlarged document scroll height. Give the application-owned main ID a positioned containing block; keep the existing main scroll container and fixed modal behavior.
+
+## Host history partial navigation, 2026-10-07
+
+- Range links and Refresh use Goshtoso Link attributes with HTMX 4 `innerMorph`, one shared `replace` request group, and URL history. `HX-Request-Type` selects fragments; history requests marked full receive the complete shell. Link `WithAttrs` replaces its attribute map, so assemble all attributes before passing it.
+- Changing the SSE URL during morph reproduced the documented hx-sse 4.0.0 unhandled AbortError. The connection event wraps abort to cancel the reader first, following the pinned migration guide. Only expected AbortError is ignored; other cancellation errors remain visible. Queued events from a superseded range are discarded before swaps.
+- Give each range's SSE connector a distinct DOM ID. Reusing the same element lets the old extension loop reconnect after cleanup while a replacement starts. Removing the old element ends its loop; the new range owns a new connector. Refresh keeps the existing connector and does not push duplicate history entries.

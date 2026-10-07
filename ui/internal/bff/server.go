@@ -285,7 +285,18 @@ func (s *server) serveCSS(w http.ResponseWriter, _ *http.Request) {
 
 func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageData, status int) {
 	var body bytes.Buffer
-	if err := view.ConsolePage(data).Render(r.Context(), &body); err != nil {
+	component := view.ConsolePage(data)
+	if data.HostDetail != nil {
+		w.Header().Add("Vary", "HX-Request-Type")
+		if r.Header.Get("HX-Request-Type") == "partial" {
+			component = view.HostContent(*data.HostDetail)
+			if data.Error != "" {
+				component = view.HostHistoryError(data.Error)
+				w.Header().Set("HX-Push-Url", "false")
+			}
+		}
+	}
+	if err := component.Render(r.Context(), &body); err != nil {
 		http.Error(w, "unable to render UI", http.StatusInternalServerError)
 		return
 	}

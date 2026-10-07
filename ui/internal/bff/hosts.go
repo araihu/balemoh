@@ -62,7 +62,7 @@ func (s *server) host(w http.ResponseWriter, r *http.Request) {
 		window = "1h"
 	}
 	if window != "1h" && window != "24h" {
-		http.Error(w, "Choose a range of 1h or 24h.", 400)
+		s.render(w, r, view.PageData{Title: "Host", Description: "Host resource usage and workloads.", Path: "/hosts/" + r.PathValue("hostID"), HostDetail: &view.HostDetail{}, Error: "Choose a range of 1h or 24h."}, 400)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
@@ -78,7 +78,8 @@ func (s *server) host(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var upstream *upstreamError
 		if errors.As(err, &upstream) && upstream.status == 404 {
-			http.NotFound(w, r)
+			data.Error = "Host no longer available."
+			s.render(w, r, data, 404)
 			return
 		}
 		data.Error = "Unable to load host. Refresh the page to try again."

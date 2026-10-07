@@ -30,7 +30,11 @@ templ PageContent(data PageData) {
 	if data.Notice != "" {
 		<div hidden x-data="{}" x-init={ successToastEvent(data.Notice) }></div>
 	}
-	<section class="balemoh-content" aria-label={ data.Title }>
+	<section class="balemoh-content" aria-label={ data.Title }
+ if data.HostDetail != nil {
+  id="host-detail"
+ }
+ >
 		if data.Editor != nil {
  @pageheader.PageHeader(pageheader.Config{Title: data.Title, HideSeparator: true})
  @link.Link(stagingURL(data.Editor.State())) { Back to Staging }
