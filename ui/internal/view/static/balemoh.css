@@ -13,6 +13,9 @@ body {
 	margin: 0;
 }
 
+/* Keep absolute chart controls and table captions inside the shell scroll area. */
+#main-content { position: relative; }
+
 .balemoh-content {
 	width: min(100%, var(--balemoh-content-width));
 	margin-inline: auto;
@@ -212,8 +215,8 @@ body {
 .balemoh-host-services { display: flex; flex-wrap: wrap; gap: 1rem; }
 #hosts-table small { display: block; margin-top: .3rem; }
 #hosts-table td:first-child, #host-workloads td:first-child { overflow-wrap: anywhere; white-space: normal; }
-.balemoh-host-history { max-height: 36rem; overflow: auto; }
-.balemoh-host-history details > div { overflow: visible; }
+/* Charts v0.0.3 always renders its data disclosure; this page shows charts only. */
+.balemoh-host-history > details { display: none; }
 @media (max-width: 767px) { .balemoh-host-grid { grid-template-columns: minmax(0, 1fr); } }
 .balemoh-host-card { max-width: none; }
 .balemoh-host-heading { font-size: 1.15rem; font-weight: 600; }

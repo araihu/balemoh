@@ -1,10 +1,3 @@
-// Preserve the reader's open exact-values table while HTMX morphs new samples.
-htmx.registerExtension('balemoh-host-live', {
-  htmx_before_morph_attr(element, detail) {
-    if (element.matches('.balemoh-host-history details') && detail.attrName === 'open') return false;
-  }
-});
-
 function hostLiveStatus(message) {
   const status = document.querySelector('#host-live-status .balemoh-live-badge');
   if (status) status.textContent = message;

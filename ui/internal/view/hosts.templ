@@ -44,11 +44,12 @@ func hostRows(hosts []Host) []table.Row {
  }})};return rows
 }
 func hostStatus(status string)string{switch status{case "fresh":return "Reporting";case "partial":return "Partial data";case "stale":return "Stale";default:return "No telemetry"}}
+func hostStatusTone(status string)badge.Tone{switch status{case "fresh":return badge.ToneSuccess;case "partial","stale":return badge.ToneWarning;default:return badge.ToneInfo}}
 func percentage(value *float64)string{if value==nil{return "Unavailable"};return fmt.Sprintf("%.1f%%",*value)}
 func memorySize(value *int64)string{if value==nil{return "Unavailable"};return fmt.Sprintf("%.1f GiB",float64(*value)/(1<<30))}
 func historyChart(page HostDetail,cpu bool)line.Config{
  title:="Memory usage";if cpu{title="CPU usage"}
- cfg:=line.Config{Label:title,Caption:"UTC · one-minute samples · gaps mean unavailable data",Width:360,Height:220,XAxis:line.CategoryAxisOptions{LabelCount:2,LabelFontSize:12},Symbol:line.Symbol{Shape:line.SymbolNone},Legend:line.LegendOptions{Hidden:true}}
+ cfg:=line.Config{Label:title,Width:360,Height:220,XAxis:line.CategoryAxisOptions{LabelCount:2,LabelFontSize:12},Symbol:line.Symbol{Shape:line.SymbolNone},Legend:line.LegendOptions{Hidden:true}}
  cfg.Controls.Mode=chartcontrol.WrapperModeOmitted
  zero,hundred:=0.0,100.0;cfg.Export=&chartcontrol.ExportOptions{Disabled:true}
  cfg.YAxes=[]line.Axis{{Title:"%",Min:&zero,Max:&hundred,LabelCount:5,LabelFontSize:14,Unit:25}}
@@ -168,7 +169,7 @@ templ HostNotice(status,title,description string,tone alert.Tone) {
 }
 templ HostMeasurements(page HostDetail) {
  <div class="balemoh-host-status">
-  <span>{ page.Host.Kind } · { hostStatus(page.Host.Status) }</span>
+  @badge.Badge(badge.Config{Label:page.Host.Kind+" · "+hostStatus(page.Host.Status),Tone:hostStatusTone(page.Host.Status)})
   @ReportTime("Last observed:",page.Host.ObservedAt)
   @ReportTime("Last received:",page.Host.ReceivedAt)
   if page.Host.Ready!="" {
@@ -233,7 +234,7 @@ templ HostLiveSnapshot(page HostDetail) {
 }
 templ HostChartContent(page HostDetail,cpu bool) {
  if hasHistory(page,cpu) {
-  <div class="balemoh-host-history" tabindex="0" role="region" aria-label={ historyChart(page,cpu).Label+" and exact values" }>
+  <div class="balemoh-host-history">
    @line.Line(historyChart(page,cpu))
   </div>
  } else {

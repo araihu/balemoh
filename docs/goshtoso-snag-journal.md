@@ -15,3 +15,8 @@
 - HTMX 4 uses `hx-sse:connect`, unnamed HTML events and `innerMorph`; the local older ticker example still uses HTMX 2 attributes. The pinned migration guide and runtime are the applicable contract.
 - Compose public `chartcontrol.Wrapper` around a stable application-owned chart target and set the nested line's wrapper mode to omitted. This keeps expansion lifecycle outside SSE swaps, including when the target moves into the modal. A scoped `htmx_before_morph_attr` extension hook preserves the native `details` open attribute.
 - The HTMX 4 morph attribute callback is an extension hook, not a dispatched DOM event. Use public `htmx.registerExtension`; a document event listener silently fails to preserve disclosure state.
+
+## Host page display cleanup, 2026-10-07
+
+- User requested chart captions and exact-value disclosures removed. Clear the public Caption field. Charts v0.0.3 has no disclosure visibility option, so scoped CSS hides its native details element under the application-owned host chart container. Remove the now-unused disclosure morph hook and scroll region. Replace this selector when Charts exposes a visibility option.
+- Absolutely positioned table captions and hidden chart controls escaped the shell's main scroll area and enlarged document scroll height. Give the application-owned main ID a positioned containing block; keep the existing main scroll container and fixed modal behavior.
