@@ -47,6 +47,7 @@ func memorySize(value *int64)string{if value==nil{return "Unavailable"};return f
 func historyChart(page HostDetail,cpu bool)line.Config{
  title:="Memory usage";if cpu{title="CPU usage"}
  cfg:=line.Config{Label:title,Caption:"UTC · one-minute samples · gaps mean unavailable data",Width:360,Height:220,XAxis:line.CategoryAxisOptions{LabelCount:2,LabelFontSize:12},Symbol:line.Symbol{Shape:line.SymbolNone},Legend:line.LegendOptions{Hidden:true}}
+ cfg.Controls.Mode=chartcontrol.WrapperModeOmitted
  zero,hundred:=0.0,100.0;cfg.Export=&chartcontrol.ExportOptions{Disabled:true}
  cfg.YAxes=[]line.Axis{{Title:"%",Min:&zero,Max:&hundred,LabelCount:5,LabelFontSize:14,Unit:25}}
  points:=make([]line.Point,0,len(page.Samples))
@@ -113,28 +114,10 @@ templ HostContent(page HostDetail) {
   }
  </nav>
  @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true})
- <div class="balemoh-host-status">
-  <span>{ page.Host.Kind } · { hostStatus(page.Host.Status) }</span>
-  @ReportTime("Last observed:",page.Host.ObservedAt)
-  @ReportTime("Last received:",page.Host.ReceivedAt)
-  if page.Host.Ready!="" {
-   <span>Node ready: { page.Host.Ready }</span>
-  }
+ <div id="host-live" hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
+  <p id="host-live-status" class="balemoh-muted" role="status">Connecting to live updates…</p>
  </div>
- if page.Host.Status=="stale" {
-  <p role="status">Reports are more than three minutes old. Values below are the last observations.</p>
- }
- if page.Host.Status=="partial" {
-  <p role="status">Some measurements are unavailable. Collection may be starting or missing access to host metrics.</p>
- }
- if page.Host.Status=="unavailable" {
-  <p role="status">No telemetry has arrived. Enable host collection on the agent to see measurements.</p>
- }
- <h2 class="balemoh-host-heading">Latest measurements</h2>
- <div class="balemoh-host-grid">
-  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"CPU",Body:MetricValue(percentage(page.Host.CPU),"Share of total CPU capacity")})
-  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory",Body:MetricValue(percentage(page.Host.Memory),memorySize(page.Host.MemoryUsed)+" used / "+memorySize(page.Host.MemoryTotal)+" total")})
- </div>
+ <div id="host-measurements">@HostMeasurements(page)</div>
  <div class="balemoh-host-actions">
   <h2>Usage history</h2>
   <nav aria-label="History range" class="balemoh-host-actions">
@@ -147,25 +130,7 @@ templ HostContent(page HostDetail) {
   @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"CPU usage",Body:HostChart(page,true)})
   @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory usage",Body:HostChart(page,false)})
  </div>
- if page.Host.Kind=="Kubernetes cluster" {
-  <h2>Nodes</h2>
-  if len(page.Children)>0 {
-   @HostTable(page.Children)
-  } else {
-   <p>No node inventory received.</p>
-  }
- }
- <h2>Workloads</h2>
- if !page.Host.InventoryAvailable {
-  <p>Workload inventory is unavailable or incomplete.</p>
- }
- if len(page.Workloads)>0 {
-  <div class="balemoh-table-scroll" tabindex="0" role="region" aria-label="Workload inventory">
-   @table.Table(table.Config{RootClass:"balemoh-host-workloads",ID:"host-workloads",Caption:"Last reported workloads",Columns:workloadColumns(page.Host.Kind),Rows:workloadRows(page.Workloads)})
-  </div>
- } else if page.Host.InventoryAvailable {
-  <p>No workloads reported.</p>
- }
+ <div id="host-inventory">@HostInventory(page)</div>
  if page.Host.ParentID=="" {
   <h2>Catalog services</h2>
   if !page.ServicesAvailable {
@@ -193,7 +158,69 @@ templ MetricValue(value,description string) {
  <p class="balemoh-metric-value">{ value }</p>
  <p class="balemoh-muted">{ description }</p>
 }
+templ HostMeasurements(page HostDetail) {
+ <div class="balemoh-host-status">
+  <span>{ page.Host.Kind } · { hostStatus(page.Host.Status) }</span>
+  @ReportTime("Last observed:",page.Host.ObservedAt)
+  @ReportTime("Last received:",page.Host.ReceivedAt)
+  if page.Host.Ready!="" {
+   <span>Node ready: { page.Host.Ready }</span>
+  }
+ </div>
+ if page.Host.Status=="stale" {
+  <p role="status">Reports are more than three minutes old. Values below are the last observations.</p>
+ }
+ if page.Host.Status=="partial" {
+  <p role="status">Some measurements are unavailable. Collection may be starting or missing access to host metrics.</p>
+ }
+ if page.Host.Status=="unavailable" {
+  <p role="status">No telemetry has arrived. Enable host collection on the agent to see measurements.</p>
+ }
+ <h2 class="balemoh-host-heading">Latest measurements</h2>
+ <div class="balemoh-host-grid">
+  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"CPU",Body:MetricValue(percentage(page.Host.CPU),"Share of total CPU capacity")})
+  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory",Body:MetricValue(percentage(page.Host.Memory),memorySize(page.Host.MemoryUsed)+" used / "+memorySize(page.Host.MemoryTotal)+" total")})
+ </div>
+}
+templ HostInventory(page HostDetail) {
+ if page.Host.Kind=="Kubernetes cluster" {
+  <h2>Nodes</h2>
+  if len(page.Children)>0 {
+   @HostTable(page.Children)
+  } else {
+   <p>No node inventory received.</p>
+  }
+ }
+ <h2>Workloads</h2>
+ if !page.Host.InventoryAvailable {
+  <p>Workload inventory is unavailable or incomplete.</p>
+ }
+ if len(page.Workloads)>0 {
+  <div class="balemoh-table-scroll" tabindex="0" role="region" aria-label="Workload inventory">
+   @table.Table(table.Config{RootClass:"balemoh-host-workloads",ID:"host-workloads",Caption:"Last reported workloads",Columns:workloadColumns(page.Host.Kind),Rows:workloadRows(page.Workloads)})
+  </div>
+ } else if page.Host.InventoryAvailable {
+  <p>No workloads reported.</p>
+ }
+}
+func hostChartID(cpu bool)string{if cpu{return "host-cpu-chart"};return "host-memory-chart"}
 templ HostChart(page HostDetail,cpu bool) {
+ @chartcontrol.Wrapper(chartcontrol.WrapperConfig{Label:historyChart(page,cpu).Label,Export:&chartcontrol.ExportOptions{Disabled:true}},HostChartTarget(page,cpu))
+}
+templ HostChartTarget(page HostDetail,cpu bool) {
+ <div id={ hostChartID(cpu) }>@HostChartContent(page,cpu)</div>
+}
+templ HostLiveStatus(message string) {
+ <p id="host-live-status" hx-swap-oob="innerMorph">{ message }</p>
+}
+templ HostLiveSnapshot(page HostDetail) {
+ @HostLiveStatus("Live updates connected")
+ <div id="host-measurements" hx-swap-oob="innerMorph">@HostMeasurements(page)</div>
+ <div id="host-cpu-chart" hx-swap-oob="innerMorph">@HostChartContent(page,true)</div>
+ <div id="host-memory-chart" hx-swap-oob="innerMorph">@HostChartContent(page,false)</div>
+ <div id="host-inventory" hx-swap-oob="innerMorph">@HostInventory(page)</div>
+}
+templ HostChartContent(page HostDetail,cpu bool) {
  if hasHistory(page,cpu) {
   <div class="balemoh-host-history" tabindex="0" role="region" aria-label={ historyChart(page,cpu).Label+" and exact values" }>
    @line.Line(historyChart(page,cpu))

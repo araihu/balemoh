@@ -69,6 +69,11 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("GET /hosts", server.hosts)
 	mux.HandleFunc("GET /hosts/{hostID}", server.host)
+	mux.HandleFunc("GET /hosts/{hostID}/events", server.hostEvents)
+	mux.HandleFunc("GET /ui/host-live.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.HostLiveJS())
+	})
 	mux.HandleFunc("GET /staging/services/{serviceID}/edit", server.edit)
 	mux.HandleFunc("POST /staging/services/{serviceID}/edit", server.saveEdit)
 	mux.HandleFunc("POST /staging/sync", server.sync)

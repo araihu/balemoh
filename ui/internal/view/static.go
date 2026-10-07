@@ -11,3 +11,8 @@ func BalemohCSS() []byte { return balemohCSS }
 var socialPreview []byte
 
 func SocialPreview() []byte { return socialPreview }
+
+//go:embed static/host-live.js
+var hostLiveJS []byte
+
+func HostLiveJS() []byte { return hostLiveJS }

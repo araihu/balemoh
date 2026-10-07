@@ -85,19 +85,10 @@ func (s *server) host(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, data, 503)
 		return
 	}
-	page := data.HostDetail
-	page.Host = hostView(detail.Host)
+	page := hostDetailView(detail, window)
+	data.HostDetail = &page
 	data.Title = page.Host.Name
 	data.Description = "Resource usage and workloads for " + page.Host.Name + "."
-	for _, h := range detail.Children {
-		page.Children = append(page.Children, hostView(h))
-	}
-	for _, sample := range detail.Samples {
-		page.Samples = append(page.Samples, view.HostSample{At: sample.At, CPU: sample.CpuPercent, Memory: memoryPercent(sample.MemoryUsedBytes, sample.MemoryTotalBytes)})
-	}
-	for _, workload := range detail.Host.Workloads {
-		page.Workloads = append(page.Workloads, view.HostWorkload{Name: workload.Name, Namespace: workload.Namespace, State: workload.State, Restarts: workload.Restarts})
-	}
 	if detail.Host.ParentId == "" {
 		services, err := s.catalog.Staging(ctx)
 		page.ServicesAvailable = err == nil
@@ -110,6 +101,19 @@ func (s *server) host(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, r, data, 200)
+}
+func hostDetailView(detail api.HostDetail, window string) view.HostDetail {
+	page := view.HostDetail{Host: hostView(detail.Host), Window: window}
+	for _, h := range detail.Children {
+		page.Children = append(page.Children, hostView(h))
+	}
+	for _, sample := range detail.Samples {
+		page.Samples = append(page.Samples, view.HostSample{At: sample.At, CPU: sample.CpuPercent, Memory: memoryPercent(sample.MemoryUsedBytes, sample.MemoryTotalBytes)})
+	}
+	for _, workload := range detail.Host.Workloads {
+		page.Workloads = append(page.Workloads, view.HostWorkload{Name: workload.Name, Namespace: workload.Namespace, State: workload.State, Restarts: workload.Restarts})
+	}
+	return page
 }
 func hostView(h api.Host) view.Host {
 	kind := "Unknown host"
