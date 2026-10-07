@@ -211,7 +211,7 @@ func TestHostPartialNavigation(t *testing.T) {
 		if strings.Contains(body, "<html") != (kind == "full") {
 			t.Fatalf("%s: wrong document boundary", kind)
 		}
-		for _, want := range []string{`hx-target="#host-detail"`, `hx-swap="innerMorph"`, `hx-sync="#host-detail:replace"`, `hx-push-url="true"`} {
+		for _, want := range []string{`hx-target="#host-detail"`, `hx-swap="innerHTML"`, `hx-sync="#host-detail:replace"`, `hx-push-url="true"`} {
 			if !strings.Contains(body, want) {
 				t.Errorf("missing %s", want)
 			}

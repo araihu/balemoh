@@ -126,7 +126,9 @@ templ HostContent(page HostDetail) {
   <nav aria-label="History range" class="balemoh-host-actions">
    @HistoryRange(page,"1h","Last hour")
    @HistoryRange(page,"24h","Last 24 hours")
-   @link.Link("/hosts/"+page.Host.ID+"?range="+page.Window,link.WithAttrs(historyLinkAttrs(page,page.Window))) { Refresh }
+   {{ refreshAttrs := historyLinkAttrs(page,page.Window) }}
+   {{ refreshAttrs["id"] = "host-history-refresh" }}
+   @link.Link("/hosts/"+page.Host.ID+"?range="+page.Window,link.WithAttrs(refreshAttrs)) { Refresh }
   </nav>
   <span id="host-history-error" role="alert"></span>
  </div>
@@ -155,7 +157,7 @@ func workloadColumns(kind string)[]table.Column{
  if kind!="Docker host"{columns=append(columns,table.Column{Key:"namespace",Label:"Namespace"},table.Column{Key:"restarts",Label:"Restarts"})};return columns
 }
 func historyLinkAttrs(page HostDetail,window string)templ.Attributes{
- return templ.Attributes{"hx-get":"/hosts/"+page.Host.ID+"?range="+window,"hx-target":"#host-detail","hx-swap":"innerMorph","hx-push-url":strconv.FormatBool(window!=page.Window),"hx-sync":"#host-detail:replace"}
+ return templ.Attributes{"hx-get":"/hosts/"+page.Host.ID+"?range="+window,"hx-target":"#host-detail","hx-swap":"innerHTML","hx-push-url":strconv.FormatBool(window!=page.Window),"hx-sync":"#host-detail:replace"}
 }
 templ HostHistoryError(message string) {
  <span id="host-history-error" hx-swap-oob="innerMorph">{ message }</span>
@@ -163,6 +165,7 @@ templ HostHistoryError(message string) {
 templ HistoryRange(page HostDetail,value,label string) {
  {{ attrs := historyLinkAttrs(page,value) }}
  {{ attrs["aria-current"] = activeRange(page.Window,value) }}
+ {{ attrs["id"] = "host-history-"+value }}
  @link.Link("/hosts/"+page.Host.ID+"?range="+value, link.WithAttrs(attrs)) { { label } }
 }
 func activeRange(current,value string)string{if current==value{return "true"};return "false"}
@@ -172,7 +175,7 @@ templ MetricValue(value,description string) {
 }
 // Keep dismissal for the current status across SSE morphs. A status change gets a new notice.
 templ HostNotice(status,title,description string,tone alert.Tone) {
- <div id={ "host-notice-"+status } class="balemoh-host-notice" hx-morph-skip>
+ <div id={ "host-notice-"+status } class="balemoh-host-notice" hx-morph-skip hx-preserve>
   @alert.Alert(alert.Config{Title:title,Description:description,Tone:tone,Dismissible:true})
  </div>
 }
