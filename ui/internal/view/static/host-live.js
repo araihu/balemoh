@@ -6,7 +6,7 @@ htmx.registerExtension('balemoh-host-live', {
 });
 
 function hostLiveStatus(message) {
-  const status = document.getElementById('host-live-status');
+  const status = document.querySelector('#host-live-status .balemoh-live-badge');
   if (status) status.textContent = message;
 }
 

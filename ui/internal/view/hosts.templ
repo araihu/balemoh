@@ -7,6 +7,7 @@ import (
  "github.com/araihu/balemoh/ui/internal/appicons"
  "github.com/araihu/goshtoso/components/avatar"
  "github.com/araihu/goshtoso/components/alert"
+ "github.com/araihu/goshtoso/components/badge"
  "github.com/araihu/goshtoso/components/card"
  "github.com/araihu/goshtoso/components/emptystate"
  "github.com/araihu/goshtoso/components/link"
@@ -116,7 +117,7 @@ templ HostContent(page HostDetail) {
  </nav>
  @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true})
  <div id="host-live" hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
-  <p id="host-live-status" class="balemoh-muted" role="status">Connecting to live updates…</p>
+  <div id="host-live-status" role="status">@HostLiveBadge("Connecting to live updates…")</div>
  </div>
  <div id="host-measurements">@HostMeasurements(page)</div>
  <div class="balemoh-host-actions">
@@ -217,8 +218,11 @@ templ HostChart(page HostDetail,cpu bool) {
 templ HostChartTarget(page HostDetail,cpu bool) {
  <div id={ hostChartID(cpu) }>@HostChartContent(page,cpu)</div>
 }
+templ HostLiveBadge(message string) {
+ @badge.Badge(badge.Config{Label:message,Tone:badge.ToneInfo,RootClass:"balemoh-live-badge"})
+}
 templ HostLiveStatus(message string) {
- <p id="host-live-status" hx-swap-oob="innerMorph">{ message }</p>
+ <div id="host-live-status" hx-swap-oob="innerMorph">@HostLiveBadge(message)</div>
 }
 templ HostLiveSnapshot(page HostDetail) {
  @HostLiveStatus("Live updates connected")
