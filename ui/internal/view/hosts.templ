@@ -6,6 +6,7 @@ import (
  "time"
  "github.com/araihu/balemoh/ui/internal/appicons"
  "github.com/araihu/goshtoso/components/avatar"
+ "github.com/araihu/goshtoso/components/alert"
  "github.com/araihu/goshtoso/components/card"
  "github.com/araihu/goshtoso/components/emptystate"
  "github.com/araihu/goshtoso/components/link"
@@ -158,6 +159,12 @@ templ MetricValue(value,description string) {
  <p class="balemoh-metric-value">{ value }</p>
  <p class="balemoh-muted">{ description }</p>
 }
+// Keep dismissal for the current status across SSE morphs. A status change gets a new notice.
+templ HostNotice(status,title,description string,tone alert.Tone) {
+ <div id={ "host-notice-"+status } class="balemoh-host-notice" hx-morph-skip>
+  @alert.Alert(alert.Config{Title:title,Description:description,Tone:tone,Dismissible:true})
+ </div>
+}
 templ HostMeasurements(page HostDetail) {
  <div class="balemoh-host-status">
   <span>{ page.Host.Kind } · { hostStatus(page.Host.Status) }</span>
@@ -168,13 +175,13 @@ templ HostMeasurements(page HostDetail) {
   }
  </div>
  if page.Host.Status=="stale" {
-  <p role="status">Reports are more than three minutes old. Values below are the last observations.</p>
+  @HostNotice("stale","Telemetry is stale","Reports are more than three minutes old. Values below are the last observations.",alert.ToneWarning)
  }
  if page.Host.Status=="partial" {
-  <p role="status">Some measurements are unavailable. Collection may be starting or missing access to host metrics.</p>
+  @HostNotice("partial","Some measurements are unavailable","Some measurements are unavailable. Collection may be starting or missing access to host metrics.",alert.ToneWarning)
  }
  if page.Host.Status=="unavailable" {
-  <p role="status">No telemetry has arrived. Enable host collection on the agent to see measurements.</p>
+  @HostNotice("unavailable","No telemetry yet","No telemetry has arrived. Enable host collection on the agent to see measurements.",alert.ToneInfo)
  }
  <h2 class="balemoh-host-heading">Latest measurements</h2>
  <div class="balemoh-host-grid">

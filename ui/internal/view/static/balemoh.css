@@ -220,3 +220,5 @@ body {
 .balemoh-host-workloads { overflow: visible; }
 .balemoh-host-list table, .balemoh-host-workloads table { min-width: 36rem; }
 .balemoh-host-list td:first-child, .balemoh-host-workloads td:first-child { min-width: 12rem; }
+
+.balemoh-host-notice { display: contents; }
