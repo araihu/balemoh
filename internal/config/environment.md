@@ -4,6 +4,8 @@
 
 Options contains Balemoh's runtime environment configuration.
 
+ - `BALEMOH_TELEMETRY_ENABLED` (default: `false`) - TelemetryEnabled collects host CPU, memory and workload inventory every minute, independently of discovery.
+ - `BALEMOH_HOST_PROC_PATH` (default: `/host/proc`) - HostProcPath is a read-only mount of the Docker host proc filesystem. Never use the agent container proc filesystem.
  - `BALEMOH_HTTP_ADDR` (default: `:8080`) - HTTPAddr is the address used by the HTTP server.
  - `BALEMOH_DATABASE_PATH` (default: `./data/balemoh.db`) - DatabasePath is the path to Balemoh's SQLite database.
  - `BALEMOH_DISCOVERY_SYNC_INTERVAL` (default: `5m`) - DiscoverySyncInterval controls the initial and periodic discovery sync. Zero disables background synchronization.

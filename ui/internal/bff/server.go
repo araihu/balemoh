@@ -15,6 +15,7 @@ import (
 	uiassets "github.com/araihu/balemoh/ui"
 	"github.com/araihu/balemoh/ui/internal/view"
 	shellassets "github.com/araihu/goshtoso-app-shells/consoleshell/assets"
+	chartassets "github.com/araihu/goshtoso-charts/assets"
 	"github.com/araihu/goshtoso/assets"
 )
 
@@ -42,6 +43,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
 	mux.Handle("GET /assets/", assets.Handler())
+	mux.Handle("GET "+chartassets.Prefix, chartassets.Handler())
 	mux.Handle("GET /consoleshell/assets/", shellassets.Handler())
 	mux.HandleFunc("GET /ui/icons/sprite.svg", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/svg+xml")
@@ -66,6 +68,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("GET /hosts", server.hosts)
+	mux.HandleFunc("GET /hosts/{hostID}", server.host)
 	mux.HandleFunc("GET /staging/services/{serviceID}/edit", server.edit)
 	mux.HandleFunc("POST /staging/services/{serviceID}/edit", server.saveEdit)
 	mux.HandleFunc("POST /staging/sync", server.sync)

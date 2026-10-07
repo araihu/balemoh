@@ -1,99 +1,44 @@
 package bff
 
 import (
+	"context"
 	"errors"
+	api "github.com/araihu/balemoh/client"
+	"golang.org/x/net/html"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
-	api "github.com/araihu/balemoh/client"
-	"golang.org/x/net/html"
 )
 
-func TestHostsListsDistinctDiscoverySources(t *testing.T) {
-	latest := time.Date(2026, 9, 15, 12, 30, 0, 0, time.UTC)
-	catalog := &fakeCatalog{staging: []api.ServiceCandidate{
-		{Source: api.SourceRef{Kind: "container", Id: "raspi"}, ObservedAt: latest.Add(-time.Hour)},
-		{Source: api.SourceRef{Kind: "container", Id: "bastion"}},
-		{Source: api.SourceRef{Kind: "container", Id: "raspi"}, Pinned: true, ObservedAt: latest},
-		{Source: api.SourceRef{Kind: "container", Id: "raspi"}, Missing: true, ObservedAt: latest.Add(-2 * time.Hour)},
-		{Source: api.SourceRef{Kind: "kubernetes", Id: "devspace-local"}, Status: "hidden"},
-		{Source: api.SourceRef{Kind: "kubernetes", Id: "devspace-local"}},
-		{Source: api.SourceRef{Kind: "other", Id: "unsupported-source"}},
-	}}
-	handler, err := New(catalog, time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/hosts", nil))
-	body := w.Body.String()
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d", w.Code)
-	}
-	for _, name := range []string{"raspi", "bastion", "devspace-local", "unsupported-source"} {
-		if strings.Count(body, ">"+name+"<") != 1 {
-			t.Errorf("expected one row for %s", name)
-		}
-	}
-	if !strings.Contains(body, "Unknown host") || !strings.Contains(body, "Kubernetes cluster") || !strings.Contains(body, "Docker host") {
-		t.Error("incorrect host types")
-	}
-	for symbol, count := range map[string]int{"kubernetes-kubernetes": 1, "docker-docker": 2, "heroicons-server": 1} {
-		if strings.Count(body, "/ui/icons/sprite.svg#"+symbol+"\"") != count {
-			t.Errorf("expected %d host avatars using %s", count, symbol)
-		}
-	}
-	if strings.Index(body, ">devspace-local<") > strings.Index(body, ">bastion<") || strings.Index(body, ">bastion<") > strings.Index(body, ">raspi<") {
-		t.Error("expected clusters first, then hosts sorted by name")
-	}
-	if catalog.syncCalls != 0 || len(catalog.pinnedIDs) != 0 || len(catalog.unpinnedIDs) != 0 {
-		t.Fatal("listing hosts mutated the catalog")
-	}
-	for _, want := range []string{
-		`aria-controls="host-2-details"`,
-		`id="host-2-details"`,
-		`<dd>3</dd>`,
-		`datetime="2026-09-15T12:30:00Z"`,
-		`Not available`,
-	} {
-		if !strings.Contains(body, want) {
-			t.Errorf("missing accordion host data: %s", want)
-		}
-	}
-	doc, err := html.Parse(strings.NewReader(body))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var checkHeaders func(*html.Node)
-	checkHeaders = func(n *html.Node) {
-		if n.Data == "th" && n.FirstChild != nil && n.FirstChild.Data == "Type" {
-			t.Error("Type must be in host details, not a table column")
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			checkHeaders(c)
-		}
-	}
-	checkHeaders(doc)
+func (f *fakeCatalog) Hosts(context.Context) ([]api.Host, error) { return []api.Host{}, nil }
+func (f *fakeCatalog) Host(context.Context, string, string) (api.HostDetail, error) {
+	return api.HostDetail{}, &upstreamError{operation: "host", status: 404}
 }
 
-func TestHostsEmptyErrorAndSourceIdentity(t *testing.T) {
+type hostCatalog struct {
+	fakeCatalog
+	hosts  []api.Host
+	detail api.HostDetail
+	err    error
+}
+
+func (f *hostCatalog) Hosts(context.Context) ([]api.Host, error) { return f.hosts, f.err }
+func (f *hostCatalog) Host(context.Context, string, string) (api.HostDetail, error) {
+	return f.detail, f.err
+}
+func TestHostsIndexLinksAndStates(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
-		catalog *fakeCatalog
+		catalog *hostCatalog
 		status  int
 		want    string
-		absent  string
 	}{
-		{"empty", &fakeCatalog{}, 200, "No hosts discovered", "hosts-table"},
-		{"unavailable", &fakeCatalog{stagingErr: errors.New("private upstream detail")}, 503, "Unable to load hosts", "No hosts discovered"},
-		{"escaped", &fakeCatalog{staging: []api.ServiceCandidate{{Source: api.SourceRef{Kind: "container", Id: "<script>bad</script>"}}}}, 200, "&lt;script&gt;bad&lt;/script&gt;", "<script>bad</script>"},
-		{"same name across kinds", &fakeCatalog{staging: []api.ServiceCandidate{
-			{Source: api.SourceRef{Kind: "container", Id: "shared"}},
-			{Source: api.SourceRef{Kind: "kubernetes", Id: "shared"}},
-		}}, 200, "Kubernetes cluster", "No hosts discovered"},
+		{"empty", &hostCatalog{}, 200, "No hosts discovered"},
+		{"error", &hostCatalog{err: errors.New("private detail")}, 503, "Unable to load hosts"},
+		{"host", &hostCatalog{hosts: []api.Host{{Id: "docker-id", Name: "raspi", Kind: "docker", Status: "stale"}}}, 200, `href="/hosts/docker-id"`},
+		{"escape", &hostCatalog{hosts: []api.Host{{Id: "id", Name: "<script>bad</script>", Kind: "unknown"}}}, 200, "&lt;script&gt;bad&lt;/script&gt;"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			handler, err := New(tc.catalog, time.Second)
@@ -101,15 +46,43 @@ func TestHostsEmptyErrorAndSourceIdentity(t *testing.T) {
 				t.Fatal(err)
 			}
 			w := httptest.NewRecorder()
-			handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/hosts", nil))
-			body := w.Body.String()
-			if w.Code != tc.status || !strings.Contains(body, tc.want) || strings.Contains(body, tc.absent) || strings.Contains(body, "private upstream detail") {
-				t.Fatalf("unexpected host response: status %d", w.Code)
-			}
-			if tc.name == "same name across kinds" && strings.Count(body, ">shared<") != 2 {
-				t.Error("source kind must be part of host identity")
+			handler.ServeHTTP(w, httptest.NewRequest("GET", "/hosts", nil))
+			if w.Code != tc.status || !strings.Contains(w.Body.String(), tc.want) || strings.Contains(w.Body.String(), "private detail") {
+				t.Fatalf("response: %d", w.Code)
 			}
 		})
+	}
+}
+func TestHostDetailRangesMetadataAndMissingData(t *testing.T) {
+	now := time.Now().UTC()
+	cpu := 0.0
+	catalog := &hostCatalog{detail: api.HostDetail{Host: api.Host{Id: "host", Name: "raspi", Kind: "docker", Status: "stale", CpuPercent: &cpu, ObservedAt: &now}, Range: "1h", Samples: []api.HostSample{{At: now.Add(-time.Minute), CpuPercent: &cpu}, {At: now}}}}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, httptest.NewRequest("GET", "/hosts/host?range=24h", nil))
+	body := w.Body.String()
+	if w.Code != 200 {
+		t.Fatalf("render failed: %d", w.Code)
+	}
+	for _, want := range []string{"raspi", "0.0%", "Unavailable", "Reports are more than", "goshtoso-charts-line", "Exact series values", `href="https://balemoh.decastro.me/hosts/host"`, `aria-current="true">Last 24 hours`, "Workload inventory is unavailable"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+	for _, tc := range []struct {
+		path   string
+		err    error
+		status int
+	}{{"/hosts/host?range=week", nil, 400}, {"/hosts/missing", &upstreamError{status: 404}, 404}, {"/hosts/host", errors.New("private upstream detail"), 503}} {
+		catalog.err = tc.err
+		w = httptest.NewRecorder()
+		handler.ServeHTTP(w, httptest.NewRequest("GET", tc.path, nil))
+		if w.Code != tc.status || strings.Contains(w.Body.String(), "private upstream detail") {
+			t.Errorf("%s = %d", tc.path, w.Code)
+		}
 	}
 }
 
@@ -174,5 +147,44 @@ func TestHostsNavigationAndServerRenderedMetadata(t *testing.T) {
 		if route == "/hosts" && (values["title"][0] != "Hosts · Balemoh" || !strings.Contains(values["description"][0], "Kubernetes clusters and Docker hosts")) {
 			t.Error("Hosts metadata is not route-specific")
 		}
+	}
+}
+
+func TestHostChartAssetsAreServed(t *testing.T) {
+	now := time.Now().UTC()
+	value := 10.0
+	catalog := &hostCatalog{detail: api.HostDetail{Host: api.Host{Id: "host", Name: "host", Kind: "docker"}, Samples: []api.HostSample{{At: now, CpuPercent: &value}}}}
+	handler, err := New(catalog, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, httptest.NewRequest("GET", "/hosts/host", nil))
+	doc, err := html.Parse(strings.NewReader(w.Body.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Data == "script" {
+			for _, a := range n.Attr {
+				if a.Key == "src" && strings.HasPrefix(a.Val, "/charts/assets/") {
+					found = true
+					r := httptest.NewRecorder()
+					handler.ServeHTTP(r, httptest.NewRequest("GET", a.Val, nil))
+					if r.Code != 200 || !strings.Contains(r.Header().Get("Content-Type"), "javascript") {
+						t.Errorf("chart asset %s = %d", a.Val, r.Code)
+					}
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(doc)
+	if !found {
+		t.Fatal("chart control script missing")
 	}
 }

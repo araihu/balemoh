@@ -7,6 +7,7 @@ require (
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/goshtoso v0.3.2
 	github.com/araihu/goshtoso-app-shells v0.1.9-0.20260910224508-5b2222e54637
+	github.com/araihu/goshtoso-charts v0.0.3
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/gofrs/flock v0.13.1
 	golang.org/x/net v0.58.0
@@ -21,10 +22,14 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cli/browser v1.3.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/g4s8/envdoc v1.11.0 // indirect
+	github.com/go-analyze/bulk v0.1.4 // indirect
+	github.com/go-analyze/charts v0.6.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

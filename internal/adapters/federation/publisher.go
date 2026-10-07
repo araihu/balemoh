@@ -15,6 +15,7 @@ import (
 
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/catalog"
+	"github.com/araihu/balemoh/internal/application/telemetry"
 )
 
 const snapshotPath = "/api/v1/federation/snapshots"
@@ -156,3 +157,35 @@ func federatedCandidate(candidate catalog.Candidate) generated.FederatedCandidat
 }
 
 var _ catalog.SnapshotPublisher = (*Publisher)(nil)
+
+// PublishTelemetry shares the source credential and hardened transport, but
+// never sends telemetry through the catalog snapshot endpoint.
+func (p *Publisher) PublishTelemetry(ctx context.Context, payload telemetry.Batch) error {
+	if err := payload.Validate(time.Now()); err != nil {
+		return err
+	}
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(payload); err != nil {
+		return err
+	}
+	if body.Len() > 2<<20 {
+		return fmt.Errorf("telemetry exceeds 2 MiB")
+	}
+	endpoint := *p.endpoint
+	endpoint.Path = strings.TrimSuffix(endpoint.Path, snapshotPath) + "/api/v1/federation/telemetry"
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), &body)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", "Bearer "+p.token)
+	response, err := p.client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("telemetry gateway returned HTTP status %d", response.StatusCode)
+	}
+	return nil
+}
