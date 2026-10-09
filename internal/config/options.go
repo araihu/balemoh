@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,6 +13,11 @@ import (
 
 // Options contains Balemoh's runtime environment configuration.
 type Options struct {
+	// TelemetryEnabled collects host CPU, memory and workload inventory every minute, independently of discovery.
+	TelemetryEnabled bool `env:"BALEMOH_TELEMETRY_ENABLED" envDefault:"false"`
+	// HostProcPath is a read-only mount of the Docker host proc filesystem. Never use the agent container proc filesystem.
+	HostProcPath string `env:"BALEMOH_HOST_PROC_PATH" envDefault:"/host/proc"`
+
 	// HTTPAddr is the address used by the HTTP server.
 	HTTPAddr string `env:"BALEMOH_HTTP_ADDR" envDefault:":8080"`
 	// DatabasePath is the path to Balemoh's SQLite database.
@@ -62,6 +68,16 @@ func ParseEnvironment(environment map[string]string) (Options, error) {
 
 // Validate checks that required configuration values contain non-whitespace content.
 func (o Options) Validate() error {
+	if o.TelemetryEnabled && !o.ContainerEnabled && !o.KubernetesEnabled {
+		return fmt.Errorf("telemetry requires a local discovery source")
+	}
+	if o.TelemetryEnabled && o.ContainerEnabled && !strings.HasPrefix(o.ContainerHost, "unix://") {
+		return fmt.Errorf("Docker host telemetry requires a local unix socket")
+	}
+	if o.TelemetryEnabled && o.ContainerEnabled && (!filepath.IsAbs(o.HostProcPath) || filepath.Clean(o.HostProcPath) == "/proc") {
+		return fmt.Errorf("host proc path must be an absolute host mount other than /proc")
+	}
+
 	if strings.TrimSpace(o.HTTPAddr) == "" {
 		return fmt.Errorf("HTTP address must not be empty")
 	}

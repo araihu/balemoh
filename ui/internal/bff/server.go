@@ -15,6 +15,7 @@ import (
 	uiassets "github.com/araihu/balemoh/ui"
 	"github.com/araihu/balemoh/ui/internal/view"
 	shellassets "github.com/araihu/goshtoso-app-shells/consoleshell/assets"
+	chartassets "github.com/araihu/goshtoso-charts/assets"
 	"github.com/araihu/goshtoso/assets"
 )
 
@@ -42,6 +43,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
 	mux.Handle("GET /assets/", assets.Handler())
+	mux.Handle("GET "+chartassets.Prefix, chartassets.Handler())
 	mux.Handle("GET /consoleshell/assets/", shellassets.Handler())
 	mux.HandleFunc("GET /ui/icons/sprite.svg", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/svg+xml")
@@ -66,6 +68,12 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("GET /hosts", server.hosts)
+	mux.HandleFunc("GET /hosts/{hostID}", server.host)
+	mux.HandleFunc("GET /hosts/{hostID}/events", server.hostEvents)
+	mux.HandleFunc("GET /ui/host-live.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.HostLiveJS())
+	})
 	mux.HandleFunc("GET /staging/services/{serviceID}/edit", server.edit)
 	mux.HandleFunc("POST /staging/services/{serviceID}/edit", server.saveEdit)
 	mux.HandleFunc("POST /staging/sync", server.sync)
@@ -277,7 +285,18 @@ func (s *server) serveCSS(w http.ResponseWriter, _ *http.Request) {
 
 func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageData, status int) {
 	var body bytes.Buffer
-	if err := view.ConsolePage(data).Render(r.Context(), &body); err != nil {
+	component := view.ConsolePage(data)
+	if data.HostDetail != nil {
+		w.Header().Add("Vary", "HX-Request-Type")
+		if r.Header.Get("HX-Request-Type") == "partial" {
+			component = view.HostContent(*data.HostDetail)
+			if data.Error != "" {
+				component = view.HostHistoryError(data.Error)
+				w.Header().Set("HX-Push-Url", "false")
+			}
+		}
+	}
+	if err := component.Render(r.Context(), &body); err != nil {
 		http.Error(w, "unable to render UI", http.StatusInternalServerError)
 		return
 	}

@@ -11,6 +11,7 @@ import (
 )
 
 type Handler struct {
+	telemetry        TelemetryStore
 	icons            IconStore
 	checker          health.Checker
 	catalog          catalog.UseCase

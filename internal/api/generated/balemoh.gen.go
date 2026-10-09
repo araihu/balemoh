@@ -34,6 +34,72 @@ func (e HealthResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for HostKind.
+const (
+	Cluster HostKind = "cluster"
+	Docker  HostKind = "docker"
+	Node    HostKind = "node"
+	Unknown HostKind = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the HostKind enum.
+func (e HostKind) Valid() bool {
+	switch e {
+	case Cluster:
+		return true
+	case Docker:
+		return true
+	case Node:
+		return true
+	case Unknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HostStatus.
+const (
+	Fresh       HostStatus = "fresh"
+	Partial     HostStatus = "partial"
+	Stale       HostStatus = "stale"
+	Unavailable HostStatus = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the HostStatus enum.
+func (e HostStatus) Valid() bool {
+	switch e {
+	case Fresh:
+		return true
+	case Partial:
+		return true
+	case Stale:
+		return true
+	case Unavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HostDetailRange.
+const (
+	HostDetailRangeN1h  HostDetailRange = "1h"
+	HostDetailRangeN24h HostDetailRange = "24h"
+)
+
+// Valid indicates whether the value is a known member of the HostDetailRange enum.
+func (e HostDetailRange) Valid() bool {
+	switch e {
+	case HostDetailRangeN1h:
+		return true
+	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ServiceCandidateStatus.
 const (
 	Hidden  ServiceCandidateStatus = "hidden"
@@ -49,6 +115,24 @@ func (e ServiceCandidateStatus) Valid() bool {
 	case Live:
 		return true
 	case Missing:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetHostParamsRange.
+const (
+	GetHostParamsRangeN1h  GetHostParamsRange = "1h"
+	GetHostParamsRangeN24h GetHostParamsRange = "24h"
+)
+
+// Valid indicates whether the value is a known member of the GetHostParamsRange enum.
+func (e GetHostParamsRange) Valid() bool {
+	switch e {
+	case GetHostParamsRangeN1h:
+		return true
+	case GetHostParamsRangeN24h:
 		return true
 	default:
 		return false
@@ -115,6 +199,76 @@ type HealthResponse struct {
 
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
+
+// Host defines model for Host.
+type Host struct {
+	CpuPercent         *float64       `json:"cpuPercent"`
+	Id                 string         `json:"id"`
+	InventoryAvailable bool           `json:"inventoryAvailable"`
+	Kind               HostKind       `json:"kind"`
+	MemoryTotalBytes   *int64         `json:"memoryTotalBytes"`
+	MemoryUsedBytes    *int64         `json:"memoryUsedBytes"`
+	Name               string         `json:"name"`
+	Node               string         `json:"node"`
+	ObservedAt         *time.Time     `json:"observedAt"`
+	ParentId           string         `json:"parentId"`
+	Ready              string         `json:"ready"`
+	ReceivedAt         *time.Time     `json:"receivedAt"`
+	Source             SourceRef      `json:"source"`
+	Status             HostStatus     `json:"status"`
+	Workloads          []HostWorkload `json:"workloads"`
+}
+
+// HostKind defines model for Host.Kind.
+type HostKind string
+
+// HostStatus defines model for Host.Status.
+type HostStatus string
+
+// HostDetail defines model for HostDetail.
+type HostDetail struct {
+	Children []Host          `json:"children"`
+	Host     Host            `json:"host"`
+	Range    HostDetailRange `json:"range"`
+	Samples  []HostSample    `json:"samples"`
+}
+
+// HostDetailRange defines model for HostDetail.Range.
+type HostDetailRange string
+
+// HostMetrics defines model for HostMetrics.
+type HostMetrics struct {
+	CpuPercent       *float64 `json:"cpuPercent"`
+	MemoryTotalBytes *int64   `json:"memoryTotalBytes"`
+	MemoryUsedBytes  *int64   `json:"memoryUsedBytes"`
+}
+
+// HostObservation defines model for HostObservation.
+type HostObservation struct {
+	CpuPercent         *float64       `json:"cpuPercent"`
+	InventoryAvailable bool           `json:"inventoryAvailable"`
+	MemoryTotalBytes   *int64         `json:"memoryTotalBytes"`
+	MemoryUsedBytes    *int64         `json:"memoryUsedBytes"`
+	Node               string         `json:"node"`
+	Ready              string         `json:"ready"`
+	Workloads          []HostWorkload `json:"workloads"`
+}
+
+// HostSample defines model for HostSample.
+type HostSample struct {
+	At               time.Time `json:"at"`
+	CpuPercent       *float64  `json:"cpuPercent"`
+	MemoryTotalBytes *int64    `json:"memoryTotalBytes"`
+	MemoryUsedBytes  *int64    `json:"memoryUsedBytes"`
+}
+
+// HostWorkload defines model for HostWorkload.
+type HostWorkload struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Restarts  int    `json:"restarts"`
+	State     string `json:"state"`
+}
 
 // IconUpload defines model for IconUpload.
 type IconUpload struct {
@@ -212,6 +366,13 @@ type SourceRef struct {
 	Kind string `json:"kind"`
 }
 
+// TelemetryBatch defines model for TelemetryBatch.
+type TelemetryBatch struct {
+	Hosts      []HostObservation `json:"hosts"`
+	ObservedAt time.Time         `json:"observedAt"`
+	Source     SourceRef         `json:"source"`
+}
+
 // UploadedIcon defines model for UploadedIcon.
 type UploadedIcon struct {
 	Digest string   `json:"digest"`
@@ -224,6 +385,14 @@ type UploadedIcon struct {
 
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
+
+// GetHostParams defines parameters for GetHost.
+type GetHostParams struct {
+	Range *GetHostParamsRange `form:"range,omitempty" json:"range,omitempty"`
+}
+
+// GetHostParamsRange defines parameters for GetHost.
+type GetHostParamsRange string
 
 // DeleteIconParams defines parameters for DeleteIcon.
 type DeleteIconParams struct {
@@ -240,6 +409,9 @@ type ChangeServiceLifecycleJSONBodyAction string
 
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
+
+// ImportTelemetryJSONRequestBody defines body for ImportTelemetry for application/json ContentType.
+type ImportTelemetryJSONRequestBody = TelemetryBatch
 
 // UploadIconJSONRequestBody defines body for UploadIcon for application/json ContentType.
 type UploadIconJSONRequestBody = IconUpload
@@ -262,8 +434,17 @@ type ServerInterface interface {
 	// (POST /api/v1/federation/snapshots)
 	ImportFederationSnapshot(w http.ResponseWriter, r *http.Request)
 
+	// (POST /api/v1/federation/telemetry)
+	ImportTelemetry(w http.ResponseWriter, r *http.Request)
+
 	// (GET /api/v1/homepage/services)
 	GetHomepageServices(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/v1/hosts)
+	GetHosts(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/v1/hosts/{hostId})
+	GetHost(w http.ResponseWriter, r *http.Request, hostId string, params GetHostParams)
 
 	// (GET /api/v1/icons)
 	ListIcons(w http.ResponseWriter, r *http.Request)
@@ -342,11 +523,87 @@ func (siw *ServerInterfaceWrapper) ImportFederationSnapshot(w http.ResponseWrite
 	handler.ServeHTTP(w, r)
 }
 
+// ImportTelemetry operation middleware
+func (siw *ServerInterfaceWrapper) ImportTelemetry(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, FederationBearerScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ImportTelemetry(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetHomepageServices operation middleware
 func (siw *ServerInterfaceWrapper) GetHomepageServices(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHomepageServices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHosts operation middleware
+func (siw *ServerInterfaceWrapper) GetHosts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHosts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHost operation middleware
+func (siw *ServerInterfaceWrapper) GetHost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "hostId" -------------
+	var hostId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hostId", r.PathValue("hostId"), &hostId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "hostId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetHostParams
+
+	// ------------- Optional query parameter "range" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "range", r.URL.Query(), &params.Range, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "range"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "range", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHost(w, r, hostId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -732,7 +989,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/discovery/sync", wrapper.SyncDiscovery)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/snapshots", wrapper.ImportFederationSnapshot)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/telemetry", wrapper.ImportTelemetry)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/homepage/services", wrapper.GetHomepageServices)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts", wrapper.GetHosts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts/{hostId}", wrapper.GetHost)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons", wrapper.ListIcons)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/icons", wrapper.UploadIcon)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.DeleteIcon)

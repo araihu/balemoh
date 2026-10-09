@@ -30,7 +30,11 @@ templ PageContent(data PageData) {
 	if data.Notice != "" {
 		<div hidden x-data="{}" x-init={ successToastEvent(data.Notice) }></div>
 	}
-	<section class="balemoh-content" aria-label={ data.Title }>
+	<section class="balemoh-content" aria-label={ data.Title }
+ if data.HostDetail != nil {
+  id="host-detail"
+ }
+ >
 		if data.Editor != nil {
  @pageheader.PageHeader(pageheader.Config{Title: data.Title, HideSeparator: true})
  @link.Link(stagingURL(data.Editor.State())) { Back to Staging }
@@ -48,7 +52,11 @@ templ PageContent(data PageData) {
  @alert.Alert(alert.Config{Title: "Request could not be completed", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
  </div>
 		}
-		if data.HostsPage != nil {
+		if data.HostDetail != nil {
+ if data.Error == "" {
+ @HostContent(*data.HostDetail)
+ }
+ } else if data.HostsPage != nil {
  @HostsContent(*data.HostsPage, data.Error == "")
  } else if data.IconPage != nil {
  @IconsContent(*data.IconPage)

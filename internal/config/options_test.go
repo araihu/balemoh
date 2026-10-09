@@ -179,3 +179,23 @@ func TestParseEnvironmentAllowsLoopbackHTTPOnlyWithExplicitOptIn(t *testing.T) {
 		t.Fatalf("ParseEnvironment() error = %v, want loopback HTTP to be allowed with opt-in", err)
 	}
 }
+
+func TestTelemetryEnvironmentContract(t *testing.T) {
+	for _, tc := range []struct {
+		env   map[string]string
+		valid bool
+	}{
+		{map[string]string{}, true},
+		{map[string]string{"BALEMOH_TELEMETRY_ENABLED": "true"}, false},
+		{map[string]string{"BALEMOH_TELEMETRY_ENABLED": "true", "BALEMOH_CONTAINER_ENABLED": "true", "BALEMOH_CONTAINER_SOURCE_ID": "raspi"}, true},
+		{map[string]string{"BALEMOH_TELEMETRY_ENABLED": "true", "BALEMOH_CONTAINER_ENABLED": "true", "BALEMOH_CONTAINER_SOURCE_ID": "raspi", "BALEMOH_HOST_PROC_PATH": "/proc"}, false},
+	} {
+		options, err := ParseEnvironment(tc.env)
+		if (err == nil) != tc.valid {
+			t.Fatalf("telemetry validation: %v", err)
+		}
+		if err == nil && options.HostProcPath != "/host/proc" {
+			t.Fatal("incorrect proc mount default")
+		}
+	}
+}

@@ -40,6 +40,7 @@ type PageData struct {
 	Status      string
 	IconPage    *IconPage
 	HostsPage   *HostsPage
+	HostDetail  *HostDetail
 	Editor      *Service
 	Path        string
 	Title       string

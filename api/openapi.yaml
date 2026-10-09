@@ -3,6 +3,72 @@ info:
   title: Balemoh API
   version: 0.1.0
 paths:
+  /api/v1/hosts:
+    get:
+      operationId: GetHosts
+      responses:
+        '200':
+          description: Registered and discovered source roots
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hosts]
+                properties:
+                  hosts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Host'
+        '503':
+          description: Inventory unavailable
+  /api/v1/hosts/{hostId}:
+    get:
+      operationId: GetHost
+      parameters:
+        - name: hostId
+          in: path
+          required: true
+          schema: {type: string}
+        - name: range
+          in: query
+          schema: {type: string, enum: [1h, 24h], default: 1h}
+      responses:
+        '200':
+          description: Host detail with one-minute samples and explicit null gaps
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HostDetail'
+        '400':
+          description: Invalid range
+        '404':
+          description: Host not found
+        '503':
+          description: Inventory unavailable
+  /api/v1/federation/telemetry:
+    post:
+      operationId: ImportTelemetry
+      security:
+        - FederationBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryBatch'
+      responses:
+        '204':
+          description: Accepted, including an already processed observation
+        '400':
+          description: Invalid telemetry
+        '401':
+          description: Missing or invalid source credential
+        '403':
+          description: Source is not registered for this credential
+        '413':
+          description: Body exceeds 2 MiB
+        '503':
+          description: Telemetry storage unavailable
   /healthz:
     get:
       operationId: GetHealthz
@@ -321,6 +387,85 @@ components:
       type: http
       scheme: bearer
   schemas:
+    HostMetrics:
+      type: object
+      required: [cpuPercent, memoryUsedBytes, memoryTotalBytes]
+      properties:
+        cpuPercent: {type: number, format: double, nullable: true, minimum: 0, maximum: 100}
+        memoryUsedBytes: {type: integer, format: int64, nullable: true, minimum: 0}
+        memoryTotalBytes: {type: integer, format: int64, nullable: true, minimum: 1}
+    HostWorkload:
+      type: object
+      required: [name, namespace, state, restarts]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 253}
+        namespace: {type: string, maxLength: 253}
+        state: {type: string, minLength: 1, maxLength: 64}
+        restarts: {type: integer, minimum: 0}
+    HostObservation:
+      allOf:
+        - $ref: '#/components/schemas/HostMetrics'
+        - type: object
+          required: [node, workloads, inventoryAvailable, ready]
+          properties:
+            inventoryAvailable: {type: boolean}
+            ready: {type: string}
+            node: {type: string, maxLength: 253}
+            workloads:
+              type: array
+              maxItems: 1000
+              items:
+                $ref: '#/components/schemas/HostWorkload'
+    TelemetryBatch:
+      type: object
+      required: [source, observedAt, hosts]
+      properties:
+        source:
+          $ref: '#/components/schemas/SourceRef'
+        observedAt: {type: string, format: date-time}
+        hosts:
+          type: array
+          minItems: 1
+          maxItems: 128
+          items:
+            $ref: '#/components/schemas/HostObservation'
+    Host:
+      allOf:
+        - $ref: '#/components/schemas/HostObservation'
+        - type: object
+          required: [id, name, kind, source, parentId, observedAt, receivedAt, status]
+          properties:
+            id: {type: string}
+            name: {type: string}
+            kind: {type: string, enum: [docker, cluster, node, unknown]}
+            source:
+              $ref: '#/components/schemas/SourceRef'
+            parentId: {type: string}
+            observedAt: {type: string, format: date-time, nullable: true}
+            receivedAt: {type: string, format: date-time, nullable: true}
+            status: {type: string, enum: [fresh, partial, stale, unavailable]}
+    HostSample:
+      allOf:
+        - $ref: '#/components/schemas/HostMetrics'
+        - type: object
+          required: [at]
+          properties:
+            at: {type: string, format: date-time}
+    HostDetail:
+      type: object
+      required: [host, children, samples, range]
+      properties:
+        host:
+          $ref: '#/components/schemas/Host'
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Host'
+        samples:
+          type: array
+          items:
+            $ref: '#/components/schemas/HostSample'
+        range: {type: string, enum: [1h, 24h]}
     UploadedIcon:
       type: object
       required: [id, name, tags, mime, digest, usedBy]

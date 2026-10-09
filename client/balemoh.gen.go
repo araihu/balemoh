@@ -36,6 +36,72 @@ func (e HealthResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for HostKind.
+const (
+	Cluster HostKind = "cluster"
+	Docker  HostKind = "docker"
+	Node    HostKind = "node"
+	Unknown HostKind = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the HostKind enum.
+func (e HostKind) Valid() bool {
+	switch e {
+	case Cluster:
+		return true
+	case Docker:
+		return true
+	case Node:
+		return true
+	case Unknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HostStatus.
+const (
+	Fresh       HostStatus = "fresh"
+	Partial     HostStatus = "partial"
+	Stale       HostStatus = "stale"
+	Unavailable HostStatus = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the HostStatus enum.
+func (e HostStatus) Valid() bool {
+	switch e {
+	case Fresh:
+		return true
+	case Partial:
+		return true
+	case Stale:
+		return true
+	case Unavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HostDetailRange.
+const (
+	HostDetailRangeN1h  HostDetailRange = "1h"
+	HostDetailRangeN24h HostDetailRange = "24h"
+)
+
+// Valid indicates whether the value is a known member of the HostDetailRange enum.
+func (e HostDetailRange) Valid() bool {
+	switch e {
+	case HostDetailRangeN1h:
+		return true
+	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ServiceCandidateStatus.
 const (
 	Hidden  ServiceCandidateStatus = "hidden"
@@ -51,6 +117,24 @@ func (e ServiceCandidateStatus) Valid() bool {
 	case Live:
 		return true
 	case Missing:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetHostParamsRange.
+const (
+	GetHostParamsRangeN1h  GetHostParamsRange = "1h"
+	GetHostParamsRangeN24h GetHostParamsRange = "24h"
+)
+
+// Valid indicates whether the value is a known member of the GetHostParamsRange enum.
+func (e GetHostParamsRange) Valid() bool {
+	switch e {
+	case GetHostParamsRangeN1h:
+		return true
+	case GetHostParamsRangeN24h:
 		return true
 	default:
 		return false
@@ -117,6 +201,76 @@ type HealthResponse struct {
 
 // HealthResponseStatus defines model for HealthResponse.Status.
 type HealthResponseStatus string
+
+// Host defines model for Host.
+type Host struct {
+	CpuPercent         *float64       `json:"cpuPercent"`
+	Id                 string         `json:"id"`
+	InventoryAvailable bool           `json:"inventoryAvailable"`
+	Kind               HostKind       `json:"kind"`
+	MemoryTotalBytes   *int64         `json:"memoryTotalBytes"`
+	MemoryUsedBytes    *int64         `json:"memoryUsedBytes"`
+	Name               string         `json:"name"`
+	Node               string         `json:"node"`
+	ObservedAt         *time.Time     `json:"observedAt"`
+	ParentId           string         `json:"parentId"`
+	Ready              string         `json:"ready"`
+	ReceivedAt         *time.Time     `json:"receivedAt"`
+	Source             SourceRef      `json:"source"`
+	Status             HostStatus     `json:"status"`
+	Workloads          []HostWorkload `json:"workloads"`
+}
+
+// HostKind defines model for Host.Kind.
+type HostKind string
+
+// HostStatus defines model for Host.Status.
+type HostStatus string
+
+// HostDetail defines model for HostDetail.
+type HostDetail struct {
+	Children []Host          `json:"children"`
+	Host     Host            `json:"host"`
+	Range    HostDetailRange `json:"range"`
+	Samples  []HostSample    `json:"samples"`
+}
+
+// HostDetailRange defines model for HostDetail.Range.
+type HostDetailRange string
+
+// HostMetrics defines model for HostMetrics.
+type HostMetrics struct {
+	CpuPercent       *float64 `json:"cpuPercent"`
+	MemoryTotalBytes *int64   `json:"memoryTotalBytes"`
+	MemoryUsedBytes  *int64   `json:"memoryUsedBytes"`
+}
+
+// HostObservation defines model for HostObservation.
+type HostObservation struct {
+	CpuPercent         *float64       `json:"cpuPercent"`
+	InventoryAvailable bool           `json:"inventoryAvailable"`
+	MemoryTotalBytes   *int64         `json:"memoryTotalBytes"`
+	MemoryUsedBytes    *int64         `json:"memoryUsedBytes"`
+	Node               string         `json:"node"`
+	Ready              string         `json:"ready"`
+	Workloads          []HostWorkload `json:"workloads"`
+}
+
+// HostSample defines model for HostSample.
+type HostSample struct {
+	At               time.Time `json:"at"`
+	CpuPercent       *float64  `json:"cpuPercent"`
+	MemoryTotalBytes *int64    `json:"memoryTotalBytes"`
+	MemoryUsedBytes  *int64    `json:"memoryUsedBytes"`
+}
+
+// HostWorkload defines model for HostWorkload.
+type HostWorkload struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Restarts  int    `json:"restarts"`
+	State     string `json:"state"`
+}
 
 // IconUpload defines model for IconUpload.
 type IconUpload struct {
@@ -214,6 +368,13 @@ type SourceRef struct {
 	Kind string `json:"kind"`
 }
 
+// TelemetryBatch defines model for TelemetryBatch.
+type TelemetryBatch struct {
+	Hosts      []HostObservation `json:"hosts"`
+	ObservedAt time.Time         `json:"observedAt"`
+	Source     SourceRef         `json:"source"`
+}
+
 // UploadedIcon defines model for UploadedIcon.
 type UploadedIcon struct {
 	Digest string   `json:"digest"`
@@ -226,6 +387,14 @@ type UploadedIcon struct {
 
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
+
+// GetHostParams defines parameters for GetHost.
+type GetHostParams struct {
+	Range *GetHostParamsRange `form:"range,omitempty" json:"range,omitempty"`
+}
+
+// GetHostParamsRange defines parameters for GetHost.
+type GetHostParamsRange string
 
 // DeleteIconParams defines parameters for DeleteIcon.
 type DeleteIconParams struct {
@@ -242,6 +411,9 @@ type ChangeServiceLifecycleJSONBodyAction string
 
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
+
+// ImportTelemetryJSONRequestBody defines body for ImportTelemetry for application/json ContentType.
+type ImportTelemetryJSONRequestBody = TelemetryBatch
 
 // UploadIconJSONRequestBody defines body for UploadIcon for application/json ContentType.
 type UploadIconJSONRequestBody = IconUpload
@@ -336,8 +508,19 @@ type ClientInterface interface {
 
 	ImportFederationSnapshot(ctx context.Context, body ImportFederationSnapshotJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ImportTelemetryWithBody request with any body
+	ImportTelemetryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ImportTelemetry(ctx context.Context, body ImportTelemetryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetHomepageServices request
 	GetHomepageServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetHosts request
+	GetHosts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetHost request
+	GetHost(ctx context.Context, hostId string, params *GetHostParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListIcons request
 	ListIcons(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -417,8 +600,56 @@ func (c *Client) ImportFederationSnapshot(ctx context.Context, body ImportFedera
 	return c.Client.Do(req)
 }
 
+func (c *Client) ImportTelemetryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewImportTelemetryRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ImportTelemetry(ctx context.Context, body ImportTelemetryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewImportTelemetryRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetHomepageServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetHomepageServicesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetHosts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHostsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetHost(ctx context.Context, hostId string, params *GetHostParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHostRequest(c.Server, hostId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -676,6 +907,46 @@ func NewImportFederationSnapshotRequestWithBody(server string, contentType strin
 	return req, nil
 }
 
+// NewImportTelemetryRequest calls the generic ImportTelemetry builder with application/json body
+func NewImportTelemetryRequest(server string, body ImportTelemetryJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewImportTelemetryRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewImportTelemetryRequestWithBody generates requests for ImportTelemetry with any type of body
+func NewImportTelemetryRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/federation/telemetry")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetHomepageServicesRequest generates requests for GetHomepageServices
 func NewGetHomepageServicesRequest(server string) (*http.Request, error) {
 	var err error
@@ -693,6 +964,94 @@ func NewGetHomepageServicesRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetHostsRequest generates requests for GetHosts
+func NewGetHostsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/hosts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetHostRequest generates requests for GetHost
+func NewGetHostRequest(server string, hostId string, params *GetHostParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "hostId", hostId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/hosts/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Range != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "range", *params.Range, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -1175,8 +1534,19 @@ type ClientWithResponsesInterface interface {
 
 	ImportFederationSnapshotWithResponse(ctx context.Context, body ImportFederationSnapshotJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportFederationSnapshotResponse, error)
 
+	// ImportTelemetryWithBodyWithResponse request with any body
+	ImportTelemetryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportTelemetryResponse, error)
+
+	ImportTelemetryWithResponse(ctx context.Context, body ImportTelemetryJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportTelemetryResponse, error)
+
 	// GetHomepageServicesWithResponse request
 	GetHomepageServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHomepageServicesResponse, error)
+
+	// GetHostsWithResponse request
+	GetHostsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHostsResponse, error)
+
+	// GetHostWithResponse request
+	GetHostWithResponse(ctx context.Context, hostId string, params *GetHostParams, reqEditors ...RequestEditorFn) (*GetHostResponse, error)
 
 	// ListIconsWithResponse request
 	ListIconsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListIconsResponse, error)
@@ -1287,6 +1657,35 @@ func (r ImportFederationSnapshotResponse) ContentType() string {
 	return ""
 }
 
+type ImportTelemetryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ImportTelemetryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ImportTelemetryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ImportTelemetryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetHomepageServicesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1312,6 +1711,68 @@ func (r GetHomepageServicesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetHomepageServicesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetHostsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Hosts []Host `json:"hosts"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHostsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHostsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetHostsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetHostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *HostDetail
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetHostResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -1676,6 +2137,23 @@ func (c *ClientWithResponses) ImportFederationSnapshotWithResponse(ctx context.C
 	return ParseImportFederationSnapshotResponse(rsp)
 }
 
+// ImportTelemetryWithBodyWithResponse request with arbitrary body returning *ImportTelemetryResponse
+func (c *ClientWithResponses) ImportTelemetryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportTelemetryResponse, error) {
+	rsp, err := c.ImportTelemetryWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseImportTelemetryResponse(rsp)
+}
+
+func (c *ClientWithResponses) ImportTelemetryWithResponse(ctx context.Context, body ImportTelemetryJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportTelemetryResponse, error) {
+	rsp, err := c.ImportTelemetry(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseImportTelemetryResponse(rsp)
+}
+
 // GetHomepageServicesWithResponse request returning *GetHomepageServicesResponse
 func (c *ClientWithResponses) GetHomepageServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHomepageServicesResponse, error) {
 	rsp, err := c.GetHomepageServices(ctx, reqEditors...)
@@ -1683,6 +2161,24 @@ func (c *ClientWithResponses) GetHomepageServicesWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseGetHomepageServicesResponse(rsp)
+}
+
+// GetHostsWithResponse request returning *GetHostsResponse
+func (c *ClientWithResponses) GetHostsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHostsResponse, error) {
+	rsp, err := c.GetHosts(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHostsResponse(rsp)
+}
+
+// GetHostWithResponse request returning *GetHostResponse
+func (c *ClientWithResponses) GetHostWithResponse(ctx context.Context, hostId string, params *GetHostParams, reqEditors ...RequestEditorFn) (*GetHostResponse, error) {
+	rsp, err := c.GetHost(ctx, hostId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHostResponse(rsp)
 }
 
 // ListIconsWithResponse request returning *ListIconsResponse
@@ -1917,6 +2413,22 @@ func ParseImportFederationSnapshotResponse(rsp *http.Response) (*ImportFederatio
 	return response, nil
 }
 
+// ParseImportTelemetryResponse parses an HTTP response from a ImportTelemetryWithResponse call
+func ParseImportTelemetryResponse(rsp *http.Response) (*ImportTelemetryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ImportTelemetryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseGetHomepageServicesResponse parses an HTTP response from a GetHomepageServicesWithResponse call
 func ParseGetHomepageServicesResponse(rsp *http.Response) (*GetHomepageServicesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1944,6 +2456,60 @@ func ParseGetHomepageServicesResponse(rsp *http.Response) (*GetHomepageServicesR
 			return nil, err
 		}
 		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetHostsResponse parses an HTTP response from a GetHostsWithResponse call
+func ParseGetHostsResponse(rsp *http.Response) (*GetHostsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHostsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Hosts []Host `json:"hosts"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetHostResponse parses an HTTP response from a GetHostWithResponse call
+func ParseGetHostResponse(rsp *http.Response) (*GetHostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HostDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	}
 

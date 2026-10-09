@@ -13,6 +13,9 @@ body {
 	margin: 0;
 }
 
+/* Keep absolute chart controls and table captions inside the shell scroll area. */
+#main-content { position: relative; }
+
 .balemoh-content {
 	width: min(100%, var(--balemoh-content-width));
 	margin-inline: auto;
@@ -108,12 +111,6 @@ body {
 	flex-wrap: wrap;
 }
 
-.balemoh-host-toggle {
-	white-space: normal;
-	text-align: left;
-	overflow-wrap: anywhere;
-}
-
 
 .balemoh-icon-button {
 	width: 2.5rem;
@@ -206,3 +203,25 @@ body {
 .balemoh-resource-image pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .balemoh-resource-endpoint { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem; }
+
+#host-measurements, #host-inventory { display: grid; gap: 1rem; min-width: 0; }
+.balemoh-host-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.balemoh-host-grid > * { min-width: 0; }
+.balemoh-host-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.balemoh-host-actions h2 { flex: 1; font-size: 1.15rem; font-weight: 600; }
+.balemoh-host-actions a[aria-current="true"] { font-weight: 700; text-decoration: underline; text-underline-offset: .3em; }
+.balemoh-host-status { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; font-size: .875rem; }
+.balemoh-metric-value { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 600; font-variant-numeric: tabular-nums; }
+.balemoh-host-services { display: flex; flex-wrap: wrap; gap: 1rem; }
+#hosts-table small { display: block; margin-top: .3rem; }
+#hosts-table td:first-child, #host-workloads td:first-child { overflow-wrap: anywhere; white-space: normal; }
+/* Charts v0.0.3 always renders its data disclosure; this page shows charts only. */
+.balemoh-host-history > details { display: none; }
+@media (max-width: 767px) { .balemoh-host-grid { grid-template-columns: minmax(0, 1fr); } }
+.balemoh-host-card { max-width: none; }
+.balemoh-host-heading { font-size: 1.15rem; font-weight: 600; }
+.balemoh-host-workloads { overflow: visible; }
+.balemoh-host-list table, .balemoh-host-workloads table { min-width: 36rem; }
+.balemoh-host-list td:first-child, .balemoh-host-workloads td:first-child { min-width: 12rem; }
+
+.balemoh-host-notice { display: contents; }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,6 +47,7 @@ func run(ctx context.Context) error {
 	server := &http.Server{
 		Addr:              options.HTTPAddr,
 		Handler:           handler,
+		BaseContext:       func(net.Listener) context.Context { return ctx },
 		ReadHeaderTimeout: options.RequestTimeout,
 	}
 	serveErr := make(chan error, 1)

@@ -3,11 +3,16 @@ package view
 import (
 	"github.com/a-h/templ"
 	"github.com/araihu/goshtoso-app-shells/consoleshell"
+	"github.com/araihu/goshtoso/assets"
 	"github.com/araihu/goshtoso/components/head"
 	"github.com/araihu/goshtoso/components/sidebar"
 )
 
 func ConsolePage(data PageData) templ.Component {
+	var runtimeScripts []string
+	if data.HostDetail != nil && data.Error == "" {
+		runtimeScripts = []string{assets.HTMXExtSSEURL, "/ui/host-live.js"}
+	}
 	return consoleshell.Layout(
 		consoleshell.Config{
 			Brand: consoleshell.Brand{
@@ -32,7 +37,7 @@ func ConsolePage(data PageData) templ.Component {
 				PersistPreferences: true,
 				ThemeStylesheets:   []string{"/ui/balemoh.css"},
 			},
-			Interactions: consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true},
+			Interactions: consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
 			MainID:       "main-content",
 			ContentID:    "balemoh-content",
 			Footer:       AttributionLinks(),

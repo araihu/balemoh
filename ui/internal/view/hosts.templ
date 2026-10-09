@@ -1,105 +1,255 @@
 package view
 
 import (
-	"fmt"
-	"strconv"
-	"time"
-	"github.com/araihu/balemoh/ui/internal/appicons"
-	"github.com/araihu/goshtoso/components/avatar"
-	"github.com/araihu/goshtoso/components/button"
-	"github.com/araihu/goshtoso/components/emptystate"
-	"github.com/araihu/goshtoso/components/pageheader"
-	"github.com/araihu/goshtoso/components/table"
+ "fmt"
+ "strconv"
+ "time"
+ "github.com/araihu/balemoh/ui/internal/appicons"
+ "github.com/araihu/goshtoso/components/avatar"
+ "github.com/araihu/goshtoso/components/alert"
+ "github.com/araihu/goshtoso/components/badge"
+ "github.com/araihu/goshtoso/components/card"
+ "github.com/araihu/goshtoso/components/emptystate"
+ "github.com/araihu/goshtoso/components/link"
+ "github.com/araihu/goshtoso/components/pageheader"
+ "github.com/araihu/goshtoso/components/table"
+ "github.com/araihu/goshtoso-charts/components/line"
+ "github.com/araihu/goshtoso-charts/components/chartcontrol"
 )
 
 type Host struct {
-	Name string
-	Kind string
-	Services int
-	ObservedAt time.Time
+ ID,Name,Kind,Status,ParentID,Ready string
+ ObservedAt,ReceivedAt *time.Time
+ CPU,Memory *float64
+ MemoryUsed,MemoryTotal *int64
+ InventoryAvailable bool
 }
-
-type HostsPage struct {
-	Hosts []Host
+type HostsPage struct { Hosts []Host }
+type HostSample struct {At time.Time; CPU,Memory *float64}
+type HostWorkload struct{Name,Namespace,State string;Restarts int}
+type HostService struct{ID,Name string}
+type HostDetail struct {
+ Host Host
+ Window string
+ Children []Host
+ Samples []HostSample
+ Workloads []HostWorkload
+ Services []HostService
+ ServicesAvailable bool
 }
-
 func hostRows(hosts []Host) []table.Row {
-	rows := make([]table.Row, 0, len(hosts))
-	for i, host := range hosts {
-		id := fmt.Sprintf("host-%d", i)
-		rows = append(rows, table.Row{
-			ID: id,
-			Cells: map[string]table.Cell{"host": {Component: HostToggle(host, id)}},
-			Expandable: true,
-			Detail: HostDetails(host, id),
-		})
-	}
-	return rows
+ rows:=make([]table.Row,0,len(hosts))
+ for _,host:=range hosts{rows=append(rows,table.Row{ID:host.ID,Cells:map[string]table.Cell{
+ "host":{Component:HostLink(host)},"status":{Text:hostStatus(host.Status)},"cpu":{Text:percentage(host.CPU)},"memory":{Text:percentage(host.Memory)},
+ }})};return rows
 }
-
-templ HostToggle(host Host, id string) {
-	@button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithRootClass("balemoh-host-toggle"), button.WithID(id+"-toggle"), button.WithAttrs(templ.Attributes{
-		"aria-expanded": "false",
-		"aria-controls": id+"-details",
-		"x-bind:aria-expanded": fmt.Sprintf("!!openRows['%s']", id),
-		"x-on:click.stop": fmt.Sprintf("openRows['%s'] = !openRows['%s']", id, id),
-	})) {
-		@HostIdentity(host)
-	}
+func hostStatus(status string)string{switch status{case "fresh":return "Reporting";case "partial":return "Partial data";case "stale":return "Stale";default:return "No telemetry"}}
+func hostStatusTone(status string)badge.Tone{switch status{case "fresh":return badge.ToneSuccess;case "partial","stale":return badge.ToneWarning;default:return badge.ToneInfo}}
+func percentage(value *float64)string{if value==nil{return "Unavailable"};return fmt.Sprintf("%.1f%%",*value)}
+func memorySize(value *int64)string{if value==nil{return "Unavailable"};return fmt.Sprintf("%.1f GiB",float64(*value)/(1<<30))}
+func historyChart(page HostDetail,cpu bool)line.Config{
+ title:="Memory usage";if cpu{title="CPU usage"}
+ cfg:=line.Config{Label:title,Width:360,Height:220,XAxis:line.CategoryAxisOptions{LabelCount:2,LabelFontSize:12},Symbol:line.Symbol{Shape:line.SymbolNone},Legend:line.LegendOptions{Hidden:true}}
+ cfg.Controls.Mode=chartcontrol.WrapperModeOmitted
+ zero,hundred:=0.0,100.0;cfg.Export=&chartcontrol.ExportOptions{Disabled:true}
+ cfg.YAxes=[]line.Axis{{Title:"%",Min:&zero,Max:&hundred,LabelCount:5,LabelFontSize:14,Unit:25}}
+ points:=make([]line.Point,0,len(page.Samples))
+ for _,sample:=range page.Samples{cfg.Labels=append(cfg.Labels,sample.At.UTC().Format("15:04"));value:=sample.Memory;if cpu{value=sample.CPU};point:=line.Point{Missing:value==nil};if value!=nil{point.Value=*value};points=append(points,point)}
+ cfg.Series=[]line.Series{{Name:title,Points:points}};return cfg
 }
-
-templ HostDetails(host Host, id string) {
-	<dl id={ id+"-details" } class="balemoh-editor" aria-labelledby={ id+"-toggle" }>
-		<div><dt><strong>Type</strong></dt><dd>{ host.Kind }</dd></div>
-		<div><dt><strong>Catalog services</strong></dt><dd>{ strconv.Itoa(host.Services) }</dd></div>
-		<div>
-			<dt><strong>Last observed</strong></dt>
-			<dd>
-				if host.ObservedAt.IsZero() {
-					Not available
-				} else {
-					<time datetime={ host.ObservedAt.UTC().Format(time.RFC3339) }>{ host.ObservedAt.UTC().Format("2006-01-02 15:04:05 UTC") }</time>
-				}
-			</dd>
-		</div>
-	</dl>
+func hasHistory(page HostDetail,cpu bool)bool{for _,s:=range page.Samples{if cpu&&s.CPU!=nil||!cpu&&s.Memory!=nil{return true}};return false}
+func workloadRows(workloads []HostWorkload)[]table.Row{
+ rows:=[]table.Row{};for i,w:=range workloads{rows=append(rows,table.Row{ID:fmt.Sprintf("workload-%d",i),Cells:map[string]table.Cell{"name":{Text:w.Name},"namespace":{Text:w.Namespace},"state":{Text:w.State},"restarts":{Text:strconv.Itoa(w.Restarts)}}})};return rows
 }
-
+templ HostLink(host Host) {
+ @link.Link("/hosts/"+host.ID) { @HostIdentity(host) }
+ <small class="balemoh-muted">{ host.Kind }</small>
+}
 templ HostIdentity(host Host) {
-	<span class="balemoh-service-name">
-		@avatar.Avatar(avatar.Config{Size: avatar.SizeXS, Shape: avatar.ShapeSquare, Icon: HostGlyph(host), RootClass: "balemoh-service-avatar"})
-		<span>{ host.Name }</span>
-	</span>
+ <span class="balemoh-service-name">
+ @avatar.Avatar(avatar.Config{Size:avatar.SizeXS,Shape:avatar.ShapeSquare,Icon:HostGlyph(host),RootClass:"balemoh-service-avatar"})
+ <span>{ host.Name }</span>
+ </span>
 }
-
 templ HostGlyph(host Host) {
-	<span class="balemoh-service-card-icon">
-		switch host.Kind {
-			case "Kubernetes cluster":
-				@appicons.Icon(appicons.Config{Symbol: appicons.IconKubernetesKubernetes, Decorative: true})
-			case "Docker host":
-				@appicons.Icon(appicons.Config{Symbol: appicons.IconDockerDocker, Decorative: true})
-			default:
-				@appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})
-		}
-	</span>
+ <span class="balemoh-service-card-icon">
+ switch host.Kind {
+ case "Kubernetes cluster":
+ @appicons.Icon(appicons.Config{Symbol:appicons.IconKubernetesKubernetes,Decorative:true})
+ case "Docker host":
+ @appicons.Icon(appicons.Config{Symbol:appicons.IconDockerDocker,Decorative:true})
+ default:
+ @appicons.Icon(appicons.Config{Symbol:appicons.IconHeroiconsServer,Decorative:true})
+ }
+ </span>
 }
-
+templ HostTable(hosts []Host) {
+ <div class="balemoh-table-scroll">
+ @table.Table(table.Config{ID:"hosts-table",RootClass:"balemoh-host-list",Caption:"Hosts and latest reported usage",Columns:[]table.Column{{Key:"host",Label:"Host"},{Key:"status",Label:"Telemetry"},{Key:"cpu",Label:"CPU"},{Key:"memory",Label:"Memory"}},Rows:hostRows(hosts)})
+ </div>
+}
 templ HostsContent(page HostsPage, available bool) {
-	@pageheader.PageHeader(pageheader.Config{Title: "Hosts", HideSeparator: true})
-	if available {
-		if len(page.Hosts) == 0 {
-			@emptystate.EmptyState(emptystate.Config{
-				Title: "No hosts discovered",
-				Description: "Hosts appear after Kubernetes discovery or a Docker agent reports services.",
-			})
-		} else {
-			@table.Table(table.Config{
-				ID: "hosts-table",
-				Caption: "Discovered Kubernetes clusters and Docker hosts",
-				Columns: []table.Column{{Key: "host", Label: "Host"}},
-				Rows: hostRows(page.Hosts),
-			})
-		}
-	}
+ @pageheader.PageHeader(pageheader.Config{Title:"Hosts",HideSeparator:true})
+ if available {
+  if len(page.Hosts)==0 {
+   @emptystate.EmptyState(emptystate.Config{Title:"No hosts discovered",Description:"Registered sources appear here before their first telemetry report."})
+  } else {
+   @HostTable(page.Hosts)
+  }
+ }
+}
+templ ReportTime(label string,at *time.Time) {
+ <span>
+  { label }
+  if at==nil {
+   never
+  } else {
+   <time datetime={ at.UTC().Format(time.RFC3339) }>{ at.UTC().Format("Jan 02, 15:04:05 UTC") }</time>
+  }
+ </span>
+}
+templ HostContent(page HostDetail) {
+ <nav aria-label="Breadcrumb" class="balemoh-host-actions">
+  @link.Link("/hosts") { Hosts }
+  if page.Host.ParentID!="" {
+   <span>/</span>
+   @link.Link("/hosts/"+page.Host.ParentID) { Cluster }
+  }
+ </nav>
+ @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true})
+ <div id={ "host-live-"+page.Window } data-host-live hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
+  <div id="host-live-status" role="status" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
+ </div>
+ <div id="host-measurements">@HostMeasurements(page)</div>
+ <div class="balemoh-host-actions">
+  <h2>Usage history</h2>
+  <nav aria-label="History range" class="balemoh-host-actions">
+   @HistoryRange(page,"1h","Last hour")
+   @HistoryRange(page,"24h","Last 24 hours")
+   {{ refreshAttrs := historyLinkAttrs(page,page.Window) }}
+   {{ refreshAttrs["id"] = "host-history-refresh" }}
+   @link.Link("/hosts/"+page.Host.ID+"?range="+page.Window,link.WithAttrs(refreshAttrs)) { Refresh }
+  </nav>
+  <span id="host-history-error" role="alert"></span>
+ </div>
+ <div class="balemoh-host-grid">
+  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"CPU usage",Body:HostChart(page,true)})
+  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory usage",Body:HostChart(page,false)})
+ </div>
+ <div id="host-inventory">@HostInventory(page)</div>
+ if page.Host.ParentID=="" {
+  <h2>Catalog services</h2>
+  if !page.ServicesAvailable {
+   <p>Catalog services are unavailable.</p>
+  } else if len(page.Services)==0 {
+   <p>No catalog services discovered for this source.</p>
+  } else {
+   <ul class="balemoh-host-services">
+    for _,service:=range page.Services {
+     <li>@link.Link("/staging/services/"+service.ID+"/edit") { { service.Name } }</li>
+    }
+   </ul>
+  }
+ }
+}
+func workloadColumns(kind string)[]table.Column{
+ columns:=[]table.Column{{Key:"name",Label:"Name"},{Key:"state",Label:"State"}}
+ if kind!="Docker host"{columns=append(columns,table.Column{Key:"namespace",Label:"Namespace"},table.Column{Key:"restarts",Label:"Restarts"})};return columns
+}
+func historyLinkAttrs(page HostDetail,window string)templ.Attributes{
+ return templ.Attributes{"hx-get":"/hosts/"+page.Host.ID+"?range="+window,"hx-target":"#host-detail","hx-swap":"innerHTML","hx-push-url":strconv.FormatBool(window!=page.Window),"hx-sync":"#host-detail:replace"}
+}
+templ HostHistoryError(message string) {
+ <span id="host-history-error" hx-swap-oob="innerMorph">{ message }</span>
+}
+templ HistoryRange(page HostDetail,value,label string) {
+ {{ attrs := historyLinkAttrs(page,value) }}
+ {{ attrs["aria-current"] = activeRange(page.Window,value) }}
+ {{ attrs["id"] = "host-history-"+value }}
+ @link.Link("/hosts/"+page.Host.ID+"?range="+value, link.WithAttrs(attrs)) { { label } }
+}
+func activeRange(current,value string)string{if current==value{return "true"};return "false"}
+templ MetricValue(value,description string) {
+ <p class="balemoh-metric-value">{ value }</p>
+ <p class="balemoh-muted">{ description }</p>
+}
+// Keep dismissal for the current status across SSE morphs. A status change gets a new notice.
+templ HostNotice(status,title,description string,tone alert.Tone) {
+ <div id={ "host-notice-"+status } class="balemoh-host-notice" hx-morph-skip hx-preserve>
+  @alert.Alert(alert.Config{Title:title,Description:description,Tone:tone,Dismissible:true})
+ </div>
+}
+templ HostMeasurements(page HostDetail) {
+ <div class="balemoh-host-status">
+  @badge.Badge(badge.Config{Label:page.Host.Kind+" · "+hostStatus(page.Host.Status),Tone:hostStatusTone(page.Host.Status)})
+  @ReportTime("Last observed:",page.Host.ObservedAt)
+  @ReportTime("Last received:",page.Host.ReceivedAt)
+  if page.Host.Ready!="" {
+   <span>Node ready: { page.Host.Ready }</span>
+  }
+ </div>
+ if page.Host.Status=="stale" {
+  @HostNotice("stale","Telemetry is stale","Reports are more than three minutes old. Values below are the last observations.",alert.ToneWarning)
+ }
+ if page.Host.Status=="partial" {
+  @HostNotice("partial","Some measurements are unavailable","Some measurements are unavailable. Collection may be starting or missing access to host metrics.",alert.ToneWarning)
+ }
+ if page.Host.Status=="unavailable" {
+  @HostNotice("unavailable","No telemetry yet","No telemetry has arrived. Enable host collection on the agent to see measurements.",alert.ToneInfo)
+ }
+ <h2 class="balemoh-host-heading">Latest measurements</h2>
+ <div class="balemoh-host-grid">
+  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"CPU",Body:MetricValue(percentage(page.Host.CPU),"Share of total CPU capacity")})
+  @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory",Body:MetricValue(percentage(page.Host.Memory),memorySize(page.Host.MemoryUsed)+" used / "+memorySize(page.Host.MemoryTotal)+" total")})
+ </div>
+}
+templ HostInventory(page HostDetail) {
+ if page.Host.Kind=="Kubernetes cluster" {
+  <h2>Nodes</h2>
+  if len(page.Children)>0 {
+   @HostTable(page.Children)
+  } else {
+   <p>No node inventory received.</p>
+  }
+ }
+ <h2>Workloads</h2>
+ if !page.Host.InventoryAvailable {
+  <p>Workload inventory is unavailable or incomplete.</p>
+ }
+ if len(page.Workloads)>0 {
+  <div class="balemoh-table-scroll" tabindex="0" role="region" aria-label="Workload inventory">
+   @table.Table(table.Config{RootClass:"balemoh-host-workloads",ID:"host-workloads",Caption:"Last reported workloads",Columns:workloadColumns(page.Host.Kind),Rows:workloadRows(page.Workloads)})
+  </div>
+ } else if page.Host.InventoryAvailable {
+  <p>No workloads reported.</p>
+ }
+}
+func hostChartID(cpu bool)string{if cpu{return "host-cpu-chart"};return "host-memory-chart"}
+templ HostChart(page HostDetail,cpu bool) {
+ @chartcontrol.Wrapper(chartcontrol.WrapperConfig{Label:historyChart(page,cpu).Label,Export:&chartcontrol.ExportOptions{Disabled:true}},HostChartTarget(page,cpu))
+}
+templ HostChartTarget(page HostDetail,cpu bool) {
+ <div id={ hostChartID(cpu) }>@HostChartContent(page,cpu)</div>
+}
+templ HostLiveBadge(message string) {
+ @badge.Badge(badge.Config{Label:message,Tone:badge.ToneInfo,RootClass:"balemoh-live-badge"})
+}
+templ HostLiveStatus(message string) {
+ <div id="host-live-status" hx-swap-oob="innerMorph">@HostLiveBadge(message)</div>
+}
+templ HostLiveSnapshot(page HostDetail) {
+ @HostLiveStatus("Live updates connected")
+ <div id="host-measurements" hx-swap-oob="innerMorph">@HostMeasurements(page)</div>
+ <div id="host-cpu-chart" hx-swap-oob="innerMorph">@HostChartContent(page,true)</div>
+ <div id="host-memory-chart" hx-swap-oob="innerMorph">@HostChartContent(page,false)</div>
+ <div id="host-inventory" hx-swap-oob="innerMorph">@HostInventory(page)</div>
+}
+templ HostChartContent(page HostDetail,cpu bool) {
+ if hasHistory(page,cpu) {
+  <div class="balemoh-host-history">
+   @line.Line(historyChart(page,cpu))
+  </div>
+ } else {
+  @emptystate.EmptyState(emptystate.Config{Title:"No measurements yet",Description:"History appears as agents report. Missing measurements are never shown as zero."})
+ }
 }

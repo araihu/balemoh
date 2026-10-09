@@ -51,6 +51,22 @@ type ServiceEndpoint struct {
 	Provenance string `json:"provenance"`
 }
 
+type TelemetryHost struct {
+	ID          string `json:"id"`
+	SourceKind  string `json:"source_kind"`
+	SourceID    string `json:"source_id"`
+	Node        string `json:"node"`
+	ObservedAt  int64  `json:"observed_at"`
+	ReceivedAt  int64  `json:"received_at"`
+	Observation string `json:"observation"`
+}
+
+type TelemetrySample struct {
+	HostID  string `json:"host_id"`
+	Minute  int64  `json:"minute"`
+	Metrics string `json:"metrics"`
+}
+
 type UploadedIcon struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`

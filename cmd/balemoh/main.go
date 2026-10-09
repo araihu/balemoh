@@ -22,6 +22,7 @@ import (
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/application/health"
+	"github.com/araihu/balemoh/internal/application/telemetry"
 	"github.com/araihu/balemoh/internal/config"
 	"github.com/araihu/balemoh/internal/storage/sqlc"
 	"k8s.io/client-go/rest"
@@ -52,6 +53,9 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go runDiscoverySync(ctx, catalogService, options.DiscoverySyncInterval)
+	if err := startTelemetry(ctx, db, options); err != nil {
+		return err
+	}
 
 	return serve(ctx, server, server.ListenAndServe)
 }
@@ -95,6 +99,22 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 		sourceTokens,
 	)
 	handler = handler.WithIcons(sqlite.NewIconStore(db))
+	telemetryStore := sqlite.NewTelemetryStore(db)
+	sources := []telemetry.Source{}
+	for source := range sourceTokens {
+		sources = append(sources, telemetry.Source{Kind: source.Kind, ID: source.ID})
+	}
+	if options.ContainerEnabled {
+		sources = append(sources, telemetry.Source{Kind: "container", ID: strings.TrimSpace(options.ContainerSourceID)})
+	}
+	if options.KubernetesEnabled {
+		sources = append(sources, telemetry.Source{Kind: "kubernetes", ID: strings.TrimSpace(options.KubernetesSourceID)})
+	}
+	if err := telemetryStore.Register(ctx, sources); err != nil {
+		_ = db.Close()
+		return nil, nil, nil, err
+	}
+	handler = handler.WithTelemetry(telemetryStore)
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, nil
 }
