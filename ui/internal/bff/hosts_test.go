@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	api "github.com/araihu/balemoh/client"
+	chartassets "github.com/araihu/goshtoso-charts/assets"
 	"golang.org/x/net/html"
 	"net/http"
 	"net/http/httptest"
@@ -67,7 +68,7 @@ func TestHostDetailRangesMetadataAndMissingData(t *testing.T) {
 	if w.Code != 200 {
 		t.Fatalf("render failed: %d", w.Code)
 	}
-	for _, want := range []string{"raspi", "0.0%", "Unavailable", "Reports are more than", "goshtoso-charts-line", "Exact series values", `href="https://balemoh.decastro.me/hosts/host"`, `aria-current="true"`, "Workload inventory is unavailable"} {
+	for _, want := range []string{"raspi", "0.0%", "Unavailable", "Reports are more than", "goshtoso-charts-interactive", `href="https://balemoh.decastro.me/hosts/host"`, `aria-current="true"`, "Workload inventory is unavailable"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %s", want)
 		}
@@ -164,6 +165,11 @@ func TestHostChartAssetsAreServed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	body := w.Body.String()
+	runtimeIndex, chartIndex := strings.Index(body, chartassets.RuntimeURL), strings.Index(body, "goshtoso-charts-interactive")
+	if runtimeIndex < 0 || chartIndex < runtimeIndex {
+		t.Fatal("interactive runtime must load before chart initialization")
+	}
 	found := false
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
@@ -207,6 +213,9 @@ func TestHostPartialNavigation(t *testing.T) {
 		}
 		if strings.Count(body, `hx-target="#host-detail"`) != 3 {
 			t.Fatal("all history actions must use partial navigation")
+		}
+		if strings.Contains(body, chartassets.RuntimeURL) != (kind == "full") {
+			t.Fatalf("%s: chart runtime should load only with full document", kind)
 		}
 		if strings.Contains(body, "<html") != (kind == "full") {
 			t.Fatalf("%s: wrong document boundary", kind)

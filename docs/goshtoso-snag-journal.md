@@ -31,3 +31,12 @@
 
 - Repeated range changes reproduced a connection leak: each HTMX `innerMorph` swap opened two SSE requests and closed one. With six open HTTP/1 connections, browser requests for Last hour/24h stalled while API and HTML responses still took about 1 ms and 11 ms outside the browser. A single connector in the DOM did not prove one live connection.
 - Use `innerHTML` for explicit host-detail navigation so HTMX tears down the old connector before initializing its replacement. Keep `innerMorph` for SSE chart snapshots. `hx-preserve` retains the status notice during explicit navigation; `hx-morph-skip` retains it during SSE updates. Ten successive alternating filter requests completed with one server-observed active stream and 1–11 ms server durations. Stable action IDs allow focus restoration after replacement.
+
+## 2026-10-10 interactive host charts
+
+- Reuse the public `components/interactive/line` component and `components/chart` options for tooltips, percentage axes and responsive sizing. Compose the existing outer `chartcontrol.Wrapper` with omitted nested controls. No consumer renderer code added.
+- Interactive Line v0.0.3 cannot represent missing readings. Charts v0.0.4 adds `Data.Missing` to preserve explicit null slots while retaining zero readings. The UI now pins that published release; the temporary local workspace is removed.
+- `dependencies.Dependencies()` must precede chart markup because each chart initializes inline. Render it in full `PageContent`, outside the partial `HostContent` response, so range changes and SSE snapshots reuse the runtime. Existing chart assets are already mounted.
+- Pointer tooltips supply exact values. Charts has no public keyboard point-navigation API; its existing accessible chart name and keyboard expansion controls remain. The requested hidden exact-value disclosure remains hidden.
+- The public dependency component loads the chart runtime plus word-cloud, liquid, 3D and map registrations even for line-only pages. There is no public per-chart dependency selection; keep the supported component rather than copying private script lists.
+- Morphing interactive figures preserves the unchanged theme script while replacing the generated chart host. Only CPU/RAM chart contents now use `innerHTML` OOB swaps, so public chart initialization runs with a fresh figure. Outer chart controls and expanded modal targets stay stable; measurements, status and inventory still morph. Upstream owns detached-instance disposal.

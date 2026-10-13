@@ -13,7 +13,8 @@ import (
  "github.com/araihu/goshtoso/components/link"
  "github.com/araihu/goshtoso/components/pageheader"
  "github.com/araihu/goshtoso/components/table"
- "github.com/araihu/goshtoso-charts/components/line"
+ "github.com/araihu/goshtoso-charts/components/interactive/line"
+ "github.com/araihu/goshtoso-charts/components/chart"
  "github.com/araihu/goshtoso-charts/components/chartcontrol"
 )
 
@@ -49,13 +50,20 @@ func percentage(value *float64)string{if value==nil{return "Unavailable"};return
 func memorySize(value *int64)string{if value==nil{return "Unavailable"};return fmt.Sprintf("%.1f GiB",float64(*value)/(1<<30))}
 func historyChart(page HostDetail,cpu bool)line.Config{
  title:="Memory usage";if cpu{title="CPU usage"}
- cfg:=line.Config{Label:title,Width:360,Height:220,XAxis:line.CategoryAxisOptions{LabelCount:2,LabelFontSize:12},Symbol:line.Symbol{Shape:line.SymbolNone},Legend:line.LegendOptions{Hidden:true}}
- cfg.Controls.Mode=chartcontrol.WrapperModeOmitted
- zero,hundred:=0.0,100.0;cfg.Export=&chartcontrol.ExportOptions{Disabled:true}
- cfg.YAxes=[]line.Axis{{Title:"%",Min:&zero,Max:&hundred,LabelCount:5,LabelFontSize:14,Unit:25}}
- points:=make([]line.Point,0,len(page.Samples))
- for _,sample:=range page.Samples{cfg.Labels=append(cfg.Labels,sample.At.UTC().Format("15:04"));value:=sample.Memory;if cpu{value=sample.CPU};point:=line.Point{Missing:value==nil};if value!=nil{point.Value=*value};points=append(points,point)}
- cfg.Series=[]line.Series{{Name:title,Points:points}};return cfg
+ cfg:=line.Config{Label:title,Width:"100%",Height:"280px"}
+ cfg.Options=chart.ChartOptions{
+  Controls:chartcontrol.Options{Mode:chartcontrol.WrapperModeOmitted},
+  Export:&chartcontrol.ExportOptions{Disabled:true},
+  Tooltip:&chart.TooltipOptions{Show:chart.Bool(true),Trigger:"axis"},
+  Legend:&chart.LegendOptions{Show:chart.Bool(false)},
+  XAxis:&chart.AxisOptions{LabelInterval:chart.Int(max(0,len(page.Samples)/2-1)),ShowFirstLabel:chart.Bool(true),ShowLastLabel:chart.Bool(true)},
+  YAxis:&chart.AxisOptions{Name:"%",Min:chart.Float(0),Max:chart.Float(100),SplitNumber:4},
+  Animation:chart.Bool(false),
+ }
+ cfg.SeriesOptions=chart.SeriesOptions{ShowSymbol:chart.Bool(false)}
+ points:=make([]line.Data,0,len(page.Samples))
+ for _,sample:=range page.Samples{cfg.XAxis=append(cfg.XAxis,sample.At.UTC().Format("15:04"));value:=sample.Memory;if cpu{value=sample.CPU};point:=line.Data{Missing:value==nil};if value!=nil{point.Value=*value};points=append(points,point)}
+ cfg.Series=[]line.Series{{Name:title+" (%)",Data:points}};return cfg
 }
 func hasHistory(page HostDetail,cpu bool)bool{for _,s:=range page.Samples{if cpu&&s.CPU!=nil||!cpu&&s.Memory!=nil{return true}};return false}
 func workloadRows(workloads []HostWorkload)[]table.Row{
@@ -240,8 +248,8 @@ templ HostLiveStatus(message string) {
 templ HostLiveSnapshot(page HostDetail) {
  @HostLiveStatus("Live updates connected")
  <div id="host-measurements" hx-swap-oob="innerMorph">@HostMeasurements(page)</div>
- <div id="host-cpu-chart" hx-swap-oob="innerMorph">@HostChartContent(page,true)</div>
- <div id="host-memory-chart" hx-swap-oob="innerMorph">@HostChartContent(page,false)</div>
+ <div id="host-cpu-chart" hx-swap-oob="innerHTML">@HostChartContent(page,true)</div>
+ <div id="host-memory-chart" hx-swap-oob="innerHTML">@HostChartContent(page,false)</div>
  <div id="host-inventory" hx-swap-oob="innerMorph">@HostInventory(page)</div>
 }
 templ HostChartContent(page HostDetail,cpu bool) {

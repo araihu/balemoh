@@ -5,6 +5,7 @@ import (
  "strings"
  "strconv"
  "github.com/araihu/goshtoso/components/textinput"
+ "github.com/araihu/goshtoso-charts/components/dependencies"
  "github.com/araihu/goshtoso/components/modal"
 	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/alert"
@@ -26,6 +27,9 @@ import (
 )
 
 templ PageContent(data PageData) {
+ if data.HostDetail != nil && data.Error == "" {
+  @dependencies.Dependencies()
+ }
 	@toast.ToastContainer(toast.ContainerConfig{DisplayDuration: 4000})
 	if data.Notice != "" {
 		<div hidden x-data="{}" x-init={ successToastEvent(data.Notice) }></div>
