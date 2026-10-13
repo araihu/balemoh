@@ -51,14 +51,23 @@ CPU and memory come from the Node Metrics API. Without Metrics Server or with de
 
 Unavailable workload inventory is distinguished from an empty inventory. Kubernetes node readiness is displayed separately. Docker restart counts and per-workload CPU/RAM are not collected.
 
-Each source is limited to 128 retained hosts, with up to 1,000 workloads per host and 2 MiB per remote batch. Missing node inventory persists for 24 hours, then expires. Truncated workload lists are marked incomplete. Samples expire after 24 hours; registered roots remain. Repeated or old batches cannot refresh heartbeat. Range charts keep missing minutes as gaps. Captions and exact-value disclosures are hidden on host pages. Host detail pages update through one SSE connection using Goshtoso HTMX. The UI server checks for changes every five seconds; agents still collect once per minute. Charts, latest values, reporting status and inventory update automatically, including expanded charts. Missing values remain gaps. A failed update keeps the last data visible and shows retry status. Interrupted streams reconnect; background tabs pause and resume. Initial connection failures offer Refresh. Range links and Refresh update the host detail section without reloading the page. The selected range remains in the URL and its SSE connection follows the selection. Catalog links also refresh with these requests. Reverse proxies must allow streaming responses without buffering and an idle timeout above the five-second keepalive interval.
+Each source is limited to 128 retained hosts, with up to 1,000 workloads per host and 2 MiB per remote batch. Missing node inventory persists for 24 hours, then expires. Truncated workload lists are marked incomplete. Samples expire after 24 hours; registered roots remain. Repeated or old batches cannot refresh heartbeat. Interactive range charts show the timestamp and percentage on hover or tap and keep missing minutes as gaps. Captions and exact-value disclosures are hidden on host pages. Host detail pages update through one SSE connection using Goshtoso HTMX. The UI server checks for changes every five seconds; agents still collect once per minute. Charts, latest values, reporting status and inventory update automatically, including expanded charts. Each chart snapshot replaces its contents inside the stable expansion wrapper; measurements, status and inventory retain morph updates. Missing values remain gaps. A failed update keeps the last data visible and shows retry status. Interrupted streams reconnect; background tabs pause and resume. Initial connection failures offer Refresh. Range links and Refresh update the host detail section without reloading the page. The selected range remains in the URL and its SSE connection follows the selection. Catalog links also refresh with these requests. Reverse proxies must allow streaming responses without buffering and an idle timeout above the five-second keepalive interval.
 
 ## Development checks
 
 ```sh
 GOWORK=off go test ./...
 (cd client && GOWORK=off go test ./...)
-(cd ui && GOWORK=off go test ./...)
 ```
+
+The UI pins Charts v0.0.4, which includes missing-point support and detached chart cleanup. No local workspace or dependency replacement is needed.
+
+```sh
+(cd ui && GOWORK=off go test ./... && GOWORK=off go vet ./...)
+(cd ui && GOWORK=off go test -race ./...)
+(cd ui && GOWORK=off go build ./cmd/balemoh-ui)
+```
+
+Interactive browser checks covered tooltips, ten alternating 1h/24h filters, one active SSE connection, updates inside an open chart modal, Enter/Escape controls, and 390px/1440px widths. Goshtoso dark mode had no horizontal overflow or JavaScript errors. The broader theme and browser matrix has not been repeated for interactive charts.
 
 Migration 000008 adds telemetry tables only. Disable collection to stop new writes. For a schema rollback, stop the new binaries first; the down migration deletes telemetry history and host registrations, leaving the service catalog intact.
