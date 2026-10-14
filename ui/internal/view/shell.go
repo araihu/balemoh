@@ -13,6 +13,9 @@ func ConsolePage(data PageData) templ.Component {
 	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
 		runtimeScripts = []string{assets.HTMXExtSSEURL, "/ui/host-live.js"}
 	}
+	if data.Dashboard != nil && data.Error == "" {
+		runtimeScripts = append(runtimeScripts, "/ui/dashboard-layout.js")
+	}
 	return consoleshell.Layout(
 		consoleshell.Config{
 			Brand: consoleshell.Brand{

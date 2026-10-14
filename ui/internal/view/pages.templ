@@ -105,7 +105,7 @@ templ HomepageContent(data PageData) {
     <div id="dashboard-live-status" role="status" tabindex="-1" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
    </div>
    <div id="dashboard-warnings">@DashboardWarnings(data.Dashboard.Unavailable)</div>
-   <div id="dashboard-grid" class="balemoh-service-grid">@DashboardGrid(*data.Dashboard)</div>
+   <div id="dashboard-grid">@DashboardGrid(*data.Dashboard)</div>
    if len(data.Services)>0 {
  @modal.Dialog(modal.DialogConfig{ID:"home-search-modal",Title:"Search services",Compact:true,Content:HomeSearchResults(data.Services)})
  }

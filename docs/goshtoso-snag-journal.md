@@ -52,3 +52,9 @@
 ## Per-widget refresh, 2026-10-14
 
 - Disabling a focused refresh button during HTMX requests drops browser focus even when its wrapper survives morphing. Restore focus through `htmx:finally:request` after Alpine's next tick. Browser verification confirmed focus returns to the initiating button and the dashboard keeps one SSE connector.
+
+## Dashboard masonry, 2026-10-14
+
+- The pinned Goshtoso components and App Shells expose no masonry layout. Keep their Card components and the application-owned widget grid. A ResizeObserver measures generic widget wrappers into one-pixel CSS Grid row spans, preserving DOM order and the existing breakpoints. Ordinary grid remains the fallback without JavaScript. Reconcile spans after HTMX swaps and observe new/removed widgets; unchanged metric heights do not move cards. No component-internal markup or new dependency is required.
+
+- Host-first grouping composes semantic sections inside the existing shell. Each section owns the same generic masonry layout; source metadata is independent of renderer selection.

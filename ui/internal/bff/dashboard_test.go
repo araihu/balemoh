@@ -276,3 +276,34 @@ func TestWidgetRefreshIsScopedAndPreservesContentOnFailure(t *testing.T) {
 		t.Fatal("refresh changed selections")
 	}
 }
+
+func TestDashboardSectionsKeepHostsFirstAcrossSnapshots(t *testing.T) {
+	snapshot := api.DashboardSnapshot{Items: []api.DashboardWidget{
+		{Id: "service-one", SourceKind: "service", Title: "Service"},
+		{Id: "future-one", SourceKind: "future", Title: "Future"},
+		hostWidget("first", 20), hostWidget("second", 30),
+	}}
+	page := renderWidgets(snapshot, widgetRenderers())
+	for _, component := range []templ.Component{view.DashboardGrid(*page), view.DashboardLiveSnapshot(*page, "Connected")} {
+		var b bytes.Buffer
+		if err := component.Render(context.Background(), &b); err != nil {
+			t.Fatal(err)
+		}
+		html := b.String()
+		last := -1
+		for _, id := range []string{"dashboard-section-hosts", "widget-host-first", "widget-host-second", "dashboard-section-services", "widget-service-one", "dashboard-section-other", "widget-future-one"} {
+			position := strings.Index(html, `id="`+id+`"`)
+			if position <= last {
+				t.Fatalf("missing or out-of-order item %s", id)
+			}
+			last = position
+		}
+	}
+	var b bytes.Buffer
+	if err := view.DashboardGrid(view.Dashboard{}).Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(b.String(), "dashboard-section-") || !strings.Contains(b.String(), "No pinned widgets") {
+		t.Fatal("empty dashboard has empty sections or loses empty state")
+	}
+}

@@ -49,6 +49,17 @@ body {
 	gap: 1rem;
 }
 
+.balemoh-dashboard-section + .balemoh-dashboard-section { margin-top: 1.5rem; }
+.balemoh-dashboard-section > h2 { margin: 0 0 1rem; font-size: 1.125rem; font-weight: 600; }
+
+/* Small grid tracks let widgets occupy their measured height without row gaps.
+   The ordinary grid remains the no-JavaScript fallback. */
+.balemoh-service-grid.balemoh-masonry {
+	grid-auto-rows: 1px;
+	row-gap: 0;
+}
+.balemoh-service-grid > [data-dashboard-widget] { min-width: 0; }
+
 .balemoh-service-card {
 	min-width: 0;
 	max-width: none;

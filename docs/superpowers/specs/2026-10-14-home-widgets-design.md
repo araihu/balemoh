@@ -104,3 +104,15 @@ Host cards expose Refresh beside View host. `GET /dashboard/widgets/{sourceKind}
 The icon button has a Refresh tooltip and disables while pending. Success updates the widget and announces Updated. Source or transport failures retain the current card and show inline retry feedback. A widget removed elsewhere returns a reload-home message. Tests cover isolated rendering, provider/transport failure, unselected widgets and native navigation.
 
 Successful manual refreshes animate only the updated widget with a 220 ms fade and 2 px rise. SSE and failed refreshes do not animate. Reduced-motion preferences disable the effect.
+
+## Masonry layout, 2026-10-14
+
+The homepage keeps equal-width responsive columns and each widget's natural height. A small dashboard runtime measures generic widget wrappers into CSS Grid row spans, with the existing 16 px gutter. Sparse placement preserves DOM order without rearranging widgets or depending on a particular renderer. The ordinary grid remains available without JavaScript or ResizeObserver.
+
+ResizeObserver handles content and width changes. HTMX swaps reconcile measurements and attach or detach observers as widgets enter or leave the dashboard. Updates with unchanged dimensions retain their positions. Existing refresh animation and reduced-motion handling remain unchanged.
+
+Local browser checks covered two-column packing, manual refresh with retained focus, widget removal and return through SSE, and 390/1440 px layouts without horizontal overflow. BFF and view tests passed. Homelab rollout authorized for direct browser acceptance on 2026-10-14.
+
+## Source sections, 2026-10-14
+
+Selected hosts always appear first, under Hosts. Services follow under Services. Other source kinds remain visible under Widgets, without requiring a card renderer. Each nonempty section owns its masonry grid. Source order within each section remains stable; initial rendering and SSE snapshots use the same grouping. Empty sections are omitted.

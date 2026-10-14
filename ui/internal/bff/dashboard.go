@@ -77,6 +77,7 @@ func renderWidgets(snapshot api.DashboardSnapshot, renderers map[string]WidgetRe
 				widget = rendered
 			}
 		}
+		widget.SourceKind = item.SourceKind
 		result.Widgets = append(result.Widgets, widget)
 		if item.Kind == "service-links" && item.Error == "" {
 			var service api.ServiceCandidate

@@ -16,6 +16,7 @@ import (
 
 type Widget struct {
 	ID      string
+	SourceKind string
 	Content templ.Component
 }
 type Dashboard struct {
@@ -34,8 +35,14 @@ templ WidgetGrid(widgets []Widget) {
 }
 
 templ DashboardGrid(page Dashboard) {
-	if len(page.Widgets)>0 || len(page.Unavailable)==0 {
-		@WidgetGrid(page.Widgets)
+	if len(page.Widgets)==0 && len(page.Unavailable)==0 {
+		@WidgetGrid(nil)
+	}
+	for _, section := range dashboardSections(page.Widgets) {
+		<section id={ "dashboard-section-" + section.ID } aria-labelledby={ "dashboard-heading-" + section.ID } class="balemoh-dashboard-section">
+			<h2 id={ "dashboard-heading-" + section.ID }>{ section.Title }</h2>
+			<div class="balemoh-service-grid" data-dashboard-layout>@WidgetGrid(section.Widgets)</div>
+		</section>
 	}
 }
 
