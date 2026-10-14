@@ -69,7 +69,7 @@ templ HostWidgetMetrics(host Host, message string) {
 templ HostWidgetActions(host Host) {
 	<div class="balemoh-host-actions">
 		@link.Link("/hosts/" + url.PathEscape(host.ID)) {
-			View host 
+			<span>View host</span>
 		}
 		<div id={ "widget-refresh-host-" + host.ID } hx-morph-skip>
 			<form
@@ -132,7 +132,7 @@ templ HostSelection(id string, selected, unavailable bool, window, message strin
 			<span id={ "host-selection-feedback-" + id } role="alert" x-ref="failure">{ message }</span>
 			<noscript>
 				@button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall)) {
-					Save 
+					<span>Save</span>
 				}
 			</noscript>
 		</form>
