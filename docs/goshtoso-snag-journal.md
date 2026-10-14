@@ -40,3 +40,15 @@
 - Pointer tooltips supply exact values. Charts has no public keyboard point-navigation API; its existing accessible chart name and keyboard expansion controls remain. The requested hidden exact-value disclosure remains hidden.
 - The public dependency component loads the chart runtime plus word-cloud, liquid, 3D and map registrations even for line-only pages. There is no public per-chart dependency selection; keep the supported component rather than copying private script lists.
 - Morphing interactive figures preserves the unchanged theme script while replacing the generated chart host. Only CPU/RAM chart contents now use `innerHTML` OOB swaps, so public chart initialization runs with a fresh figure. Outer chart controls and expanded modal targets stay stable; measurements, status and inventory still morph. Upstream owns detached-instance disposal.
+
+## Homepage widgets, 2026-10-14
+
+- Compose Card Body/Footer slots with application-owned metric `dl` content. A dashboard renderer returns `templ.Component`; the grid does not require Card. A registered inline note renderer test verifies this boundary.
+- HTMX 4 dispatches `htmx:error` for transport failures and `htmx:response:error` for HTTP failures. The nonexistent `htmx:request:error` event would leave failed selection requests without feedback. Verified the pinned runtime and used the supported event.
+- Removing a card also removes a focus initializer nested inside its selection control. Retarget the successful removal response to the persistent live-status element, update the grid out of band, then focus status. Browser acceptance confirmed focus remains on `dashboard-live-status`.
+- The shell exposes no appearance selector in Balemoh. A temporary local preview wrapper overrides only shell appearance configuration to exercise Goshtoso/Minimal and light/dark at 390 and 1440 px. Production behavior and dependencies stay unchanged.
+- Minimal's existing solid info Badge uses white 12px text on `oklch(0.685 0.169 237.323)`. This needs upstream contrast review. This feature reuses the existing status treatment; alternate-theme visual inspection is not a complete accessibility certification.
+
+## Per-widget refresh, 2026-10-14
+
+- Disabling a focused refresh button during HTMX requests drops browser focus even when its wrapper survives morphing. Restore focus through `htmx:finally:request` after Alpine's next tick. Browser verification confirmed focus returns to the initiating button and the dashboard keeps one SSE connector.

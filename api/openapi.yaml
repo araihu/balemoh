@@ -3,6 +3,45 @@ info:
   title: Balemoh API
   version: 0.1.0
 paths:
+  /api/v1/dashboard:
+    get:
+      operationId: GetDashboard
+      responses:
+        '200':
+          description: Selected widgets and unavailable source providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSnapshot'
+        '503':
+          description: Dashboard unavailable
+  /api/v1/dashboard/widgets/{sourceKind}/{sourceId}:
+    put:
+      operationId: SetDashboardSelection
+      parameters:
+        - {name: sourceKind, in: path, required: true, schema: {type: string}}
+        - {name: sourceId, in: path, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              additionalProperties: false
+              properties:
+                enabled: {type: boolean}
+      responses:
+        '204':
+          description: Desired selection saved, including repeated requests
+        '400':
+          description: Invalid source or desired state
+        '404':
+          description: Source identity not found
+        '409':
+          description: Selection limit reached or source state changed
+        '503':
+          description: Selection unavailable
   /api/v1/hosts:
     get:
       operationId: GetHosts
@@ -387,6 +426,30 @@ components:
       type: http
       scheme: bearer
   schemas:
+    DashboardSnapshot:
+      type: object
+      required: [items, unavailable]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/DashboardWidget'}
+        unavailable:
+          type: array
+          items: {type: string}
+    DashboardWidget:
+      type: object
+      required: [id, kind, presentation, sourceKind, sourceId, title, data, error]
+      properties:
+        id: {type: string}
+        kind: {type: string}
+        presentation: {type: string}
+        sourceKind: {type: string}
+        sourceId: {type: string}
+        title: {type: string}
+        data:
+          type: object
+          additionalProperties: true
+        error: {type: string}
     HostMetrics:
       type: object
       required: [cpuPercent, memoryUsedBytes, memoryTotalBytes]

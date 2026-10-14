@@ -1,0 +1,155 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/alert"
+	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/card"
+	"github.com/araihu/goshtoso/components/checkbox"
+	"github.com/araihu/goshtoso/components/emptystate"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
+	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/tooltip"
+	"net/url"
+)
+
+type Widget struct {
+	ID      string
+	Content templ.Component
+}
+type Dashboard struct {
+	Widgets     []Widget
+	Services    []Service
+	Unavailable []string
+}
+
+templ WidgetGrid(widgets []Widget) {
+	if len(widgets)==0 {
+		@emptystate.EmptyState(emptystate.Config{Title: "No pinned widgets", Description: "Pin services from Staging or add host metrics from a host page.", Action: ReviewStagingAction(), RootClass: "balemoh-empty-state"})
+	}
+	for _,widget:=range widgets {
+		<div id={ "widget-" + widget.ID } data-dashboard-widget>@widget.Content</div>
+	}
+}
+
+templ DashboardGrid(page Dashboard) {
+	if len(page.Widgets)>0 || len(page.Unavailable)==0 {
+		@WidgetGrid(page.Widgets)
+	}
+}
+
+templ DashboardWarnings(sources []string) {
+	if len(sources)>0 {
+		@alert.Alert(alert.Config{Title: "Some widgets are unavailable", Description: "A source could not be refreshed. Last received values may be shown. Refresh to retry.", Tone: alert.ToneWarning})
+	}
+}
+
+templ UnavailableWidget(title string) {
+	@card.Card(card.Config{Title: title, Description: "This widget is unavailable in this version."})
+}
+
+templ HostWidget(host Host, message string) {
+	@card.Card(card.Config{Title: host.Name, TitlePrefix: HostGlyph(host), RootClass: "balemoh-service-card", Body: HostWidgetMetrics(host, message), Footer: HostWidgetActions(host)})
+}
+
+templ HostWidgetMetrics(host Host, message string) {
+	if message!="" {
+		<p role="status">{ message }</p>
+	} else {
+		@badge.Badge(badge.Config{Label: hostStatus(host.Status), Tone: hostStatusTone(host.Status)})
+		<dl class="balemoh-widget-metrics">
+			<div><dt>CPU</dt><dd>{ percentage(host.CPU) }</dd></div>
+			<div><dt>Memory</dt><dd>{ percentage(host.Memory) }</dd></div>
+		</dl>
+		<small class="balemoh-muted">@ReportTime("Observed: ", host.ObservedAt)</small>
+	}
+}
+
+templ HostWidgetActions(host Host) {
+	<div class="balemoh-host-actions">
+		@link.Link("/hosts/" + url.PathEscape(host.ID)) {
+			View host 
+		}
+		<div id={ "widget-refresh-host-" + host.ID } hx-morph-skip>
+			<form
+				method="get"
+				action="/"
+				data-widget-refresh
+				hx-get={ "/dashboard/widgets/host/" + url.PathEscape(host.ID) }
+				hx-target={ "#widget-host-" + host.ID }
+				hx-swap="innerMorph"
+				hx-disable="find button"
+				hx-sync="this:drop"
+				x-data="{}"
+				x-on:htmx:error="$refs.feedback.textContent = 'Refresh failed. Try again.'"
+				x-on:htmx:finally:request="$nextTick(() => $el.querySelector('button')?.focus())"
+			>
+				@tooltip.Tooltip("widget-refresh-tooltip-"+host.ID, "Refresh", tooltip.WithPosition(tooltip.PositionTop), tooltip.WithTrigger(HostWidgetRefreshButton(host)))
+				<small id={ "widget-refresh-feedback-host-" + host.ID } role="status" x-ref="feedback" class="balemoh-widget-feedback"></small>
+			</form>
+		</div>
+	</div>
+}
+
+templ HostWidgetRefreshButton(host Host) {
+	@button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall), button.WithAppearance(button.AppearancePlain), button.WithRootClass("balemoh-icon-button"), button.WithAttrs(templ.Attributes{"id": "widget-refresh-action-host-" + host.ID, "aria-label": "Refresh " + host.Name})) {
+		@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true})
+	}
+}
+
+templ WidgetRefreshFeedback(message string) {
+	{ message }
+}
+
+templ WidgetRefreshed(widget Widget) {
+	@widget.Content
+	<span id={ "widget-refresh-feedback-" + widget.ID } hx-swap-oob="innerHTML"><span class="sr-only">Updated</span></span>
+}
+
+templ HostSelection(id string, selected, unavailable bool, window, message string, focus bool) {
+	<div id={ "host-selection-" + id } hx-morph-skip>
+		<form
+			method="post"
+			action={ "/hosts/" + url.PathEscape(id) + "/selection" }
+			hx-post={ "/hosts/" + url.PathEscape(id) + "/selection" }
+			hx-target={ "#host-selection-" + id }
+			hx-swap="outerHTML"
+			hx-disable="find input[type='checkbox']"
+			hx-sync="this:drop"
+			x-data="{}"
+			x-on:htmx:error="$refs.choice.checked = $refs.choice.defaultChecked; $refs.failure.textContent = 'Connection failed. Try again.'"
+		>
+			<input type="hidden" name="selection_form" value="host"/>
+			<input type="hidden" name="range" value={ window }/>
+			@checkbox.Checkbox(checkbox.Config{
+				ID: "host-selection-action-" + id, Name: "enabled", Value: "true", Label: "Show on home", Checked: selected, Disabled: unavailable,
+				InputAttrs: templ.Attributes{"x-ref": "choice", "onchange": "this.form.requestSubmit()", "aria-describedby": "host-selection-feedback-" + id, "style": "border-color: var(--balemoh-muted)"},
+			})
+			if focus {
+				<span hidden x-data="{}" x-init="$nextTick(() => $el.parentElement.querySelector('input[type=checkbox]')?.focus())"></span>
+			}
+			<span id={ "host-selection-feedback-" + id } role="alert" x-ref="failure">{ message }</span>
+			<noscript>
+				@button.Button(button.WithType("submit"), button.WithSize(button.SizeSmall)) {
+					Save 
+				}
+			</noscript>
+		</form>
+	</div>
+}
+
+templ DashboardLiveSnapshot(page Dashboard, message string) {
+	<div id="dashboard-grid" hx-swap-oob="innerMorph">@DashboardGrid(page)</div>
+	<div id="dashboard-warnings" hx-swap-oob="innerMorph">@DashboardWarnings(page.Unavailable)</div>
+	<div id="dashboard-live-status" hx-swap-oob="innerMorph">@HostLiveBadge(message)</div>
+}
+
+templ DashboardLiveStatus(message string) {
+	<div id="dashboard-live-status" hx-swap-oob="innerMorph">@HostLiveBadge(message)</div>
+}
+
+templ DashboardLiveUnavailable(sources []string) {
+	<div id="dashboard-warnings" hx-swap-oob="innerMorph">@DashboardWarnings(sources)</div>
+	@DashboardLiveStatus("Some sources unavailable; showing last received values.")
+}

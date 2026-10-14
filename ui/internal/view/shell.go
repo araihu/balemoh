@@ -10,7 +10,7 @@ import (
 
 func ConsolePage(data PageData) templ.Component {
 	var runtimeScripts []string
-	if data.HostDetail != nil && data.Error == "" {
+	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
 		runtimeScripts = []string{assets.HTMXExtSSEURL, "/ui/host-live.js"}
 	}
 	return consoleshell.Layout(

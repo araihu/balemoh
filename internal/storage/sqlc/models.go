@@ -8,6 +8,11 @@ import (
 	"database/sql"
 )
 
+type DashboardSelection struct {
+	SourceKind string `json:"source_kind"`
+	SourceID   string `json:"source_id"`
+}
+
 type DiscoveredService struct {
 	ID                string         `json:"id"`
 	SourceKind        string         `json:"source_kind"`

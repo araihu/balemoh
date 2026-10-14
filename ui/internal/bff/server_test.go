@@ -2,6 +2,7 @@ package bff
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -399,3 +400,15 @@ func (f *fakeCatalog) Edit(_ context.Context, id string, edit client.ServiceEdit
 }
 
 func (f *fakeCatalog) Lifecycle(context.Context, string, string) error { return f.mutationErr }
+
+func (f *fakeCatalog) Dashboard(ctx context.Context) (client.DashboardSnapshot, error) {
+	result := client.DashboardSnapshot{Items: []client.DashboardWidget{}, Unavailable: []string{}}
+	for _, service := range f.homepage {
+		raw, _ := json.Marshal(service)
+		data := map[string]interface{}{}
+		_ = json.Unmarshal(raw, &data)
+		result.Items = append(result.Items, client.DashboardWidget{Id: "service-" + service.Id, Kind: "service-links", Presentation: "card", SourceKind: "service", SourceId: service.Id, Title: service.DisplayName, Data: data})
+	}
+	return result, f.homepageErr
+}
+func (f *fakeCatalog) SelectWidget(context.Context, string, string, bool) error { return f.mutationErr }

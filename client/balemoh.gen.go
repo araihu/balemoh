@@ -162,6 +162,24 @@ func (e ChangeServiceLifecycleJSONBodyAction) Valid() bool {
 	}
 }
 
+// DashboardSnapshot defines model for DashboardSnapshot.
+type DashboardSnapshot struct {
+	Items       []DashboardWidget `json:"items"`
+	Unavailable []string          `json:"unavailable"`
+}
+
+// DashboardWidget defines model for DashboardWidget.
+type DashboardWidget struct {
+	Data         map[string]interface{} `json:"data"`
+	Error        string                 `json:"error"`
+	Id           string                 `json:"id"`
+	Kind         string                 `json:"kind"`
+	Presentation string                 `json:"presentation"`
+	SourceId     string                 `json:"sourceId"`
+	SourceKind   string                 `json:"sourceKind"`
+	Title        string                 `json:"title"`
+}
+
 // DiscoverySyncResponse defines model for DiscoverySyncResponse.
 type DiscoverySyncResponse struct {
 	Candidates int32 `json:"candidates"`
@@ -388,6 +406,11 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
+type SetDashboardSelectionJSONBody struct {
+	Enabled bool `json:"enabled"`
+}
+
 // GetHostParams defines parameters for GetHost.
 type GetHostParams struct {
 	Range *GetHostParamsRange `form:"range,omitempty" json:"range,omitempty"`
@@ -408,6 +431,9 @@ type ChangeServiceLifecycleJSONBody struct {
 
 // ChangeServiceLifecycleJSONBodyAction defines parameters for ChangeServiceLifecycle.
 type ChangeServiceLifecycleJSONBodyAction string
+
+// SetDashboardSelectionJSONRequestBody defines body for SetDashboardSelection for application/json ContentType.
+type SetDashboardSelectionJSONRequestBody SetDashboardSelectionJSONBody
 
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
@@ -500,6 +526,14 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// GetDashboard request
+	GetDashboard(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetDashboardSelectionWithBody request with any body
+	SetDashboardSelectionWithBody(ctx context.Context, sourceKind string, sourceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SetDashboardSelection(ctx context.Context, sourceKind string, sourceId string, body SetDashboardSelectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SyncDiscovery request
 	SyncDiscovery(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -562,6 +596,42 @@ type ClientInterface interface {
 
 	// GetHealthz request
 	GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) GetDashboard(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDashboardRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetDashboardSelectionWithBody(ctx context.Context, sourceKind string, sourceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetDashboardSelectionRequestWithBody(c.Server, sourceKind, sourceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetDashboardSelection(ctx context.Context, sourceKind string, sourceId string, body SetDashboardSelectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetDashboardSelectionRequest(c.Server, sourceKind, sourceId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) SyncDiscovery(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -838,6 +908,87 @@ func (c *Client) GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) 
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewGetDashboardRequest generates requests for GetDashboard
+func NewGetDashboardRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetDashboardSelectionRequest calls the generic SetDashboardSelection builder with application/json body
+func NewSetDashboardSelectionRequest(server string, sourceKind string, sourceId string, body SetDashboardSelectionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetDashboardSelectionRequestWithBody(server, sourceKind, sourceId, "application/json", bodyReader)
+}
+
+// NewSetDashboardSelectionRequestWithBody generates requests for SetDashboardSelection with any type of body
+func NewSetDashboardSelectionRequestWithBody(server string, sourceKind string, sourceId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sourceKind", sourceKind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "sourceId", sourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard/widgets/%s/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewSyncDiscoveryRequest generates requests for SyncDiscovery
@@ -1526,6 +1677,14 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// GetDashboardWithResponse request
+	GetDashboardWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDashboardResponse, error)
+
+	// SetDashboardSelectionWithBodyWithResponse request with any body
+	SetDashboardSelectionWithBodyWithResponse(ctx context.Context, sourceKind string, sourceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetDashboardSelectionResponse, error)
+
+	SetDashboardSelectionWithResponse(ctx context.Context, sourceKind string, sourceId string, body SetDashboardSelectionJSONRequestBody, reqEditors ...RequestEditorFn) (*SetDashboardSelectionResponse, error)
+
 	// SyncDiscoveryWithResponse request
 	SyncDiscoveryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SyncDiscoveryResponse, error)
 
@@ -1588,6 +1747,65 @@ type ClientWithResponsesInterface interface {
 
 	// GetHealthzWithResponse request
 	GetHealthzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthzResponse, error)
+}
+
+type GetDashboardResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *DashboardSnapshot
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDashboardResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDashboardResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetDashboardResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetDashboardSelectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r SetDashboardSelectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetDashboardSelectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetDashboardSelectionResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type SyncDiscoveryResponse struct {
@@ -2111,6 +2329,32 @@ func (r GetHealthzResponse) ContentType() string {
 	return ""
 }
 
+// GetDashboardWithResponse request returning *GetDashboardResponse
+func (c *ClientWithResponses) GetDashboardWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDashboardResponse, error) {
+	rsp, err := c.GetDashboard(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDashboardResponse(rsp)
+}
+
+// SetDashboardSelectionWithBodyWithResponse request with arbitrary body returning *SetDashboardSelectionResponse
+func (c *ClientWithResponses) SetDashboardSelectionWithBodyWithResponse(ctx context.Context, sourceKind string, sourceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetDashboardSelectionResponse, error) {
+	rsp, err := c.SetDashboardSelectionWithBody(ctx, sourceKind, sourceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetDashboardSelectionResponse(rsp)
+}
+
+func (c *ClientWithResponses) SetDashboardSelectionWithResponse(ctx context.Context, sourceKind string, sourceId string, body SetDashboardSelectionJSONRequestBody, reqEditors ...RequestEditorFn) (*SetDashboardSelectionResponse, error) {
+	rsp, err := c.SetDashboardSelection(ctx, sourceKind, sourceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetDashboardSelectionResponse(rsp)
+}
+
 // SyncDiscoveryWithResponse request returning *SyncDiscoveryResponse
 func (c *ClientWithResponses) SyncDiscoveryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SyncDiscoveryResponse, error) {
 	rsp, err := c.SyncDiscovery(ctx, reqEditors...)
@@ -2310,6 +2554,48 @@ func (c *ClientWithResponses) GetHealthzWithResponse(ctx context.Context, reqEdi
 		return nil, err
 	}
 	return ParseGetHealthzResponse(rsp)
+}
+
+// ParseGetDashboardResponse parses an HTTP response from a GetDashboardWithResponse call
+func ParseGetDashboardResponse(rsp *http.Response) (*GetDashboardResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDashboardResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DashboardSnapshot
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetDashboardSelectionResponse parses an HTTP response from a SetDashboardSelectionWithResponse call
+func ParseSetDashboardSelectionResponse(rsp *http.Response) (*SetDashboardSelectionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetDashboardSelectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
 }
 
 // ParseSyncDiscoveryResponse parses an HTTP response from a SyncDiscoveryWithResponse call
