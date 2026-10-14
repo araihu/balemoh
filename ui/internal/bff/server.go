@@ -73,6 +73,10 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /dashboard/widgets/{sourceKind}/{sourceID}", server.refreshWidget)
 	mux.HandleFunc("GET /hosts/{hostID}", server.host)
 	mux.HandleFunc("GET /hosts/{hostID}/events", server.hostEvents)
+	mux.HandleFunc("GET /ui/dashboard-layout.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.DashboardLayoutJS())
+	})
 	mux.HandleFunc("GET /ui/host-live.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		_, _ = w.Write(view.HostLiveJS())

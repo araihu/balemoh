@@ -16,3 +16,8 @@ func SocialPreview() []byte { return socialPreview }
 var hostLiveJS []byte
 
 func HostLiveJS() []byte { return hostLiveJS }
+
+//go:embed static/dashboard-layout.js
+var dashboardLayoutJS []byte
+
+func DashboardLayoutJS() []byte { return dashboardLayoutJS }
