@@ -15,7 +15,6 @@ import (
 	"github.com/araihu/goshtoso/components/checkbox"
 	"github.com/araihu/goshtoso/components/drawer"
 	"github.com/araihu/goshtoso/components/dropdown"
-	"github.com/araihu/goshtoso/components/emptystate"
 	"github.com/araihu/goshtoso/components/icon"
 	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/link"
@@ -71,7 +70,11 @@ templ PageContent(data PageData) {
 		} else if data.Staging {
 			@StagingContent(data)
 		} else {
-			@HomepageContent(data)
+			if data.Path != "" && data.Error != "" {
+ @link.Link(data.Path) { Back to host }
+ } else {
+ @HomepageContent(data)
+ }
 		}
 	</section>
 
@@ -96,23 +99,18 @@ templ SyncButton() {
 }
 
 templ HomepageContent(data PageData) {
-	if len(data.Services) > 0 {
-  <div x-data={homeSearchState} x-on:keydown.window={homepageSearchKeys}>
-   <div class="balemoh-service-grid">
-    for _, service := range data.Services {
-      @ServiceCard(service, ServiceCardIcon(service))
-    }
+ if data.Dashboard != nil {
+  <div { homepageAttrs(data.Services)... }>
+   <div id="dashboard-live" data-dashboard-live hx-sse:connect="/dashboard/events" hx-target="#dashboard-live-status" hx-swap="innerMorph">
+    <div id="dashboard-live-status" role="status" tabindex="-1" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
    </div>
-   @modal.Dialog(modal.DialogConfig{ID:"home-search-modal",Title:"Search services",Compact:true,Content:HomeSearchResults(data.Services)})
+   <div id="dashboard-warnings">@DashboardWarnings(data.Dashboard.Unavailable)</div>
+   <div id="dashboard-grid" class="balemoh-service-grid">@DashboardGrid(*data.Dashboard)</div>
+   if len(data.Services)>0 {
+ @modal.Dialog(modal.DialogConfig{ID:"home-search-modal",Title:"Search services",Compact:true,Content:HomeSearchResults(data.Services)})
+ }
   </div>
-	} else if data.Error == "" {
-		@emptystate.EmptyState(emptystate.Config{
-			Title:       "No pinned services",
-			Description: "Review discovered candidates in staging and pin the services you want to keep on the homepage.",
-			Action:      ReviewStagingAction(),
-			RootClass:   "balemoh-empty-state",
-		})
-	}
+ }
 }
 
 templ ServiceCard(service Service, serviceIcon templ.Component) {
@@ -334,5 +332,10 @@ func homeSearchMatch(service Service) string {
 func homeSearchEmpty(services []Service) string {
  matches := make([]string, 0, len(services))
  for _, service := range services { matches = append(matches, homeSearchMatch(service)) }
- return "!(" + strings.Join(matches, " || ") + ")"
+ if len(matches)==0 { return "true" }; return "!(" + strings.Join(matches, " || ") + ")"
+}
+
+func homepageAttrs(services []Service)templ.Attributes{
+ if len(services)==0{return templ.Attributes{}}
+ return templ.Attributes{"x-data":homeSearchState,"x-on:keydown.window":homepageSearchKeys}
 }

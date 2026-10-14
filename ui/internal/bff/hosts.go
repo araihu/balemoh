@@ -78,6 +78,13 @@ func (s *server) host(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var upstream *upstreamError
 		if errors.As(err, &upstream) && upstream.status == 404 {
+			selected, selectionErr := s.hostSelection(ctx, r.PathValue("hostID"))
+			if selectionErr == nil && selected {
+				data.Title = "Unavailable host"
+				data.HostDetail = &view.HostDetail{Host: view.Host{ID: r.PathValue("hostID"), Name: "Unavailable host"}, Window: window, Pinned: true, Missing: true}
+				s.render(w, r, data, 200)
+				return
+			}
 			data.Error = "Host no longer available."
 			s.render(w, r, data, 404)
 			return
@@ -87,6 +94,9 @@ func (s *server) host(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := hostDetailView(detail, window)
+	selected, selectionErr := s.hostSelection(ctx, detail.Host.Id)
+	page.Pinned = selected
+	page.SelectionError = selectionWarning(selectionErr)
 	data.HostDetail = &page
 	data.Title = page.Host.Name
 	data.Description = "Resource usage and workloads for " + page.Host.Name + "."

@@ -15,7 +15,7 @@ func TestHomepageCardAddresses(t *testing.T) {
 			service.Endpoints = append(service.Endpoints, Endpoint{URL: address})
 		}
 		var html bytes.Buffer
-		if err := HomepageContent(PageData{Services: []Service{service}}).Render(context.Background(), &html); err != nil {
+		if err := HomepageContent(serviceHomepage([]Service{service})).Render(context.Background(), &html); err != nil {
 			t.Fatal(err)
 		}
 		body := html.String()
@@ -85,7 +85,7 @@ func TestDiscoveredAddressScheme(t *testing.T) {
 func TestHomepageSearchIsScopedToServices(t *testing.T) {
 	for _, services := range [][]Service{nil, {{DisplayName: `Team "A"`, Description: "Workspace", Endpoints: []Endpoint{{URL: "https://app.example/"}}}}} {
 		var html bytes.Buffer
-		if err := HomepageContent(PageData{Services: services}).Render(context.Background(), &html); err != nil {
+		if err := HomepageContent(serviceHomepage(services)).Render(context.Background(), &html); err != nil {
 			t.Fatal(err)
 		}
 		if strings.Contains(html.String(), `id="home-search"`) != (len(services) > 0) {
@@ -95,4 +95,12 @@ func TestHomepageSearchIsScopedToServices(t *testing.T) {
 			t.Fatal("missing search data or shortcut")
 		}
 	}
+}
+
+func serviceHomepage(services []Service) PageData {
+	page := PageData{Services: services, Dashboard: &Dashboard{Services: services}}
+	for _, service := range services {
+		page.Dashboard.Widgets = append(page.Dashboard.Widgets, Widget{ID: "service-" + service.ID, Content: ServiceCard(service, ServiceCardIcon(service))})
+	}
+	return page
 }

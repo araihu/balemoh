@@ -160,6 +160,24 @@ func (e ChangeServiceLifecycleJSONBodyAction) Valid() bool {
 	}
 }
 
+// DashboardSnapshot defines model for DashboardSnapshot.
+type DashboardSnapshot struct {
+	Items       []DashboardWidget `json:"items"`
+	Unavailable []string          `json:"unavailable"`
+}
+
+// DashboardWidget defines model for DashboardWidget.
+type DashboardWidget struct {
+	Data         map[string]interface{} `json:"data"`
+	Error        string                 `json:"error"`
+	Id           string                 `json:"id"`
+	Kind         string                 `json:"kind"`
+	Presentation string                 `json:"presentation"`
+	SourceId     string                 `json:"sourceId"`
+	SourceKind   string                 `json:"sourceKind"`
+	Title        string                 `json:"title"`
+}
+
 // DiscoverySyncResponse defines model for DiscoverySyncResponse.
 type DiscoverySyncResponse struct {
 	Candidates int32 `json:"candidates"`
@@ -386,6 +404,11 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
+type SetDashboardSelectionJSONBody struct {
+	Enabled bool `json:"enabled"`
+}
+
 // GetHostParams defines parameters for GetHost.
 type GetHostParams struct {
 	Range *GetHostParamsRange `form:"range,omitempty" json:"range,omitempty"`
@@ -407,6 +430,9 @@ type ChangeServiceLifecycleJSONBody struct {
 // ChangeServiceLifecycleJSONBodyAction defines parameters for ChangeServiceLifecycle.
 type ChangeServiceLifecycleJSONBodyAction string
 
+// SetDashboardSelectionJSONRequestBody defines body for SetDashboardSelection for application/json ContentType.
+type SetDashboardSelectionJSONRequestBody SetDashboardSelectionJSONBody
+
 // ImportFederationSnapshotJSONRequestBody defines body for ImportFederationSnapshot for application/json ContentType.
 type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
 
@@ -427,6 +453,12 @@ type ChangeServiceLifecycleJSONRequestBody ChangeServiceLifecycleJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (GET /api/v1/dashboard)
+	GetDashboard(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/v1/dashboard/widgets/{sourceKind}/{sourceId})
+	SetDashboardSelection(w http.ResponseWriter, r *http.Request, sourceKind string, sourceId string)
 
 	// (POST /api/v1/discovery/sync)
 	SyncDiscovery(w http.ResponseWriter, r *http.Request)
@@ -488,6 +520,55 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetDashboard operation middleware
+func (siw *ServerInterfaceWrapper) GetDashboard(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDashboard(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetDashboardSelection operation middleware
+func (siw *ServerInterfaceWrapper) SetDashboardSelection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sourceKind" -------------
+	var sourceKind string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sourceKind", r.PathValue("sourceKind"), &sourceKind, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sourceKind", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "sourceId" -------------
+	var sourceId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sourceId", r.PathValue("sourceId"), &sourceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sourceId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetDashboardSelection(w, r, sourceKind, sourceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // SyncDiscovery operation middleware
 func (siw *ServerInterfaceWrapper) SyncDiscovery(w http.ResponseWriter, r *http.Request) {
@@ -987,6 +1068,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/dashboard", wrapper.GetDashboard)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/dashboard/widgets/{sourceKind}/{sourceId}", wrapper.SetDashboardSelection)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/discovery/sync", wrapper.SyncDiscovery)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/snapshots", wrapper.ImportFederationSnapshot)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/telemetry", wrapper.ImportTelemetry)

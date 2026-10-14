@@ -21,6 +21,7 @@ import (
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/catalog"
+	"github.com/araihu/balemoh/internal/application/dashboard"
 	"github.com/araihu/balemoh/internal/application/health"
 	"github.com/araihu/balemoh/internal/application/telemetry"
 	"github.com/araihu/balemoh/internal/config"
@@ -115,6 +116,7 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 		return nil, nil, nil, err
 	}
 	handler = handler.WithTelemetry(telemetryStore)
+	handler = handler.WithDashboard(dashboard.New(dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: telemetryStore, Selections: sqlite.NewDashboardSelections(db)}))
 	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, nil
 }

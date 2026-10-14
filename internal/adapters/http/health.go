@@ -7,10 +7,12 @@ import (
 
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/catalog"
+	"github.com/araihu/balemoh/internal/application/dashboard"
 	"github.com/araihu/balemoh/internal/application/health"
 )
 
 type Handler struct {
+	dashboard        *dashboard.Service
 	telemetry        TelemetryStore
 	icons            IconStore
 	checker          health.Checker

@@ -37,6 +37,9 @@ type HostDetail struct {
  Workloads []HostWorkload
  Services []HostService
  ServicesAvailable bool
+ Pinned bool
+ Missing bool
+ SelectionError string
 }
 func hostRows(hosts []Host) []table.Row {
  rows:=make([]table.Row,0,len(hosts))
@@ -124,7 +127,10 @@ templ HostContent(page HostDetail) {
    @link.Link("/hosts/"+page.Host.ParentID) { Cluster }
   }
  </nav>
- @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true})
+ @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true,Actions:HostSelection(page.Host.ID,page.Pinned,page.SelectionError!="",page.Window,page.SelectionError,false)})
+ if page.Missing {
+ @alert.Alert(alert.Config{Title:"Host no longer available",Description:"Uncheck Show on home to remove this widget.",Tone:alert.ToneWarning})
+ } else {
  <div id={ "host-live-"+page.Window } data-host-live hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
   <div id="host-live-status" role="status" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
  </div>
@@ -158,6 +164,7 @@ templ HostContent(page HostDetail) {
     }
    </ul>
   }
+ }
  }
 }
 func workloadColumns(kind string)[]table.Column{

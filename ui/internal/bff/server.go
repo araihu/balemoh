@@ -39,7 +39,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 		return nil, errors.New("request timeout must be positive")
 	}
 
-	server := &server{catalog: catalog, timeout: requestTimeout}
+	server := &server{catalog: catalog, timeout: requestTimeout, widgets: widgetRenderers()}
 	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
 	mux.Handle("GET /assets/", assets.Handler())
@@ -68,6 +68,9 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
 	mux.HandleFunc("GET /hosts", server.hosts)
+	mux.HandleFunc("POST /hosts/{hostID}/selection", server.selectHost)
+	mux.HandleFunc("GET /dashboard/events", server.dashboardEvents)
+	mux.HandleFunc("GET /dashboard/widgets/{sourceKind}/{sourceID}", server.refreshWidget)
 	mux.HandleFunc("GET /hosts/{hostID}", server.host)
 	mux.HandleFunc("GET /hosts/{hostID}/events", server.hostEvents)
 	mux.HandleFunc("GET /ui/host-live.js", func(w http.ResponseWriter, r *http.Request) {
@@ -86,35 +89,10 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 }
 
 type server struct {
+	widgets map[string]WidgetRenderer
 	icons   IconCatalog
 	catalog Catalog
 	timeout time.Duration
-}
-
-func (s *server) homepage(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
-	defer cancel()
-	services, err := s.catalog.Homepage(ctx)
-	if err != nil {
-		s.render(w, r, view.PageData{
-			Title:       "Homepage",
-			Description: "The services pinned for quick access across your homelab.",
-			Active:      "nav-home",
-			Error:       pageErrorMessage,
-		}, http.StatusServiceUnavailable)
-		return
-	}
-	s.render(w, r, view.PageData{
-		Title:       "Homepage",
-		Description: "The services pinned for quick access across your homelab.",
-		Active:      "nav-home",
-		Services:    mapServices(services),
-		Notice:      noticeText(r.URL.Query().Get("notice")),
-	}, http.StatusOK)
 }
 
 func (s *server) staging(w http.ResponseWriter, r *http.Request) {
