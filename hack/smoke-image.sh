@@ -19,5 +19,5 @@ ui_address=$(docker port "$api_id" 8081/tcp)
 for address in "$api_address" "$ui_address"; do
   curl --retry 15 --retry-delay 1 --retry-connrefused --max-time 5 -fsS "http://$address/healthz"
 done
-curl -fsS "http://$ui_address/" | grep -q 'No pinned services'
+curl -fsS "http://$ui_address/" | grep -q 'No pinned widgets'
 echo 'API and UI image smoke checks passed'
