@@ -146,6 +146,7 @@ templ ServiceCardAddresses(service Service) {
 			if len(addresses) > 1 {
 				@dropdown.Dropdown(dropdown.Config{
 					ID:        "service-addresses-" + service.ID,
+					RootClass: "balemoh-address-menu",
 					Trigger:   AddressCountTrigger(service, len(addresses)-1),
 					MenuAlign: dropdown.AlignEnd,
 					Sections:  []dropdown.Section{{Items: addressMenuItems(addresses[1:])}},
