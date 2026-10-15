@@ -58,3 +58,7 @@
 - The pinned Goshtoso components and App Shells expose no masonry layout. Keep their Card components and the application-owned widget grid. A ResizeObserver measures generic widget wrappers into one-pixel CSS Grid row spans, preserving DOM order and the existing breakpoints. Ordinary grid remains the fallback without JavaScript. Reconcile spans after HTMX swaps and observe new/removed widgets; unchanged metric heights do not move cards. No component-internal markup or new dependency is required.
 
 - Host-first grouping composes semantic sections inside the existing shell. Each section owns the same generic masonry layout; source metadata is independent of renderer selection.
+
+## Address menu baseline, 2026-10-15
+
+- The dropdown's inline trigger adds a baseline pixel to the address row, making multi-address cards 185 px high beside otherwise equivalent 184 px cards. Masonry then shifts items between columns. Compose the public Dropdown RootClass with an application flex class so the trigger uses its actual height. Keep the menu component and natural card sizing.

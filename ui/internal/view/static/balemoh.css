@@ -71,6 +71,8 @@ body {
 .balemoh-service-card-icon svg,
 .balemoh-service-card-icon .balemoh-library-image { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
 .balemoh-card-addresses { display: flex; align-items: center; gap: .5rem; }
+/* Avoid the inline-button baseline adding a pixel to multi-address cards. */
+.balemoh-address-menu { display: flex; align-items: center; }
 .balemoh-card-addresses > a { min-width: 0; overflow-wrap: anywhere; }
 
 /* Extend the primary link across homepage cards; keep address menus above it. */
