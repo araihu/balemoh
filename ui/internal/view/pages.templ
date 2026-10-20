@@ -306,7 +306,7 @@ const homepageSearchKeys = `
 templ HomeSearchResults(services []Service) {
  <div x-on:keydown.arrow-down.prevent="move(1)" x-on:keydown.arrow-up.prevent="move(-1)">
   @textinput.TextInput(textinput.Config{ID:"home-search",Type:textinput.TypeSearch,Placeholder:"Search services…",Autocomplete:"off",RootClass:"balemoh-search-input",InputAttrs:templ.Attributes{"aria-label":"Search services","autofocus":true,"x-model":"query","x-on:keydown.escape.prevent.stop":"$dispatch('modal:close', {id:'home-search-modal'})","x-on:keydown.enter.prevent":"[...document.querySelectorAll('#home-search-results a')].find(el => el.getClientRects().length)?.click()"}})
-  <ul id="home-search-results" class="balemoh-search-results" aria-label="Matching services">
+  <ul id="home-search-results" class="balemoh-search-results" aria-label="Matching services" x-show={"!(" + homeSearchEmpty(services) + ")"}>
    for _, service := range services {
     <li x-show={homeSearchMatch(service)}>
      if addresses := groupAddresses(service); len(addresses)>0 {
@@ -322,7 +322,7 @@ templ HomeSearchResults(services []Service) {
     </li>
    }
   </ul>
-  <p role="status" x-cloak x-show={homeSearchEmpty(services)}>No matching services.</p>
+  <p class="balemoh-search-empty" role="status" x-cloak x-show={homeSearchEmpty(services)}>No matching services.</p>
  </div>
 }
 
