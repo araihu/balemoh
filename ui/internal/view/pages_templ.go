@@ -379,7 +379,7 @@ func HomepageContent(data PageData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "><div id=\"dashboard-live\" data-dashboard-live hx-sse:connect=\"/dashboard/events\" hx-target=\"#dashboard-live-status\" hx-swap=\"innerMorph\"><div id=\"dashboard-live-status\" role=\"status\" tabindex=\"-1\" hx-morph-skip>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "><div id=\"dashboard-live\" data-dashboard-live hx-sse:connect=\"/dashboard/events\" hx-target=\"#dashboard-live-status\" hx-swap=\"innerMorph\"><div id=\"dashboard-live-status\" class=\"sr-only\" role=\"status\" tabindex=\"-1\" hx-morph-skip>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
