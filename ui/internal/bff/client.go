@@ -12,6 +12,7 @@ import (
 // Keeping this interface here makes the BFF testable without coupling views to
 // the generated SDK or to the API server's internal packages.
 type Catalog interface {
+	CreateManual(context.Context, api.ManualServiceCreate) (api.ServiceCandidate, error)
 	Lifecycle(context.Context, string, string) error
 	Homepage(context.Context) ([]api.ServiceCandidate, error)
 	Staging(context.Context) ([]api.ServiceCandidate, error)
@@ -189,4 +190,15 @@ func (c *APIClient) Lifecycle(ctx context.Context, id, action string) error {
 		return &upstreamError{operation: "lifecycle", status: r.StatusCode()}
 	}
 	return nil
+}
+
+func (c *APIClient) CreateManual(ctx context.Context, input api.ManualServiceCreate) (api.ServiceCandidate, error) {
+	response, err := c.client.CreateManualServiceWithResponse(ctx, input)
+	if err != nil {
+		return api.ServiceCandidate{}, &upstreamError{operation: "create service", cause: err}
+	}
+	if response.StatusCode() != http.StatusCreated || response.JSON201 == nil {
+		return api.ServiceCandidate{}, &upstreamError{operation: "create service", status: response.StatusCode()}
+	}
+	return *response.JSON201, nil
 }

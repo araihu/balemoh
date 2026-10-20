@@ -80,6 +80,9 @@ func (s Snapshot) Normalize() Snapshot {
 
 func (s Snapshot) Validate() error {
 	s = s.Normalize()
+	if s.Source.Kind == ManualSourceKind {
+		return errors.New("manual services cannot be imported by discovery")
+	}
 	if s.Source.Kind == "" {
 		return errors.New("snapshot source kind must not be empty")
 	}

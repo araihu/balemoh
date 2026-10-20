@@ -17,36 +17,48 @@ func EditURL(id string) string { return "/staging/services/" + url.PathEscape(id
 templ ServiceEditor(service Service) {
 	<form
 		method="post"
-		action={ templ.SafeURL(EditURL(service.ID)) }
+		action={ templ.SafeURL(service.FormURL()) }
 		class="balemoh-editor"
+ x-on:submit="$el.querySelector('button[type=submit]').disabled=true"
   data-icon-ref={service.IconRef} data-icon-url={service.Icon.URL} data-icon-symbol={service.Icon.Symbol} data-icon-sprite={service.Icon.SpriteURL}
   x-data="{iconRef:$el.dataset.iconRef, iconURL:$el.dataset.iconUrl, iconSymbol:$el.dataset.iconSymbol, iconSprite:$el.dataset.iconSprite}"
   x-on:icon-selected.window="iconRef=$event.detail.id; iconURL=$event.detail.url; iconSymbol=$event.detail.symbol; iconSprite=$event.detail.sprite; $dispatch('modal:close', {id:'service-icon-picker'})"
 
 	>
-		if service.EditError != "" {
+		if service.Creating {
+ <input type="hidden" name="requestId" value={service.CreateKey}/>
+ }
+ if service.EditError != "" {
 			<p role="alert">{ service.EditError }</p>
 		}
 		@form.FieldGroup(form.FieldGroupConfig{Label: "Name", Required: true, Input: &textinput.Config{ID: "edit-name", Name: "displayName", Value: service.DisplayName, MaxLength: 200}})
 		@form.FieldGroup(form.FieldGroupConfig{Label: "Description", Textarea: &textarea.Config{ID: "edit-description", Name: "description", Value: service.Description, Rows: 3, InputAttrs: templ.Attributes{"maxlength": "2000"}}})
-		@form.FieldGroup(form.FieldGroupConfig{Label: "Homepage address", Hints: []string{"Leave blank to use discovered addresses."}, Input: &textinput.Config{ID: "edit-address", Name: "address", Type: textinput.TypeURL, Value: service.Address, Placeholder: discoveredAddress(service), MaxLength: 2048}})
+		@form.FieldGroup(form.FieldGroupConfig{Label: "Homepage address", Required: service.IsManual(), Hints: service.AddressHints(), Input: &textinput.Config{ID: "edit-address", Name: "address", Type: textinput.TypeURL, Value: service.Address, Placeholder: discoveredAddress(service), MaxLength: 2048}})
 
   <input type="hidden" name="icon" x-bind:value="iconRef" value={service.IconRef}/>
   <div class="balemoh-editor">
    <div aria-label="Homepage card preview">
- @ServiceCard(service, ServiceIconPreview(service))
+ @ServiceCard(serviceEditorPreview(service), ServiceIconPreview(service))
  </div>
    @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"$dispatch('modal:open', {id:'service-icon-picker'})","aria-haspopup":"dialog","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-sync":"#icon-picker-results:replace"})) {
  Choose icon
  }
    @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:open', {id:'service-icon-upload'})","aria-haspopup":"dialog","aria-controls":"service-icon-upload"})) { Upload icon }
    @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"iconRef=''; iconURL=''; iconSymbol=''; iconSprite=''"})) {
- Reset to discovery default
+ if service.IsManual() {
+ <span>Use default icon</span>
+ } else {
+ <span>Reset to discovery default</span>
+ }
  }
   </div>
 		<div class="balemoh-editor-actions">
 			@button.Button(button.WithType("submit"), button.WithLoadingText("Saving…")) {
-				Save changes
+ if service.Creating {
+ <span>Add service</span>
+ } else {
+ <span>Save changes</span>
+ }
 			}
 			@link.Link("/staging") {
 				Cancel

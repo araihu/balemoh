@@ -96,6 +96,9 @@ func NewCatalogStore(db *sql.DB) catalog.CatalogStore {
 
 func (s *CatalogStore) Upsert(ctx context.Context, candidate catalog.Candidate) error {
 	candidate = candidate.Normalize()
+	if candidate.Source.Kind == catalog.ManualSourceKind {
+		return catalog.ErrConflict
+	}
 	if err := candidate.Validate(); err != nil {
 		return fmt.Errorf("validate candidate: %w", err)
 	}
@@ -423,11 +426,22 @@ func (s *CatalogStore) SaveEdit(ctx context.Context, id string, edit catalog.Edi
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := s.saveEditTx(ctx, tx, id, edit); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (s *CatalogStore) saveEditTx(ctx context.Context, tx *sql.Tx, id string, edit catalog.Edit) error {
 	q := s.queries.WithTx(tx)
-	if _, err := q.GetDiscoveredService(ctx, id); errors.Is(err, sql.ErrNoRows) {
+	row, err := q.GetDiscoveredService(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
 		return catalog.ErrNotFound
 	} else if err != nil {
 		return err
+	}
+	if row.SourceKind == catalog.ManualSourceKind && edit.Address == "" {
+		return catalog.ErrInvalidEdit
 	}
 	if err := q.SaveServiceEdit(ctx, sqlc.SaveServiceEditParams{ServiceID: id, DisplayName: edit.DisplayName, Description: edit.Description, Address: edit.Address}); err != nil {
 		return err
@@ -444,5 +458,5 @@ func (s *CatalogStore) SaveEdit(ctx context.Context, id string, edit catalog.Edi
 			return err
 		}
 	}
-	return tx.Commit()
+	return nil
 }

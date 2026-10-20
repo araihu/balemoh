@@ -407,3 +407,7 @@ func TestMissingRouteRemainsSeparateFromLiveService(t *testing.T) {
 		}
 	}
 }
+
+func (f *fakeStore) CreateManual(context.Context, ManualService) (Candidate, error) {
+	return Candidate{}, nil
+}

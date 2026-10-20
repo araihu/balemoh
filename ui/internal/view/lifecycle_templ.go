@@ -48,7 +48,7 @@ func ServiceLifecycle(service Service) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else if !service.Missing {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<p>Hide this service without deleting its settings or changing Kubernetes.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<p>Hide this service without deleting its settings.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

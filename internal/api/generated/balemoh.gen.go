@@ -299,6 +299,18 @@ type IconUpload struct {
 	Tags   string  `json:"tags"`
 }
 
+// ManualServiceCreate defines model for ManualServiceCreate.
+type ManualServiceCreate struct {
+	// Address Absolute HTTP(S) address without credentials
+	Address     string  `json:"address"`
+	Description string  `json:"description"`
+	DisplayName string  `json:"displayName"`
+	Icon        *string `json:"icon,omitempty"`
+
+	// RequestId Random client-generated key reused on retries. Replays never overwrite later edits.
+	RequestId string `json:"requestId"`
+}
+
 // ResourceObservation defines model for ResourceObservation.
 type ResourceObservation struct {
 	Endpoints []ServiceEndpoint `json:"endpoints"`
@@ -445,6 +457,9 @@ type UploadIconJSONRequestBody = IconUpload
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
 
+// CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
+type CreateManualServiceJSONRequestBody = ManualServiceCreate
+
 // EditStagingServiceJSONRequestBody defines body for EditStagingService for application/json ContentType.
 type EditStagingServiceJSONRequestBody = ServiceEdit
 
@@ -495,6 +510,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/staging/services)
 	GetStagingServices(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/v1/staging/services)
+	CreateManualService(w http.ResponseWriter, r *http.Request)
 
 	// (PUT /api/v1/staging/services/{serviceId})
 	EditStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
@@ -830,6 +848,20 @@ func (siw *ServerInterfaceWrapper) GetStagingServices(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// CreateManualService operation middleware
+func (siw *ServerInterfaceWrapper) CreateManualService(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateManualService(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // EditStagingService operation middleware
 func (siw *ServerInterfaceWrapper) EditStagingService(w http.ResponseWriter, r *http.Request) {
 
@@ -1082,6 +1114,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.UpdateIcon)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{iconID}/image", wrapper.GetIconImage)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services", wrapper.CreateManualService)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}", wrapper.EditStagingService)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/lifecycle", wrapper.ChangeServiceLifecycle)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.UnpinStagingService)

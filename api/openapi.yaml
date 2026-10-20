@@ -125,6 +125,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/v1/staging/services:
+    post:
+      operationId: CreateManualService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualServiceCreate'
+      responses:
+        '201':
+          description: Manual service created, or current record returned for a repeated requestId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceCandidate'
+        '400':
+          description: Invalid name, address, icon or requestId
+        '503':
+          description: Catalog unavailable
     get:
       operationId: GetStagingServices
       responses:
@@ -645,6 +664,19 @@ components:
           type: array
           items:
             type: string
+    ManualServiceCreate:
+      type: object
+      additionalProperties: false
+      required: [requestId, displayName, description, address]
+      properties:
+        requestId:
+          type: string
+          pattern: '^[a-fA-F0-9]{32}$'
+          description: Random client-generated key reused on retries. Replays never overwrite later edits.
+        displayName: {type: string, minLength: 1, maxLength: 200}
+        description: {type: string, maxLength: 2000}
+        address: {type: string, minLength: 1, maxLength: 2048, description: Absolute HTTP(S) address without credentials}
+        icon: {type: string, maxLength: 256}
     ServiceEdit:
       type: object
       additionalProperties: false
