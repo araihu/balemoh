@@ -16,7 +16,7 @@ func TestHostWidgetHeadingAndStatus(t *testing.T) {
 				t.Fatal(err)
 			}
 			body := output.String()
-			if strings.Count(body, "<h3") != 1 || !strings.Contains(body, `>Host A</h3>`) {
+			if strings.Count(body, "<h3") != 1 || !strings.Contains(body, `>Host A</span>`) {
 				t.Fatal("host card must expose exactly one named heading")
 			}
 			if !strings.Contains(body, `aria-label="Host A: `+label+`"`) || !strings.Contains(body, `aria-describedby="widget-status-tooltip-host-a"`) {
