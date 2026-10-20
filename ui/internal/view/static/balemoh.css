@@ -251,8 +251,9 @@ body {
 .balemoh-widget-title .balemoh-widget-link { color: inherit; font: inherit; text-decoration: none; }
 .balemoh-widget-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .balemoh-widget-link:focus-visible::after { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.balemoh-widget-actions { justify-content: flex-end; }
-.balemoh-widget-refresh { position: relative; z-index: 1; }
+.balemoh-widget-footer { display: flex; align-items: center; justify-content: flex-end; gap: .75rem; }
+.balemoh-widget-observed { flex: 1; min-width: 0; }
+.balemoh-widget-refresh { flex: none; position: relative; z-index: 1; }
 .balemoh-widget-status-trigger { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; min-width: 1.5rem; padding: 0; border: 0; }
 .balemoh-widget-status-dot { display: block; width: .5rem; height: .5rem; padding: 0; border-radius: 50%; }
 .balemoh-widget-metrics { display: flex; flex-wrap: wrap; gap: 2rem; margin-block: 1rem; }
