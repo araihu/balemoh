@@ -241,6 +241,11 @@ body {
 .balemoh-host-notice { display: contents; }
 
 /* Widget metric content uses the public Card body slot. */
+.balemoh-widget-heading { display: flex; align-items: center; gap: .75rem; }
+.balemoh-widget-title { margin: 0; min-width: 0; font-size: 1.5rem; font-weight: 600; line-height: 2rem; color: var(--color-on-surface-strong); }
+.dark .balemoh-widget-title { color: var(--color-on-surface-dark-strong); }
+.balemoh-widget-status-trigger { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; min-width: 1.5rem; padding: 0; border: 0; }
+.balemoh-widget-status-dot { display: block; width: .5rem; height: .5rem; padding: 0; border-radius: 50%; }
 .balemoh-widget-metrics { display: flex; flex-wrap: wrap; gap: 2rem; margin-block: 1rem; }
 .balemoh-widget-metrics dt { font-size: .875rem; }
 .balemoh-widget-metrics dd { margin: 0; font-size: 1.5rem; font-weight: 600; }
