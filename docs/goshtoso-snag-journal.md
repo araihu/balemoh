@@ -62,3 +62,7 @@
 ## Address menu baseline, 2026-10-15
 
 - The dropdown's inline trigger adds a baseline pixel to the address row, making multi-address cards 185 px high beside otherwise equivalent 184 px cards. Masonry then shifts items between columns. Compose the public Dropdown RootClass with an application flex class so the trigger uses its actual height. Keep the menu component and natural card sizing.
+
+## Search empty-state spacing, 2026-10-20
+
+- Modal Dialog's public Compact option intentionally leaves content unpadded. Compose its Content slot with app-owned empty-message spacing matching the result rows. Hide the empty result list so its padding does not add a blank strip above the message. Keep the existing status announcement and query bindings.
