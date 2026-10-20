@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+func TestHostWidgetHeadingAndStatus(t *testing.T) {
+	for status, label := range map[string]string{"fresh": "Reporting", "partial": "Partial data", "stale": "Stale", "": "No telemetry"} {
+		t.Run(label, func(t *testing.T) {
+			var output bytes.Buffer
+			if err := HostWidget(Host{ID: "host-a", Name: "Host A", Status: status}, "").Render(context.Background(), &output); err != nil {
+				t.Fatal(err)
+			}
+			body := output.String()
+			if strings.Count(body, "<h3") != 1 || !strings.Contains(body, `>Host A</h3>`) {
+				t.Fatal("host card must expose exactly one named heading")
+			}
+			if !strings.Contains(body, `aria-label="Host A: `+label+`"`) || !strings.Contains(body, `aria-describedby="widget-status-tooltip-host-a"`) {
+				t.Fatal("status trigger must expose its state and tooltip association")
+			}
+		})
+	}
+}
+
 func TestHomepageCardAddresses(t *testing.T) {
 	for _, count := range []int{0, 1, 2, 3} {
 		service := Service{ID: "app", DisplayName: "Application", Description: "Team workspace", Namespace: "apps"}

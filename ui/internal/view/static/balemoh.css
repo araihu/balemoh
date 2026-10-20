@@ -240,7 +240,10 @@ body {
 
 .balemoh-host-notice { display: contents; }
 
-/* Widget metric content uses the public Card body slot. */
+/* Host widgets compose the public Panel body slot without an extra heading. */
+.balemoh-host-widget { border: 1px solid var(--balemoh-border); }
+.balemoh-host-widget-body { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; }
+.balemoh-host-widget .balemoh-widget-metrics { margin: 0; }
 .balemoh-widget-heading { display: flex; align-items: center; gap: .75rem; }
 .balemoh-widget-title { margin: 0; min-width: 0; font-size: 1.5rem; font-weight: 600; line-height: 2rem; color: var(--color-on-surface-strong); }
 .dark .balemoh-widget-title { color: var(--color-on-surface-dark-strong); }
