@@ -69,4 +69,4 @@
 
 ## Host card status dot, 2026-10-20
 
-- Card v0.3.3 offers a non-interactive TitlePrefix but no title action/suffix slot. Compose an app-owned heading in its public Body slot with a focusable Button and portaled Tooltip. Badge's public RootClass supplies the static dot shape while Tone keeps existing fresh/partial/stale/unavailable colors. NotificationDot is fixed red and AnimatingDot adds unrequested motion, so neither matches this status indicator.
+- Card v0.3.3 offers a non-interactive TitlePrefix but no title action/suffix slot. An omitted Title still emits an empty heading. Compose the host widget with Panel's public Body, BodyClass, and RootAttrs instead, supplying article semantics and one app-owned heading with a focusable Button and portaled Tooltip. Badge's public RootClass supplies the static dot shape while Tone keeps existing fresh/partial/stale/unavailable colors. NotificationDot is fixed red and AnimatingDot adds unrequested motion, so neither matches this status indicator.

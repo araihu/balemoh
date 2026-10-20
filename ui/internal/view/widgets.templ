@@ -10,6 +10,7 @@ import (
 	"github.com/araihu/goshtoso/components/icon"
 	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/panel"
 	"github.com/araihu/goshtoso/components/tooltip"
 	"net/url"
 )
@@ -57,18 +58,19 @@ templ UnavailableWidget(title string) {
 }
 
 templ HostWidget(host Host, message string) {
-	@card.Card(card.Config{RootClass: "balemoh-service-card", Body: HostWidgetBody(host, message), Footer: HostWidgetActions(host)})
+	@panel.Panel(panel.Config{Appearance: panel.AppearanceSubtle, RootClass: "balemoh-service-card balemoh-host-widget", RootAttrs: templ.Attributes{"role": "article", "aria-labelledby": "widget-host-title-" + host.ID}, BodyClass: "balemoh-host-widget-body", Body: HostWidgetBody(host, message)})
 }
 
 templ HostWidgetBody(host Host, message string) {
 	<div class="balemoh-widget-heading">
 		@HostGlyph(host)
-		<h3 class="balemoh-widget-title">{ host.Name }</h3>
+		<h3 id={"widget-host-title-" + host.ID} class="balemoh-widget-title">{ host.Name }</h3>
 		if message == "" {
 			@tooltip.Tooltip("widget-status-tooltip-"+host.ID, hostStatus(host.Status), tooltip.WithPosition(tooltip.PositionTop), tooltip.WithPortal(true), tooltip.WithTrigger(HostWidgetStatusDot(host)))
 		}
 	</div>
 	@HostWidgetMetrics(host, message)
+	@HostWidgetActions(host)
 }
 
 templ HostWidgetStatusDot(host Host) {
