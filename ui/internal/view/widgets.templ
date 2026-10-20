@@ -64,7 +64,11 @@ templ HostWidget(host Host, message string) {
 templ HostWidgetBody(host Host, message string) {
 	<div class="balemoh-widget-heading">
 		@HostGlyph(host)
-		<h3 id={"widget-host-title-" + host.ID} class="balemoh-widget-title">{ host.Name }</h3>
+		<h3 id={"widget-host-title-" + host.ID} class="balemoh-widget-title">
+			@link.Link("/hosts/" + url.PathEscape(host.ID), link.WithRootClass("balemoh-widget-link")) {
+				<span>{ host.Name }</span>
+			}
+		</h3>
 		if message == "" {
 			@tooltip.Tooltip("widget-status-tooltip-"+host.ID, hostStatus(host.Status), tooltip.WithPosition(tooltip.PositionTop), tooltip.WithPortal(true), tooltip.WithTrigger(HostWidgetStatusDot(host)))
 		}
@@ -92,11 +96,8 @@ templ HostWidgetMetrics(host Host, message string) {
 }
 
 templ HostWidgetActions(host Host) {
-	<div class="balemoh-host-actions">
-		@link.Link("/hosts/" + url.PathEscape(host.ID)) {
-			<span>View host</span>
-		}
-		<div id={ "widget-refresh-host-" + host.ID } hx-morph-skip>
+	<div class="balemoh-host-actions balemoh-widget-actions">
+		<div id={ "widget-refresh-host-" + host.ID } class="balemoh-widget-refresh" hx-morph-skip>
 			<form
 				method="get"
 				action="/"

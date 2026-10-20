@@ -241,13 +241,19 @@ body {
 .balemoh-host-notice { display: contents; }
 
 /* Host widgets compose the public Panel body slot without an extra heading. */
-.balemoh-host-widget { border: 1px solid var(--balemoh-border); }
+.balemoh-host-widget { position: relative; border: 1px solid var(--balemoh-border); }
 .balemoh-host-widget-body { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; }
 .balemoh-host-widget .balemoh-widget-metrics { margin: 0; }
 .balemoh-widget-heading { display: flex; align-items: center; gap: .75rem; }
 .balemoh-widget-title { margin: 0; min-width: 0; font-size: 1.5rem; font-weight: 600; line-height: 2rem; color: var(--color-on-surface-strong); }
 .dark .balemoh-widget-title { color: var(--color-on-surface-dark-strong); }
-.balemoh-widget-status-trigger { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; min-width: 1.5rem; padding: 0; border: 0; }
+/* Stretch the title link while keeping the status and refresh controls independent. */
+.balemoh-widget-title .balemoh-widget-link { color: inherit; font: inherit; text-decoration: none; }
+.balemoh-widget-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.balemoh-widget-link:focus-visible::after { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.balemoh-widget-actions { justify-content: flex-end; }
+.balemoh-widget-refresh { position: relative; z-index: 1; }
+.balemoh-widget-status-trigger { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; min-width: 1.5rem; padding: 0; border: 0; }
 .balemoh-widget-status-dot { display: block; width: .5rem; height: .5rem; padding: 0; border-radius: 50%; }
 .balemoh-widget-metrics { display: flex; flex-wrap: wrap; gap: 2rem; margin-block: 1rem; }
 .balemoh-widget-metrics dt { font-size: .875rem; }
