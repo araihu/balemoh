@@ -301,6 +301,18 @@ type IconUpload struct {
 	Tags   string  `json:"tags"`
 }
 
+// ManualServiceCreate defines model for ManualServiceCreate.
+type ManualServiceCreate struct {
+	// Address Absolute HTTP(S) address without credentials
+	Address     string  `json:"address"`
+	Description string  `json:"description"`
+	DisplayName string  `json:"displayName"`
+	Icon        *string `json:"icon,omitempty"`
+
+	// RequestId Random client-generated key reused on retries. Replays never overwrite later edits.
+	RequestId string `json:"requestId"`
+}
+
 // ResourceObservation defines model for ResourceObservation.
 type ResourceObservation struct {
 	Endpoints []ServiceEndpoint `json:"endpoints"`
@@ -447,6 +459,9 @@ type UploadIconJSONRequestBody = IconUpload
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
 
+// CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
+type CreateManualServiceJSONRequestBody = ManualServiceCreate
+
 // EditStagingServiceJSONRequestBody defines body for EditStagingService for application/json ContentType.
 type EditStagingServiceJSONRequestBody = ServiceEdit
 
@@ -577,6 +592,11 @@ type ClientInterface interface {
 
 	// GetStagingServices request
 	GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateManualServiceWithBody request with any body
+	CreateManualServiceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateManualService(ctx context.Context, body CreateManualServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// EditStagingServiceWithBody request with any body
 	EditStagingServiceWithBody(ctx context.Context, serviceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -816,6 +836,30 @@ func (c *Client) GetIconImage(ctx context.Context, iconID string, reqEditors ...
 
 func (c *Client) GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetStagingServicesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateManualServiceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateManualServiceRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateManualService(ctx context.Context, body CreateManualServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateManualServiceRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1445,6 +1489,46 @@ func NewGetStagingServicesRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewCreateManualServiceRequest calls the generic CreateManualService builder with application/json body
+func NewCreateManualServiceRequest(server string, body CreateManualServiceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateManualServiceRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateManualServiceRequestWithBody generates requests for CreateManualService with any type of body
+func NewCreateManualServiceRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/staging/services")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewEditStagingServiceRequest calls the generic EditStagingService builder with application/json body
 func NewEditStagingServiceRequest(server string, serviceId string, body EditStagingServiceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1728,6 +1812,11 @@ type ClientWithResponsesInterface interface {
 
 	// GetStagingServicesWithResponse request
 	GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error)
+
+	// CreateManualServiceWithBodyWithResponse request with any body
+	CreateManualServiceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateManualServiceResponse, error)
+
+	CreateManualServiceWithResponse(ctx context.Context, body CreateManualServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateManualServiceResponse, error)
 
 	// EditStagingServiceWithBodyWithResponse request with any body
 	EditStagingServiceWithBodyWithResponse(ctx context.Context, serviceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EditStagingServiceResponse, error)
@@ -2176,6 +2265,36 @@ func (r GetStagingServicesResponse) ContentType() string {
 	return ""
 }
 
+type CreateManualServiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *ServiceCandidate
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateManualServiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateManualServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateManualServiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type EditStagingServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2493,6 +2612,23 @@ func (c *ClientWithResponses) GetStagingServicesWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseGetStagingServicesResponse(rsp)
+}
+
+// CreateManualServiceWithBodyWithResponse request with arbitrary body returning *CreateManualServiceResponse
+func (c *ClientWithResponses) CreateManualServiceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateManualServiceResponse, error) {
+	rsp, err := c.CreateManualServiceWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateManualServiceResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateManualServiceWithResponse(ctx context.Context, body CreateManualServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateManualServiceResponse, error) {
+	rsp, err := c.CreateManualService(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateManualServiceResponse(rsp)
 }
 
 // EditStagingServiceWithBodyWithResponse request with arbitrary body returning *EditStagingServiceResponse
@@ -2939,6 +3075,32 @@ func ParseGetStagingServicesResponse(rsp *http.Response) (*GetStagingServicesRes
 			return nil, err
 		}
 		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateManualServiceResponse parses an HTTP response from a CreateManualServiceWithResponse call
+func ParseCreateManualServiceResponse(rsp *http.Response) (*CreateManualServiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateManualServiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ServiceCandidate
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
 
 	}
 

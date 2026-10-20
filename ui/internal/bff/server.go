@@ -67,6 +67,8 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /icons/{iconID}/image", server.iconImage)
 	mux.HandleFunc("GET /healthz", server.healthz)
 	mux.HandleFunc("GET /staging", server.staging)
+	mux.HandleFunc("GET /staging/services/new", server.newService)
+	mux.HandleFunc("POST /staging/services", server.createService)
 	mux.HandleFunc("GET /hosts", server.hosts)
 	mux.HandleFunc("POST /hosts/{hostID}/selection", server.selectHost)
 	mux.HandleFunc("GET /dashboard/events", server.dashboardEvents)
@@ -297,6 +299,8 @@ func redirect(w http.ResponseWriter, _ *http.Request, location string) {
 
 func noticeText(value string) string {
 	switch value {
+	case "created":
+		return "Service added. Pin it to show it on your homepage."
 	case "pinned":
 		return "The service is now visible on the homepage."
 	case "unpinned":

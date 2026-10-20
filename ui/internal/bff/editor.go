@@ -39,11 +39,42 @@ func (s *server) saveEdit(w http.ResponseWriter, r *http.Request) {
 		s.renderEditor(w, r, service, status)
 		return
 	}
+	if !readServiceDraft(w, r, &service) {
+		s.renderEditor(w, r, service, http.StatusBadRequest)
+		return
+	}
+	if err := s.catalog.Edit(ctx, service.ID, api.ServiceEdit{DisplayName: service.DisplayName, Description: service.Description, Address: service.Address, Icon: &service.IconRef}); err != nil {
+		service.EditError = "Changes could not be saved. Your draft is still here; try again."
+		s.renderEditor(w, r, service, http.StatusServiceUnavailable)
+		return
+	}
+	redirect(w, r, "/staging?notice=edited")
+}
+
+func (s *server) renderEditor(w http.ResponseWriter, r *http.Request, service view.Service, status int) {
+	title := service.DisplayName
+	if service.Creating {
+		title = "Add service"
+	}
+	if title == "" {
+		title = "Service details"
+	}
+	description := "Review discovered resources and edit this service's name, description, address, and icon."
+	if service.IsManual() {
+		description = "Manage this service's name, description, address, and icon."
+	}
+	path := view.EditURL(service.ID)
+	if service.Creating {
+		path = "/staging/services/new"
+	}
+	s.render(w, r, view.PageData{Title: title, Description: description, Path: path, Active: "nav-staging", Staging: true, Editor: &service}, status)
+}
+
+func readServiceDraft(w http.ResponseWriter, r *http.Request, service *view.Service) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 16384)
 	if err := r.ParseForm(); err != nil {
 		service.EditError = "Unable to read changes. Try again."
-		s.renderEditor(w, r, service, http.StatusBadRequest)
-		return
+		return false
 	}
 	service.DisplayName = strings.TrimSpace(r.PostForm.Get("displayName"))
 	service.Description = strings.TrimSpace(r.PostForm.Get("description"))
@@ -64,22 +95,8 @@ func (s *server) saveEdit(w http.ResponseWriter, r *http.Request) {
 			service.EditError = "Use an absolute HTTP or HTTPS address without credentials, or leave it blank."
 		}
 	}
-	if service.EditError != "" {
-		s.renderEditor(w, r, service, http.StatusBadRequest)
-		return
+	if service.IsManual() && service.Address == "" {
+		service.EditError = "Enter an HTTP or HTTPS address for this service."
 	}
-	if err := s.catalog.Edit(ctx, service.ID, api.ServiceEdit{DisplayName: service.DisplayName, Description: service.Description, Address: service.Address, Icon: &service.IconRef}); err != nil {
-		service.EditError = "Changes could not be saved. Your draft is still here; try again."
-		s.renderEditor(w, r, service, http.StatusServiceUnavailable)
-		return
-	}
-	redirect(w, r, "/staging?notice=edited")
-}
-
-func (s *server) renderEditor(w http.ResponseWriter, r *http.Request, service view.Service, status int) {
-	title := service.DisplayName
-	if title == "" {
-		title = "Service details"
-	}
-	s.render(w, r, view.PageData{Title: title, Description: "Review discovered resources and edit this service's name, description, address, and icon.", Path: view.EditURL(service.ID), Active: "nav-staging", Staging: true, Editor: &service}, status)
+	return service.EditError == ""
 }

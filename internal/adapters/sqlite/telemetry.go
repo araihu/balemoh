@@ -124,7 +124,7 @@ func (s *TelemetryStore) List(ctx context.Context, now time.Time) ([]telemetry.H
 		return nil, err
 	}
 	// Legacy discovery sources stay visible before telemetry is enabled.
-	rows, err = s.db.QueryContext(ctx, `SELECT DISTINCT source_kind,source_id FROM discovered_services`)
+	rows, err = s.db.QueryContext(ctx, `SELECT DISTINCT source_kind,source_id FROM discovered_services WHERE source_kind != 'manual'`)
 	if err != nil {
 		return nil, err
 	}

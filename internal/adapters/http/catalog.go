@@ -190,3 +190,29 @@ func (h Handler) ChangeServiceLifecycle(w http.ResponseWriter, r *http.Request, 
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h Handler) CreateManualService(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 16384)
+	var body generated.ManualServiceCreate
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&body); err != nil {
+		http.Error(w, "Invalid service", http.StatusBadRequest)
+		return
+	}
+	if err := dec.Decode(new(any)); err != io.EOF {
+		http.Error(w, "Invalid service", http.StatusBadRequest)
+		return
+	}
+	service, err := h.catalog.CreateManual(r.Context(), catalog.ManualService{RequestID: body.RequestId, Edit: catalog.Edit{DisplayName: body.DisplayName, Description: body.Description, Address: body.Address, Icon: body.Icon}})
+	if errors.Is(err, catalog.ErrInvalidEdit) {
+		http.Error(w, "Invalid service", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		writeCatalogError(w, err)
+		return
+	}
+	w.Header().Set("Location", "/api/v1/staging/services/"+service.ID)
+	writeJSON(w, http.StatusCreated, serviceCandidate(service))
+}

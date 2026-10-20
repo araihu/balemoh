@@ -10,6 +10,7 @@ import (
 )
 
 type CatalogStore interface {
+	CreateManual(context.Context, ManualService) (Candidate, error)
 	Lifecycle(context.Context, string, string) error
 	Upsert(context.Context, Candidate) error
 	ReplaceSourceSnapshot(context.Context, Snapshot) (SnapshotApplyResult, error)
@@ -38,6 +39,7 @@ type SnapshotImporter interface {
 }
 
 type UseCase interface {
+	CreateManual(context.Context, ManualService) (Candidate, error)
 	Lifecycle(context.Context, string, string) error
 	ListStaging(context.Context) ([]Candidate, error)
 	ListHomepage(context.Context) ([]Candidate, error)

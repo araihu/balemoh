@@ -65,8 +65,12 @@ templ PageContent(data PageData) {
  @IconsContent(*data.IconPage)
  } else if data.Editor != nil {
 			@ServiceEditor(*data.Editor)
+ if !data.Editor.Creating {
  @ServiceLifecycle(*data.Editor)
+ if !data.Editor.IsManual() {
  @ServiceResources(*data.Editor)
+ }
+ }
 		} else if data.Staging {
 			@StagingContent(data)
 		} else {
@@ -87,6 +91,7 @@ templ PageContent(data PageData) {
 }
 
 templ StagingActions() {
+ @link.Link("/staging/services/new", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Add service }
 	<form method="post" action="/staging/sync">
 		@tooltip.Tooltip("sync-discovery-tooltip", "Sync discovery", tooltip.WithPosition(tooltip.PositionBottom), tooltip.WithTrigger(SyncButton()))
 	</form>
@@ -200,7 +205,7 @@ templ ServiceTable(data PageData) {
 		<div class="balemoh-table-scroll">
 			@table.Table(table.Config{
 				ID:        "balemoh-services-" + data.Status,
-				Caption:   "Discovered Balemoh services",
+				Caption:   "Balemoh services",
 				Columns:   serviceTableColumns(data.Staging && data.Status != "missing" && data.Status != "hidden"),
 				Rows:      serviceTableRows(data),
 				RootClass: "balemoh-service-table",
@@ -217,7 +222,13 @@ templ ServiceIdentity(service Service) {
 			@ServiceCardIcon(service)
 			<strong>{ service.DisplayName }</strong>
 		</div>
-		<small class="balemoh-muted">{ service.Namespace }</small>
+		<small class="balemoh-muted">
+ if service.IsManual() {
+ <span>Manual</span>
+ } else {
+ { service.Namespace }
+ }
+ </small>
 		if service.Description != "" && !isKubernetes(service) {
 			<span>{ service.Description }</span>
 		}

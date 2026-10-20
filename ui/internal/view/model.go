@@ -54,6 +54,8 @@ type PageData struct {
 }
 
 type Service struct {
+	Creating     bool
+	CreateKey    string
 	Status       string
 	Missing      bool
 	IconRef      string
@@ -132,6 +134,9 @@ func serviceActionURL(id, action string) string {
 }
 
 func resourceLabel(service Service) string {
+	if service.IsManual() {
+		return "Manual service"
+	}
 	if service.Namespace == "" {
 		return service.Resource
 	}
@@ -238,4 +243,25 @@ func stagingURL(state string) string {
 		state = "live"
 	}
 	return "/staging?status=" + url.QueryEscape(state) + "#" + url.QueryEscape(state)
+}
+
+func (s Service) IsManual() bool { return s.Creating || strings.HasPrefix(s.Source, "manual/") }
+func (s Service) FormURL() string {
+	if s.Creating {
+		return "/staging/services"
+	}
+	return EditURL(s.ID)
+}
+func (s Service) AddressHints() []string {
+	if s.IsManual() {
+		return []string{"Use an HTTP or HTTPS address."}
+	}
+	return []string{"Leave blank to use discovered addresses."}
+}
+
+func serviceEditorPreview(service Service) Service {
+	if service.Creating && service.DisplayName == "" {
+		service.DisplayName = "New service"
+	}
+	return service
 }

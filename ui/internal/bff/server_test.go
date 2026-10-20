@@ -412,3 +412,10 @@ func (f *fakeCatalog) Dashboard(ctx context.Context) (client.DashboardSnapshot, 
 	return result, f.homepageErr
 }
 func (f *fakeCatalog) SelectWidget(context.Context, string, string, bool) error { return f.mutationErr }
+
+func (f *fakeCatalog) CreateManual(_ context.Context, input client.ManualServiceCreate) (client.ServiceCandidate, error) {
+	if f.mutationErr != nil {
+		return client.ServiceCandidate{}, f.mutationErr
+	}
+	return client.ServiceCandidate{Id: "manual-created", DisplayName: input.DisplayName, Source: client.SourceRef{Kind: "manual", Id: "local"}}, nil
+}

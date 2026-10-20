@@ -454,3 +454,13 @@ func TestLifecycleHTTPContract(t *testing.T) {
 		})
 	}
 }
+
+func (f *fakeCatalog) CreateManual(_ context.Context, input catalog.ManualService) (catalog.Candidate, error) {
+	input.Edit = input.Edit.Normalize()
+	if err := input.Validate(); err != nil {
+		return catalog.Candidate{}, err
+	}
+	c := catalog.NewCandidate(catalog.SourceRef{Kind: "manual", ID: "local"}, catalog.ResourceRef{Kind: "service", Name: input.RequestID}, time.Now())
+	c.DisplayName, c.Address = input.Edit.DisplayName, input.Edit.Address
+	return c, nil
+}
