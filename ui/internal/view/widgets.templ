@@ -74,7 +74,7 @@ templ HostWidgetBody(host Host, message string) {
 		}
 	</div>
 	@HostWidgetMetrics(host, message)
-	@HostWidgetActions(host)
+	@HostWidgetFooter(host, message)
 }
 
 templ HostWidgetStatusDot(host Host) {
@@ -91,12 +91,14 @@ templ HostWidgetMetrics(host Host, message string) {
 			<div><dt>CPU</dt><dd>{ percentage(host.CPU) }</dd></div>
 			<div><dt>Memory</dt><dd>{ percentage(host.Memory) }</dd></div>
 		</dl>
-		<small class="balemoh-muted">@ReportTime("Observed: ", host.ObservedAt)</small>
 	}
 }
 
-templ HostWidgetActions(host Host) {
-	<div class="balemoh-host-actions balemoh-widget-actions">
+templ HostWidgetFooter(host Host, message string) {
+	<footer class="balemoh-widget-footer">
+		if message == "" {
+			<small class="balemoh-muted balemoh-widget-observed">@ReportTime("Observed: ", host.ObservedAt)</small>
+		}
 		<div id={ "widget-refresh-host-" + host.ID } class="balemoh-widget-refresh" hx-morph-skip>
 			<form
 				method="get"
@@ -115,7 +117,7 @@ templ HostWidgetActions(host Host) {
 				<small id={ "widget-refresh-feedback-host-" + host.ID } role="status" x-ref="feedback" class="balemoh-widget-feedback"></small>
 			</form>
 		</div>
-	</div>
+	</footer>
 }
 
 templ HostWidgetRefreshButton(host Host) {
