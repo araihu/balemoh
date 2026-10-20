@@ -66,3 +66,7 @@
 ## Search empty-state spacing, 2026-10-20
 
 - Modal Dialog's public Compact option intentionally leaves content unpadded. Compose its Content slot with app-owned empty-message spacing matching the result rows. Hide the empty result list so its padding does not add a blank strip above the message. Keep the existing status announcement and query bindings.
+
+## Host card status dot, 2026-10-20
+
+- Card v0.3.3 offers a non-interactive TitlePrefix but no title action/suffix slot. Compose an app-owned heading in its public Body slot with a focusable Button and portaled Tooltip. Badge's public RootClass supplies the static dot shape while Tone keeps existing fresh/partial/stale/unavailable colors. NotificationDot is fixed red and AnimatingDot adds unrequested motion, so neither matches this status indicator.

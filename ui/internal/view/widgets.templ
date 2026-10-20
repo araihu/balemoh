@@ -57,14 +57,30 @@ templ UnavailableWidget(title string) {
 }
 
 templ HostWidget(host Host, message string) {
-	@card.Card(card.Config{Title: host.Name, TitlePrefix: HostGlyph(host), RootClass: "balemoh-service-card", Body: HostWidgetMetrics(host, message), Footer: HostWidgetActions(host)})
+	@card.Card(card.Config{RootClass: "balemoh-service-card", Body: HostWidgetBody(host, message), Footer: HostWidgetActions(host)})
+}
+
+templ HostWidgetBody(host Host, message string) {
+	<div class="balemoh-widget-heading">
+		@HostGlyph(host)
+		<h3 class="balemoh-widget-title">{ host.Name }</h3>
+		if message == "" {
+			@tooltip.Tooltip("widget-status-tooltip-"+host.ID, hostStatus(host.Status), tooltip.WithPosition(tooltip.PositionTop), tooltip.WithPortal(true), tooltip.WithTrigger(HostWidgetStatusDot(host)))
+		}
+	</div>
+	@HostWidgetMetrics(host, message)
+}
+
+templ HostWidgetStatusDot(host Host) {
+	@button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithRootClass("balemoh-widget-status-trigger"), button.WithAttrs(templ.Attributes{"id": "widget-status-" + host.ID, "aria-label": host.Name + ": " + hostStatus(host.Status), "aria-describedby": "widget-status-tooltip-" + host.ID})) {
+		<span aria-hidden="true">@badge.Badge(badge.Config{Tone: hostStatusTone(host.Status), RootClass: "balemoh-widget-status-dot"})</span>
+	}
 }
 
 templ HostWidgetMetrics(host Host, message string) {
 	if message!="" {
 		<p role="status">{ message }</p>
 	} else {
-		@badge.Badge(badge.Config{Label: hostStatus(host.Status), Tone: hostStatusTone(host.Status)})
 		<dl class="balemoh-widget-metrics">
 			<div><dt>CPU</dt><dd>{ percentage(host.CPU) }</dd></div>
 			<div><dt>Memory</dt><dd>{ percentage(host.Memory) }</dd></div>
