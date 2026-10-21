@@ -74,3 +74,7 @@
 ## Host card navigation, 2026-10-20
 
 - Compose Panel's body with Link in the host heading. Reuse the homepage's stretched-link CSS pattern to make the whole card navigate, while keeping Tooltip and refresh Button as independent controls above the link. Panel has no whole-surface navigation option; no custom click handler is needed.
+
+## Dashboard swaps and masonry settlement, 2026-10-21
+
+- Full-grid SSE morphs remove client-owned row spans and the masonry class, temporarily collapsing the grid and clamping the shell scroll position. Send widget-level OOB morphs for value changes. Reconcile sections only on connection or membership/order/source changes, and preserve masonry attributes with HTMX 4's `htmx_before_morph_attr` extension hook. Re-measure after settlement as well as resize. Use layout-pixel heights rather than transformed visual bounds. Restore refresh focus with `preventScroll`, without stealing focus from another control.
