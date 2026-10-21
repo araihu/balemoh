@@ -601,7 +601,7 @@ func HostContent(page HostDetail) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = tabs.Tabs(tabs.Config{ID: "host-tabs", DefaultTab: "overview", SyncHash: true, Tabs: hostTabs(page)}).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = tabs.Tabs(tabs.Config{ID: "host-tabs", RootClass: "min-w-0", DefaultTab: "overview", SyncHash: true, Tabs: hostTabs(page)}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

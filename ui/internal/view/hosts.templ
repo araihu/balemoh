@@ -151,7 +151,7 @@ templ HostContent(page HostDetail) {
  if page.Missing {
  @alert.Alert(alert.Config{Title:"Host no longer available",Description:"Uncheck Show on home to remove this widget.",Tone:alert.ToneWarning})
  } else {
- @tabs.Tabs(tabs.Config{ID:"host-tabs",DefaultTab:"overview",SyncHash:true,Tabs:hostTabs(page)})
+ @tabs.Tabs(tabs.Config{ID:"host-tabs",RootClass:"min-w-0",DefaultTab:"overview",SyncHash:true,Tabs:hostTabs(page)})
  }
 }
 func hostTabs(page HostDetail)[]tabs.Tab{
