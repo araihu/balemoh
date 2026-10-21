@@ -139,7 +139,11 @@ func hostView(h api.Host) view.Host {
 	case "node":
 		kind = "Kubernetes node"
 	}
-	return view.Host{ID: h.Id, Name: h.Name, Kind: kind, Status: string(h.Status), ParentID: h.ParentId, ObservedAt: h.ObservedAt, ReceivedAt: h.ReceivedAt, CPU: h.CpuPercent, Memory: memoryPercent(h.MemoryUsedBytes, h.MemoryTotalBytes), MemoryUsed: h.MemoryUsedBytes, MemoryTotal: h.MemoryTotalBytes, InventoryAvailable: h.InventoryAvailable, Ready: h.Ready}
+	architecture := ""
+	if h.Architecture != nil {
+		architecture = *h.Architecture
+	}
+	return view.Host{Architecture: architecture, ID: h.Id, Name: h.Name, Kind: kind, Status: string(h.Status), ParentID: h.ParentId, ObservedAt: h.ObservedAt, ReceivedAt: h.ReceivedAt, CPU: h.CpuPercent, Memory: memoryPercent(h.MemoryUsedBytes, h.MemoryTotalBytes), MemoryUsed: h.MemoryUsedBytes, MemoryTotal: h.MemoryTotalBytes, InventoryAvailable: h.InventoryAvailable, Ready: h.Ready}
 }
 func memoryPercent(used, total *int64) *float64 {
 	if used == nil || total == nil || *total <= 0 {

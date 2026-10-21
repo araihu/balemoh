@@ -24,6 +24,7 @@ import (
 )
 
 type DockerClient interface {
+	Info(context.Context, docker.InfoOptions) (docker.SystemInfoResult, error)
 	ContainerList(context.Context, docker.ContainerListOptions) (docker.ContainerListResult, error)
 }
 type Docker struct {
@@ -56,6 +57,12 @@ func (d *Docker) Collect(ctx context.Context) model.Batch {
 	}
 	h.MemoryUsedBytes, h.MemoryTotalBytes = memory(filepath.Join(d.ProcPath, "meminfo"))
 	requestCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	info, infoErr := d.Client.Info(requestCtx, docker.InfoOptions{})
+	cancel()
+	if infoErr == nil {
+		h.Architecture = architecture(info.Info.Architecture)
+	}
+	requestCtx, cancel = context.WithTimeout(ctx, 5*time.Second)
 	containers, err := d.Client.ContainerList(requestCtx, docker.ContainerListOptions{All: true})
 	cancel()
 	if err == nil {
@@ -261,7 +268,7 @@ func (k *Kubernetes) Collect(ctx context.Context) model.Batch {
 				ready = string(condition.Status)
 			}
 		}
-		batch.Hosts = append(batch.Hosts, model.Observation{Node: node.Name, Metrics: m, Workloads: workloads, InventoryAvailable: inventoryAvailable, Ready: ready})
+		batch.Hosts = append(batch.Hosts, model.Observation{Node: node.Name, Architecture: architecture(node.Status.NodeInfo.Architecture), Metrics: m, Workloads: workloads, InventoryAvailable: inventoryAvailable, Ready: ready})
 	}
 	if allCPU && totalCores > 0 {
 		value := 100 * usedCores / totalCores
@@ -273,4 +280,21 @@ func (k *Kubernetes) Collect(ctx context.Context) model.Batch {
 	}
 	batch.Hosts[0] = root
 	return batch
+}
+
+// Normalize daemon/kernel aliases without guessing from the agent executable.
+func architecture(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "x86_64", "x86-64":
+		return "amd64"
+	case "aarch64":
+		return "arm64"
+	case "armv7l", "armv6l":
+		return "arm"
+	case "i386", "i686":
+		return "386"
+	default:
+		return value
+	}
 }

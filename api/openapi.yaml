@@ -492,6 +492,10 @@ components:
           properties:
             inventoryAvailable: {type: boolean}
             ready: {type: string}
+            architecture:
+              type: string
+              maxLength: 64
+              description: CPU architecture reported by the host. Absent for older agents, unknown hosts, and cluster aggregates.
             node: {type: string, maxLength: 253}
             workloads:
               type: array

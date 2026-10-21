@@ -211,8 +211,11 @@ func TestHostPartialNavigation(t *testing.T) {
 		if w.Code != 200 || !strings.Contains(body, `/hosts/host/events?range=24h`) {
 			t.Fatal("wrong range snapshot")
 		}
-		if strings.Count(body, `hx-target="#host-detail"`) != 3 {
+		if strings.Count(body, `hx-target="#host-overview"`) != 3 {
 			t.Fatal("all history actions must use partial navigation")
+		}
+		if kind == "partial" && (strings.Contains(body, `role="tab"`) || strings.Contains(body, `id="host-workloads-panel"`) || strings.Contains(body, `id="host-selection-action-host"`)) {
+			t.Fatal("history filter replaced unrelated host content")
 		}
 		if strings.Contains(body, chartassets.RuntimeURL) != (kind == "full") {
 			t.Fatalf("%s: chart runtime should load only with full document", kind)
@@ -220,7 +223,7 @@ func TestHostPartialNavigation(t *testing.T) {
 		if strings.Contains(body, "<html") != (kind == "full") {
 			t.Fatalf("%s: wrong document boundary", kind)
 		}
-		for _, want := range []string{`hx-target="#host-detail"`, `hx-swap="innerHTML"`, `hx-sync="#host-detail:replace"`, `hx-push-url="true"`} {
+		for _, want := range []string{`hx-target="#host-overview"`, `hx-swap="innerHTML"`, `hx-sync="#host-overview:replace"`, `hx-push-url="true"`} {
 			if !strings.Contains(body, want) {
 				t.Errorf("missing %s", want)
 			}

@@ -70,7 +70,7 @@ func TestHostEventStream(t *testing.T) {
 		}
 	}
 	first := frame()
-	for _, want := range []string{`id="host-cpu-chart" hx-swap-oob="innerHTML"`, `id="host-memory-chart" hx-swap-oob="innerHTML"`, `id="host-measurements" hx-swap-oob="innerMorph"`, `id="host-inventory" hx-swap-oob="innerMorph"`, `0.0%`, `goshtoso-charts-interactive`, `Unavailable`} {
+	for _, want := range []string{`id="host-cpu-chart" hx-swap-oob="innerHTML"`, `id="host-memory-chart" hx-swap-oob="innerHTML"`, `id="host-measurements" hx-swap-oob="innerMorph"`, `id="host-workloads-panel" hx-swap-oob="innerMorph"`, `0.0%`, `goshtoso-charts-interactive`, `Unavailable`} {
 		if !strings.Contains(first, want) {
 			t.Errorf("missing %s", want)
 		}

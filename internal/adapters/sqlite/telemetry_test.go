@@ -31,7 +31,7 @@ func TestTelemetryHistoryReplayRetentionAndIsolation(t *testing.T) {
 	}
 	zero := 0.0
 	memory, total := int64(0), int64(1024)
-	batch := telemetry.Batch{Source: source, ObservedAt: now.Add(-2 * time.Minute), Hosts: []telemetry.Observation{{Metrics: telemetry.Metrics{CPUPercent: &zero, MemoryUsedBytes: &memory, MemoryTotalBytes: &total}}, {Node: "node-a"}}}
+	batch := telemetry.Batch{Source: source, ObservedAt: now.Add(-2 * time.Minute), Hosts: []telemetry.Observation{{Metrics: telemetry.Metrics{CPUPercent: &zero, MemoryUsedBytes: &memory, MemoryTotalBytes: &total}}, {Node: "node-a", Architecture: "arm64"}}}
 	if err = store.Ingest(ctx, batch, now); err != nil {
 		t.Fatal(err)
 	}
@@ -42,6 +42,9 @@ func TestTelemetryHistoryReplayRetentionAndIsolation(t *testing.T) {
 	}
 	if len(d.Samples) != 60 || len(d.Children) != 1 || d.Samples[57].CPUPercent == nil || *d.Samples[57].CPUPercent != 0 || d.Samples[58].CPUPercent != nil {
 		t.Fatal("zero must survive; missing minute must remain null")
+	}
+	if d.Children[0].Architecture != "arm64" || d.Host.Architecture != "" {
+		t.Fatal("architecture failed storage roundtrip")
 	}
 	received := *d.Host.ReceivedAt
 	if err = store.Ingest(ctx, batch, now.Add(time.Minute)); err != nil {

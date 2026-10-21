@@ -71,3 +71,23 @@ The UI pins Charts v0.0.4, which includes missing-point support and detached cha
 Interactive browser checks covered tooltips, ten alternating 1h/24h filters, one active SSE connection, updates inside an open chart modal, Enter/Escape controls, and 390px/1440px widths. Goshtoso dark mode had no horizontal overflow or JavaScript errors. The broader theme and browser matrix has not been repeated for interactive charts.
 
 Migration 000008 adds telemetry tables only. Disable collection to stop new writes. For a schema rollback, stop the new binaries first; the down migration deletes telemetry history and host registrations, leaving the service catalog intact.
+
+## Host details and CPU architecture
+
+Host details have Overview, Workloads and Services tabs. Kubernetes clusters also
+have a Nodes tab. Nodes omit Services because catalog membership belongs to the
+discovery source, not an individual node. Workloads are reported pods or Docker
+containers with runtime state. Services are application entries with catalog
+settings and homepage links; one application can include multiple workloads.
+
+Agents report the optional `architecture` observation field. Kubernetes uses
+`Node.status.nodeInfo.architecture`; Docker uses the daemon's system information,
+not the architecture of the agent binary. Common aliases normalize to `amd64`,
+`arm64`, `arm` or `386`. Cluster aggregates have no single architecture; inspect
+the Nodes table for mixed clusters. Older agents and missing information display
+Unknown. The field is stored with the latest observation, not every metric sample.
+
+SSE updates measurements, charts, nodes and workloads without replacing the tab
+controls. Range filters replace only Overview. Tab selection uses the URL hash.
+Deploy the API before newer Docker agents because older APIs reject unknown
+observation fields. Older agent reports remain accepted by the new API.
