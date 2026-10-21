@@ -113,25 +113,30 @@ func (s *server) homepage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, data, 200)
 }
 func (s *server) hostSelection(ctx context.Context, id string) (bool, error) {
+	selected, err := s.hostSelections(ctx)
+	return selected[id], err
+}
+func (s *server) hostSelections(ctx context.Context) (map[string]bool, error) {
 	catalog, ok := s.catalog.(DashboardCatalog)
 	if !ok {
-		return false, errors.New("dashboard unavailable")
+		return nil, errors.New("dashboard unavailable")
 	}
 	snapshot, err := catalog.Dashboard(ctx)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	for _, source := range snapshot.Unavailable {
 		if source == "host" {
-			return false, errors.New("host selection unavailable")
+			return nil, errors.New("host selection unavailable")
 		}
 	}
+	selected := make(map[string]bool)
 	for _, item := range snapshot.Items {
-		if item.SourceKind == "host" && item.SourceId == id {
-			return true, nil
+		if item.SourceKind == "host" {
+			selected[item.SourceId] = true
 		}
 	}
-	return false, nil
+	return selected, nil
 }
 func (s *server) selectHost(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1024)
@@ -185,8 +190,12 @@ func (s *server) selectHost(w http.ResponseWriter, r *http.Request) {
 			selected = desired
 		}
 	}
+	list := r.PostForm.Get("selection_context") == "hosts"
 	if status == 200 && r.Header.Get("HX-Request-Type") != "partial" {
 		target := "/hosts/" + url.PathEscape(id) + "?range=" + window
+		if list {
+			target = "/hosts"
+		}
 		redirect(w, r, target)
 		return
 	}
@@ -194,7 +203,7 @@ func (s *server) selectHost(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		w.WriteHeader(status)
-		_ = view.HostSelection(id, selected, false, window, message, true).Render(r.Context(), w)
+		_ = view.HostSelection(id, selected, false, window, message, true, list).Render(r.Context(), w)
 		return
 	}
 	data := view.PageData{Title: "Host selection", Description: "Manage homepage widgets.", Error: message, Path: "/hosts/" + url.PathEscape(id) + "?range=" + window, Active: "nav-hosts"}

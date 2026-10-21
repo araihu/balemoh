@@ -246,3 +246,84 @@ func TestHostPartialNavigation(t *testing.T) {
 		}
 	}
 }
+
+type selectableHostCatalog struct {
+	widgetCatalog
+	dashboardCalls int
+}
+
+func (c *selectableHostCatalog) Hosts(context.Context) ([]api.Host, error) {
+	return []api.Host{{Id: "selected", Name: "Pinned host", Kind: "docker"}, {Id: "other", Name: "Other host", Kind: "docker"}}, nil
+}
+func (c *selectableHostCatalog) Dashboard(ctx context.Context) (api.DashboardSnapshot, error) {
+	c.dashboardCalls++
+	return c.widgetCatalog.Dashboard(ctx)
+}
+func TestHostsIndexSelectionSnapshot(t *testing.T) {
+	for _, unavailable := range []bool{false, true} {
+		c := &selectableHostCatalog{}
+		c.snapshot.Items = []api.DashboardWidget{hostWidget("selected", 0)}
+		if unavailable {
+			c.snapshot.Unavailable = []string{"host"}
+		}
+		h, err := New(c, time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", "/hosts", nil))
+		if w.Code != 200 || c.dashboardCalls != 1 {
+			t.Fatalf("status=%d dashboard calls=%d", w.Code, c.dashboardCalls)
+		}
+		doc, err := html.Parse(strings.NewReader(w.Body.String()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := 0
+		var walk func(*html.Node)
+		walk = func(n *html.Node) {
+			attrs := map[string]string{}
+			for _, a := range n.Attr {
+				attrs[a.Key] = a.Val
+			}
+			if n.Data == "input" && attrs["type"] == "checkbox" {
+				found++
+				_, checked := attrs["checked"]
+				_, disabled := attrs["disabled"]
+				if disabled != unavailable || checked != (!unavailable && attrs["id"] == "host-selection-action-selected") {
+					t.Errorf("wrong selection: %v", attrs)
+				}
+			}
+			for child := n.FirstChild; child != nil; child = child.NextSibling {
+				walk(child)
+			}
+		}
+		walk(doc)
+		if found != 2 {
+			t.Fatalf("checkboxes=%d", found)
+		}
+	}
+}
+func TestHostsListSelectionResponseAndRedirect(t *testing.T) {
+	c := &widgetCatalog{}
+	h, err := New(c, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, partial := range []bool{true, false} {
+		r := httptest.NewRequest("POST", "/hosts/test/selection", strings.NewReader("selection_form=host&selection_context=hosts&enabled=true"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if partial {
+			r.Header.Set("HX-Request-Type", "partial")
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if partial {
+			if w.Code != 200 || !strings.Contains(w.Body.String(), `name="selection_context" value="hosts"`) || strings.Contains(w.Body.String(), `>Show on home<`) {
+				t.Fatalf("bad list fragment: %d %s", w.Code, w.Body.String())
+			}
+		} else if w.Code != 303 || w.Header().Get("Location") != "/hosts" {
+			t.Fatalf("bad redirect: %d %s", w.Code, w.Header().Get("Location"))
+		}
+	}
+}

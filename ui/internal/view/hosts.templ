@@ -13,6 +13,7 @@ import (
  "github.com/araihu/goshtoso/components/link"
  "github.com/araihu/goshtoso/components/pageheader"
  "github.com/araihu/goshtoso/components/table"
+ "github.com/araihu/goshtoso/components/tooltip"
  "github.com/araihu/goshtoso-charts/components/interactive/line"
  "github.com/araihu/goshtoso-charts/components/chart"
  "github.com/araihu/goshtoso-charts/components/chartcontrol"
@@ -25,7 +26,7 @@ type Host struct {
  MemoryUsed,MemoryTotal *int64
  InventoryAvailable bool
 }
-type HostsPage struct { Hosts []Host }
+type HostsPage struct { Hosts []Host; Selected map[string]bool; SelectionError string }
 type HostSample struct {At time.Time; CPU,Memory *float64}
 type HostWorkload struct{Name,Namespace,State string;Restarts int}
 type HostService struct{ID,Name string}
@@ -41,11 +42,19 @@ type HostDetail struct {
  Missing bool
  SelectionError string
 }
-func hostRows(hosts []Host) []table.Row {
- rows:=make([]table.Row,0,len(hosts))
- for _,host:=range hosts{rows=append(rows,table.Row{ID:host.ID,Cells:map[string]table.Cell{
- "host":{Component:HostLink(host)},"status":{Text:hostStatus(host.Status)},"cpu":{Text:percentage(host.CPU)},"memory":{Text:percentage(host.Memory)},
- }})};return rows
+func hostRows(hosts []Host, selection *HostsPage) []table.Row {
+ rows := make([]table.Row, 0, len(hosts))
+ for _, host := range hosts {
+  row := table.Row{ID: host.ID, Cells: map[string]table.Cell{
+   "host": {Component: HostLink(host)}, "status": {Text: hostStatus(host.Status)},
+   "cpu": {Text: percentage(host.CPU)}, "memory": {Text: percentage(host.Memory)},
+  }}
+  if selection != nil {
+   row.Cells["select"] = table.Cell{Component: HostSelection(host.ID, selection.Selected[host.ID], selection.SelectionError != "", "1h", "", false, true)}
+  }
+  rows = append(rows, row)
+ }
+ return rows
 }
 func hostStatus(status string)string{switch status{case "fresh":return "Reporting";case "partial":return "Partial data";case "stale":return "Stale";default:return "No telemetry"}}
 func hostStatusTone(status string)badge.Tone{switch status{case "fresh":return badge.ToneSuccess;case "partial","stale":return badge.ToneWarning;default:return badge.ToneInfo}}
@@ -94,9 +103,14 @@ templ HostGlyph(host Host) {
  }
  </span>
 }
-templ HostTable(hosts []Host) {
+func hostColumns(selection *HostsPage) []table.Column {
+ columns:=[]table.Column{}
+ if selection!=nil {columns=append(columns,table.Column{Key:"select",Label:"Pinned",HeaderSuffix:tooltip.Help("host-pinning-help","How pinning works","Check to show a host on your homepage. Uncheck to remove it. Changes save immediately."),Width:"balemoh-col-select"})}
+ return append(columns,[]table.Column{{Key:"host",Label:"Host"},{Key:"status",Label:"Telemetry"},{Key:"cpu",Label:"CPU"},{Key:"memory",Label:"Memory"}}...)
+}
+templ HostTable(hosts []Host, selection *HostsPage) {
  <div class="balemoh-table-scroll">
- @table.Table(table.Config{ID:"hosts-table",RootClass:"balemoh-host-list",Caption:"Hosts and latest reported usage",Columns:[]table.Column{{Key:"host",Label:"Host"},{Key:"status",Label:"Telemetry"},{Key:"cpu",Label:"CPU"},{Key:"memory",Label:"Memory"}},Rows:hostRows(hosts)})
+ @table.Table(table.Config{ID:"hosts-table",RootClass:"balemoh-host-list",Caption:"Hosts and latest reported usage",Columns:hostColumns(selection),Rows:hostRows(hosts,selection)})
  </div>
 }
 templ HostsContent(page HostsPage, available bool) {
@@ -105,7 +119,10 @@ templ HostsContent(page HostsPage, available bool) {
   if len(page.Hosts)==0 {
    @emptystate.EmptyState(emptystate.Config{Title:"No hosts discovered",Description:"Registered sources appear here before their first telemetry report."})
   } else {
-   @HostTable(page.Hosts)
+   if page.SelectionError!="" {
+    @alert.Alert(alert.Config{Title:"Homepage selection unavailable",Description:page.SelectionError,Tone:alert.ToneWarning})
+   }
+   @HostTable(page.Hosts,&page)
   }
  }
 }
@@ -127,7 +144,7 @@ templ HostContent(page HostDetail) {
    @link.Link("/hosts/"+page.Host.ParentID) { Cluster }
   }
  </nav>
- @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true,Actions:HostSelection(page.Host.ID,page.Pinned,page.SelectionError!="",page.Window,page.SelectionError,false)})
+ @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true,Actions:HostSelection(page.Host.ID,page.Pinned,page.SelectionError!="",page.Window,page.SelectionError,false,false)})
  if page.Missing {
  @alert.Alert(alert.Config{Title:"Host no longer available",Description:"Uncheck Show on home to remove this widget.",Tone:alert.ToneWarning})
  } else {
@@ -222,7 +239,7 @@ templ HostInventory(page HostDetail) {
  if page.Host.Kind=="Kubernetes cluster" {
   <h2>Nodes</h2>
   if len(page.Children)>0 {
-   @HostTable(page.Children)
+   @HostTable(page.Children,nil)
   } else {
    <p>No node inventory received.</p>
   }
