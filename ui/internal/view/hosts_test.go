@@ -72,3 +72,29 @@ func TestHostTabsKeepLiveUpdatesScoped(t *testing.T) {
 		}
 	}
 }
+
+func TestHostDetailStatusUsesOneDotAndKindIcon(t *testing.T) {
+	for _, kind := range []string{"Kubernetes cluster", "Docker host", "Kubernetes node"} {
+		page := HostDetail{Host: Host{ID: "host", Name: "Host", Kind: kind, Status: "fresh"}, Window: "1h"}
+		var output bytes.Buffer
+		if err := HostContent(page).Render(context.Background(), &output); err != nil {
+			t.Fatal(err)
+		}
+		body := output.String()
+		for _, want := range []string{`role="img" aria-label="` + kind + `"`, `id="host-status-dot"`, `aria-describedby="host-status-tooltip"`, `class="sr-only" data-host-live`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("%s missing %s", kind, want)
+			}
+		}
+		if strings.Count(body, `id="host-status-dot"`) != 1 || strings.Contains(body, kind+" · Reporting") {
+			t.Error("duplicate or legacy status badge")
+		}
+		output.Reset()
+		if err := HostLiveSnapshot(page).Render(context.Background(), &output); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output.String(), `id="host-detail-status" hx-swap-oob="innerMorph"`) {
+			t.Error("live telemetry does not update the header dot")
+		}
+	}
+}

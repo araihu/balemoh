@@ -8,6 +8,7 @@ import (
  "github.com/araihu/goshtoso/components/avatar"
  "github.com/araihu/goshtoso/components/alert"
  "github.com/araihu/goshtoso/components/badge"
+ "github.com/araihu/goshtoso/components/button"
  "github.com/araihu/goshtoso/components/card"
  "github.com/araihu/goshtoso/components/emptystate"
  "github.com/araihu/goshtoso/components/link"
@@ -147,7 +148,7 @@ templ HostContent(page HostDetail) {
    @link.Link("/hosts/"+page.Host.ParentID) { Cluster }
   }
  </nav>
- @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,HideSeparator:true,Actions:HostSelection(page.Host.ID,page.Pinned,page.SelectionError!="",page.Window,page.SelectionError,false,false)})
+ @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,TitleSuffix:HostDetailIndicators(page.Host),HideSeparator:true,Actions:HostSelection(page.Host.ID,page.Pinned,page.SelectionError!="",page.Window,page.SelectionError,false,false)})
  if page.Missing {
  @alert.Alert(alert.Config{Title:"Host no longer available",Description:"Uncheck Show on home to remove this widget.",Tone:alert.ToneWarning})
  } else {
@@ -165,7 +166,7 @@ templ HostOverviewPanel(page HostDetail){
  <div id="host-overview">@HostOverview(page)</div>
 }
 templ HostOverview(page HostDetail){
- <div id={ "host-live-"+page.Window } data-host-live hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
+ <div id={ "host-live-"+page.Window } class="sr-only" data-host-live hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
   <div id="host-live-status" role="status" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
  </div>
  <div id="host-measurements">@HostMeasurements(page)</div>
@@ -237,7 +238,6 @@ templ HostNotice(status,title,description string,tone alert.Tone) {
 }
 templ HostMeasurements(page HostDetail) {
  <div class="balemoh-host-status">
-  @badge.Badge(badge.Config{Label:page.Host.Kind+" · "+hostStatus(page.Host.Status),Tone:hostStatusTone(page.Host.Status)})
   if page.Host.Kind!="Kubernetes cluster" {
    <span>Architecture: { hostArchitecture(page.Host) }</span>
   }
@@ -292,6 +292,18 @@ templ HostChart(page HostDetail,cpu bool) {
 templ HostChartTarget(page HostDetail,cpu bool) {
  <div id={ hostChartID(cpu) }>@HostChartContent(page,cpu)</div>
 }
+templ HostDetailIndicators(host Host) {
+ <span class="balemoh-host-kind-icon" role="img" aria-label={ host.Kind } title={ host.Kind }>@HostGlyph(host)</span>
+ <div id="host-detail-status">@HostDetailStatus(host)</div>
+}
+templ HostDetailStatus(host Host) {
+ @tooltip.Tooltip("host-status-tooltip",hostStatus(host.Status),tooltip.WithPosition(tooltip.PositionBottom),tooltip.WithPortal(true),tooltip.WithTrigger(HostDetailStatusDot(host)))
+}
+templ HostDetailStatusDot(host Host) {
+ @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-widget-status-trigger"),button.WithAttrs(templ.Attributes{"id":"host-status-dot","data-telemetry-status":hostStatus(host.Status),"aria-label":host.Name+": "+hostStatus(host.Status),"data-host-name":host.Name,"aria-describedby":"host-status-tooltip"})) {
+  <span aria-hidden="true">@badge.Badge(badge.Config{Tone:hostStatusTone(host.Status),RootClass:"balemoh-widget-status-dot"})</span>
+ }
+}
 templ HostLiveBadge(message string) {
  @badge.Badge(badge.Config{Label:message,Tone:badge.ToneInfo,RootClass:"balemoh-live-badge"})
 }
@@ -300,6 +312,7 @@ templ HostLiveStatus(message string) {
 }
 templ HostLiveSnapshot(page HostDetail) {
  @HostLiveStatus("Live updates connected")
+ <div id="host-detail-status" hx-swap-oob="innerMorph">@HostDetailStatus(page.Host)</div>
  <div id="host-measurements" hx-swap-oob="innerMorph">@HostMeasurements(page)</div>
  <div id="host-cpu-chart" hx-swap-oob="innerHTML">@HostChartContent(page,true)</div>
  <div id="host-memory-chart" hx-swap-oob="innerHTML">@HostChartContent(page,false)</div>

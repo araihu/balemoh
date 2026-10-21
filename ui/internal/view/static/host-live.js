@@ -1,6 +1,21 @@
+// Connection and measurement freshness share one visible status indicator.
+function syncHostStatusDot() {
+  const dot = document.getElementById('host-status-dot');
+  const tooltip = document.getElementById('host-status-tooltip');
+  const connection = document.querySelector('#host-live-status .balemoh-live-badge');
+  if (!dot || !tooltip || !connection) return;
+  const message = connection.textContent.trim();
+  const label = `${dot.dataset.telemetryStatus}. ${message}`;
+  tooltip.textContent = label;
+  dot.setAttribute('aria-label', `${dot.dataset.hostName}: ${label}`);
+  dot.classList.toggle('balemoh-host-connection-warning', message !== 'Live updates connected');
+}
+document.addEventListener('htmx:after:swap', syncHostStatusDot);
+
 function hostLiveStatus(message) {
   const status = document.querySelector('#host-live-status .balemoh-live-badge, #dashboard-live-status .balemoh-live-badge');
   if (status) status.textContent = message;
+  syncHostStatusDot();
 }
 
 document.addEventListener('htmx:sse:before:connection', (event) => {
