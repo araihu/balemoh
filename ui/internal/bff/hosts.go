@@ -51,6 +51,9 @@ func (s *server) hosts(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, data, 503)
 		return
 	}
+	selected, selectionErr := s.hostSelections(ctx)
+	data.HostsPage.Selected = selected
+	data.HostsPage.SelectionError = selectionWarning(selectionErr)
 	for _, host := range hosts {
 		data.HostsPage.Hosts = append(data.HostsPage.Hosts, hostView(host))
 	}

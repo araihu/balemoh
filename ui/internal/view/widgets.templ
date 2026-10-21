@@ -135,7 +135,7 @@ templ WidgetRefreshed(widget Widget) {
 	<span id={ "widget-refresh-feedback-" + widget.ID } hx-swap-oob="innerHTML"><span class="sr-only">Updated</span></span>
 }
 
-templ HostSelection(id string, selected, unavailable bool, window, message string, focus bool) {
+templ HostSelection(id string, selected, unavailable bool, window, message string, focus, list bool) {
 	<div id={ "host-selection-" + id } hx-morph-skip>
 		<form
 			method="post"
@@ -150,9 +150,13 @@ templ HostSelection(id string, selected, unavailable bool, window, message strin
 		>
 			<input type="hidden" name="selection_form" value="host"/>
 			<input type="hidden" name="range" value={ window }/>
+			if list {
+				<input type="hidden" name="selection_context" value="hosts"/>
+			}
+			{{ label := "Show on home"; if list { label = "" } }}
 			@checkbox.Checkbox(checkbox.Config{
-				ID: "host-selection-action-" + id, Name: "enabled", Value: "true", Label: "Show on home", Checked: selected, Disabled: unavailable,
-				InputAttrs: templ.Attributes{"x-ref": "choice", "onchange": "this.form.requestSubmit()", "aria-describedby": "host-selection-feedback-" + id, "style": "border-color: var(--balemoh-muted)"},
+				ID: "host-selection-action-" + id, Name: "enabled", Value: "true", Label: label, Checked: selected, Disabled: unavailable,
+				InputAttrs: templ.Attributes{"aria-label": "Show on home", "x-ref": "choice", "onchange": "this.form.requestSubmit()", "aria-describedby": "host-selection-feedback-" + id, "style": "border-color: var(--balemoh-muted)"},
 			})
 			if focus {
 				<span hidden x-data="{}" x-init="$nextTick(() => $el.parentElement.querySelector('input[type=checkbox]')?.focus())"></span>
