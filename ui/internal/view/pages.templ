@@ -64,12 +64,10 @@ templ PageContent(data PageData) {
  } else if data.IconPage != nil {
  @IconsContent(*data.IconPage)
  } else if data.Editor != nil {
-			@ServiceEditor(*data.Editor)
- if !data.Editor.Creating {
- @ServiceLifecycle(*data.Editor)
- if !data.Editor.IsManual() {
- @ServiceResources(*data.Editor)
- }
+ if data.Editor.Creating {
+ @ServiceEditor(*data.Editor)
+ } else {
+ @tabs.Tabs(tabs.Config{ID:"service-editor", DefaultTab:"details", SyncHash:data.Editor.EditError == "", Tabs:serviceEditorTabs(*data.Editor)})
  }
 		} else if data.Staging {
 			@StagingContent(data)
@@ -350,4 +348,16 @@ func homeSearchEmpty(services []Service) string {
 func homepageAttrs(services []Service)templ.Attributes{
  if len(services)==0{return templ.Attributes{}}
  return templ.Attributes{"x-data":homeSearchState,"x-on:keydown.window":homepageSearchKeys}
+}
+
+// Keep panels mounted so switching views retains unsaved form and icon state.
+func serviceEditorTabs(service Service) []tabs.Tab {
+ result := []tabs.Tab{
+  {ID:"details", Label:"Details", Content:ServiceEditor(service)},
+  {ID:"visibility", Label:"Visibility", Content:ServiceLifecycle(service)},
+ }
+ if !service.IsManual() {
+  result=append(result,tabs.Tab{ID:"resources", Label:"Resources", Content:ServiceResources(service)})
+ }
+ return result
 }
