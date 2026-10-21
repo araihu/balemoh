@@ -29,13 +29,12 @@ func ConsolePage(data PageData) templ.Component {
 				Drawer:        true,
 				IconOnlyMenu:  true,
 				DisableSearch: true,
-				SectionsTitle: "Balemoh",
-				Sections: []sidebar.Section{{Items: []sidebar.Item{
+				Items: []sidebar.Item{
 					{ID: "nav-home", Label: "Home", Href: "/", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHome, Decorative: true})},
 					{ID: "nav-staging", Label: "Staging", Href: "/staging", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidQueueList, Decorative: true})},
 					{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
 					{ID: "nav-icons", Label: "Icons", Href: "/icons", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
-				}}},
+				},
 			},
 			Appearance: consoleshell.AppearanceConfig{
 				DefaultTheme:       "goshtoso",
