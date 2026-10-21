@@ -2,9 +2,12 @@ package view
 
 import (
 	"github.com/a-h/templ"
+	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso-app-shells/consoleshell"
 	"github.com/araihu/goshtoso/assets"
 	"github.com/araihu/goshtoso/components/head"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/sidebar"
 )
 
@@ -28,10 +31,10 @@ func ConsolePage(data PageData) templ.Component {
 				DisableSearch: true,
 				SectionsTitle: "Balemoh",
 				Sections: []sidebar.Section{{Items: []sidebar.Item{
-					{ID: "nav-home", Label: "Home", Href: "/"},
-					{ID: "nav-staging", Label: "Staging", Href: "/staging"},
-					{ID: "nav-hosts", Label: "Hosts", Href: "/hosts"},
-					{ID: "nav-icons", Label: "Icons", Href: "/icons"},
+					{ID: "nav-home", Label: "Home", Href: "/", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHome, Decorative: true})},
+					{ID: "nav-staging", Label: "Staging", Href: "/staging", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidQueueList, Decorative: true})},
+					{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
+					{ID: "nav-icons", Label: "Icons", Href: "/icons", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
 				}}},
 			},
 			Appearance: consoleshell.AppearanceConfig{
