@@ -18,7 +18,7 @@
       contents.disconnect();
       observed.clear();
       grid = next;
-      if (grid) contents.observe(grid, { childList: true, subtree: true });
+      if (grid) contents.observe(grid, { childList: true, subtree: true, characterData: true });
     }
     if (!grid) return;
     const layouts = [...grid.querySelectorAll('[data-dashboard-layout]')];
@@ -35,7 +35,9 @@
       layout.classList.toggle('balemoh-masonry', items.length > 0);
       // Keep each section in source order, without moving nodes between columns.
       const gap = parseFloat(getComputedStyle(layout).columnGap) || 0;
-      const spans = items.map(item => Math.ceil(item.getBoundingClientRect().height + gap));
+      // offsetHeight is in layout pixels, independent of zoom and refresh transforms.
+      const row = parseFloat(getComputedStyle(layout).gridAutoRows) || 1;
+      const spans = items.map(item => Math.ceil((item.offsetHeight + gap) / row));
       items.forEach((item, index) => {
         const span = `span ${Math.max(1, spans[index])}`;
         if (item.style.gridRowEnd !== span) item.style.gridRowEnd = span;
@@ -47,7 +49,21 @@
     }
   }
 
+  // Server snapshots do not own the client-computed masonry geometry. Removing
+  // these attributes during a morph temporarily collapses the grid and clamps
+  // the shell's scroll position before ResizeObserver can repair it.
+  window.goshtosoDependencies?.ready.then(() => {
+    window.htmx.registerExtension('balemoh-dashboard-layout', {
+      htmx_before_morph_attr(element, detail) {
+        if (element.matches('[data-dashboard-widget]') && detail.attrName === 'style') return false;
+        if (element.matches('[data-dashboard-layout]') && detail.attrName === 'class') return false;
+      },
+    });
+  });
+
   document.addEventListener('htmx:after:swap', schedule);
+  // HTMX settlement can restore dimensions after the swap measurement.
+  document.addEventListener('htmx:after:settle', schedule);
   window.addEventListener('resize', schedule);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', schedule, { once: true });

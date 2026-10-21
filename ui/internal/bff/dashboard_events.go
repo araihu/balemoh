@@ -32,6 +32,7 @@ func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interva
 	defer ticker.Stop()
 	var previous [sha256.Size]byte
 	var retained []api.DashboardWidget
+	var published []api.DashboardWidget
 	failed := false
 	for {
 		ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
@@ -69,7 +70,13 @@ func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interva
 					// absent from this stream's retained snapshot. Do not erase it.
 					component = view.DashboardLiveUnavailable(snapshot.Unavailable)
 				} else {
-					component = view.DashboardLiveSnapshot(*renderWidgets(snapshot, s.widgets), message)
+					changed, structureChanged := dashboardWidgetChanges(published, snapshot.Items)
+					if previous == ([sha256.Size]byte{}) || structureChanged {
+						component = view.DashboardLiveSnapshot(*renderWidgets(snapshot, s.widgets), message)
+					} else {
+						component = view.DashboardLiveWidgets(*renderWidgets(api.DashboardSnapshot{Items: changed, Unavailable: snapshot.Unavailable}, s.widgets), message)
+					}
+					published = snapshot.Items
 					previous = digest
 				}
 			}
@@ -106,4 +113,24 @@ func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interva
 		case <-ticker.C:
 		}
 	}
+}
+
+// A membership, ordering or source change needs section reconciliation. Values
+// alone update only their widget, preserving the grid and browser scroll anchor.
+func dashboardWidgetChanges(previous, current []api.DashboardWidget) ([]api.DashboardWidget, bool) {
+	if len(previous) != len(current) {
+		return current, true
+	}
+	var changed []api.DashboardWidget
+	for i, item := range current {
+		if previous[i].Id != item.Id || previous[i].SourceKind != item.SourceKind {
+			return current, true
+		}
+		before, _ := json.Marshal(previous[i])
+		after, _ := json.Marshal(item)
+		if !bytes.Equal(before, after) {
+			changed = append(changed, item)
+		}
+	}
+	return changed, false
 }

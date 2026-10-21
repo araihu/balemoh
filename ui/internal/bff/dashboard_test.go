@@ -168,8 +168,8 @@ func TestDashboardStreamRecoveryAndCancellation(t *testing.T) {
 	c.snapshot.Items = nil
 	c.snapshot.Unavailable = []string{"host"}
 	c.mu.Unlock()
-	if next := until("Some sources unavailable"); !strings.Contains(next, "0.0%") {
-		t.Fatal("failed provider erased last values")
+	if next := until("Some sources unavailable"); strings.Contains(next, `id="dashboard-grid"`) || strings.Contains(next, `id="widget-host-initial"`) {
+		t.Fatal("failed provider rewrote retained widgets")
 	}
 	c.mu.Lock()
 	c.err = errors.New("private failure")
@@ -181,7 +181,27 @@ func TestDashboardStreamRecoveryAndCancellation(t *testing.T) {
 	c.err = nil
 	c.snapshot = api.DashboardSnapshot{Items: []api.DashboardWidget{hostWidget("initial", 72.3)}}
 	c.mu.Unlock()
-	until("72.3%")
+	if next := until("72.3%"); strings.Contains(next, `id="dashboard-grid"`) || !strings.Contains(next, `id="widget-host-initial" hx-swap-oob="innerMorph"`) {
+		t.Fatal("telemetry recovery replaced the grid instead of its changed widget")
+	}
+	c.mu.Lock()
+	c.snapshot.Items = append(c.snapshot.Items, hostWidget("neighbour", 10))
+	c.mu.Unlock()
+	if next := until("neighbour"); !strings.Contains(next, `id="dashboard-grid"`) {
+		t.Fatal("new selection did not reconcile sections")
+	}
+	c.mu.Lock()
+	c.snapshot.Items = []api.DashboardWidget{hostWidget("initial", 80), hostWidget("neighbour", 10)}
+	c.mu.Unlock()
+	if next := until("80.0%"); strings.Contains(next, "neighbour") || strings.Contains(next, `id="dashboard-grid"`) {
+		t.Fatal("telemetry update resent unchanged neighbour or grid")
+	}
+	c.mu.Lock()
+	c.snapshot.Items = []api.DashboardWidget{hostWidget("initial", 72.3)}
+	c.mu.Unlock()
+	if next := until("72.3%"); !strings.Contains(next, `id="dashboard-grid"`) {
+		t.Fatal("removed selection did not reconcile sections")
+	}
 	response.Body.Close()
 	select {
 	case <-done:

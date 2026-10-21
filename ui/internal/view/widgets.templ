@@ -111,7 +111,7 @@ templ HostWidgetFooter(host Host, message string) {
 				hx-sync="this:drop"
 				x-data="{}"
 				x-on:htmx:error="$refs.feedback.textContent = 'Refresh failed. Try again.'"
-				x-on:htmx:finally:request="$nextTick(() => $el.querySelector('button')?.focus())"
+				x-on:htmx:finally:request="$nextTick(() => { if (document.activeElement === document.body || $el.contains(document.activeElement)) $el.querySelector('button')?.focus({ preventScroll: true }) })"
 			>
 				@tooltip.Tooltip("widget-refresh-tooltip-"+host.ID, "Refresh", tooltip.WithPosition(tooltip.PositionTop), tooltip.WithTrigger(HostWidgetRefreshButton(host)))
 				<small id={ "widget-refresh-feedback-host-" + host.ID } role="status" x-ref="feedback" class="balemoh-widget-feedback"></small>
@@ -184,4 +184,13 @@ templ DashboardLiveStatus(message string) {
 templ DashboardLiveUnavailable(sources []string) {
 	<div id="dashboard-warnings" hx-swap-oob="innerMorph">@DashboardWarnings(sources)</div>
 	@DashboardLiveStatus("Some sources unavailable; showing last received values.")
+}
+
+// Telemetry updates leave section geometry and unrelated widgets untouched.
+templ DashboardLiveWidgets(page Dashboard, message string) {
+	for _, widget := range page.Widgets {
+		<div id={ "widget-" + widget.ID } hx-swap-oob="innerMorph">@widget.Content</div>
+	}
+	<div id="dashboard-warnings" hx-swap-oob="innerMorph">@DashboardWarnings(page.Unavailable)</div>
+	@DashboardLiveStatus(message)
 }
