@@ -40,7 +40,7 @@ templ PageContent(data PageData) {
  >
 		if data.Editor != nil {
  @pageheader.PageHeader(pageheader.Config{Title: data.Title, HideSeparator: true})
- @link.Link(stagingURL(data.Editor.State())) { Back to Staging }
+ @link.Link(stagingURL(data.Editor.State()), link.WithIcon(icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:heroicons.Icon16SolidArrowUturnLeft,Decorative:true})), link.WithIconPosition(link.IconLeading)) { Back to Staging }
  } else if data.Staging {
 			@pageheader.PageHeader(pageheader.Config{
 				Title:       data.Title,
