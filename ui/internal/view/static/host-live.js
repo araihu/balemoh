@@ -5,7 +5,7 @@ function syncHostStatusDot() {
   const connection = document.querySelector('#host-live-status .balemoh-live-badge');
   if (!dot || !tooltip || !connection) return;
   const message = connection.textContent.trim();
-  const label = `${dot.dataset.telemetryStatus}. ${message}`;
+  const label = `${dot.querySelector("[data-telemetry-status]").dataset.telemetryStatus}. ${message}`;
   tooltip.textContent = label;
   dot.setAttribute('aria-label', `${dot.dataset.hostName}: ${label}`);
   dot.classList.toggle('balemoh-host-connection-warning', message !== 'Live updates connected');

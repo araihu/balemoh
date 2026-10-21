@@ -93,7 +93,7 @@ func TestHostDetailStatusUsesOneDotAndKindIcon(t *testing.T) {
 		if err := HostLiveSnapshot(page).Render(context.Background(), &output); err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(output.String(), `id="host-detail-status" hx-swap-oob="innerMorph"`) {
+		if !strings.Contains(output.String(), `id="host-status-value" hx-swap-oob="innerMorph"`) {
 			t.Error("live telemetry does not update the header dot")
 		}
 	}

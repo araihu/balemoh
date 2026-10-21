@@ -300,9 +300,12 @@ templ HostDetailStatus(host Host) {
  @tooltip.Tooltip("host-status-tooltip",hostStatus(host.Status),tooltip.WithPosition(tooltip.PositionBottom),tooltip.WithPortal(true),tooltip.WithTrigger(HostDetailStatusDot(host)))
 }
 templ HostDetailStatusDot(host Host) {
- @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-widget-status-trigger"),button.WithAttrs(templ.Attributes{"id":"host-status-dot","data-telemetry-status":hostStatus(host.Status),"aria-label":host.Name+": "+hostStatus(host.Status),"data-host-name":host.Name,"aria-describedby":"host-status-tooltip"})) {
-  <span aria-hidden="true">@badge.Badge(badge.Config{Tone:hostStatusTone(host.Status),RootClass:"balemoh-widget-status-dot"})</span>
+ @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-widget-status-trigger"),button.WithAttrs(templ.Attributes{"id":"host-status-dot","aria-label":host.Name+": "+hostStatus(host.Status),"data-host-name":host.Name,"aria-describedby":"host-status-tooltip"})) {
+  <span id="host-status-value">@HostDetailStatusValue(host)</span>
  }
+}
+templ HostDetailStatusValue(host Host) {
+ <span aria-hidden="true" data-telemetry-status={ hostStatus(host.Status) }>@badge.Badge(badge.Config{Tone:hostStatusTone(host.Status),RootClass:"balemoh-widget-status-dot"})</span>
 }
 templ HostLiveBadge(message string) {
  @badge.Badge(badge.Config{Label:message,Tone:badge.ToneInfo,RootClass:"balemoh-live-badge"})
@@ -312,7 +315,7 @@ templ HostLiveStatus(message string) {
 }
 templ HostLiveSnapshot(page HostDetail) {
  @HostLiveStatus("Live updates connected")
- <div id="host-detail-status" hx-swap-oob="innerMorph">@HostDetailStatus(page.Host)</div>
+ <span id="host-status-value" hx-swap-oob="innerMorph">@HostDetailStatusValue(page.Host)</span>
  <div id="host-measurements" hx-swap-oob="innerMorph">@HostMeasurements(page)</div>
  <div id="host-cpu-chart" hx-swap-oob="innerHTML">@HostChartContent(page,true)</div>
  <div id="host-memory-chart" hx-swap-oob="innerHTML">@HostChartContent(page,false)</div>
