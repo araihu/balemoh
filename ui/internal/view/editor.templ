@@ -3,6 +3,9 @@ package view
 import (
 	"github.com/araihu/goshtoso/components/button"
  "github.com/araihu/goshtoso/components/avatar"
+ "github.com/araihu/goshtoso/components/icon"
+ "github.com/araihu/goshtoso/components/icon/heroicons"
+ "github.com/araihu/goshtoso/components/tooltip"
  "github.com/araihu/goshtoso/components/modal"
 
 	"github.com/araihu/goshtoso/components/form"
@@ -40,17 +43,6 @@ templ ServiceEditor(service Service) {
    <div aria-label="Homepage card preview">
  @ServiceCard(serviceEditorPreview(service), ServiceIconPreview(service))
  </div>
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-ref":"chooseIcon","x-on:click":"$dispatch('modal:open', {id:'service-icon-picker'})","aria-haspopup":"dialog","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-sync":"#icon-picker-results:replace"})) {
- Choose icon
- }
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:open', {id:'service-icon-upload'})","aria-haspopup":"dialog","aria-controls":"service-icon-upload"})) { Upload icon }
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"iconRef=''; iconURL=''; iconSymbol=''; iconSprite=''"})) {
- if service.IsManual() {
- <span>Use default icon</span>
- } else {
- <span>Reset to discovery default</span>
- }
- }
   </div>
 		<div class="balemoh-editor-actions">
 			@button.Button(button.WithType("submit"), button.WithLoadingText("Saving…")) {
@@ -65,11 +57,21 @@ templ ServiceEditor(service Service) {
 			}
 		</div>
 	</form>
-   @modal.Dialog(modal.DialogConfig{ID:"service-icon-picker",Title:"Choose service icon",FullscreenMobile:true,Content:ServiceIconPicker()})
+   @modal.Dialog(modal.DialogConfig{ID:"service-icon-picker",Title:"Choose service icon",FullscreenMobile:true,Content:ServiceIconPicker(service)})
    @modal.Dialog(modal.DialogConfig{ID:"service-icon-upload",Title:"Upload service icon",FullscreenMobile:true,Content:ServiceIconUpload()})
 }
 
-templ ServiceIconPicker() {
+templ ServiceIconPicker(service Service) {
+ <div class="balemoh-editor-actions balemoh-icon-picker-actions">
+ @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:close', {id:'service-icon-picker'}); $nextTick(() => { document.getElementById('edit-service-icon').focus(); $dispatch('modal:open', {id:'service-icon-upload'}); })"})) { Upload icon }
+ @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('icon-selected', {id:'',url:'',symbol:'',sprite:''})"})) {
+ if service.IsManual() {
+ <span>Use default icon</span>
+ } else {
+ <span>Reset to discovery default</span>
+ }
+ }
+ </div>
  <div class="balemoh-editor">
   @IconSearch(IconPage{Picker:true})
   <div id="icon-picker-results"></div>
@@ -78,7 +80,16 @@ templ ServiceIconPicker() {
 }
 
 templ ServiceIconPreview(service Service) {
+ @tooltip.Tooltip("edit-service-icon-tooltip", "Change icon", tooltip.WithPosition(tooltip.PositionTop), tooltip.WithTrigger(ServiceIconTrigger(service)))
+}
+
+templ ServiceIconTrigger(service Service) {
+ @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-edit-icon"),button.WithAttrs(templ.Attributes{"id":"edit-service-icon","aria-label":"Change service icon","x-ref":"chooseIcon","x-on:click":"$dispatch('modal:open', {id:'service-icon-picker'})","aria-haspopup":"dialog","aria-controls":"service-icon-picker","hx-get":"/icons/picker","hx-target":"#icon-picker-results","hx-swap":"outerHTML","hx-include":"#picker-search, #picker-search-sources","hx-sync":"#icon-picker-results:replace"})) {
  @avatar.Avatar(avatar.Config{Size: avatar.SizeXS, Shape: avatar.ShapeSquare, Icon: ServicePreviewGlyph(service), RootClass: "balemoh-service-avatar"})
+ <span class="balemoh-edit-icon-mark" aria-hidden="true">
+ @icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:heroicons.Icon16SolidPencilSquare,Decorative:true})
+ </span>
+ }
 }
 templ ServicePreviewGlyph(service Service) {
  <span class="balemoh-service-card-icon">

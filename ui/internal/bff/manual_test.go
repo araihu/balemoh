@@ -45,7 +45,7 @@ func TestManualFormPreservesDraftAndRetryKey(t *testing.T) {
 			t.Fatal("discovery-only UI in manual form", unwanted)
 		}
 	}
-	for _, want := range []string{`action="/staging/services"`, ">Add service<", ">Choose icon<"} {
+	for _, want := range []string{`action="/staging/services"`, ">Add service<", `aria-label="Change service icon"`} {
 		if !strings.Contains(body, want) {
 			t.Fatal("missing create UI", want)
 		}

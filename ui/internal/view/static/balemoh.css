@@ -263,3 +263,12 @@ body {
 #dashboard-live { margin-bottom: 1rem; }
 
 .balemoh-widget-feedback { display: block; }
+
+/* Editable preview icon: persistent edit mark and a touch-sized target. */
+.balemoh-edit-icon { position: relative; width: 2.75rem; height: 2.75rem; padding: .25rem; cursor: pointer; }
+.balemoh-edit-icon:hover { background: var(--color-surface); }
+.balemoh-edit-icon-mark { position: absolute; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: .25rem; background: var(--color-primary); color: var(--color-on-primary); box-shadow: 0 0 0 2px var(--color-surface-alt); }
+.balemoh-edit-icon-mark svg { width: .875rem; height: .875rem; }
+.dark .balemoh-edit-icon-mark { background: var(--color-primary-dark); color: var(--color-on-primary-dark); box-shadow: 0 0 0 2px var(--color-surface-dark-alt); }
+.dark .balemoh-edit-icon:hover { background: var(--color-surface-dark); }
+.balemoh-icon-picker-actions { flex-wrap: wrap; padding: 0 1rem; }
