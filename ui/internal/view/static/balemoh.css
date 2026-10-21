@@ -237,6 +237,7 @@ body {
 .balemoh-host-workloads { overflow: visible; }
 .balemoh-host-list table, .balemoh-host-workloads table { min-width: 36rem; }
 .balemoh-host-list td:first-child, .balemoh-host-workloads td:first-child { min-width: 12rem; }
+.balemoh-host-list td:has([name="selection_context"]) { min-width: 5rem; width: 5rem; }
 
 .balemoh-host-notice { display: contents; }
 
