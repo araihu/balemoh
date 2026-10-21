@@ -13,6 +13,7 @@ import (
  "github.com/araihu/goshtoso/components/link"
  "github.com/araihu/goshtoso/components/pageheader"
  "github.com/araihu/goshtoso/components/table"
+ "github.com/araihu/goshtoso/components/tabs"
  "github.com/araihu/goshtoso/components/tooltip"
  "github.com/araihu/goshtoso-charts/components/interactive/line"
  "github.com/araihu/goshtoso-charts/components/chart"
@@ -20,7 +21,7 @@ import (
 )
 
 type Host struct {
- ID,Name,Kind,Status,ParentID,Ready string
+ ID,Name,Kind,Status,ParentID,Ready,Architecture string
  ObservedAt,ReceivedAt *time.Time
  CPU,Memory *float64
  MemoryUsed,MemoryTotal *int64
@@ -47,6 +48,7 @@ func hostRows(hosts []Host, selection *HostsPage) []table.Row {
  for _, host := range hosts {
   row := table.Row{ID: host.ID, Cells: map[string]table.Cell{
    "host": {Component: HostLink(host)}, "status": {Text: hostStatus(host.Status)},
+   "architecture": {Text: hostArchitecture(host)},
    "cpu": {Text: percentage(host.CPU)}, "memory": {Text: percentage(host.Memory)},
   }}
   if selection != nil {
@@ -56,6 +58,7 @@ func hostRows(hosts []Host, selection *HostsPage) []table.Row {
  }
  return rows
 }
+func hostArchitecture(host Host)string{if host.Kind=="Kubernetes cluster"{return "See nodes"};if host.Architecture==""{return "Unknown"};return host.Architecture}
 func hostStatus(status string)string{switch status{case "fresh":return "Reporting";case "partial":return "Partial data";case "stale":return "Stale";default:return "No telemetry"}}
 func hostStatusTone(status string)badge.Tone{switch status{case "fresh":return badge.ToneSuccess;case "partial","stale":return badge.ToneWarning;default:return badge.ToneInfo}}
 func percentage(value *float64)string{if value==nil{return "Unavailable"};return fmt.Sprintf("%.1f%%",*value)}
@@ -106,7 +109,7 @@ templ HostGlyph(host Host) {
 func hostColumns(selection *HostsPage) []table.Column {
  columns:=[]table.Column{}
  if selection!=nil {columns=append(columns,table.Column{Key:"select",Label:"Pinned",HeaderSuffix:tooltip.Help("host-pinning-help","How pinning works","Check to show a host on your homepage. Uncheck to remove it. Changes save immediately."),Width:"balemoh-col-select"})}
- return append(columns,[]table.Column{{Key:"host",Label:"Host"},{Key:"status",Label:"Telemetry"},{Key:"cpu",Label:"CPU"},{Key:"memory",Label:"Memory"}}...)
+ return append(columns,[]table.Column{{Key:"host",Label:"Host"},{Key:"architecture",Label:"Architecture"},{Key:"status",Label:"Telemetry"},{Key:"cpu",Label:"CPU"},{Key:"memory",Label:"Memory"}}...)
 }
 templ HostTable(hosts []Host, selection *HostsPage) {
  <div class="balemoh-table-scroll">
@@ -148,6 +151,20 @@ templ HostContent(page HostDetail) {
  if page.Missing {
  @alert.Alert(alert.Config{Title:"Host no longer available",Description:"Uncheck Show on home to remove this widget.",Tone:alert.ToneWarning})
  } else {
+ @tabs.Tabs(tabs.Config{ID:"host-tabs",DefaultTab:"overview",SyncHash:true,Tabs:hostTabs(page)})
+ }
+}
+func hostTabs(page HostDetail)[]tabs.Tab{
+ result:=[]tabs.Tab{{ID:"overview",Label:"Overview",Content:HostOverviewPanel(page)}}
+ if page.Host.Kind=="Kubernetes cluster"{result=append(result,tabs.Tab{ID:"nodes",Label:"Nodes",Content:HostNodesPanel(page)})}
+ result=append(result,tabs.Tab{ID:"workloads",Label:"Workloads",Content:HostWorkloadsPanel(page)})
+ if page.Host.ParentID==""{result=append(result,tabs.Tab{ID:"services",Label:"Services",Content:HostServices(page)})}
+ return result
+}
+templ HostOverviewPanel(page HostDetail){
+ <div id="host-overview">@HostOverview(page)</div>
+}
+templ HostOverview(page HostDetail){
  <div id={ "host-live-"+page.Window } data-host-live hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
   <div id="host-live-status" role="status" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
  </div>
@@ -167,9 +184,10 @@ templ HostContent(page HostDetail) {
   @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"CPU usage",Body:HostChart(page,true)})
   @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory usage",Body:HostChart(page,false)})
  </div>
- <div id="host-inventory">@HostInventory(page)</div>
+}
+templ HostServices(page HostDetail){
  if page.Host.ParentID=="" {
-  <h2>Catalog services</h2>
+  <p class="balemoh-muted">Applications discovered on this source, with their catalog settings and homepage links. One application can include several workloads.</p>
   if !page.ServicesAvailable {
    <p>Catalog services are unavailable.</p>
   } else if len(page.Services)==0 {
@@ -182,14 +200,20 @@ templ HostContent(page HostDetail) {
    </ul>
   }
  }
- }
 }
+templ HostNodesPanel(page HostDetail){
+ <div id="host-nodes">@HostNodes(page)</div>
+}
+templ HostWorkloadsPanel(page HostDetail){
+ <div id="host-workloads-panel">@HostWorkloads(page)</div>
+}
+
 func workloadColumns(kind string)[]table.Column{
  columns:=[]table.Column{{Key:"name",Label:"Name"},{Key:"state",Label:"State"}}
  if kind!="Docker host"{columns=append(columns,table.Column{Key:"namespace",Label:"Namespace"},table.Column{Key:"restarts",Label:"Restarts"})};return columns
 }
 func historyLinkAttrs(page HostDetail,window string)templ.Attributes{
- return templ.Attributes{"hx-get":"/hosts/"+page.Host.ID+"?range="+window,"hx-target":"#host-detail","hx-swap":"innerHTML","hx-push-url":strconv.FormatBool(window!=page.Window),"hx-sync":"#host-detail:replace"}
+ return templ.Attributes{"hx-get":"/hosts/"+page.Host.ID+"?range="+window,"hx-target":"#host-overview","hx-swap":"innerHTML","hx-push-url":strconv.FormatBool(window!=page.Window),"hx-sync":"#host-overview:replace"}
 }
 templ HostHistoryError(message string) {
  <span id="host-history-error" hx-swap-oob="innerMorph">{ message }</span>
@@ -214,6 +238,9 @@ templ HostNotice(status,title,description string,tone alert.Tone) {
 templ HostMeasurements(page HostDetail) {
  <div class="balemoh-host-status">
   @badge.Badge(badge.Config{Label:page.Host.Kind+" · "+hostStatus(page.Host.Status),Tone:hostStatusTone(page.Host.Status)})
+  if page.Host.Kind!="Kubernetes cluster" {
+   <span>Architecture: { hostArchitecture(page.Host) }</span>
+  }
   @ReportTime("Last observed:",page.Host.ObservedAt)
   @ReportTime("Last received:",page.Host.ReceivedAt)
   if page.Host.Ready!="" {
@@ -235,7 +262,7 @@ templ HostMeasurements(page HostDetail) {
   @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory",Body:MetricValue(percentage(page.Host.Memory),memorySize(page.Host.MemoryUsed)+" used / "+memorySize(page.Host.MemoryTotal)+" total")})
  </div>
 }
-templ HostInventory(page HostDetail) {
+templ HostNodes(page HostDetail) {
  if page.Host.Kind=="Kubernetes cluster" {
   <h2>Nodes</h2>
   if len(page.Children)>0 {
@@ -244,7 +271,9 @@ templ HostInventory(page HostDetail) {
    <p>No node inventory received.</p>
   }
  }
- <h2>Workloads</h2>
+}
+templ HostWorkloads(page HostDetail) {
+ <p class="balemoh-muted">Reported pods or containers, their runtime state and restart counts.</p>
  if !page.Host.InventoryAvailable {
   <p>Workload inventory is unavailable or incomplete.</p>
  }
@@ -274,7 +303,10 @@ templ HostLiveSnapshot(page HostDetail) {
  <div id="host-measurements" hx-swap-oob="innerMorph">@HostMeasurements(page)</div>
  <div id="host-cpu-chart" hx-swap-oob="innerHTML">@HostChartContent(page,true)</div>
  <div id="host-memory-chart" hx-swap-oob="innerHTML">@HostChartContent(page,false)</div>
- <div id="host-inventory" hx-swap-oob="innerMorph">@HostInventory(page)</div>
+ if page.Host.Kind=="Kubernetes cluster" {
+ <div id="host-nodes" hx-swap-oob="innerMorph">@HostNodes(page)</div>
+ }
+ <div id="host-workloads-panel" hx-swap-oob="innerMorph">@HostWorkloads(page)</div>
 }
 templ HostChartContent(page HostDetail,cpu bool) {
  if hasHistory(page,cpu) {

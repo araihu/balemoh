@@ -30,6 +30,7 @@ type Workload struct {
 }
 type Observation struct {
 	Node               string `json:"node"`
+	Architecture       string `json:"architecture,omitempty"`
 	InventoryAvailable bool   `json:"inventoryAvailable"`
 	Ready              string `json:"ready"`
 	Metrics
@@ -113,6 +114,9 @@ func (b Batch) Validate(now time.Time) error {
 			return fmt.Errorf("invalid or duplicate node")
 		}
 		seen[h.Node] = true
+		if !validText(h.Architecture, 64, false) {
+			return fmt.Errorf("invalid CPU architecture")
+		}
 		if h.Ready != "" && h.Ready != "True" && h.Ready != "False" && h.Ready != "Unknown" {
 			return fmt.Errorf("invalid readiness")
 		}

@@ -222,6 +222,8 @@ type HealthResponseStatus string
 
 // Host defines model for Host.
 type Host struct {
+	// Architecture CPU architecture reported by the host. Absent for older agents, unknown hosts, and cluster aggregates.
+	Architecture       *string        `json:"architecture,omitempty"`
 	CpuPercent         *float64       `json:"cpuPercent"`
 	Id                 string         `json:"id"`
 	InventoryAvailable bool           `json:"inventoryAvailable"`
@@ -265,6 +267,8 @@ type HostMetrics struct {
 
 // HostObservation defines model for HostObservation.
 type HostObservation struct {
+	// Architecture CPU architecture reported by the host. Absent for older agents, unknown hosts, and cluster aggregates.
+	Architecture       *string        `json:"architecture,omitempty"`
 	CpuPercent         *float64       `json:"cpuPercent"`
 	InventoryAvailable bool           `json:"inventoryAvailable"`
 	MemoryTotalBytes   *int64         `json:"memoryTotalBytes"`

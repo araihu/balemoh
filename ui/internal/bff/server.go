@@ -273,7 +273,7 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageDa
 	if data.HostDetail != nil {
 		w.Header().Add("Vary", "HX-Request-Type")
 		if r.Header.Get("HX-Request-Type") == "partial" {
-			component = view.HostContent(*data.HostDetail)
+			component = view.HostOverview(*data.HostDetail)
 			if data.Error != "" {
 				component = view.HostHistoryError(data.Error)
 				w.Header().Set("HX-Push-Url", "false")

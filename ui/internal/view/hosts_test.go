@@ -39,3 +39,36 @@ func TestInteractiveHostHistoryPreservesMissingAndZero(t *testing.T) {
 		}
 	}
 }
+
+func TestHostTabsKeepLiveUpdatesScoped(t *testing.T) {
+	for _, kind := range []string{"Kubernetes cluster", "Kubernetes node", "Docker host"} {
+		page := HostDetail{Host: Host{ID: "host", Name: "Host", Kind: kind, Architecture: "arm64"}, Window: "1h"}
+		if kind == "Kubernetes node" {
+			page.Host.ParentID = "cluster"
+		}
+		var output bytes.Buffer
+		if err := HostContent(page).Render(context.Background(), &output); err != nil {
+			t.Fatal(err)
+		}
+		body := output.String()
+		for _, tab := range []string{"overview", "workloads"} {
+			if !strings.Contains(body, `aria-controls="tabpanelhost-tabs`+tab+`"`) {
+				t.Errorf("%s missing %s tab", kind, tab)
+			}
+		}
+		if strings.Contains(body, `id="host-nodes"`) != (kind == "Kubernetes cluster") {
+			t.Errorf("wrong nodes panel for %s", kind)
+		}
+		if strings.Contains(body, "Applications discovered on this source") != (kind != "Kubernetes node") {
+			t.Errorf("wrong services panel for %s", kind)
+		}
+		output.Reset()
+		if err := HostLiveSnapshot(page).Render(context.Background(), &output); err != nil {
+			t.Fatal(err)
+		}
+		body = output.String()
+		if strings.Contains(body, `role="tab"`) || strings.Contains(body, `id="host-overview"`) {
+			t.Fatal("SSE replaces tab state or overview container")
+		}
+	}
+}

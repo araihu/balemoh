@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/moby/moby/api/types/system"
 	docker "github.com/moby/moby/client"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -22,6 +23,9 @@ import (
 
 type emptyDocker struct{}
 
+func (emptyDocker) Info(context.Context, docker.InfoOptions) (docker.SystemInfoResult, error) {
+	return docker.SystemInfoResult{Info: system.Info{Architecture: "aarch64"}}, nil
+}
 func (emptyDocker) ContainerList(context.Context, docker.ContainerListOptions) (docker.ContainerListResult, error) {
 	return docker.ContainerListResult{}, nil
 }
@@ -37,6 +41,9 @@ func TestDockerHostCountersAndMissingData(t *testing.T) {
 	write("meminfo", "MemTotal: 1000 kB\nMemAvailable: 400 kB\n")
 	d := Docker{Client: emptyDocker{}, SourceID: "docker", ProcPath: dir}
 	first := d.Collect(context.Background())
+	if first.Hosts[0].Architecture != "arm64" {
+		t.Fatalf("daemon architecture missing: %q", first.Hosts[0].Architecture)
+	}
 	if first.Hosts[0].CPUPercent != nil || *first.Hosts[0].MemoryUsedBytes != 600*1024 {
 		t.Fatal("first CPU measurement must be unavailable; memory must use host counters")
 	}
@@ -54,7 +61,7 @@ func TestDockerHostCountersAndMissingData(t *testing.T) {
 }
 func TestKubernetesMetricsAndMissingNodeAggregation(t *testing.T) {
 	node := func(name string) *corev1.Node {
-		return &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: name}, Status: corev1.NodeStatus{Capacity: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("2"), corev1.ResourceMemory: resource.MustParse("4Gi")}}}
+		return &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: name}, Status: corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{Architecture: map[string]string{"a": "amd64", "b": "arm64"}[name]}, Capacity: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("2"), corev1.ResourceMemory: resource.MustParse("4Gi")}}}
 	}
 	gvr := schema.GroupVersionResource{Group: "metrics.k8s.io", Version: "v1beta1", Resource: "nodes"}
 	metric := &unstructured.Unstructured{Object: map[string]interface{}{"apiVersion": "metrics.k8s.io/v1beta1", "kind": "NodeMetrics", "metadata": map[string]interface{}{"name": "a"}, "timestamp": time.Now().UTC().Format(time.RFC3339), "usage": map[string]interface{}{"cpu": "500m", "memory": "1Gi"}}}
@@ -65,6 +72,9 @@ func TestKubernetesMetricsAndMissingNodeAggregation(t *testing.T) {
 	}
 	k := Kubernetes{Core: core.CoreV1(), Dynamic: dyn, SourceID: "cluster", Namespace: "apps"}
 	b := k.Collect(context.Background())
+	if b.Hosts[0].Architecture != "" || b.Hosts[1].Architecture != "amd64" || b.Hosts[2].Architecture != "arm64" {
+		t.Fatalf("mixed node architectures lost: %+v", b.Hosts)
+	}
 	if len(b.Hosts) != 3 || b.Hosts[0].CPUPercent != nil || !b.Hosts[0].InventoryAvailable {
 		t.Fatal("partial cluster must not claim complete aggregate")
 	}
@@ -88,5 +98,18 @@ func TestKubernetesMetricsAndMissingNodeAggregation(t *testing.T) {
 	denied := k.Collect(context.Background())
 	if len(denied.Hosts) != 3 || denied.Hosts[1].CPUPercent != nil || !denied.Hosts[1].InventoryAvailable {
 		t.Fatal("metrics failure erased inventory")
+	}
+}
+
+type unavailableDockerInfo struct{ emptyDocker }
+
+func (unavailableDockerInfo) Info(context.Context, docker.InfoOptions) (docker.SystemInfoResult, error) {
+	return docker.SystemInfoResult{}, fmt.Errorf("unavailable")
+}
+func TestDockerUnavailableArchitectureKeepsInventory(t *testing.T) {
+	d := Docker{Client: unavailableDockerInfo{}, SourceID: "host", ProcPath: t.TempDir()}
+	h := d.Collect(context.Background()).Hosts[0]
+	if h.Architecture != "" || !h.InventoryAvailable {
+		t.Fatalf("unavailable daemon info: %+v", h)
 	}
 }
