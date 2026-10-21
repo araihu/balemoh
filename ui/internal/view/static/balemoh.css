@@ -273,3 +273,7 @@ body {
 .dark .balemoh-edit-icon-mark { background: var(--color-primary-dark); color: var(--color-on-primary-dark); box-shadow: 0 0 0 2px var(--color-surface-dark-alt); }
 .dark .balemoh-edit-icon:hover { background: var(--color-surface-dark); }
 .balemoh-icon-picker-actions { flex-wrap: wrap; padding: 0 1rem; }
+
+.balemoh-host-kind-icon { order: -1; display: inline-flex; align-items: center; flex-shrink: 0; }
+.balemoh-host-connection-warning .balemoh-widget-status-dot { background-color: #f59e0b; }
+#host-status-tooltip { width: 18rem; max-width: calc(100vw - 2rem); white-space: normal; }
