@@ -55,9 +55,9 @@ print(json.dumps({'pluginId':'example.smoke','connectionId':sys.argv[1],'contrib
 PY
 curl --config "$work/curl.conf" -fsS -X PUT -H 'Content-Type: application/json' --data-binary "@$work/placement.json" "http://$api_address/api/v1/plugin-widgets/00000000-0000-4000-8000-000000000002" > /dev/null
 curl --retry 15 --retry-delay 1 --retry-all-errors --max-time 5 -fsS "http://$ui_address/plugins/example.smoke/connections/$connection/page-content/current" > "$work/page.html"
-rg -q 'Independent UI plugin' "$work/page.html"
+grep -q 'Independent UI plugin' "$work/page.html"
 curl -fsS "http://$ui_address/plugin-widgets/00000000-0000-4000-8000-000000000002" > "$work/widget.html"
-rg -q 'Independent UI plugin' "$work/widget.html"
+grep -q 'Independent UI plugin' "$work/widget.html"
 curl -fsS "http://$ui_address/" > "$work/home.html"
-rg -q 'data-plugin-slot' "$work/home.html"
+grep -q 'data-plugin-slot' "$work/home.html"
 echo 'Non-root read-only API/UI image and independent plugin smoke passed'
