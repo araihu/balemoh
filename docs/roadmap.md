@@ -117,8 +117,9 @@ Cada fase termina quando tem contrato documentado, implementação isolada, test
 ## Application plugins alpha
 
 SDK, runtime, persisted widgets, author CLI and the separate Alertmanager plugin
-are implemented locally. Independent final review and authorized homelab rollout
-are in progress. See [implementation plan](superpowers/plans/2026-10-25-plugin-system-implementation.md),
+passed independent architecture/code review and authorized homelab rollout with
+real Alertmanager data. Source remains in draft PR 42; stable SDK publication is
+pending. See [implementation plan](superpowers/plans/2026-10-25-plugin-system-implementation.md),
 [operations](plugins/operations.md) and [acceptance](plugins/acceptance.md).
 The alpha accepts trusted local packages and one backend owner. History, source
 mutations, untrusted code and public distribution remain deferred.

@@ -1,6 +1,6 @@
 # Application plugins
 
-Status: implementation contract. P1 through P7 implemented locally; P8 acceptance and authorized homelab validation in progress. See the implementation plan and acceptance ledger for evidence.
+Status: P1 through P8 implemented and independently reviewed for the trusted pre-v0.1.0 milestone. Authorized homelab rollout and real Alertmanager validation passed. See the implementation plan and acceptance ledger for evidence. Stable SDK publication and source merge remain separate actions.
 
 Milestone: pre-v0.1.0 exploration. Deliver independently compiled, trusted application plugins with sidebar navigation, pages and selectable home widgets. Alertmanager is the first full-stack consumer. This document does not authorize release or deployment.
 

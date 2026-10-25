@@ -1,6 +1,6 @@
 # Application plugins implementation plan
 
-Status: P1/P2 independently reviewed. P3 through P7 implemented locally; P8 acceptance, independent review and authorized homelab validation in progress. Checked tasks record verified behavior. User separately authorized real Alertmanager access and homelab deployment on 2026-10-25.
+Status: P1 through P8 implemented and independently reviewed. Authorized homelab rollout passed with real Alertmanager data and persisted widgets. Checked tasks record verified behavior; source remains a draft PR and no stable SDK tag exists. User separately authorized real Alertmanager access and homelab deployment on 2026-10-25.
 
 **Spec:** [Application plugins](../specs/2026-10-25-plugin-system-design.md).
 
@@ -248,13 +248,13 @@ install into the homelab or deployment is implied.
 
 **Deliverable:** implementation is assessable against all spec invariants and a future deployment has concrete prerequisites.
 
-- [ ] Run the coverage matrix below using the smallest suites justified by changed code. Repeat/broaden only for new changes, failures or unresolved concerns.
-- [ ] Demonstrate fixture plugin and Alertmanager installed through same runtime, with new page/widget added without host import/route/renderer edits. Record package, module and profile versions.
-- [ ] Document installation/configuration/grants, generated author workflow, browser/source URL distinction, cached-refresh semantics, errors and local SDK bootstrap. Generate environment docs from actual fields, never duplicate defaults by hand.
-- [ ] Document disable/update/mismatch/rollback procedures. Use additive migration evidence and preserve existing pins/placements; never run destructive down migrations as ordinary rollback.
-- [ ] Record execution evidence: commands/results, fixture scenarios, browser states, available native platforms and remaining live-environment limits. Do not mark spec's proposed APIs as implemented until their acceptance exists.
-- [ ] Prepare deployment prerequisites only: API/BFF package revision alignment, single backend owner, secret delivery, plugin directory permissions and shared audience boundary. No homelab manifests/hosts/Argo actions in this implementation plan.
-- [ ] Update roadmap/spec status to accurately describe completed and deferred behavior. Keep deferred register below; do not turn future hardening into silent blockers.
+- [x] Run the coverage matrix below using the smallest suites justified by changed code. Repeat/broaden only for new changes, failures or unresolved concerns.
+- [x] Demonstrate fixture plugin and Alertmanager installed through same runtime, with new page/widget added without host import/route/renderer edits. Record package, module and profile versions.
+- [x] Document installation/configuration/grants, generated author workflow, browser/source URL distinction, cached-refresh semantics, errors and local SDK bootstrap. Generate environment docs from actual fields, never duplicate defaults by hand.
+- [x] Document disable/update/mismatch/rollback procedures. Use additive migration evidence and preserve existing pins/placements; never run destructive down migrations as ordinary rollback.
+- [x] Record execution evidence: commands/results, fixture scenarios, browser states, available native platforms and remaining live-environment limits. Do not mark spec's proposed APIs as implemented until their acceptance exists.
+- [x] Prepare deployment prerequisites: API/BFF package revision alignment, single backend owner, secret delivery, plugin directory permissions and shared audience boundary. The original deployment exclusion was superseded by the user's explicit homelab authorization; execution is recorded separately in the acceptance ledger.
+- [x] Update roadmap/spec status to accurately describe completed and deferred behavior. Keep deferred register below; do not turn future hardening into silent blockers.
 
 **Exit:** spec's first-delivery journey passes and remaining release/deployment actions are explicit. Closing this plan does not perform them.
 
