@@ -128,7 +128,7 @@ func TestDataDiscoveryFailureLeavesCoreRegistryUsable(t *testing.T) {
 	if err := registry.WaitReady(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if registry.Problems() != 1 || len(registry.Navigation()) != 0 || len(registry.Widgets()) != 0 {
+	if registry.Problems() != 1 || len(registry.Navigation()) != 1 || registry.Navigation()[0].Href != "/plugins/widgets" || len(registry.Widgets()) != 0 {
 		t.Fatal("failed discovery mounted invalid identity")
 	}
 }
@@ -159,10 +159,7 @@ func TestNavigationNamesEachConnectionAndKeepsScopedLinks(t *testing.T) {
 	}
 	registry.source = &Source{}
 	navigation = registry.Navigation()
-	for _, connection := range navigation {
-		settings := connection.Children[1]
-		if settings.Title != "Configure widgets" || settings.Icon != "hi-16-solid-cog-6-tooth" {
-			t.Fatal("widget settings lost its host-owned icon")
-		}
+	if len(navigation) != 3 || navigation[2].Title != "Plugins/Widgets" || navigation[2].Href != "/plugins/widgets" || navigation[2].Icon != "hi-16-solid-cog-6-tooth" || len(navigation[0].Children) != 1 || len(navigation[1].Children) != 1 {
+		t.Fatal("widget management must have one host-owned global navigation item")
 	}
 }

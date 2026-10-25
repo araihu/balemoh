@@ -299,13 +299,31 @@ First delivery inherits existing shared-dashboard browser access boundary. Insta
 | `GET /plugins/{pluginId}/connections/{connectionId}/pages/{relativePath...}` | Validate route; return shell and host-owned loading slot without plugin RPC |
 | `GET /plugins/{pluginId}/connections/{connectionId}/page-content/{relativePath...}` | Revalidate registered page; render only its content under an isolated deadline |
 | `GET /plugins/{pluginId}/connections/{connectionId}/fragments/{contributionId}/{region}` | Resolve SDK-registered local fragment |
-| `GET /plugins/{pluginId}/connections/{connectionId}/widgets` | Host-owned definition/placement management controls |
+| `GET /plugins/widgets` | Host-owned global Goshtoso tables of saved and available widgets, grouped by plugin/connection metadata; no plugin RPC |
+| `GET /plugin-widgets/{placementId}/edit` | One persisted widget editor, selected by placement UUID |
+| `GET /plugins/{pluginId}/connections/{connectionId}/widgets/{contributionId}/new` | One creation editor with a generated stable submission UUID |
+| `GET /plugins/{pluginId}/connections/{connectionId}/widgets` | Legacy bookmark redirects to the global widget list |
 | `POST /plugins/{pluginId}/connections/{connectionId}/widgets/{contributionId}` | Create placement through data API using form UUID/options/desired state |
 | `GET /plugin-widgets/{placementId}` | Resolve one placement; render only its content under an isolated deadline |
 | `POST /plugin-widgets/{placementId}/selection` | Explicit enabled state; PRG or scoped control response |
 | `POST /plugin-widgets/{placementId}/options` | Revision-checked options update; PRG or local form errors |
 | `POST /plugin-widgets/{placementId}/delete` | Revision-checked removal with host confirmation |
 | `GET /plugins/assets/{pluginId}/{packageDigest}/{assetPath...}` | Only declared packaged files |
+
+The sidebar contains one host-owned `Plugins/Widgets` item, independent of plugin-provided page links and still present if plugin discovery fails. Saved rows retain disabled and unavailable placements. Each row exposes a native detail link and a short placement identifier, plus plugin, connection and home-selection state. Available rows open a separate creation editor for each compatible connection and definition. Empty catalog and API failure are distinct states. The list never executes plugin UI code.
+
+Save and home-selection success redirect to that placement's editor. Delete success redirects to the list. Form errors display only the affected editor, keep submitted options and expose a reload link for conflict recovery. Unknown placement IDs retain the host shell and list recovery. Home widget configuration links target their own editor.
+
+| State | Action | Response and destination | Effect |
+| --- | --- | --- | --- |
+| Saved widget/current revision | Save options or explicit home selection | 303 to same placement editor | Only named placement updated |
+| Saved widget/stale revision | Save options | 409, same editor with submitted draft and current-configuration reload | No stale update |
+| Invalid options | Save options | 409, same editor with draft | No update |
+| Saved widget/no confirmation | Delete | 400, same editor | No deletion |
+| Saved widget/current revision and confirmation | Delete | 303 to global list | Named placement removed |
+| Missing placement | Open editor | 404 in host shell with list recovery | No write |
+| API unavailable | Open list/editor | 503 in host shell with retry destination | No false empty state |
+| Missing definition | Open saved editor | Retained identity and selection/delete controls, no options editor | No implicit options replacement |
 
 Host provides placement creation/options controls as well as desired-state selection. Every mutation revalidates connection, definition and options, applies same-origin/CSRF checks and carries revision. Create forms generate placement UUID before submission so retries reuse identity. Selection form includes an explicit boolean enabled value and revision. Repeated actions reconcile desired state, never toggle. Page POST handlers may validate local UI input; they do not grant source-side mutations. On native requests use PRG. Full navigation remains valid for page changes/deep links/no-JavaScript fallback.
 

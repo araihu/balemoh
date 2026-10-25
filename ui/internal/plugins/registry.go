@@ -398,9 +398,6 @@ func (r *Registry) Navigation() []Navigation {
 			return out
 		}
 		group := walk(e.Package.Manifest.Navigation)
-		if r.source != nil {
-			group = append(group, Navigation{ID: NavID(e.Package.Manifest.ID, e.Installation.ConnectionID, "widgets"), Title: "Configure widgets", Icon: "hi-16-solid-cog-6-tooth", Href: "/plugins/" + e.Package.Manifest.ID + "/connections/" + e.Installation.ConnectionID + "/widgets"})
-		}
 		if len(group) == 0 {
 			continue
 		}
@@ -409,6 +406,9 @@ func (r *Registry) Navigation() []Navigation {
 		} else {
 			items = append(items, group...)
 		}
+	}
+	if r.source != nil {
+		items = append(items, Navigation{ID: "nav-plugin-widgets", Title: "Plugins/Widgets", Icon: "hi-16-solid-cog-6-tooth", Href: "/plugins/widgets"})
 	}
 	return items
 }

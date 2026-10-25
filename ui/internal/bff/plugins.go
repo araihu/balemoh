@@ -159,7 +159,7 @@ func (s *server) pluginRenderer(item api.DashboardWidget) (view.Widget, error) {
 	slotID := "plugin-slot-" + ref.PlacementID
 
 	revision, _ := json.Marshal(item.Data)
-	return view.Widget{ID: item.Id, Content: view.ManagedPluginWidget(slotID, item.Title, "/plugin-widgets/"+ref.PlacementID, string(revision), "/plugins/"+ref.PluginID+"/connections/"+ref.ConnectionID+"/widgets")}, nil
+	return view.Widget{ID: item.Id, Content: view.ManagedPluginWidget(slotID, item.Title, "/plugin-widgets/"+ref.PlacementID, string(revision), widgetEditURL(ref.PlacementID))}, nil
 }
 func (s *server) pluginNavigation() []sidebar.Item {
 	var convert func([]plugins.Navigation) []sidebar.Item

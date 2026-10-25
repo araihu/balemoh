@@ -2,79 +2,142 @@ package bff
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
-	"github.com/araihu/balemoh/plugin-sdk/manifest"
-	"github.com/araihu/balemoh/ui/internal/plugins"
-	"github.com/araihu/balemoh/ui/internal/view"
+	"errors"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"uuid"
+
+	"github.com/araihu/balemoh/plugin-sdk/manifest"
+	"github.com/araihu/balemoh/ui/internal/plugins"
+	"github.com/araihu/balemoh/ui/internal/view"
 )
+
+const widgetIndexURL = "/plugins/widgets"
+const widgetNavigationID = "nav-plugin-widgets"
 
 func widgetManagementURL(plugin, connection string) string {
 	return "/plugins/" + plugin + "/connections/" + connection + "/widgets"
 }
-func (s *server) pluginWidgets(w http.ResponseWriter, r *http.Request) {
-	s.renderPluginWidgets(w, r, r.PathValue("pluginID"), r.PathValue("connectionID"), nil, "", 200)
+func widgetEditURL(id string) string { return "/plugin-widgets/" + id + "/edit" }
+func widgetNewURL(plugin, connection, contribution string) string {
+	return widgetManagementURL(plugin, connection) + "/" + contribution + "/new"
 }
-func (s *server) renderPluginWidgets(w http.ResponseWriter, r *http.Request, plugin, connection string, failed *plugins.PlacementRecord, message string, status int) {
+
+// Keep existing bookmarks useful without exposing every editor on one page.
+func (s *server) pluginWidgets(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, widgetIndexURL, http.StatusFound)
+}
+func widgetDefinition(c plugins.WidgetCatalog, plugin, contribution string) (plugins.Definition, bool) {
+	for _, d := range c.Definitions {
+		if d.PluginID == plugin && d.ContributionID == contribution {
+			return d, true
+		}
+	}
+	return plugins.Definition{}, false
+}
+func (s *server) widgetNames(plugin, connection string) (string, string) {
+	if e := s.plugins.Connection(plugin, connection); e != nil {
+		return e.Package.Manifest.Name, e.ConnectionName
+	}
+	return plugin, connection
+}
+func (s *server) widgetConfigurationError(w http.ResponseWriter, r *http.Request, message string, status int) {
+	s.render(w, r, view.PageData{Title: "Plugins/Widgets", Description: "Manage plugin widget configuration.", Path: r.URL.Path, Active: widgetNavigationID, PluginContent: view.PluginWidgetsRecovery(message)}, status)
+}
+func (s *server) pluginWidgetsIndex(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	c, err := s.plugins.WidgetCatalog(ctx)
 	if err != nil {
-		s.render(w, r, view.PageData{Title: "Plugin widgets", Error: "Widget configuration is unavailable."}, 503)
+		s.widgetConfigurationError(w, r, "Widget configuration is unavailable. Try again.", 503)
 		return
 	}
-	page := view.PluginManagement{PluginID: plugin, ConnectionID: connection, Name: plugin, URL: widgetManagementURL(plugin, connection), Error: message}
-	if e := s.plugins.Connection(plugin, connection); e != nil {
-		page.Name = e.ConnectionName
-	}
-	definitions := map[string]plugins.Definition{}
-	for _, d := range c.Definitions {
-		if d.PluginID == plugin {
-			definitions[d.ContributionID] = d
-		}
-	}
-	makeForm := func(p plugins.PlacementRecord, create bool) view.PluginForm {
-		d := definitions[p.ContributionID]
-		fields, _ := manifest.FormFields(d.OptionsSchema)
+	page := view.PluginWidgetList{}
+	for _, p := range c.Placements {
+		d, ok := widgetDefinition(c, p.PluginID, p.ContributionID)
 		title := d.Title
-		if title == "" {
+		if !ok {
 			title = "Unavailable widget " + p.ContributionID
 		}
-		values := view.PluginValues(p.Options)
-		values["enabled"] = p.Enabled
-		action := "/plugin-widgets/" + p.PlacementID + "/options"
-		if create {
-			action = page.URL + "/" + p.ContributionID
-		}
-		return view.PluginForm{ID: p.PlacementID, Revision: p.Revision, Title: title, Action: action, Fields: fields, Values: values, Enabled: p.Enabled, Create: create}
+		plugin, connection := s.widgetNames(p.PluginID, p.ConnectionID)
+		page.Saved = append(page.Saved, view.PluginWidgetRow{ID: p.PlacementID, Title: title, Plugin: plugin, Connection: connection, URL: widgetEditURL(p.PlacementID), Enabled: p.Enabled})
 	}
-	found := false
-	for _, p := range c.Placements {
-		if p.PluginID == plugin && p.ConnectionID == connection {
-			if failed != nil && failed.PlacementID == p.PlacementID {
-				p = *failed
-				found = true
-			}
-			page.Forms = append(page.Forms, makeForm(p, false))
-		}
-	}
-	for _, d := range c.Definitions {
-		if d.PluginID != plugin {
+	for _, e := range s.plugins.Entries() {
+		if !e.Compatible || e.Package == nil {
 			continue
 		}
-		p := plugins.PlacementRecord{PluginID: plugin, ConnectionID: connection, ContributionID: d.ContributionID, PlacementID: uuid.NewV4().String(), Options: json.RawMessage(`{}`)}
-		if failed != nil && !found && failed.ContributionID == d.ContributionID {
-			p = *failed
+		for _, d := range c.Definitions {
+			if d.PluginID != e.Package.Manifest.ID {
+				continue
+			}
+			page.Available = append(page.Available, view.PluginWidgetRow{ID: plugins.NavID(d.PluginID, e.Installation.ConnectionID, d.ContributionID), Title: d.Title, Plugin: e.Package.Manifest.Name, Connection: e.ConnectionName, URL: widgetNewURL(d.PluginID, e.Installation.ConnectionID, d.ContributionID)})
 		}
-		page.Forms = append(page.Forms, makeForm(p, true))
 	}
-	w.Header().Set("Cache-Control", "no-store")
-	s.render(w, r, view.PageData{Title: "Plugin widgets", Description: "Configure independent widgets and choose what appears on home.", Path: r.URL.Path, PluginContent: view.PluginWidgets(page)}, status)
+	sortRows := func(rows []view.PluginWidgetRow) {
+		slices.SortFunc(rows, func(a, b view.PluginWidgetRow) int {
+			return cmp.Or(strings.Compare(a.Plugin, b.Plugin), strings.Compare(a.Connection, b.Connection), strings.Compare(a.Title, b.Title), strings.Compare(a.ID, b.ID))
+		})
+	}
+	sortRows(page.Saved)
+	sortRows(page.Available)
+	s.render(w, r, view.PageData{Title: "Plugins/Widgets", Description: "Manage plugin widgets and their individual configuration.", Path: r.URL.Path, Active: widgetNavigationID, PluginContent: view.PluginWidgetsIndex(page)}, 200)
+}
+func (s *server) pluginWidgetEdit(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	p, err := s.plugins.CurrentPlacement(ctx, r.PathValue("placementID"))
+	if err != nil {
+		status := 503
+		message := "Widget configuration is unavailable. Try again."
+		if errors.Is(err, plugins.ErrNotFound) {
+			status = 404
+			message = "Saved widget not found."
+		}
+		s.widgetConfigurationError(w, r, message, status)
+		return
+	}
+	s.renderPluginWidgetEditor(w, r, p, false, "", 200)
+}
+func (s *server) pluginWidgetNew(w http.ResponseWriter, r *http.Request) {
+	p := plugins.PlacementRecord{PluginID: r.PathValue("pluginID"), ConnectionID: r.PathValue("connectionID"), ContributionID: r.PathValue("contributionID"), PlacementID: uuid.NewV4().String(), Options: json.RawMessage(`{}`)}
+	s.renderPluginWidgetEditor(w, r, p, true, "", 200)
+}
+func (s *server) renderPluginWidgetEditor(w http.ResponseWriter, r *http.Request, p plugins.PlacementRecord, create bool, message string, status int) {
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+	c, err := s.plugins.WidgetCatalog(ctx)
+	if err != nil {
+		s.widgetConfigurationError(w, r, "Widget configuration is unavailable. Try again.", 503)
+		return
+	}
+	d, ok := widgetDefinition(c, p.PluginID, p.ContributionID)
+	if create && (!ok || s.plugins.Connection(p.PluginID, p.ConnectionID) == nil) {
+		s.widgetConfigurationError(w, r, "Widget or connection not found.", 404)
+		return
+	}
+	title := d.Title
+	if !ok {
+		title = "Unavailable widget " + p.ContributionID
+	}
+	fields, fieldErr := manifest.FormFields(d.OptionsSchema)
+	values := view.PluginValues(p.Options)
+	values["enabled"] = p.Enabled
+	action := "/plugin-widgets/" + p.PlacementID + "/options"
+	reload := widgetEditURL(p.PlacementID)
+	if create {
+		action = widgetManagementURL(p.PluginID, p.ConnectionID) + "/" + p.ContributionID
+		reload = widgetNewURL(p.PluginID, p.ConnectionID, p.ContributionID)
+		title = "Add " + title
+	}
+	plugin, connection := s.widgetNames(p.PluginID, p.ConnectionID)
+	page := view.PluginManagement{Name: title, PluginName: plugin, ConnectionName: connection, Error: message, ReloadURL: reload, OptionsAvailable: ok && fieldErr == nil, Form: view.PluginForm{ID: p.PlacementID, Revision: p.Revision, Title: title, Action: action, Fields: fields, Values: values, Enabled: p.Enabled, Create: create}}
+	s.render(w, r, view.PageData{Title: title, Description: "Configure an individual plugin widget.", Path: r.URL.Path, Active: widgetNavigationID, PluginContent: view.PluginWidgets(page)}, status)
 }
 func (s *server) pluginPlacementWrite(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
@@ -93,7 +156,13 @@ func (s *server) pluginPlacementWrite(w http.ResponseWriter, r *http.Request) {
 	} else {
 		p, err = s.plugins.CurrentPlacement(ctx, id)
 		if err != nil {
-			http.NotFound(w, r)
+			status := 503
+			message := "Widget configuration is unavailable. Try again."
+			if errors.Is(err, plugins.ErrNotFound) {
+				status = 404
+				message = "Saved widget not found."
+			}
+			s.widgetConfigurationError(w, r, message, status)
 			return
 		}
 		p.Revision = r.PostForm.Get("revision")
@@ -109,7 +178,7 @@ func (s *server) pluginPlacementWrite(w http.ResponseWriter, r *http.Request) {
 	}
 	if action == "delete" {
 		if r.PostForm.Get("confirm") != "true" {
-			s.renderPluginWidgets(w, r, p.PluginID, p.ConnectionID, &p, "Confirm deletion of this saved widget.", 400)
+			s.renderPluginWidgetEditor(w, r, p, create, "Confirm deletion of this saved widget.", 400)
 			return
 		}
 		err = s.plugins.DeletePlacement(ctx, p.PlacementID, p.Revision)
@@ -135,10 +204,14 @@ func (s *server) pluginPlacementWrite(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
-		s.renderPluginWidgets(w, r, p.PluginID, p.ConnectionID, &p, "Unable to save widget. Check values or reload the current revision.", 409)
+		s.renderPluginWidgetEditor(w, r, p, create, "Check values or reload the current revision. Your submitted options are shown below.", 409)
 		return
 	}
-	http.Redirect(w, r, widgetManagementURL(p.PluginID, p.ConnectionID), 303)
+	destination := widgetEditURL(p.PlacementID)
+	if action == "delete" {
+		destination = widgetIndexURL
+	}
+	http.Redirect(w, r, destination, 303)
 }
 func pluginFormOptions(schema []byte, r *http.Request) (raw json.RawMessage, err error) {
 	fields, err := manifest.FormFields(schema)
