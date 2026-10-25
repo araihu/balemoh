@@ -75,8 +75,8 @@ type Registry struct {
 	once    sync.Once
 }
 type Navigation struct {
-	ID, Title, Href string
-	Children        []Navigation
+	ID, Title, Href, Icon string
+	Children              []Navigation
 }
 type Reference struct {
 	PluginID       string `json:"pluginId"`
@@ -376,7 +376,7 @@ func (r *Registry) Navigation() []Navigation {
 		walk = func(ns []manifest.Navigation) []Navigation {
 			var out []Navigation
 			for _, n := range ns {
-				v := Navigation{ID: NavID(e.Package.Manifest.ID, e.Installation.ConnectionID, n.ID), Title: n.Title}
+				v := Navigation{ID: NavID(e.Package.Manifest.ID, e.Installation.ConnectionID, n.ID), Title: n.Title, Icon: n.Icon}
 				if n.Page != "" {
 					if !pluginruntime.Available(e.Package.Manifest, "page", n.Page) {
 						continue
@@ -399,7 +399,7 @@ func (r *Registry) Navigation() []Navigation {
 		}
 		group := walk(e.Package.Manifest.Navigation)
 		if r.source != nil {
-			group = append(group, Navigation{ID: NavID(e.Package.Manifest.ID, e.Installation.ConnectionID, "widgets"), Title: "Configure widgets", Href: "/plugins/" + e.Package.Manifest.ID + "/connections/" + e.Installation.ConnectionID + "/widgets"})
+			group = append(group, Navigation{ID: NavID(e.Package.Manifest.ID, e.Installation.ConnectionID, "widgets"), Title: "Configure widgets", Icon: "hi-16-solid-cog-6-tooth", Href: "/plugins/" + e.Package.Manifest.ID + "/connections/" + e.Installation.ConnectionID + "/widgets"})
 		}
 		if len(group) == 0 {
 			continue

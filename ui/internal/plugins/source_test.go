@@ -157,4 +157,12 @@ func TestNavigationNamesEachConnectionAndKeepsScopedLinks(t *testing.T) {
 	if navigation[0].ID == navigation[1].ID || !strings.Contains(navigation[0].Children[0].Href, first) || !strings.Contains(navigation[1].Children[0].Href, second) {
 		t.Fatal("connection deep links collide")
 	}
+	registry.source = &Source{}
+	navigation = registry.Navigation()
+	for _, connection := range navigation {
+		settings := connection.Children[1]
+		if settings.Title != "Configure widgets" || settings.Icon != "hi-16-solid-cog-6-tooth" {
+			t.Fatal("widget settings lost its host-owned icon")
+		}
+	}
 }

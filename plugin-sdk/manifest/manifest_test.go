@@ -120,3 +120,35 @@ func TestAssetURLMetacharactersRejectedAtDecodeAndPackageLoad(t *testing.T) {
 		}
 	}
 }
+
+func TestNavigationIconMetadataIsOptional(t *testing.T) {
+	for _, symbol := range []string{"", "hi-16-solid-bell", "future-icon"} {
+		t.Run(symbol, func(t *testing.T) {
+			var input map[string]any
+			if err := json.Unmarshal([]byte(valid), &input); err != nil {
+				t.Fatal(err)
+			}
+			if symbol != "" {
+				input["navigation"].([]any)[0].(map[string]any)["icon"] = symbol
+			}
+			encoded, err := json.Marshal(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			m, _, err := manifest.Decode(strings.NewReader(string(encoded)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if m.Navigation[0].Icon != symbol {
+				t.Fatal("navigation icon metadata lost")
+			}
+			encoded, err = json.Marshal(m.Navigation[0])
+			if err != nil {
+				t.Fatal(err)
+			}
+			if symbol == "" && strings.Contains(string(encoded), `"icon"`) {
+				t.Fatal("optional icon changed legacy manifest encoding")
+			}
+		})
+	}
+}

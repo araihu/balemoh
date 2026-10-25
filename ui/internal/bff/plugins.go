@@ -15,6 +15,8 @@ import (
 	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
 	"github.com/araihu/balemoh/ui/internal/plugins"
 	"github.com/araihu/balemoh/ui/internal/view"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/sidebar"
 )
 
@@ -164,7 +166,14 @@ func (s *server) pluginNavigation() []sidebar.Item {
 	convert = func(ns []plugins.Navigation) []sidebar.Item {
 		out := []sidebar.Item{}
 		for _, n := range ns {
-			out = append(out, sidebar.Item{ID: n.ID, Label: n.Title, Href: n.Href, Items: convert(n.Children), Collapsible: len(n.Children) > 0})
+			symbol := heroicons.Icon16SolidSquares2x2
+			for _, glyph := range heroicons.Glyphs {
+				if string(glyph.Symbol) == n.Icon {
+					symbol = glyph.Symbol
+					break
+				}
+			}
+			out = append(out, sidebar.Item{ID: n.ID, Label: n.Title, Href: n.Href, Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: symbol, Decorative: true}), Items: convert(n.Children), Collapsible: len(n.Children) > 0})
 		}
 		return out
 	}

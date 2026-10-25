@@ -86,6 +86,8 @@ type Page struct {
 	Capabilities []string `json:"capabilities"`
 }
 type Navigation struct {
+	// Icon is an optional bundled Heroicons symbol. Unknown symbols use the host fallback.
+	Icon     string       `json:"icon,omitempty"`
 	ID       string       `json:"id"`
 	Title    string       `json:"title"`
 	Page     string       `json:"page,omitempty"`

@@ -149,7 +149,7 @@ Initial Alertmanager manifest:
     {"id": "current", "title": "Current alerts", "path": "/current", "methods": ["GET"], "capabilities": ["data.query/v1"]},
     {"id": "detail", "title": "Alert details", "path": "/current/{fingerprint}", "methods": ["GET"], "capabilities": ["data.query/v1"]}
   ],
-  "navigation": [{"id": "alerts", "title": "Alerts", "page": "current"}],
+  "navigation": [{"id": "alerts", "title": "Alerts", "icon": "hi-16-solid-bell", "page": "current"}],
   "widgets": [
     {"id": "summary", "title": "Alert summary", "optionsSchema": "schemas/widget-options.json", "capabilities": ["data.query/v1"]},
     {"id": "active-list", "title": "Current alerts", "optionsSchema": "schemas/widget-options.json", "capabilities": ["data.query/v1"]}
@@ -407,6 +407,8 @@ Stale retained data returns 200 with explicit state. Fresh empty list means succ
 ## 11. Assets, compatibility and trust
 
 Current profile is `balemoh.goshtoso/v1alpha2`. Its module baseline is Go 1.27.0, Goshtoso v0.4.4, templ v0.3.1070, goshtoso-app-shells v0.1.9-0.20260910224508-5b2222e54637 and goshtoso-charts v0.0.4. Shared HTMX/Alpine assets come from that pinned Goshtoso runtime. SDK fixtures record its runtime manifest as part of profile; scaffold uses this exact compatible set. API root's Goshtoso v0.3.2 is not the visual baseline. RPC compatibility alone is insufficient. The v1alpha2 profile replaces v1alpha1 with the native combobox keyboard fixes introduced in Goshtoso v0.4.3. The compatible v0.4.4 patch adds non-interactive option trailing content and cancels deferred keyboard opens on Escape, with unchanged CSS and RPC contracts. Host assets and the SDK scaffold now use this patch baseline. Upgrade host assets and plugin packages together; older profile packages are rejected explicitly.
+
+Navigation entries may declare an optional `icon` containing a bundled Heroicons symbol from the current profile. The host resolves it against its public glyph catalog and renders a decorative native icon beside the existing text label. Omitted or unknown symbols use the host module icon; arbitrary URLs and SVG markup are never rendered. Host-owned widget configuration links use a settings icon. The optional metadata changes neither RPC nor the visual profile; deploy a matching host before packages containing the new field because older closed manifest decoders reject it.
 
 Host loads one shared CSS/runtime set. Authors import Goshtoso directly and declare extra assets by ID. No duplicate HTMX/Alpine runtime or global stylesheet replacement. Plugin CSS stays scoped to contribution roots. Assets include package digest in URL/cache key. Host capabilities expose shared optional dependencies such as charts; plugins do not copy private runtime script lists. Supported component-generated inline initialization follows profile.
 

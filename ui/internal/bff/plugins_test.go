@@ -318,3 +318,28 @@ func TestDeclaredAssetsInNativeDocumentAndBeforeStatus(t *testing.T) {
 		t.Fatal("asset resolution committed success status", w.Code)
 	}
 }
+
+func TestPluginSidebarUsesDeclaredIconsAndSafeFallback(t *testing.T) {
+	for _, tc := range []struct{ name, symbol, want string }{
+		{"declared", "hi-16-solid-bell", "hi-16-solid-bell"},
+		{"omitted", "", "hi-16-solid-squares-2x2"},
+		{"unknown", "future-icon", "hi-16-solid-squares-2x2"},
+		{"URL is not loaded", "https://example.invalid/icon.svg", "hi-16-solid-squares-2x2"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			registry := configuredPreviewRegistry(t, manifest.UIProfile, func(m *manifest.Manifest) { m.Navigation[0].Icon = tc.symbol })
+			h, err := NewWithPlugins(&widgetCatalog{}, time.Second, nil, registry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+			if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "#"+tc.want) {
+				t.Fatal("plugin sidebar icon missing")
+			}
+			if tc.symbol != "" && tc.symbol != tc.want && strings.Contains(w.Body.String(), tc.symbol) {
+				t.Fatal("unknown icon reached HTML")
+			}
+		})
+	}
+}
