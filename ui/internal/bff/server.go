@@ -49,10 +49,15 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(uiassets.IconSprite)
 	})
+	mux.Handle("GET /ui/brand/", http.StripPrefix("/ui/brand/", http.FileServer(http.FS(view.BrandAssets()))))
 	mux.HandleFunc("GET /ui/balemoh.css", server.serveCSS)
-	mux.HandleFunc("GET /ui/social-v1.png", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /ui/social-v2.png", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
 		_, _ = w.Write(view.SocialPreview())
+	})
+	mux.HandleFunc("GET /ui/social-v1.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(view.SocialPreviewV1())
 	})
 	if icons != nil {
 		mux.Handle("GET /ui/icon-library/selfhst/", http.StripPrefix("/ui/icon-library/selfhst/", icons))
