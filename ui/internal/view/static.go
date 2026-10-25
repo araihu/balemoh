@@ -15,6 +15,12 @@ var socialPreview []byte
 
 func SocialPreview() []byte { return socialPreview }
 
+//go:embed static/social-v1.png
+var socialPreviewV1 []byte
+
+// SocialPreviewV1 preserves the immutable URL used by previously shared cards.
+func SocialPreviewV1() []byte { return socialPreviewV1 }
+
 //go:embed static/host-live.js
 var hostLiveJS []byte
 

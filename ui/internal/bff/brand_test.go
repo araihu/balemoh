@@ -67,4 +67,8 @@ func TestPagesExposeBrandAndUpdatedSocialPreview(t *testing.T) {
 	if info.Width != 1280 || info.Height != 640 {
 		t.Errorf("social preview = %dx%d, want 1280x640", info.Width, info.Height)
 	}
+	legacy := request(t, handler, http.MethodGet, "/ui/social-v1.png", "")
+	if legacy.Code != http.StatusOK {
+		t.Errorf("previously shared social preview status = %d, want 200", legacy.Code)
+	}
 }
