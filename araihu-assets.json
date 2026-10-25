@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "assetsRepository": "araihu/assets",
+  "assetsRevision": "17ad8571d3b4bbf7cb048e8bb146d499ce816aaf",
+  "release": "v0.2.4",
+  "releaseUrl": "https://github.com/araihu/assets/releases/download/v0.2.4/araihu-assets-v0.2.4.tar.gz",
+  "releaseSha256": "286f9c16430f57bd50ef1b1318dd81539c5366a7f26100c40c50c16df8bd9b55",
+  "releaseJsonSha256": "11a8f998bd4fd77239170ffbe0a3fd23d6adefb49c9cb1c88f210cd7bd8b9cdf",
+  "mappings": [
+    {
+      "source": "brand/balemoh/logo/dark-transparent-optical.svg",
+      "destination": "ui/internal/view/static/brand/logo-dark.svg",
+      "canonicalName": "balemoh-logo-dark-transparent-optical",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "logo",
+      "appearance": "dark",
+      "surface": "transparent",
+      "framing": "optical",
+      "format": "svg"
+    },
+    {
+      "source": "brand/balemoh/logo/light-transparent-optical.svg",
+      "destination": "ui/internal/view/static/brand/logo-light.svg",
+      "canonicalName": "balemoh-logo-light-transparent-optical",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "logo",
+      "appearance": "light",
+      "surface": "transparent",
+      "framing": "optical",
+      "format": "svg"
+    },
+    {
+      "source": "platform/web/balemoh/apple-touch-icon-180.png",
+      "destination": "ui/internal/view/static/brand/apple-touch-icon-180.png",
+      "canonicalName": "platform-web-balemoh-apple-touch-icon-180-png",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "light",
+      "surface": "plate",
+      "framing": "launcher",
+      "format": "png"
+    },
+    {
+      "source": "platform/web/balemoh/favicon-16.png",
+      "destination": "ui/internal/view/static/brand/favicon-16.png",
+      "canonicalName": "platform-web-balemoh-favicon-16-png",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "light",
+      "surface": "plate",
+      "framing": "optical",
+      "format": "png"
+    },
+    {
+      "source": "platform/web/balemoh/favicon-32.png",
+      "destination": "ui/internal/view/static/brand/favicon-32.png",
+      "canonicalName": "platform-web-balemoh-favicon-32-png",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "light",
+      "surface": "plate",
+      "framing": "optical",
+      "format": "png"
+    },
+    {
+      "source": "platform/web/balemoh/favicon.svg",
+      "destination": "ui/internal/view/static/brand/favicon.svg",
+      "canonicalName": "platform-web-balemoh-favicon-svg",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "adaptive",
+      "surface": "transparent",
+      "framing": "optical",
+      "format": "svg"
+    },
+    {
+      "source": "platform/web/balemoh/icon-192.png",
+      "destination": "ui/internal/view/static/brand/icon-192.png",
+      "canonicalName": "platform-web-balemoh-icon-192-png",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "light",
+      "surface": "transparent",
+      "framing": "optical",
+      "format": "png"
+    },
+    {
+      "source": "platform/web/balemoh/icon-512.png",
+      "destination": "ui/internal/view/static/brand/icon-512.png",
+      "canonicalName": "platform-web-balemoh-icon-512-png",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "light",
+      "surface": "transparent",
+      "framing": "optical",
+      "format": "png"
+    },
+    {
+      "source": "platform/web/balemoh/icon-maskable-192.png",
+      "destination": "ui/internal/view/static/brand/icon-maskable-192.png",
+      "canonicalName": "platform-web-balemoh-icon-maskable-192-png",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "light",
+      "surface": "plate",
+      "framing": "launcher",
+      "format": "png"
+    },
+    {
+      "source": "platform/web/balemoh/icon-maskable-512.png",
+      "destination": "ui/internal/view/static/brand/icon-maskable-512.png",
+      "canonicalName": "platform-web-balemoh-icon-maskable-512-png",
+      "namespace": "brand",
+      "product": "balemoh",
+      "artwork": "icon",
+      "appearance": "light",
+      "surface": "plate",
+      "framing": "launcher",
+      "format": "png"
+    },
+    {
+      "source": "platform/web/balemoh/manifest-icons.json",
+      "destination": "ui/internal/view/static/brand/manifest-icons.json"
+    }
+  ]
+}

@@ -277,3 +277,9 @@ body {
 .balemoh-host-kind-icon { order: -1; display: inline-flex; align-items: center; flex-shrink: 0; }
 .balemoh-host-connection-warning .balemoh-widget-status-dot { background-color: #f59e0b; }
 #host-status-tooltip { width: 18rem; max-width: calc(100vw - 2rem); white-space: normal; }
+
+/* Explicit logo schemes follow the app theme, including a user override. */
+.balemoh-brand-logo { display: block; width: 145px; height: 32px; }
+.balemoh-brand-logo-dark { display: none; }
+.dark .balemoh-brand-logo-light { display: none; }
+.dark .balemoh-brand-logo-dark { display: block; }

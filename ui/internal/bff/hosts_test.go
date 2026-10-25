@@ -140,7 +140,7 @@ func TestHostsNavigationAndServerRenderedMetadata(t *testing.T) {
 				t.Errorf("%s: metadata %s = %v", route, key, values[key])
 			}
 		}
-		for key, want := range map[string]string{"canonical": "https://balemoh.decastro.me" + route, "og:url": "https://balemoh.decastro.me" + route, "og:image": "https://balemoh.decastro.me/ui/social-v1.png", "twitter:card": "summary_large_image"} {
+		for key, want := range map[string]string{"canonical": "https://balemoh.decastro.me" + route, "og:url": "https://balemoh.decastro.me" + route, "og:image": "https://balemoh.decastro.me/ui/social-v2.png", "twitter:card": "summary_large_image"} {
 			if len(values[key]) != 1 || values[key][0] != want {
 				t.Errorf("%s: metadata %s = %v, want %s", route, key, values[key], want)
 			}

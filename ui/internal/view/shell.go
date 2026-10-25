@@ -22,8 +22,11 @@ func ConsolePage(data PageData) templ.Component {
 	return consoleshell.Layout(
 		consoleshell.Config{
 			Brand: consoleshell.Brand{
-				Name:    "Balemoh",
-				HomeURL: "/",
+				Name:       "Balemoh",
+				HomeURL:    "/",
+				Logo:       BrandLogo(),
+				HideName:   true,
+				FaviconURL: "/ui/brand/favicon.svg",
 			},
 			Navigation: consoleshell.Navigation{
 				Drawer:        true,
@@ -54,7 +57,8 @@ func ConsolePage(data PageData) templ.Component {
 			CanonicalURL:  canonicalURL(data),
 			Active:        data.Active,
 			Content:       PageContent(data),
-			Metadata:      &head.MetadataConfig{Image: head.SocialImage{URL: "https://balemoh.decastro.me/ui/social-v1.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}},
+			Head:          BrandHead(),
+			Metadata:      &head.MetadataConfig{Image: head.SocialImage{URL: "https://balemoh.decastro.me/ui/social-v2.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}},
 		},
 	)
 }
