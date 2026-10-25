@@ -13,7 +13,7 @@ import (
 )
 
 const SDKVersion = "v0.0.0"
-const ProfileVersion = "v0.4.3"
+const ProfileVersion = "v0.4.4"
 
 // Init writes only into a new or empty directory. The SDK is explicitly unpublished.
 func Init(dir, id, module string, backend bool) error {

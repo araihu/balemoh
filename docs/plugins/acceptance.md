@@ -119,3 +119,11 @@ module tidy, tests and vet for root/client/UI/SDK, generated standalone UI/backe
 consumers and the external Alertmanager consumer. Controlled API/BFF integration
 also passed. The SDK remains unpublished; consumer CI still requires its explicit
 reviewed host commit.
+
+## Compact alert results, 2026-10-25
+
+Goshtoso v0.4.4 adds non-interactive trailing option content and cancels pending
+keyboard opens when Escape is pressed. The UI host and generated SDK consumers
+pin this patch so the host serves the fixed runtime used by the Alertmanager
+filter controls. CSS remains byte-identical; visual profile v1alpha2 and the RPC
+contract remain compatible. Deploy the host and plugin package pins together.

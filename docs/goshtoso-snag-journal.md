@@ -83,3 +83,8 @@
 
 - Combobox v0.3.3 and v0.4.2 rendered enabled options without a focusable tabindex. Arrow navigation could not move focus to those options. [Upstream PR 343](https://github.com/araihu/goshtoso/pull/343) fixes option focus, disabled-option skipping, clear in client/server modes and delayed callbacks that could steal focus. The Alertmanager plugin uses the native component. Visual profile v1alpha2 pins Goshtoso v0.4.3 across host assets and scaffold; deploy matching plugin packages with that host.
 - A plugin fragment must not put native fallback inputs inside `noscript`: browser fragment parsing can create hidden successful controls even with JavaScript enabled. Render native inputs only for the host's `__native=1` iframe request. Keep the normal form stable and swap only results so search drafts, focus and open menus survive filtering.
+
+## Alert filter counts and Escape cancellation
+
+- Alert facets need supporting option counts that stay outside the closed selection label. Goshtoso's public `Option.Trailing` slot in [PR344](https://github.com/araihu/goshtoso/pull/344) covers this without copying option markup or changing selection values.
+- The full combobox suite exposed a pending keyboard open that could run after Escape and reopen the menu. Cancel deferred open/focus work on Escape while preserving focus ownership. The host must serve the v0.4.4 runtime together with plugins using the trailing slot; update the scaffold's patch baseline as well.
