@@ -199,3 +199,15 @@ func TestTelemetryEnvironmentContract(t *testing.T) {
 		}
 	}
 }
+
+func TestPluginEnvironmentPair(t *testing.T) {
+	for _, env := range []map[string]string{{"BALEMOH_PLUGIN_CONFIG": "/private/plugins.json"}, {"BALEMOH_PLUGIN_SERVICE_TOKEN_FILE": "/private/token"}, {"BALEMOH_PLUGIN_CONFIG": " ", "BALEMOH_PLUGIN_SERVICE_TOKEN_FILE": "/private/token"}} {
+		if _, err := ParseEnvironment(env); err == nil {
+			t.Fatal("incomplete plugin environment accepted")
+		}
+	}
+	got, err := ParseEnvironment(map[string]string{"BALEMOH_PLUGIN_CONFIG": "/private/plugins.json", "BALEMOH_PLUGIN_SERVICE_TOKEN_FILE": "/private/token"})
+	if err != nil || got.PluginConfig == "" {
+		t.Fatal("paired plugin environment rejected", err)
+	}
+}

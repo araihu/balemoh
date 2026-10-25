@@ -40,19 +40,28 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
 	}
+	deployment, pluginToken, err := pluginDeployment(options)
+	if err != nil {
+		return err
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	discoverers, err := configuredDiscoverers(options)
 	if err != nil {
 		return err
 	}
 
-	server, db, catalogService, err := constructServerWithCatalog(context.Background(), options, sqlite.RunMigrations, discoverers...)
+	server, db, catalogService, err := constructServerWithCatalog(ctx, options, sqlite.RunMigrations, discoverers...)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	closePlugins, err := startPlugins(ctx, db, server, deployment, pluginToken, catalogService)
+	if err != nil {
+		return err
+	}
+	defer closePlugins()
 	go runDiscoverySync(ctx, catalogService, options.DiscoverySyncInterval)
 	if err := startTelemetry(ctx, db, options); err != nil {
 		return err

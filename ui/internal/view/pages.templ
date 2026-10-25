@@ -26,6 +26,9 @@ import (
 )
 
 templ PageContent(data PageData) {
+ if data.PluginWarning {
+  @alert.Alert(alert.Config{Title: "Plugin unavailable", Description: "An installed plugin is incompatible or could not start. Core pages remain available."})
+ }
  if data.HostDetail != nil && data.Error == "" {
   @dependencies.Dependencies()
  }
@@ -55,7 +58,9 @@ templ PageContent(data PageData) {
  @alert.Alert(alert.Config{Title: "Request could not be completed", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
  </div>
 		}
-		if data.HostDetail != nil {
+		if data.PluginContent != nil {
+ @data.PluginContent
+ } else if data.HostDetail != nil {
  if data.Error == "" {
  @HostContent(*data.HostDetail)
  }

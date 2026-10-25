@@ -1,0 +1,76 @@
+package view
+
+import (
+ "github.com/araihu/goshtoso/components/panel"
+ "github.com/araihu/goshtoso/components/form"
+ "github.com/araihu/goshtoso/components/textinput"
+ "github.com/araihu/goshtoso/components/checkbox"
+ "github.com/araihu/goshtoso/components/button"
+)
+
+templ PluginWidgets(page PluginManagement) {
+ <section aria-label="Plugin widgets">
+  <h1>{ page.Name } widgets</h1>
+  <p>Each widget keeps its own filters. Saved configuration survives source and plugin outages.</p>
+  if page.Error != "" {
+ <p role="alert" tabindex="-1" autofocus id="plugin-form-error">{ page.Error }</p>
+ }
+  for _, f := range page.Forms {
+   @panel.Panel(panel.Config{Body:PluginPlacementForm(f)})
+  }
+ </section>
+}
+
+templ PluginPlacementForm(f PluginForm) {
+ <section id={ "placement-form-"+f.ID }>
+  <h2>{ f.Title }</h2>
+  if f.Error != "" {
+ <p role="alert">{ f.Error }</p>
+ }
+  <form method="post" action={ templ.SafeURL(f.Action) }>
+   <input type="hidden" name="placementId" value={ f.ID }/>
+   <input type="hidden" name="revision" value={ f.Revision }/>
+   <input type="hidden" name="enabled" value={ f.Value("enabled") }/>
+   for _, field := range f.Fields {
+    if field.Type == "array" && field.Items != nil {
+     <fieldset><legend>{ field.Title }</legend>
+      for _, option := range field.Items.Enum {
+       @checkbox.Checkbox(checkbox.Config{ID:f.ID+"-"+field.Name+"-"+option,Name:"option."+field.Name,Value:option,Label:option,Checked:f.Checked(field.Name,option)})
+      }
+     </fieldset>
+    } else if field.Type == "boolean" {
+     @checkbox.Checkbox(checkbox.Config{ID:f.ID+"-"+field.Name,Name:"option."+field.Name,Value:"true",Label:field.Title,Checked:f.Checked(field.Name,"true")})
+    } else if len(field.Enum)>0 {
+     @form.FieldGroup(form.FieldGroupConfig{ID:f.ID+"-"+field.Name,Label:field.Title,Required:field.Required}) {
+      <select id={ f.ID+"-"+field.Name+"-input" } name={ "option."+field.Name } required?={ field.Required }>
+       <option value="">All</option>
+       for _, option := range field.Enum {
+ <option value={ option } selected?={ f.Value(field.Name)==option }>{ option }</option>
+ }
+      </select>
+     }
+    } else {
+     @form.FieldGroup(form.FieldGroupConfig{ID:f.ID+"-"+field.Name,Label:field.Title,Required:field.Required,Hints:fieldHints(field.Description),Input:&textinput.Config{ID:f.ID+"-"+field.Name+"-input",Name:"option."+field.Name,Value:f.Value(field.Name),MaxLength:field.MaxLength}})
+    }
+   }
+   @button.Button(button.WithType("submit")) { Save options }
+  </form>
+  if !f.Create {
+   <form method="post" action={ templ.SafeURL("/plugin-widgets/"+f.ID+"/selection") }>
+    <input type="hidden" name="revision" value={ f.Revision }/>
+    if f.Enabled {
+     <input type="hidden" name="enabled" value="false"/>
+     @button.Button(button.WithType("submit")) { Remove from home }
+    } else {
+     <input type="hidden" name="enabled" value="true"/>
+     @button.Button(button.WithType("submit")) { Show on home }
+    }
+   </form>
+   <form method="post" action={ templ.SafeURL("/plugin-widgets/"+f.ID+"/delete") }>
+    <input type="hidden" name="revision" value={ f.Revision }/>
+    @checkbox.Checkbox(checkbox.Config{ID:f.ID+"-confirm",Name:"confirm",Value:"true",Label:"Delete saved widget configuration",InputAttrs:templ.Attributes{"required":true}})
+    @button.Button(button.WithType("submit")) { Delete widget }
+   </form>
+  }
+ </section>
+}

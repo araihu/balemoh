@@ -31,7 +31,7 @@ func (s *DashboardSelections) Set(ctx context.Context, kind, id string, enabled 
 		_, err := s.db.ExecContext(ctx, `DELETE FROM dashboard_selections WHERE source_kind=? AND source_id=?`, kind, id)
 		return err
 	}
-	result, err := s.db.ExecContext(ctx, `INSERT INTO dashboard_selections(source_kind,source_id) SELECT ?,? WHERE (SELECT COUNT(*) FROM dashboard_selections)<128 ON CONFLICT DO NOTHING`, kind, id)
+	result, err := s.db.ExecContext(ctx, `INSERT INTO dashboard_selections(source_kind,source_id) SELECT ?,? WHERE (SELECT COUNT(*) FROM dashboard_selections)+(SELECT COUNT(*) FROM plugin_placements)<128 ON CONFLICT DO NOTHING`, kind, id)
 	if err != nil {
 		return err
 	}

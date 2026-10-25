@@ -18,7 +18,7 @@ func (s *server) dashboardEvents(w http.ResponseWriter, r *http.Request) {
 	s.streamDashboard(w, r, 5*time.Second)
 }
 func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interval time.Duration) {
-	catalog, ok := s.catalog.(DashboardCatalog)
+	_, ok := s.catalog.(DashboardCatalog)
 	if !ok {
 		http.Error(w, "Dashboard unavailable", 503)
 		return
@@ -36,7 +36,7 @@ func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interva
 	failed := false
 	for {
 		ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
-		snapshot, err := catalog.Dashboard(ctx)
+		snapshot, err := s.dashboardSnapshot(ctx)
 		cancel()
 		var component templ.Component
 		if err != nil {

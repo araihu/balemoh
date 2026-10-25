@@ -6,7 +6,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/a-h/templ"
 	"github.com/araihu/goshtoso/components/dropdown"
+	"github.com/araihu/goshtoso/components/sidebar"
 	"github.com/araihu/goshtoso/components/table"
 	"github.com/araihu/goshtoso/components/tooltip"
 )
@@ -37,20 +39,24 @@ func addressMenuItems(addresses []string) []dropdown.Item {
 // PageData is the presentation model for the operator-facing catalog
 // pages. It deliberately contains no generated API types.
 type PageData struct {
-	Dashboard   *Dashboard
-	Status      string
-	IconPage    *IconPage
-	HostsPage   *HostsPage
-	HostDetail  *HostDetail
-	Editor      *Service
-	Path        string
-	Title       string
-	Description string
-	Active      string
-	Services    []Service
-	Staging     bool
-	Error       string
-	Notice      string
+	Theme, ColorScheme string
+	PluginContent      templ.Component
+	PluginNavigation   []sidebar.Item
+	PluginWarning      bool
+	Dashboard          *Dashboard
+	Status             string
+	IconPage           *IconPage
+	HostsPage          *HostsPage
+	HostDetail         *HostDetail
+	Editor             *Service
+	Path               string
+	Title              string
+	Description        string
+	Active             string
+	Services           []Service
+	Staging            bool
+	Error              string
+	Notice             string
 }
 
 type Service struct {

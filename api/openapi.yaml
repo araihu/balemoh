@@ -3,6 +3,116 @@ info:
   title: Balemoh API
   version: 0.1.0
 paths:
+  /api/v1/plugin-widgets:
+    get:
+      operationId: GetPluginWidgets
+      security: [{PluginService: []}]
+      responses:
+        '200':
+          description: Widget definitions and retained placements
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [definitions, placements]
+                properties:
+                  definitions: {type: array, items: {$ref: '#/components/schemas/PluginWidgetDefinition'}}
+                  placements: {type: array, items: {$ref: '#/components/schemas/PluginPlacement'}}
+        '401': {description: Missing private credential}
+        '503': {description: Metadata unavailable}
+  /api/v1/plugin-widgets/{placementId}:
+    parameters:
+      - {name: placementId, in: path, required: true, schema: {type: string, format: uuid}}
+    put:
+      operationId: PutPluginWidget
+      security: [{PluginService: []}]
+      parameters:
+        - {name: If-Match, in: header, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PluginPlacementBody'}
+      responses:
+        '201':
+          description: Placement created
+          headers:
+            ETag: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PluginPlacement'}
+        '200':
+          description: Identical create replay or updated placement
+          headers:
+            ETag: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PluginPlacement'}
+        '400': {description: Invalid body or options}
+        '401': {description: Missing private credential}
+        '404': {description: Connection or definition missing}
+        '409': {description: Create identity conflict or capacity reached}
+        '412': {description: Stale revision}
+        '428': {description: Required revision missing}
+    delete:
+      operationId: DeletePluginWidget
+      security: [{PluginService: []}]
+      parameters:
+        - {name: If-Match, in: header, schema: {type: string}}
+      responses:
+        '204': {description: Configuration removed, source data untouched}
+        '401': {description: Missing private credential}
+        '404': {description: Placement absent}
+        '412': {description: Stale revision}
+        '428': {description: Required revision missing}
+  /api/v1/plugins:
+    get:
+      operationId: GetPlugins
+      security: [{PluginService: []}]
+      responses:
+        '200':
+          description: Data-only plugin descriptors, without deployment paths or credentials
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PluginCatalog'}
+        '401':
+          description: Missing or invalid private BFF service credential
+        '503':
+          description: Plugin metadata unavailable
+  /api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId}:
+    post:
+      operationId: QueryPlugin
+      security: [{PluginService: []}]
+      parameters:
+        - {name: pluginId, in: path, required: true, schema: {type: string}}
+        - {name: connectionId, in: path, required: true, schema: {type: string}}
+        - {name: queryId, in: path, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [input]
+              additionalProperties: false
+              properties:
+                input: {type: object, additionalProperties: true}
+      responses:
+        '200':
+          description: Validated cached observation; never performs collection
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PluginQueryResult'}
+        '400': {description: Invalid query input}
+        '401': {description: Missing or invalid private BFF service credential}
+        '403': {description: Connection disabled or operation not granted}
+        '404': {description: Unknown plugin, connection or operation}
+        '409': {description: Observation revision changed}
+        '413': {description: Query input exceeds limit}
+        '429': {description: Plugin query capacity exceeded}
+        '502': {description: Invalid plugin output}
+        '503': {description: Plugin or source observation unavailable}
+        '504': {description: Plugin query deadline exceeded}
   /api/v1/dashboard:
     get:
       operationId: GetDashboard
@@ -441,10 +551,112 @@ paths:
 
 components:
   securitySchemes:
+    PluginService:
+      type: http
+      scheme: bearer
     FederationBearer:
       type: http
       scheme: bearer
   schemas:
+    PluginPlacementBody:
+      type: object
+      additionalProperties: false
+      required: [pluginId, connectionId, contributionId, options, enabled]
+      properties:
+        pluginId: {type: string}
+        connectionId: {type: string}
+        contributionId: {type: string}
+        options: {type: object, additionalProperties: true}
+        enabled: {type: boolean}
+    PluginPlacement:
+      allOf:
+        - {$ref: '#/components/schemas/PluginPlacementBody'}
+        - type: object
+          required: [placementId, revision, createdAt, updatedAt]
+          properties:
+            placementId: {type: string}
+            revision: {type: string, pattern: '^[1-9][0-9]*$'}
+            createdAt: {type: string, format: date-time}
+            updatedAt: {type: string, format: date-time}
+    PluginWidgetDefinition:
+      type: object
+      required: [pluginId, contributionId, title, optionsSchema]
+      properties:
+        pluginId: {type: string}
+        contributionId: {type: string}
+        title: {type: string}
+        optionsSchema: {type: object, additionalProperties: true}
+    PluginCatalog:
+      type: object
+      additionalProperties: false
+      required: [plugins, problems]
+      properties:
+        plugins:
+          type: array
+          items: {$ref: '#/components/schemas/PluginDescriptor'}
+        problems:
+          type: array
+          items: {$ref: '#/components/schemas/PluginInstallationProblem'}
+    PluginInstallationProblem:
+      type: object
+      additionalProperties: false
+      required: [installationId, error]
+      properties:
+        installationId: {type: string}
+        pluginId: {type: string}
+        connectionKey: {type: string}
+        error: {$ref: '#/components/schemas/PluginFailure'}
+    PluginDescriptor:
+      type: object
+      additionalProperties: false
+      required: [id, version, manifestDigest, connections]
+      properties:
+        id: {type: string}
+        version: {type: string}
+        manifestDigest: {type: string}
+        connections:
+          type: array
+          items: {$ref: '#/components/schemas/PluginConnection'}
+    PluginConnection:
+      type: object
+      additionalProperties: false
+      required: [id, key, name, revision, enabled, ready, state, appliedRevision, observationRevision, observedAt, lastAttemptAt, lastSuccessAt, lastConfigureAttemptAt, queries]
+      properties:
+        id: {type: string}
+        key: {type: string}
+        name: {type: string}
+        revision: {type: string}
+        enabled: {type: boolean}
+        ready: {type: boolean}
+        state: {type: string, enum: [fresh, partial, stale, unavailable]}
+        appliedRevision: {type: string, nullable: true}
+        observationRevision: {type: string, nullable: true}
+        observedAt: {type: string, format: date-time, nullable: true}
+        lastSuccessAt: {type: string, format: date-time, nullable: true}
+        lastAttemptAt: {type: string, format: date-time, nullable: true}
+        lastConfigureAttemptAt: {type: string, format: date-time, nullable: true}
+        sourceError: {$ref: '#/components/schemas/PluginFailure'}
+        configurationError: {$ref: '#/components/schemas/PluginFailure'}
+        queries: {type: array, items: {type: string}}
+    PluginFailure:
+      type: object
+      additionalProperties: false
+      required: [code, message, retryable]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        retryable: {type: boolean}
+    PluginQueryResult:
+      type: object
+      additionalProperties: false
+      required: [data, state, observationRevision, observedAt, lastSuccessAt]
+      properties:
+        data: {type: object, additionalProperties: true}
+        state: {type: string, enum: [fresh, partial, stale, unavailable]}
+        observationRevision: {type: string}
+        observedAt: {type: string, format: date-time, nullable: true}
+        lastSuccessAt: {type: string, format: date-time, nullable: true}
+        sourceError: {$ref: '#/components/schemas/PluginFailure'}
     DashboardSnapshot:
       type: object
       required: [items, unavailable]

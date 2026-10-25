@@ -13,6 +13,10 @@ import (
 
 // Options contains Balemoh's runtime environment configuration.
 type Options struct {
+	// PluginConfig enables trusted local plugin installations and source connections from a JSON deployment file. Empty disables plugins.
+	PluginConfig string `env:"BALEMOH_PLUGIN_CONFIG"`
+	// PluginServiceTokenFile contains the private BFF service credential used only by new plugin API routes.
+	PluginServiceTokenFile string `env:"BALEMOH_PLUGIN_SERVICE_TOKEN_FILE"`
 	// TelemetryEnabled collects host CPU, memory and workload inventory every minute, independently of discovery.
 	TelemetryEnabled bool `env:"BALEMOH_TELEMETRY_ENABLED" envDefault:"false"`
 	// HostProcPath is a read-only mount of the Docker host proc filesystem. Never use the agent container proc filesystem.
@@ -68,6 +72,9 @@ func ParseEnvironment(environment map[string]string) (Options, error) {
 
 // Validate checks that required configuration values contain non-whitespace content.
 func (o Options) Validate() error {
+	if (strings.TrimSpace(o.PluginConfig) == "") != (strings.TrimSpace(o.PluginServiceTokenFile) == "") {
+		return fmt.Errorf("plugin configuration and service credential file must be set together")
+	}
 	if o.TelemetryEnabled && !o.ContainerEnabled && !o.KubernetesEnabled {
 		return fmt.Errorf("telemetry requires a local discovery source")
 	}

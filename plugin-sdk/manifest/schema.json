@@ -1,0 +1,296 @@
+{
+  "type": "object",
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$",
+      "maxLength": 128
+    },
+    "version": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol": {
+      "const": "balemoh.plugins/v1alpha1"
+    },
+    "uiProfile": {
+      "const": "balemoh.goshtoso/v1alpha1"
+    },
+    "targets": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "ui": {
+            "type": "string"
+          },
+          "backend": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ui"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "connectionSchema": {
+      "type": "string"
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "required"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "queries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "string"
+          },
+          "outputSchema": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "inputSchema",
+          "outputSchema",
+          "capability"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "GET",
+                "POST"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "path",
+          "methods",
+          "capabilities"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 32
+    },
+    "navigation": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/navigation"
+      }
+    },
+    "widgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "optionsSchema": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "optionsSchema",
+          "capabilities"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 16
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          },
+          "file": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "module",
+              "style"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "file",
+          "mediaType",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "optional": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "required",
+        "optional"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "manifestVersion",
+    "id",
+    "version",
+    "name",
+    "protocol",
+    "uiProfile",
+    "targets",
+    "connectionSchema",
+    "secrets",
+    "queries",
+    "pages",
+    "navigation",
+    "widgets",
+    "assets",
+    "capabilities"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://balemoh.invalid/manifest/v1/schema.json",
+  "$defs": {
+    "navigation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/navigation"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "description": "Structural author schema. Hosts additionally enforce package-local paths, route ambiguity, capabilities, versions, sizes and supported option forms with manifest.Load."
+}

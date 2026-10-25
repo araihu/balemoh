@@ -12,9 +12,15 @@ import (
 )
 
 func ConsolePage(data PageData) templ.Component {
-	var runtimeScripts []string
+	if data.Theme == "" {
+		data.Theme = "goshtoso"
+	}
+	if data.ColorScheme == "" {
+		data.ColorScheme = "system"
+	}
+	runtimeScripts := []string{"/ui/plugin-runtime.js"}
 	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
-		runtimeScripts = []string{assets.HTMXExtSSEURL, "/ui/host-live.js"}
+		runtimeScripts = append(runtimeScripts, assets.HTMXExtSSEURL, "/ui/host-live.js")
 	}
 	if data.Dashboard != nil && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, "/ui/dashboard-layout.js")
@@ -22,24 +28,27 @@ func ConsolePage(data PageData) templ.Component {
 	return consoleshell.Layout(
 		consoleshell.Config{
 			Brand: consoleshell.Brand{
-				Name:    "Balemoh",
-				HomeURL: "/",
+				Name:       "Balemoh",
+				HomeURL:    "/",
+				Logo:       BrandLogo(),
+				HideName:   true,
+				FaviconURL: "/ui/brand/favicon.svg",
 			},
 			Navigation: consoleshell.Navigation{
 				Drawer:        true,
 				IconOnlyMenu:  true,
 				DisableSearch: true,
-				Items: []sidebar.Item{
+				Items: append([]sidebar.Item{
 					{ID: "nav-home", Label: "Home", Href: "/", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHome, Decorative: true})},
 					{ID: "nav-staging", Label: "Staging", Href: "/staging", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidQueueList, Decorative: true})},
 					{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
 					{ID: "nav-icons", Label: "Icons", Href: "/icons", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
-				},
+				}, data.PluginNavigation...),
 			},
 			Appearance: consoleshell.AppearanceConfig{
-				DefaultTheme:       "goshtoso",
-				InitialColorScheme: consoleshell.ColorSchemeSystem,
-				PersistPreferences: true,
+				DefaultTheme:       data.Theme,
+				InitialColorScheme: consoleshell.ColorScheme(data.ColorScheme),
+				PersistPreferences: data.Theme == "goshtoso" && data.ColorScheme == "system",
 				ThemeStylesheets:   []string{"/ui/balemoh.css"},
 			},
 			Interactions: consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
@@ -54,7 +63,8 @@ func ConsolePage(data PageData) templ.Component {
 			CanonicalURL:  canonicalURL(data),
 			Active:        data.Active,
 			Content:       PageContent(data),
-			Metadata:      &head.MetadataConfig{Image: head.SocialImage{URL: "https://balemoh.decastro.me/ui/social-v1.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}},
+			Head:          BrandHead(),
+			Metadata:      &head.MetadataConfig{Image: head.SocialImage{URL: "https://balemoh.decastro.me/ui/social-v2.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}},
 		},
 	)
 }

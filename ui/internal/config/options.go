@@ -13,6 +13,16 @@ import (
 
 // Options configures the Balemoh server-rendered UI BFF.
 type Options struct {
+	// Theme selects the shared visual profile theme, goshtoso or minimal.
+	Theme string `env:"BALEMOH_UI_THEME" envDefault:"goshtoso"`
+	// ColorScheme selects system, light or dark. Explicit themes or modes override stored browser preferences.
+	ColorScheme string `env:"BALEMOH_UI_COLOR_SCHEME" envDefault:"system"`
+	// PluginConfig enables data-backed trusted plugins from a local JSON file. It cannot be combined with synthetic preview configuration.
+	PluginConfig string `env:"BALEMOH_UI_PLUGIN_CONFIG"`
+	// PluginServiceTokenFile contains the private API service credential. It is never passed to a UI child or browser.
+	PluginServiceTokenFile string `env:"BALEMOH_UI_PLUGIN_SERVICE_TOKEN_FILE"`
+	// PluginPreviewConfig enables trusted, synthetic P1 UI previews from a local JSON file. Empty disables plugins.
+	PluginPreviewConfig string `env:"BALEMOH_UI_PLUGIN_PREVIEW_CONFIG"`
 	// HTTPAddr is the address where the UI BFF listens.
 	HTTPAddr string `env:"BALEMOH_UI_HTTP_ADDR" envDefault:":8081"`
 	// APIBaseURL is the absolute URL of the Balemoh API upstream.
@@ -64,6 +74,18 @@ func normalize(options Options) Options {
 // Validate rejects configuration that would make the UI unusable or send
 // requests to an ambiguous upstream URL.
 func (o Options) Validate() error {
+	if o.Theme != "goshtoso" && o.Theme != "minimal" {
+		return fmt.Errorf("unsupported UI theme")
+	}
+	if o.ColorScheme != "system" && o.ColorScheme != "light" && o.ColorScheme != "dark" {
+		return fmt.Errorf("unsupported UI color scheme")
+	}
+	if (strings.TrimSpace(o.PluginConfig) == "") != (strings.TrimSpace(o.PluginServiceTokenFile) == "") {
+		return fmt.Errorf("plugin configuration and service credential file must be set together")
+	}
+	if o.PluginConfig != "" && o.PluginPreviewConfig != "" {
+		return fmt.Errorf("choose data-backed plugins or synthetic previews")
+	}
 	if strings.TrimSpace(o.HTTPAddr) == "" {
 		return fmt.Errorf("UI HTTP address must not be empty")
 	}

@@ -9,9 +9,12 @@ import (
 	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/application/dashboard"
 	"github.com/araihu/balemoh/internal/application/health"
+	"github.com/araihu/balemoh/internal/application/plugins"
 )
 
 type Handler struct {
+	plugins          *plugins.Service
+	pluginToken      string
 	dashboard        *dashboard.Service
 	telemetry        TelemetryStore
 	icons            IconStore

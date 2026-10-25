@@ -1,0 +1,45 @@
+package view
+
+import (
+ "github.com/araihu/goshtoso/components/card"
+ "github.com/araihu/goshtoso/components/link"
+)
+
+// A stable keyed slot retains loaded content through unrelated dashboard morphs.
+templ PluginSlot(id, title, contentURL string) {
+ <div id={ id } data-plugin-slot hx-morph-skip hx-get={ contentURL } hx-trigger="load, plugin-refresh" hx-target="this" hx-swap="innerHTML" hx-sync="this:drop" hx-status:5xx="swap:innerHTML">
+  @card.Card(card.Config{Title: title, Description: "Loading plugin content…"})
+  <noscript><iframe title={ title } src={ nativePluginURL(contentURL) } style="width:100%;min-height:48rem;border:0"></iframe></noscript>
+ </div>
+}
+
+templ PluginSlotFailure(contentURL string) {
+ @card.Card(card.Config{Title: "Plugin unavailable", Description: "Content could not be loaded. Core pages remain available.", Footer: PluginRetry(contentURL)})
+}
+
+templ PluginRetry(contentURL string) {
+ @link.Link(contentURL, link.WithAttrs(templ.Attributes{"hx-get":contentURL,"hx-target":"closest [data-plugin-slot]","hx-swap":"innerHTML","hx-sync":"closest [data-plugin-slot]:drop","hx-status:5xx":"swap:innerHTML"})) { Retry plugin }
+}
+
+// Native content runs in its own document so base shell never waits for plugin RPC.
+templ PluginDocument(content []byte,theme,scheme string,styles []string) {
+ <!DOCTYPE html>
+ <html lang="en" data-theme={ theme } class:dark={ scheme=="dark" }><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base target="_top"/><link rel="stylesheet" href="/assets/styles.css"/>
+ for _,href:=range styles {
+ <link rel="stylesheet" href={templ.SafeURL(href)}/>
+ }
+ </head><body><main>@templ.Raw(string(content))</main></body></html>
+}
+
+templ PluginMount(key,assets string,content []byte) {
+ <div data-plugin-mount data-plugin-key={ key } data-plugin-assets={ assets }>@templ.Raw(string(content))</div>
+}
+templ PluginWidgetSlot(id,title,url,revision string) {
+ <span hidden data-plugin-revision={ revision } data-plugin-target={ id }></span>
+ @PluginSlot(id,title,url)
+}
+
+templ ManagedPluginWidget(id,title,url,revision,manage string) {
+ @PluginWidgetSlot(id,title,url,revision)
+ @link.Link(manage) { Configure widget }
+}

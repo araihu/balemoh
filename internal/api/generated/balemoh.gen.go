@@ -13,10 +13,12 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
 	FederationBearerScopes federationBearerContextKey = "FederationBearer.Scopes"
+	PluginServiceScopes    pluginServiceContextKey    = "PluginService.Scopes"
 )
 
 // Defines values for HealthResponseStatus.
@@ -60,22 +62,22 @@ func (e HostKind) Valid() bool {
 
 // Defines values for HostStatus.
 const (
-	Fresh       HostStatus = "fresh"
-	Partial     HostStatus = "partial"
-	Stale       HostStatus = "stale"
-	Unavailable HostStatus = "unavailable"
+	HostStatusFresh       HostStatus = "fresh"
+	HostStatusPartial     HostStatus = "partial"
+	HostStatusStale       HostStatus = "stale"
+	HostStatusUnavailable HostStatus = "unavailable"
 )
 
 // Valid indicates whether the value is a known member of the HostStatus enum.
 func (e HostStatus) Valid() bool {
 	switch e {
-	case Fresh:
+	case HostStatusFresh:
 		return true
-	case Partial:
+	case HostStatusPartial:
 		return true
-	case Stale:
+	case HostStatusStale:
 		return true
-	case Unavailable:
+	case HostStatusUnavailable:
 		return true
 	default:
 		return false
@@ -94,6 +96,54 @@ func (e HostDetailRange) Valid() bool {
 	case HostDetailRangeN1h:
 		return true
 	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginConnectionState.
+const (
+	PluginConnectionStateFresh       PluginConnectionState = "fresh"
+	PluginConnectionStatePartial     PluginConnectionState = "partial"
+	PluginConnectionStateStale       PluginConnectionState = "stale"
+	PluginConnectionStateUnavailable PluginConnectionState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginConnectionState enum.
+func (e PluginConnectionState) Valid() bool {
+	switch e {
+	case PluginConnectionStateFresh:
+		return true
+	case PluginConnectionStatePartial:
+		return true
+	case PluginConnectionStateStale:
+		return true
+	case PluginConnectionStateUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginQueryResultState.
+const (
+	Fresh       PluginQueryResultState = "fresh"
+	Partial     PluginQueryResultState = "partial"
+	Stale       PluginQueryResultState = "stale"
+	Unavailable PluginQueryResultState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginQueryResultState enum.
+func (e PluginQueryResultState) Valid() bool {
+	switch e {
+	case Fresh:
+		return true
+	case Partial:
+		return true
+	case Stale:
+		return true
+	case Unavailable:
 		return true
 	default:
 		return false
@@ -315,6 +365,101 @@ type ManualServiceCreate struct {
 	RequestId string `json:"requestId"`
 }
 
+// PluginCatalog defines model for PluginCatalog.
+type PluginCatalog struct {
+	Plugins  []PluginDescriptor          `json:"plugins"`
+	Problems []PluginInstallationProblem `json:"problems"`
+}
+
+// PluginConnection defines model for PluginConnection.
+type PluginConnection struct {
+	AppliedRevision        *string               `json:"appliedRevision"`
+	ConfigurationError     *PluginFailure        `json:"configurationError,omitempty"`
+	Enabled                bool                  `json:"enabled"`
+	Id                     string                `json:"id"`
+	Key                    string                `json:"key"`
+	LastAttemptAt          *time.Time            `json:"lastAttemptAt"`
+	LastConfigureAttemptAt *time.Time            `json:"lastConfigureAttemptAt"`
+	LastSuccessAt          *time.Time            `json:"lastSuccessAt"`
+	Name                   string                `json:"name"`
+	ObservationRevision    *string               `json:"observationRevision"`
+	ObservedAt             *time.Time            `json:"observedAt"`
+	Queries                []string              `json:"queries"`
+	Ready                  bool                  `json:"ready"`
+	Revision               string                `json:"revision"`
+	SourceError            *PluginFailure        `json:"sourceError,omitempty"`
+	State                  PluginConnectionState `json:"state"`
+}
+
+// PluginConnectionState defines model for PluginConnection.State.
+type PluginConnectionState string
+
+// PluginDescriptor defines model for PluginDescriptor.
+type PluginDescriptor struct {
+	Connections    []PluginConnection `json:"connections"`
+	Id             string             `json:"id"`
+	ManifestDigest string             `json:"manifestDigest"`
+	Version        string             `json:"version"`
+}
+
+// PluginFailure defines model for PluginFailure.
+type PluginFailure struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+// PluginInstallationProblem defines model for PluginInstallationProblem.
+type PluginInstallationProblem struct {
+	ConnectionKey  *string       `json:"connectionKey,omitempty"`
+	Error          PluginFailure `json:"error"`
+	InstallationId string        `json:"installationId"`
+	PluginId       *string       `json:"pluginId,omitempty"`
+}
+
+// PluginPlacement defines model for PluginPlacement.
+type PluginPlacement struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PlacementId    string                 `json:"placementId"`
+	PluginId       string                 `json:"pluginId"`
+	Revision       string                 `json:"revision"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
+}
+
+// PluginPlacementBody defines model for PluginPlacementBody.
+type PluginPlacementBody struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PluginId       string                 `json:"pluginId"`
+}
+
+// PluginQueryResult defines model for PluginQueryResult.
+type PluginQueryResult struct {
+	Data                map[string]interface{} `json:"data"`
+	LastSuccessAt       *time.Time             `json:"lastSuccessAt"`
+	ObservationRevision string                 `json:"observationRevision"`
+	ObservedAt          *time.Time             `json:"observedAt"`
+	SourceError         *PluginFailure         `json:"sourceError,omitempty"`
+	State               PluginQueryResultState `json:"state"`
+}
+
+// PluginQueryResultState defines model for PluginQueryResult.State.
+type PluginQueryResultState string
+
+// PluginWidgetDefinition defines model for PluginWidgetDefinition.
+type PluginWidgetDefinition struct {
+	ContributionId string                 `json:"contributionId"`
+	OptionsSchema  map[string]interface{} `json:"optionsSchema"`
+	PluginId       string                 `json:"pluginId"`
+	Title          string                 `json:"title"`
+}
+
 // ResourceObservation defines model for ResourceObservation.
 type ResourceObservation struct {
 	Endpoints []ServiceEndpoint `json:"endpoints"`
@@ -420,6 +565,9 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// pluginServiceContextKey is the context key for PluginService security scheme
+type pluginServiceContextKey string
+
 // SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
 type SetDashboardSelectionJSONBody struct {
 	Enabled bool `json:"enabled"`
@@ -436,6 +584,21 @@ type GetHostParamsRange string
 // DeleteIconParams defines parameters for DeleteIcon.
 type DeleteIconParams struct {
 	Digest string `form:"digest" json:"digest"`
+}
+
+// DeletePluginWidgetParams defines parameters for DeletePluginWidget.
+type DeletePluginWidgetParams struct {
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// PutPluginWidgetParams defines parameters for PutPluginWidget.
+type PutPluginWidgetParams struct {
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// QueryPluginJSONBody defines parameters for QueryPlugin.
+type QueryPluginJSONBody struct {
+	Input map[string]interface{} `json:"input"`
 }
 
 // ChangeServiceLifecycleJSONBody defines parameters for ChangeServiceLifecycle.
@@ -460,6 +623,12 @@ type UploadIconJSONRequestBody = IconUpload
 
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
+
+// PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
+type PutPluginWidgetJSONRequestBody = PluginPlacementBody
+
+// QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
+type QueryPluginJSONRequestBody QueryPluginJSONBody
 
 // CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
 type CreateManualServiceJSONRequestBody = ManualServiceCreate
@@ -511,6 +680,21 @@ type ServerInterface interface {
 
 	// (GET /api/v1/icons/{iconID}/image)
 	GetIconImage(w http.ResponseWriter, r *http.Request, iconID string)
+
+	// (GET /api/v1/plugin-widgets)
+	GetPluginWidgets(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/v1/plugin-widgets/{placementId})
+	DeletePluginWidget(w http.ResponseWriter, r *http.Request, placementId openapi_types.UUID, params DeletePluginWidgetParams)
+
+	// (PUT /api/v1/plugin-widgets/{placementId})
+	PutPluginWidget(w http.ResponseWriter, r *http.Request, placementId openapi_types.UUID, params PutPluginWidgetParams)
+
+	// (GET /api/v1/plugins)
+	GetPlugins(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId})
+	QueryPlugin(w http.ResponseWriter, r *http.Request, pluginId string, connectionId string, queryId string)
 
 	// (GET /api/v1/staging/services)
 	GetStagingServices(w http.ResponseWriter, r *http.Request)
@@ -838,6 +1022,208 @@ func (siw *ServerInterfaceWrapper) GetIconImage(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// GetPluginWidgets operation middleware
+func (siw *ServerInterfaceWrapper) GetPluginWidgets(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPluginWidgets(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePluginWidget operation middleware
+func (siw *ServerInterfaceWrapper) DeletePluginWidget(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "placementId" -------------
+	var placementId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "placementId", r.PathValue("placementId"), &placementId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "placementId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeletePluginWidgetParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = &IfMatch
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePluginWidget(w, r, placementId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutPluginWidget operation middleware
+func (siw *ServerInterfaceWrapper) PutPluginWidget(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "placementId" -------------
+	var placementId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "placementId", r.PathValue("placementId"), &placementId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "placementId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PutPluginWidgetParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = &IfMatch
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutPluginWidget(w, r, placementId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPlugins operation middleware
+func (siw *ServerInterfaceWrapper) GetPlugins(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPlugins(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// QueryPlugin operation middleware
+func (siw *ServerInterfaceWrapper) QueryPlugin(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "pluginId" -------------
+	var pluginId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pluginId", r.PathValue("pluginId"), &pluginId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pluginId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connectionId" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connectionId", r.PathValue("connectionId"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connectionId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "queryId" -------------
+	var queryId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "queryId", r.PathValue("queryId"), &queryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "queryId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.QueryPlugin(w, r, pluginId, connectionId, queryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetStagingServices operation middleware
 func (siw *ServerInterfaceWrapper) GetStagingServices(w http.ResponseWriter, r *http.Request) {
 
@@ -1117,6 +1503,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.DeleteIcon)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.UpdateIcon)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{iconID}/image", wrapper.GetIconImage)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugin-widgets", wrapper.GetPluginWidgets)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.DeletePluginWidget)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.PutPluginWidget)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugins", wrapper.GetPlugins)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId}", wrapper.QueryPlugin)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services", wrapper.CreateManualService)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}", wrapper.EditStagingService)

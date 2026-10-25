@@ -15,10 +15,12 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
 	FederationBearerScopes federationBearerContextKey = "FederationBearer.Scopes"
+	PluginServiceScopes    pluginServiceContextKey    = "PluginService.Scopes"
 )
 
 // Defines values for HealthResponseStatus.
@@ -62,22 +64,22 @@ func (e HostKind) Valid() bool {
 
 // Defines values for HostStatus.
 const (
-	Fresh       HostStatus = "fresh"
-	Partial     HostStatus = "partial"
-	Stale       HostStatus = "stale"
-	Unavailable HostStatus = "unavailable"
+	HostStatusFresh       HostStatus = "fresh"
+	HostStatusPartial     HostStatus = "partial"
+	HostStatusStale       HostStatus = "stale"
+	HostStatusUnavailable HostStatus = "unavailable"
 )
 
 // Valid indicates whether the value is a known member of the HostStatus enum.
 func (e HostStatus) Valid() bool {
 	switch e {
-	case Fresh:
+	case HostStatusFresh:
 		return true
-	case Partial:
+	case HostStatusPartial:
 		return true
-	case Stale:
+	case HostStatusStale:
 		return true
-	case Unavailable:
+	case HostStatusUnavailable:
 		return true
 	default:
 		return false
@@ -96,6 +98,54 @@ func (e HostDetailRange) Valid() bool {
 	case HostDetailRangeN1h:
 		return true
 	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginConnectionState.
+const (
+	PluginConnectionStateFresh       PluginConnectionState = "fresh"
+	PluginConnectionStatePartial     PluginConnectionState = "partial"
+	PluginConnectionStateStale       PluginConnectionState = "stale"
+	PluginConnectionStateUnavailable PluginConnectionState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginConnectionState enum.
+func (e PluginConnectionState) Valid() bool {
+	switch e {
+	case PluginConnectionStateFresh:
+		return true
+	case PluginConnectionStatePartial:
+		return true
+	case PluginConnectionStateStale:
+		return true
+	case PluginConnectionStateUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginQueryResultState.
+const (
+	Fresh       PluginQueryResultState = "fresh"
+	Partial     PluginQueryResultState = "partial"
+	Stale       PluginQueryResultState = "stale"
+	Unavailable PluginQueryResultState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginQueryResultState enum.
+func (e PluginQueryResultState) Valid() bool {
+	switch e {
+	case Fresh:
+		return true
+	case Partial:
+		return true
+	case Stale:
+		return true
+	case Unavailable:
 		return true
 	default:
 		return false
@@ -317,6 +367,101 @@ type ManualServiceCreate struct {
 	RequestId string `json:"requestId"`
 }
 
+// PluginCatalog defines model for PluginCatalog.
+type PluginCatalog struct {
+	Plugins  []PluginDescriptor          `json:"plugins"`
+	Problems []PluginInstallationProblem `json:"problems"`
+}
+
+// PluginConnection defines model for PluginConnection.
+type PluginConnection struct {
+	AppliedRevision        *string               `json:"appliedRevision"`
+	ConfigurationError     *PluginFailure        `json:"configurationError,omitempty"`
+	Enabled                bool                  `json:"enabled"`
+	Id                     string                `json:"id"`
+	Key                    string                `json:"key"`
+	LastAttemptAt          *time.Time            `json:"lastAttemptAt"`
+	LastConfigureAttemptAt *time.Time            `json:"lastConfigureAttemptAt"`
+	LastSuccessAt          *time.Time            `json:"lastSuccessAt"`
+	Name                   string                `json:"name"`
+	ObservationRevision    *string               `json:"observationRevision"`
+	ObservedAt             *time.Time            `json:"observedAt"`
+	Queries                []string              `json:"queries"`
+	Ready                  bool                  `json:"ready"`
+	Revision               string                `json:"revision"`
+	SourceError            *PluginFailure        `json:"sourceError,omitempty"`
+	State                  PluginConnectionState `json:"state"`
+}
+
+// PluginConnectionState defines model for PluginConnection.State.
+type PluginConnectionState string
+
+// PluginDescriptor defines model for PluginDescriptor.
+type PluginDescriptor struct {
+	Connections    []PluginConnection `json:"connections"`
+	Id             string             `json:"id"`
+	ManifestDigest string             `json:"manifestDigest"`
+	Version        string             `json:"version"`
+}
+
+// PluginFailure defines model for PluginFailure.
+type PluginFailure struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+// PluginInstallationProblem defines model for PluginInstallationProblem.
+type PluginInstallationProblem struct {
+	ConnectionKey  *string       `json:"connectionKey,omitempty"`
+	Error          PluginFailure `json:"error"`
+	InstallationId string        `json:"installationId"`
+	PluginId       *string       `json:"pluginId,omitempty"`
+}
+
+// PluginPlacement defines model for PluginPlacement.
+type PluginPlacement struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PlacementId    string                 `json:"placementId"`
+	PluginId       string                 `json:"pluginId"`
+	Revision       string                 `json:"revision"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
+}
+
+// PluginPlacementBody defines model for PluginPlacementBody.
+type PluginPlacementBody struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PluginId       string                 `json:"pluginId"`
+}
+
+// PluginQueryResult defines model for PluginQueryResult.
+type PluginQueryResult struct {
+	Data                map[string]interface{} `json:"data"`
+	LastSuccessAt       *time.Time             `json:"lastSuccessAt"`
+	ObservationRevision string                 `json:"observationRevision"`
+	ObservedAt          *time.Time             `json:"observedAt"`
+	SourceError         *PluginFailure         `json:"sourceError,omitempty"`
+	State               PluginQueryResultState `json:"state"`
+}
+
+// PluginQueryResultState defines model for PluginQueryResult.State.
+type PluginQueryResultState string
+
+// PluginWidgetDefinition defines model for PluginWidgetDefinition.
+type PluginWidgetDefinition struct {
+	ContributionId string                 `json:"contributionId"`
+	OptionsSchema  map[string]interface{} `json:"optionsSchema"`
+	PluginId       string                 `json:"pluginId"`
+	Title          string                 `json:"title"`
+}
+
 // ResourceObservation defines model for ResourceObservation.
 type ResourceObservation struct {
 	Endpoints []ServiceEndpoint `json:"endpoints"`
@@ -422,6 +567,9 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// pluginServiceContextKey is the context key for PluginService security scheme
+type pluginServiceContextKey string
+
 // SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
 type SetDashboardSelectionJSONBody struct {
 	Enabled bool `json:"enabled"`
@@ -438,6 +586,21 @@ type GetHostParamsRange string
 // DeleteIconParams defines parameters for DeleteIcon.
 type DeleteIconParams struct {
 	Digest string `form:"digest" json:"digest"`
+}
+
+// DeletePluginWidgetParams defines parameters for DeletePluginWidget.
+type DeletePluginWidgetParams struct {
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// PutPluginWidgetParams defines parameters for PutPluginWidget.
+type PutPluginWidgetParams struct {
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// QueryPluginJSONBody defines parameters for QueryPlugin.
+type QueryPluginJSONBody struct {
+	Input map[string]interface{} `json:"input"`
 }
 
 // ChangeServiceLifecycleJSONBody defines parameters for ChangeServiceLifecycle.
@@ -462,6 +625,12 @@ type UploadIconJSONRequestBody = IconUpload
 
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
+
+// PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
+type PutPluginWidgetJSONRequestBody = PluginPlacementBody
+
+// QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
+type QueryPluginJSONRequestBody QueryPluginJSONBody
 
 // CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
 type CreateManualServiceJSONRequestBody = ManualServiceCreate
@@ -593,6 +762,25 @@ type ClientInterface interface {
 
 	// GetIconImage request
 	GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPluginWidgets request
+	GetPluginWidgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeletePluginWidget request
+	DeletePluginWidget(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutPluginWidgetWithBody request with any body
+	PutPluginWidgetWithBody(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutPluginWidget(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPlugins request
+	GetPlugins(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// QueryPluginWithBody request with any body
+	QueryPluginWithBody(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	QueryPlugin(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetStagingServices request
 	GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -828,6 +1016,90 @@ func (c *Client) UpdateIcon(ctx context.Context, iconID string, body UpdateIconJ
 
 func (c *Client) GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetIconImageRequest(c.Server, iconID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetPluginWidgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPluginWidgetsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeletePluginWidget(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeletePluginWidgetRequest(c.Server, placementId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutPluginWidgetWithBody(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutPluginWidgetRequestWithBody(c.Server, placementId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutPluginWidget(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutPluginWidgetRequest(c.Server, placementId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetPlugins(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPluginsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) QueryPluginWithBody(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQueryPluginRequestWithBody(c.Server, pluginId, connectionId, queryId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) QueryPlugin(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQueryPluginRequest(c.Server, pluginId, connectionId, queryId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1466,6 +1738,232 @@ func NewGetIconImageRequest(server string, iconID string) (*http.Request, error)
 	return req, nil
 }
 
+// NewGetPluginWidgetsRequest generates requests for GetPluginWidgets
+func NewGetPluginWidgetsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugin-widgets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeletePluginWidgetRequest generates requests for DeletePluginWidget
+func NewDeletePluginWidgetRequest(server string, placementId openapi_types.UUID, params *DeletePluginWidgetParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "placementId", placementId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugin-widgets/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+
+		if params.IfMatch != nil {
+			var headerParam0 string
+
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", *params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Match", headerParam0)
+		}
+
+	}
+
+	return req, nil
+}
+
+// NewPutPluginWidgetRequest calls the generic PutPluginWidget builder with application/json body
+func NewPutPluginWidgetRequest(server string, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutPluginWidgetRequestWithBody(server, placementId, params, "application/json", bodyReader)
+}
+
+// NewPutPluginWidgetRequestWithBody generates requests for PutPluginWidget with any type of body
+func NewPutPluginWidgetRequestWithBody(server string, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "placementId", placementId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugin-widgets/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		if params.IfMatch != nil {
+			var headerParam0 string
+
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", *params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Match", headerParam0)
+		}
+
+	}
+
+	return req, nil
+}
+
+// NewGetPluginsRequest generates requests for GetPlugins
+func NewGetPluginsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugins")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewQueryPluginRequest calls the generic QueryPlugin builder with application/json body
+func NewQueryPluginRequest(server string, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewQueryPluginRequestWithBody(server, pluginId, connectionId, queryId, "application/json", bodyReader)
+}
+
+// NewQueryPluginRequestWithBody generates requests for QueryPlugin with any type of body
+func NewQueryPluginRequestWithBody(server string, pluginId string, connectionId string, queryId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pluginId", pluginId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "connectionId", connectionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "queryId", queryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugins/%s/connections/%s/queries/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetStagingServicesRequest generates requests for GetStagingServices
 func NewGetStagingServicesRequest(server string) (*http.Request, error) {
 	var err error
@@ -1813,6 +2311,25 @@ type ClientWithResponsesInterface interface {
 
 	// GetIconImageWithResponse request
 	GetIconImageWithResponse(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*GetIconImageResponse, error)
+
+	// GetPluginWidgetsWithResponse request
+	GetPluginWidgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginWidgetsResponse, error)
+
+	// DeletePluginWidgetWithResponse request
+	DeletePluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*DeletePluginWidgetResponse, error)
+
+	// PutPluginWidgetWithBodyWithResponse request with any body
+	PutPluginWidgetWithBodyWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error)
+
+	PutPluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error)
+
+	// GetPluginsWithResponse request
+	GetPluginsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginsResponse, error)
+
+	// QueryPluginWithBodyWithResponse request with any body
+	QueryPluginWithBodyWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error)
+
+	QueryPluginWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error)
 
 	// GetStagingServicesWithResponse request
 	GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error)
@@ -2238,6 +2755,159 @@ func (r GetIconImageResponse) ContentType() string {
 	return ""
 }
 
+type GetPluginWidgetsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Definitions []PluginWidgetDefinition `json:"definitions"`
+		Placements  []PluginPlacement        `json:"placements"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPluginWidgetsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPluginWidgetsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPluginWidgetsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeletePluginWidgetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeletePluginWidgetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeletePluginWidgetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeletePluginWidgetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutPluginWidgetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PluginPlacement
+	JSON201      *PluginPlacement
+}
+
+// Status returns HTTPResponse.Status
+func (r PutPluginWidgetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutPluginWidgetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutPluginWidgetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetPluginsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PluginCatalog
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPluginsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPluginsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPluginsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type QueryPluginResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PluginQueryResult
+}
+
+// Status returns HTTPResponse.Status
+func (r QueryPluginResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r QueryPluginResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r QueryPluginResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetStagingServicesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2607,6 +3277,67 @@ func (c *ClientWithResponses) GetIconImageWithResponse(ctx context.Context, icon
 		return nil, err
 	}
 	return ParseGetIconImageResponse(rsp)
+}
+
+// GetPluginWidgetsWithResponse request returning *GetPluginWidgetsResponse
+func (c *ClientWithResponses) GetPluginWidgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginWidgetsResponse, error) {
+	rsp, err := c.GetPluginWidgets(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPluginWidgetsResponse(rsp)
+}
+
+// DeletePluginWidgetWithResponse request returning *DeletePluginWidgetResponse
+func (c *ClientWithResponses) DeletePluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*DeletePluginWidgetResponse, error) {
+	rsp, err := c.DeletePluginWidget(ctx, placementId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeletePluginWidgetResponse(rsp)
+}
+
+// PutPluginWidgetWithBodyWithResponse request with arbitrary body returning *PutPluginWidgetResponse
+func (c *ClientWithResponses) PutPluginWidgetWithBodyWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error) {
+	rsp, err := c.PutPluginWidgetWithBody(ctx, placementId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutPluginWidgetResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutPluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error) {
+	rsp, err := c.PutPluginWidget(ctx, placementId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutPluginWidgetResponse(rsp)
+}
+
+// GetPluginsWithResponse request returning *GetPluginsResponse
+func (c *ClientWithResponses) GetPluginsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginsResponse, error) {
+	rsp, err := c.GetPlugins(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPluginsResponse(rsp)
+}
+
+// QueryPluginWithBodyWithResponse request with arbitrary body returning *QueryPluginResponse
+func (c *ClientWithResponses) QueryPluginWithBodyWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error) {
+	rsp, err := c.QueryPluginWithBody(ctx, pluginId, connectionId, queryId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQueryPluginResponse(rsp)
+}
+
+func (c *ClientWithResponses) QueryPluginWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error) {
+	rsp, err := c.QueryPlugin(ctx, pluginId, connectionId, queryId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQueryPluginResponse(rsp)
 }
 
 // GetStagingServicesWithResponse request returning *GetStagingServicesResponse
@@ -3047,6 +3778,136 @@ func ParseGetIconImageResponse(rsp *http.Response) (*GetIconImageResponse, error
 	response := &GetIconImageResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetPluginWidgetsResponse parses an HTTP response from a GetPluginWidgetsWithResponse call
+func ParseGetPluginWidgetsResponse(rsp *http.Response) (*GetPluginWidgetsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPluginWidgetsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Definitions []PluginWidgetDefinition `json:"definitions"`
+			Placements  []PluginPlacement        `json:"placements"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeletePluginWidgetResponse parses an HTTP response from a DeletePluginWidgetWithResponse call
+func ParseDeletePluginWidgetResponse(rsp *http.Response) (*DeletePluginWidgetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeletePluginWidgetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePutPluginWidgetResponse parses an HTTP response from a PutPluginWidgetWithResponse call
+func ParsePutPluginWidgetResponse(rsp *http.Response) (*PutPluginWidgetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutPluginWidgetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PluginPlacement
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest PluginPlacement
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPluginsResponse parses an HTTP response from a GetPluginsWithResponse call
+func ParseGetPluginsResponse(rsp *http.Response) (*GetPluginsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPluginsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PluginCatalog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseQueryPluginResponse parses an HTTP response from a QueryPluginWithResponse call
+func ParseQueryPluginResponse(rsp *http.Response) (*QueryPluginResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &QueryPluginResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PluginQueryResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil
