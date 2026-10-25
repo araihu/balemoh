@@ -21,7 +21,7 @@
       "const": "balemoh.plugins/v1alpha1"
     },
     "uiProfile": {
-      "const": "balemoh.goshtoso/v1alpha1"
+      "const": "balemoh.goshtoso/v1alpha2"
     },
     "targets": {
       "type": "object",

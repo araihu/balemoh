@@ -20,7 +20,7 @@ import (
 
 const (
 	Protocol  = "balemoh.plugins/v1alpha1"
-	UIProfile = "balemoh.goshtoso/v1alpha1"
+	UIProfile = "balemoh.goshtoso/v1alpha2"
 	MaxBytes  = 256 << 10
 )
 

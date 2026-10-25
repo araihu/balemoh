@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -11,6 +12,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/araihu/balemoh/plugin-sdk/manifest"
 	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
 	"github.com/araihu/balemoh/ui/iconpacks/selfhst"
 	"github.com/araihu/balemoh/ui/internal/bff"
@@ -20,7 +22,7 @@ import (
 
 func main() {
 	if len(os.Args) == 2 && os.Args[1] == "--plugin-host-info" {
-		fmt.Println(`{"Protocol":"balemoh.plugins/v1alpha1","UIProfile":"balemoh.goshtoso/v1alpha1"}`)
+		_ = json.NewEncoder(os.Stdout).Encode(struct{ Protocol, UIProfile string }{manifest.Protocol, manifest.UIProfile})
 		return
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

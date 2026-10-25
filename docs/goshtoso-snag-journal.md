@@ -78,3 +78,8 @@
 ## Dashboard swaps and masonry settlement, 2026-10-21
 
 - Full-grid SSE morphs remove client-owned row spans and the masonry class, temporarily collapsing the grid and clamping the shell scroll position. Send widget-level OOB morphs for value changes. Reconcile sections only on connection or membership/order/source changes, and preserve masonry attributes with HTMX 4's `htmx_before_morph_attr` extension hook. Re-measure after settlement as well as resize. Use layout-pixel heights rather than transformed visual bounds. Restore refresh focus with `preventScroll`, without stealing focus from another control.
+
+## Alert filters and combobox keyboard focus, 2026-10-25
+
+- Combobox v0.3.3 and v0.4.2 rendered enabled options without a focusable tabindex. Arrow navigation could not move focus to those options. [Upstream PR 343](https://github.com/araihu/goshtoso/pull/343) fixes option focus, disabled-option skipping, clear in client/server modes and delayed callbacks that could steal focus. The Alertmanager plugin uses the native component. Visual profile v1alpha2 pins Goshtoso v0.4.3 across host assets and scaffold; deploy matching plugin packages with that host.
+- A plugin fragment must not put native fallback inputs inside `noscript`: browser fragment parsing can create hidden successful controls even with JavaScript enabled. Render native inputs only for the host's `__native=1` iframe request. Keep the normal form stable and swap only results so search drafts, focus and open menus survive filtering.

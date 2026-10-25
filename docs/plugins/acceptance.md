@@ -98,3 +98,24 @@ executed the packaged Linux arm64 child.
 - Operator-owned diagnostic pods and local fixture processes were removed after
   use. Private database backups remain outside Git. Ordinary image-only rollback
   across migration 11 remains unsupported; follow the documented restore procedure.
+
+## Native Alertmanager filters, 2026-10-25
+
+Visual profile `balemoh.goshtoso/v1alpha2` replaces the earlier profile recorded
+above. It pins Goshtoso v0.4.3 in host assets and generated consumers. The RPC
+protocol remains `balemoh.plugins/v1alpha1`; upgrade host and plugin packages
+together. Old visual profiles are rejected. The Goshtoso tag points to
+`4c46fa5be66c2c302fb3028e8e57aafbab23c217` and resolves with the public Go checksum
+`h1:rOGM2LFm2d8w7w5WjcELLqf4JgeMHXUdH/WFDaZBfLU=`.
+
+Alertmanager uses the native Goshtoso multi-select combobox. Search matches
+case-insensitive terms across retained public alert fields. Changes replace only
+results; the form, search draft, focus and open filters survive. Native iframe
+requests receive exclusive checkbox controls through `__native=1`, avoiding
+hidden fallback values in JavaScript fragments.
+
+After resolving the real tag, the normal multi-module gate passed generation,
+module tidy, tests and vet for root/client/UI/SDK, generated standalone UI/backend
+consumers and the external Alertmanager consumer. Controlled API/BFF integration
+also passed. The SDK remains unpublished; consumer CI still requires its explicit
+reviewed host commit.

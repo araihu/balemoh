@@ -10,14 +10,15 @@ import (
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
 )
 
-const valid = `{"manifestVersion":1,"id":"example.fixture","version":"0.0.1","name":"Fixture","protocol":"balemoh.plugins/v1alpha1","uiProfile":"balemoh.goshtoso/v1alpha1","targets":{"linux/amd64":{"ui":"bin/ui"}},"connectionSchema":"schema.json","secrets":[],"queries":[],"pages":[{"id":"current","title":"Fixture page","path":"/current/{id}","methods":["GET"],"capabilities":[]}],"navigation":[{"id":"fixture","title":"Fixture","page":"current"}],"widgets":[],"assets":[],"capabilities":{"required":["page.content/v1","sidebar.navigation/v1"],"optional":[]}}`
+const valid = `{"manifestVersion":1,"id":"example.fixture","version":"0.0.1","name":"Fixture","protocol":"balemoh.plugins/v1alpha1","uiProfile":"balemoh.goshtoso/v1alpha2","targets":{"linux/amd64":{"ui":"bin/ui"}},"connectionSchema":"schema.json","secrets":[],"queries":[],"pages":[{"id":"current","title":"Fixture page","path":"/current/{id}","methods":["GET"],"capabilities":[]}],"navigation":[{"id":"fixture","title":"Fixture","page":"current"}],"widgets":[],"assets":[],"capabilities":{"required":["page.content/v1","sidebar.navigation/v1"],"optional":[]}}`
 
 func TestDecodeClosedManifestAndRoutes(t *testing.T) {
 	for name, modify := range map[string]func(map[string]any){
-		"unknown field":          func(m map[string]any) { m["executeShell"] = "oops" },
-		"incompatible profile":   func(m map[string]any) { m["uiProfile"] = "other/v1" },
-		"missing required field": func(m map[string]any) { delete(m, "queries") },
-		"missing page title":     func(m map[string]any) { delete(m["pages"].([]any)[0].(map[string]any), "title") },
+		"unknown field":           func(m map[string]any) { m["executeShell"] = "oops" },
+		"previous visual profile": func(m map[string]any) { m["uiProfile"] = "balemoh.goshtoso/v1alpha1" },
+		"incompatible profile":    func(m map[string]any) { m["uiProfile"] = "other/v1" },
+		"missing required field":  func(m map[string]any) { delete(m, "queries") },
+		"missing page title":      func(m map[string]any) { delete(m["pages"].([]any)[0].(map[string]any), "title") },
 		"undeclared page": func(m map[string]any) {
 			m["capabilities"].(map[string]any)["required"] = []string{"sidebar.navigation/v1"}
 		},
