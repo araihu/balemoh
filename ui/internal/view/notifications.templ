@@ -158,7 +158,7 @@ templ NotificationList(page NotificationsPage, tray bool) {
 }
 
 templ NotificationItem(item Notification, page NotificationsPage, tray bool) {
-	<li id={ notificationItemID(item.ID, tray) } class={ notificationCompactClass(item.Read) }>
+	<li id={ notificationItemID(item.ID, tray) } class="balemoh-notification-tray-row">
 		@NotificationProducerIcon(item)
 		<div class="balemoh-notification-row-content">
 			<div class="balemoh-notification-row-title">
@@ -186,12 +186,7 @@ templ NotificationItem(item Notification, page NotificationsPage, tray bool) {
 			}
 			@badge.Badge(badge.Config{Label: item.Severity, Tone: notificationTone(item.Severity), Appearance: badge.AppearanceSoft, Size: badge.SizeSM})
 		</div>
-		<div class="balemoh-notification-row-state">
-			if !item.Read {
-				<span class="balemoh-notification-unread-dot"><span class="sr-only">Unread</span></span>
-			}
-			<div id={ notificationReadTarget(item.ID, notificationReturnPath(page, tray))[1:] } tabindex="-1">@NotificationReadControl(item.ID, item.Read, "", notificationReturnPath(page, tray))</div>
-		</div>
+		<div class="balemoh-notification-row-state" id={ notificationReadTarget(item.ID, notificationReturnPath(page, tray))[1:] } tabindex="-1">@NotificationReadControl(item.ID, item.Read, "", notificationReturnPath(page, tray))</div>
 	</li>
 }
 
@@ -219,6 +214,7 @@ templ NotificationReadControl(id string, read bool, failure, returnTo string) {
 	if read {
 		<span class="sr-only" role="status">Read</span>
 	} else {
+  <span class="balemoh-notification-unread-dot"><span class="sr-only">Unread</span></span>
 		<form method="post" action={ templ.SafeURL("/notifications/" + id + "/read") } hx-post={ "/notifications/" + id + "/read" } hx-target={ notificationReadTarget(id, returnTo) } hx-include="#notification-filter" hx-swap="innerMorph" hx-sync="#balemoh-notifications:queue all" hx-request="timeout:4s" hx-disable="find button[type='submit']">
 			<input type="hidden" name="returnTo" value={ returnTo }/>
 			@button.Button(button.WithAppearance(button.AppearancePlain), button.WithType("submit")) {

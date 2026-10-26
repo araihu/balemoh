@@ -123,7 +123,7 @@ func TestNotificationCenterKeepsFilterAndDistinctMutationTargets(t *testing.T) {
 		t.Fatal("tray collided with inbox mutation target")
 	}
 	for _, html := range []string{center.String(), tray.String()} {
-		if !strings.Contains(html, `class="balemoh-notification-tray-row balemoh-notification-tray-row-unread"`) || !strings.Contains(html, "Unread") || !strings.Contains(html, "Mark read") {
+		if !strings.Contains(html, `class="balemoh-notification-tray-row"`) || !strings.Contains(html, "Unread") || !strings.Contains(html, "Mark read") {
 			t.Fatal("shared unread semantics missing")
 		}
 	}

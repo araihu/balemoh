@@ -125,12 +125,6 @@ func notificationStatusRole(failed bool) string {
 	}
 	return "status"
 }
-func notificationCompactClass(read bool) string {
-	if read {
-		return "balemoh-notification-tray-row"
-	}
-	return "balemoh-notification-tray-row balemoh-notification-tray-row-unread"
-}
 func notificationIconSymbol(item Notification) icon.Symbol {
 	if item.ProducerIcon != "" {
 		return item.ProducerIcon

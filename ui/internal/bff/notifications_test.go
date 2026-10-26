@@ -3,6 +3,7 @@ package bff
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
 	"github.com/araihu/balemoh/ui/internal/view"
 	"net/http"
@@ -297,6 +298,31 @@ func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
 			}
 			if f.reads.Load()+f.clears.Load()+f.bulkReads.Load() != 0 {
 				t.Fatal("icon rendering changed read state")
+			}
+		})
+	}
+}
+
+func TestUnfilteredNotificationReadOwnsAllUnreadIndicators(t *testing.T) {
+	for _, blockedCount := range []bool{false, true} {
+		t.Run(fmt.Sprint(blockedCount), func(t *testing.T) {
+			id := "00000000-0000-4000-8000-000000000001"
+			f := &notificationFixture{page: view.NotificationsPage{Items: []view.Notification{{ID: id, Title: "Event", ReceivedAt: time.Now()}}}}
+			h, _ := New(f, 25*time.Millisecond)
+			initial := request(t, h, "GET", "/notifications", "").Body.String()
+			_, target, found := strings.Cut(initial, `id="notification-read-`+id+`"`)
+			if !found || !strings.Contains(strings.SplitN(target, "</form>", 2)[0], "balemoh-notification-unread-dot") {
+				t.Fatal("unread indicator lives outside the read swap target")
+			}
+			f.blocked = blockedCount
+			r := httptest.NewRequest("POST", "/notifications/"+id+"/read", strings.NewReader("returnTo=%2Fnotifications"))
+			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			r.Header.Set("HX-Request-Type", "partial")
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, r)
+			body := w.Body.String()
+			if w.Code != 200 || f.reads.Load() != 1 || w.Header().Get("HX-Retarget") != "" || strings.Contains(body, "balemoh-notification-unread-dot") || strings.Contains(body, "Mark read") || !strings.Contains(body, ">Read</span>") || !strings.Contains(body, `id="notification-summary"`) {
+				t.Fatalf("read acknowledgement retained unread state: %d %s", w.Code, body)
 			}
 		})
 	}
