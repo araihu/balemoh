@@ -10,7 +10,7 @@ import (
  "github.com/araihu/goshtoso/components/fileinput"
  "github.com/araihu/goshtoso/components/icon"
  "github.com/araihu/goshtoso/components/link"
- "github.com/araihu/goshtoso/components/pageheader"
+ "github.com/araihu/goshtoso/components/toolbar"
  "github.com/araihu/goshtoso/components/textinput"
  "github.com/araihu/goshtoso/components/tagslist"
 )
@@ -24,7 +24,9 @@ templ LibraryImage(i LibraryIcon) {
 }
 
 templ IconsContent(data IconPage) {
- @pageheader.PageHeader(pageheader.Config{Title:"Icons",HideSeparator:true,Actions:IconPageActions(data)})
+ if data.Editing == nil && data.Details == nil {
+  @toolbar.Toolbar(toolbar.Config{Label:"Icon actions",Actions:IconPageActions(data)})
+ }
  if (data.Editing != nil || data.Details != nil) && data.Error != "" {
   <p role="alert">{data.Error}</p>
  }
@@ -47,7 +49,7 @@ templ IconSearch(data IconPage) {
 }
 
 func iconSearchID(picker bool)string{if picker{return "picker-search"};return "icon-search"}
-func iconSearchPath(picker bool)string{if picker{return "/icons/picker"};return "/icons"}
+func iconSearchPath(picker bool)string{if picker{return "/icons/picker"};return "/presentation"}
 
 templ IconPageActions(data IconPage) {
  if data.Editing == nil && data.Details == nil {
@@ -94,7 +96,7 @@ templ IconUploadForm(i LibraryIcon, target string) {
     Cancel
    }
   } else {
-   @link.Link("/icons") {
+   @link.Link("/presentation#icons") {
     Back to Icons
    }
   }

@@ -62,6 +62,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	if icons != nil {
 		mux.Handle("GET /ui/icon-library/selfhst/", http.StripPrefix("/ui/icon-library/selfhst/", icons))
 	}
+	mux.HandleFunc("GET /presentation", server.iconsPage)
 	mux.HandleFunc("GET /icons", server.iconsPage)
 	mux.HandleFunc("GET /icons/picker", server.iconsPage)
 	mux.HandleFunc("POST /icons/upload", server.uploadIcon)

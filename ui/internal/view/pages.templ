@@ -62,7 +62,7 @@ templ PageContent(data PageData) {
  } else if data.HostsPage != nil {
  @HostsContent(*data.HostsPage, data.Error == "")
  } else if data.IconPage != nil {
- @IconsContent(*data.IconPage)
+ @PresentationContent(*data.IconPage)
  } else if data.Editor != nil {
  if data.Editor.Creating {
  @ServiceEditor(*data.Editor)
