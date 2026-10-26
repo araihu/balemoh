@@ -35,7 +35,7 @@ func notificationPackage(t *testing.T) *manifest.Package {
 	if err := os.WriteFile(filepath.Join(p.Root, "plugin.json"), data, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(p.Root, "schema.json"), []byte(`{"type":"object","properties":{"publish":{"type":"boolean"},"delayMs":{"type":"integer","minimum":0,"maximum":1000},"attempts":{"type":"integer","minimum":1,"maximum":4},"configureDelayMs":{"type":"integer","minimum":0,"maximum":1000}},"additionalProperties":false}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(p.Root, "schema.json"), []byte(`{"type":"object","properties":{"publish":{"type":"boolean"},"delayMs":{"type":"integer","minimum":0,"maximum":1000},"attempts":{"type":"integer","minimum":1,"maximum":4},"configureDelayMs":{"type":"integer","minimum":0,"maximum":1000},"requireNoPublisher":{"type":"boolean"}},"additionalProperties":false}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	p, err = manifest.Load(p.Root)
@@ -167,6 +167,7 @@ func TestBackendPublisherSurvivesSameRevisionReplayAfterLostResponse(t *testing.
 	t.Cleanup(child.Close)
 	recorder := &notificationRecorder{acceptedC: make(chan notifications.Message, 2)}
 	config := backend.Config{ConnectionID: "connection", Revision: "1", Config: []byte(`{"publish":true,"delayMs":300,"configureDelayMs":120}`)}
+	replayConfig := backend.Config{ConnectionID: "connection", Revision: "1", Config: []byte(`{ "configureDelayMs": 120, "delayMs": 300, "publish": true }`)}
 	// The first Configure commits before its delayed response, so its short
 	// caller deadline models a lost response. Replay the exact same config.
 	firstCtx, cancel := context.WithTimeout(t.Context(), 25*time.Millisecond)
@@ -175,7 +176,7 @@ func TestBackendPublisherSurvivesSameRevisionReplayAfterLostResponse(t *testing.
 		t.Fatalf("lost Configure response returned unexpected error: %v", err)
 	}
 	cancel()
-	if _, err := child.ConfigureWithNotifications(t.Context(), config, recorder); err != nil {
+	if _, err := child.ConfigureWithNotifications(t.Context(), replayConfig, recorder); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -196,6 +197,28 @@ func TestBackendPublisherSurvivesSameRevisionReplayAfterLostResponse(t *testing.
 	recorder.mu.Unlock()
 	if attempts != 1 {
 		t.Fatalf("same-revision replay started a second producer: attempts=%d", attempts)
+	}
+}
+
+func TestUnGrantedBackendReceivesNoPublisher(t *testing.T) {
+	p := notificationPackage(t)
+	child, err := pluginruntime.OpenBackend(t.Context(), p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(child.Close)
+	recorder := &notificationRecorder{acceptedC: make(chan notifications.Message, 1)}
+	config := backend.Config{ConnectionID: "ungranted", Revision: "1", Config: []byte(`{"publish":true,"delayMs":1,"requireNoPublisher":true}`)}
+	if _, err := child.Configure(t.Context(), config); err != nil {
+		t.Fatalf("ungranted backend Configure failed: %v", err)
+	}
+	select {
+	case message := <-recorder.acceptedC:
+		t.Fatalf("ungranted backend published: %+v", message)
+	case <-time.After(250 * time.Millisecond):
+	}
+	if child.Exited() {
+		t.Fatal("ungranted publisher path terminated the backend")
 	}
 }
 

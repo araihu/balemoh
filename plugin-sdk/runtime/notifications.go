@@ -1,9 +1,11 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"io"
 	"sync"
 	"time"
 
@@ -84,7 +86,7 @@ func (b *notificationBinding) sameConfiguration(revision string, digest [32]byte
 }
 
 func (b *notificationBinding) authorPublisher() notifications.Publisher {
-	if b == nil {
+	if b == nil || b.publisher == nil {
 		return nil
 	}
 	return b.publisher
@@ -105,6 +107,7 @@ func (b *notificationBinding) revokeAndClose() {
 func notificationConfigDigest(config []byte, secrets map[string]string) [32]byte {
 	// Normalize nil and empty maps so an equivalent replay is not mistaken for
 	// a replacement merely because the caller allocated an empty secret map.
+	config = canonicalConfigJSON(config)
 	values := make(map[string]string, len(secrets))
 	for key, value := range secrets {
 		values[key] = value
@@ -114,6 +117,24 @@ func notificationConfigDigest(config []byte, secrets map[string]string) [32]byte
 		Secrets map[string]string `json:"secrets"`
 	}{Config: config, Secrets: values})
 	return sha256.Sum256(payload)
+}
+
+func canonicalConfigJSON(config []byte) []byte {
+	decoder := json.NewDecoder(bytes.NewReader(config))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return config
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return config
+	}
+	canonical, err := json.Marshal(value)
+	if err != nil {
+		return config
+	}
+	return canonical
 }
 
 func (s *notificationSession) Close() {
