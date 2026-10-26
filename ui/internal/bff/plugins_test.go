@@ -72,6 +72,9 @@ func TestPluginRenderingNeverBlocksBaseResponses(t *testing.T) {
 		if w := get(path); w.Code != 200 {
 			t.Fatalf("base route %s status %d", path, w.Code)
 		}
+		if path == "/" && strings.Contains(get(path).Body.String(), "Configure widget") {
+			t.Fatal("Home still exposes widget configuration")
+		}
 	}
 	ts := httptest.NewServer(h)
 	t.Cleanup(ts.Close)

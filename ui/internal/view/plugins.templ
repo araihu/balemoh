@@ -38,8 +38,3 @@ templ PluginWidgetSlot(id,title,url,revision string) {
  <span hidden data-plugin-revision={ revision } data-plugin-target={ id }></span>
  @PluginSlot(id,title,url)
 }
-
-templ ManagedPluginWidget(id,title,url,revision,manage string) {
- @PluginWidgetSlot(id,title,url,revision)
- @link.Link(manage) { Configure widget }
-}
