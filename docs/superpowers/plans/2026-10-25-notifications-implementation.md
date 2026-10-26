@@ -1,6 +1,6 @@
 # Unified notifications implementation
 
-Status: N1–N4 implemented. N5 independent reviews and homelab rollout in progress.
+Status: N1–N5 implemented and verified in the homelab on 2026-10-26.
 Contract: [unified notifications](../specs/2026-10-25-notifications-design.md).
 Release stage: trusted single-instance pre-v0.1.0.
 
@@ -98,6 +98,42 @@ pins and backup evidence, update GitOps through a scoped worktree, validate
 migration compatibility and inventory, then verify Argo and the real browser.
 Real validation is read-only for notifications, connections, widgets and pins.
 Keep Balemoh PR 42 draft unless separately authorized for merge.
+
+### Rollout receipt, 2026-10-26
+
+Independent architecture and quality reviews accepted host `4bfa57c`, plugin
+`f039fab`, and the GitOps rollout. Plugin [PR 8](https://github.com/araihu/balemoh-plugin-alertmanager/pull/8)
+merged. GitOps [PR 637](https://github.com/guilycst/home-lab/pull/637) and the
+CSI mount correction [PR 642](https://github.com/guilycst/home-lab/pull/642) merged.
+Balemoh [PR 42](https://github.com/araihu/balemoh/pull/42) remains draft.
+Its separate integration conflicts with newer main work remain outside this rollout.
+Matching-host-SHA consumer [CI](https://github.com/araihu/balemoh-plugin-alertmanager/actions/runs/40270820405)
+passed, including generated contracts and real-process plugin integration.
+
+Deployed immutable images:
+
+- Host: `ghcr.io/araihu/balemoh@sha256:2308a695822de68b6b4da2bd59dc0028be47240ca33b03d0282bc69647d2c6f0`.
+- Plugin: `ghcr.io/araihu/balemoh-plugin-alertmanager@sha256:b78afa8e81553e0346d8d72d20a859ce783f2413d95796a875cd2e5b114dde15`.
+
+Argo reported Synced, Healthy and Succeeded at GitOps revision
+`7e54c28c61c89ab211928d2f6ac1437d504f538f`. Both API and UI were ready with
+zero restarts. The PostSync Job confirmed `/data` mounted `ro`, clean schema12,
+integrity OK and a clean schema11 rollback baseline with SHA-256
+`e115de86e97a750cfd860a6ca7522f3e969ca67d52c486772b772d2d35de6c71`.
+
+Read-only before/after reconciliation preserved the connection identity, both
+complete widget placements and their options/revisions, 31 pinned services and
+36 dashboard items. The connection advanced from revision8 to revision9 and
+reported ready/fresh. Operator inbox GET succeeded; anonymous and plugin service
+credentials were rejected. Inbox contained zero notifications. No production
+publication, read-state mutation, alert/silence change or forced source transition
+was used. No new qualifying warning/critical transition occurred during live
+validation; delivery transitions, retry, deduplication and persistence were tested
+with isolated fixtures instead.
+
+The real browser verified the asynchronous bell/tray, full inbox, unread filter,
+Escape focus return, Home live updates and the real Alertmanager page. Light/dark
+mode persisted across reload; the original dark preference was restored.
 
 ## Before a supported long-lived release
 

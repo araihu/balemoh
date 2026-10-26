@@ -1,7 +1,7 @@
 # Unified notifications
 
-Status: implemented through N4. Independent review and homelab rollout are
-tracked in N5 of the implementation plan.
+Status: N1–N5 implemented, independently reviewed and deployed to the homelab.
+Verification evidence is recorded in N5 of the implementation plan.
 
 Milestone: trusted, single-instance pre-v0.1.0 Balemoh. A shared inbox accepts
 notifications from core services, installed plugins and authenticated external
