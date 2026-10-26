@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image/png"
 	"io"
 	"io/fs"
 	"os"
@@ -32,10 +33,12 @@ var (
 )
 
 type Manifest struct {
-	ManifestVersion  int               `json:"manifestVersion"`
-	ID               string            `json:"id"`
-	Version          string            `json:"version"`
-	Name             string            `json:"name"`
+	ManifestVersion int    `json:"manifestVersion"`
+	ID              string `json:"id"`
+	Version         string `json:"version"`
+	Name            string `json:"name"`
+	// Icon names a declared PNG image asset identifying this producer.
+	Icon             string            `json:"icon,omitempty"`
 	Protocol         string            `json:"protocol"`
 	UIProfile        string            `json:"uiProfile"`
 	Targets          map[string]Target `json:"targets"`
@@ -247,10 +250,21 @@ func (m Manifest) Validate() error {
 	}
 	seen = map[string]bool{}
 	for _, a := range m.Assets {
-		if !validLocal(a.ID) || seen[a.ID] || !safePath(a.File) || (a.Kind != "module" && a.Kind != "style") || a.MediaType == "" {
+		if !validLocal(a.ID) || seen[a.ID] || !safePath(a.File) || (a.Kind != "module" && a.Kind != "style" && a.Kind != "image" && a.Kind != "document") || a.MediaType == "" {
 			return errors.New("invalid asset declaration")
 		}
 		seen[a.ID] = true
+	}
+	if m.Icon != "" {
+		found := false
+		for _, a := range m.Assets {
+			if a.ID == m.Icon && a.Kind == "image" && a.MediaType == "image/png" {
+				found = true
+			}
+		}
+		if !found {
+			return errors.New("plugin icon must name a declared PNG image asset")
+		}
 	}
 	return nil
 }
@@ -314,8 +328,19 @@ func Load(root string) (*Package, error) {
 		if err != nil || info.Size() > 5<<20 {
 			return nil, errors.New("asset exceeds size limit")
 		}
-		if a.Kind == "style" && a.MediaType != "text/css" || a.Kind == "module" && (a.MediaType != "text/javascript" && a.MediaType != "application/javascript") {
+		if a.Kind == "image" && a.MediaType != "image/png" || a.Kind == "document" && a.MediaType != "text/plain" || a.Kind == "style" && a.MediaType != "text/css" || a.Kind == "module" && (a.MediaType != "text/javascript" && a.MediaType != "application/javascript") {
 			return nil, errors.New("unsupported asset media type")
+		}
+		if a.Kind == "image" {
+			file, err := r.Open(a.File)
+			if err != nil {
+				return nil, errors.New("cannot read image asset")
+			}
+			config, err := png.DecodeConfig(file)
+			file.Close()
+			if err != nil || config.Width < 1 || config.Height < 1 || config.Width > 2048 || config.Height > 2048 {
+				return nil, errors.New("invalid PNG image asset")
+			}
 		}
 	}
 	return &Package{Manifest: m, Digest: digest, Root: root}, nil

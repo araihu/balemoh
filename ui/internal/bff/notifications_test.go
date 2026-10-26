@@ -1,11 +1,14 @@
 package bff
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
 	"github.com/araihu/balemoh/ui/internal/view"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -215,9 +218,13 @@ func TestBulkNotificationReadIsSeparateProtectedAndScoped(t *testing.T) {
 func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
 	for _, tc := range []struct {
 		name, symbol, kind, connection, page, want string
-		nested, precedingIcon                      bool
+		nested, precedingIcon, logo                bool
 	}{
 		{name: "declared", symbol: "hi-16-solid-bell", want: "hi-16-solid-bell"},
+		{name: "producer logo", symbol: "hi-16-solid-bell", logo: true, want: "logo.png"},
+		{name: "producer logo without destination", symbol: "hi-16-solid-bell", logo: true, page: "absent", want: "logo.png"},
+		{name: "logo other connection", logo: true, connection: "00000000-0000-4000-8000-000000000099", want: "hi-16-solid-cube"},
+		{name: "logo external source", logo: true, kind: "external", want: "hi-16-solid-arrow-down-tray"},
 		{name: "nested", symbol: "hi-16-solid-bell", want: "hi-16-solid-bell", nested: true},
 		{name: "detail without navigation", symbol: "hi-16-solid-bell", page: "detail", want: "hi-16-solid-bell"},
 		{name: "detail with nested producer", symbol: "hi-16-solid-bell", page: "detail", want: "hi-16-solid-bell", nested: true},
@@ -231,8 +238,16 @@ func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
 		{name: "external producer", symbol: "hi-16-solid-bell", kind: "external", want: "hi-16-solid-arrow-down-tray"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			var logo bytes.Buffer
+			if err := png.Encode(&logo, image.NewRGBA(image.Rect(0, 0, 2, 2))); err != nil {
+				t.Fatal(err)
+			}
 			registry := configuredPreviewRegistry(t, manifest.UIProfile, func(m *manifest.Manifest) {
 				m.Targets[runtime.GOOS+"/"+runtime.GOARCH] = manifest.Target{UI: "hung"}
+				if tc.logo {
+					m.Icon = "logo"
+					m.Assets = append(m.Assets, manifest.Asset{ID: "logo", File: "logo.png", Kind: "image", MediaType: "image/png"})
+				}
 				m.Navigation[0].Icon = tc.symbol
 				m.Pages = append(m.Pages, manifest.Page{ID: "detail", Title: "Detail", Path: "/detail/{id}", Methods: []string{"GET"}, Capabilities: []string{}})
 				if tc.precedingIcon {
@@ -241,7 +256,7 @@ func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
 				if tc.nested {
 					m.Navigation = []manifest.Navigation{{ID: "group", Title: "Group", Children: m.Navigation}}
 				}
-			})
+			}, map[string][]byte{"logo.png": logo.Bytes()})
 			// Wait only for metadata publication, never the hung UI handshake.
 			deadline := time.NewTimer(5 * time.Second)
 			defer deadline.Stop()
@@ -286,7 +301,20 @@ func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
 					t.Fatal("notification row missing")
 				}
 				row, _, _ = strings.Cut(row, "</li>")
-				if !strings.Contains(row, "#"+tc.want) {
+				if tc.want == "logo.png" {
+					if !strings.Contains(row, `/logo.png"`) {
+						t.Fatalf("%s missing producer logo", route)
+					}
+					_, source, _ := strings.Cut(row, `src="`)
+					source, _, _ = strings.Cut(source, `"`)
+					if !strings.HasPrefix(source, "/plugins/assets/example.fixture/") {
+						t.Fatal("logo is not local/content-addressed")
+					}
+					asset := request(t, h, "GET", source, "")
+					if asset.Code != 200 || asset.Header().Get("Content-Type") != "image/png" || asset.Header().Get("X-Content-Type-Options") != "nosniff" || !bytes.Equal(asset.Body.Bytes(), logo.Bytes()) {
+						t.Fatal("declared logo not served intact")
+					}
+				} else if !strings.Contains(row, "#"+tc.want) {
 					t.Fatalf("%s missing producer/fallback icon %s", route, tc.want)
 				}
 				if strings.Contains(row, "https://invalid.example") {

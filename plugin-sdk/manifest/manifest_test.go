@@ -1,7 +1,10 @@
 package manifest_test
 
 import (
+	"bytes"
 	"encoding/json"
+	"image"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -180,5 +183,57 @@ func TestNotificationsCapabilityRequiresBackendOnEveryTarget(t *testing.T) {
 	}
 	if len(decoded.Queries) != 0 || decoded.Targets["linux/amd64"].Backend == "" {
 		t.Fatal("publisher-only backend contract changed")
+	}
+}
+
+func TestProducerIconRequiresDeclaredPNG(t *testing.T) {
+	for _, tc := range []struct {
+		name, icon, kind, media string
+		data                    []byte
+		valid                   bool
+	}{
+		{name: "PNG", icon: "logo", kind: "image", media: "image/png", valid: true},
+		{name: "missing declaration", icon: "absent", kind: "image", media: "image/png"},
+		{name: "remote URL", icon: "https://example.com/logo.png", kind: "image", media: "image/png"},
+		{name: "module", icon: "logo", kind: "module", media: "text/javascript"},
+		{name: "SVG", icon: "logo", kind: "image", media: "image/svg+xml"},
+		{name: "SVG disguised as PNG", icon: "logo", kind: "image", media: "image/png", data: []byte(`<svg onload="alert(1)"></svg>`)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var value map[string]any
+			if err := json.Unmarshal([]byte(valid), &value); err != nil {
+				t.Fatal(err)
+			}
+			value["icon"] = tc.icon
+			value["assets"] = []any{map[string]any{"id": "logo", "file": "logo.png", "kind": tc.kind, "mediaType": tc.media}, map[string]any{"id": "license", "file": "LICENSE.txt", "kind": "document", "mediaType": "text/plain"}}
+			raw, err := json.Marshal(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			root := t.TempDir()
+			if err := os.Mkdir(filepath.Join(root, "bin"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			data := tc.data
+			if data == nil {
+				var b bytes.Buffer
+				if err := png.Encode(&b, image.NewRGBA(image.Rect(0, 0, 24, 24))); err != nil {
+					t.Fatal(err)
+				}
+				data = b.Bytes()
+			}
+			for name, data := range map[string][]byte{"plugin.json": raw, "schema.json": []byte(`{"type":"object"}`), "bin/ui": []byte("fixture"), "logo.png": data, "LICENSE.txt": []byte("Fixture license")} {
+				if err := os.WriteFile(filepath.Join(root, name), data, 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			pkg, err := manifest.Load(root)
+			if (err == nil) != tc.valid {
+				t.Fatalf("valid=%v error=%v", tc.valid, err)
+			}
+			if tc.valid && pkg.Manifest.Icon != "logo" {
+				t.Fatal("producer icon lost")
+			}
+		})
 	}
 }

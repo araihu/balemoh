@@ -112,7 +112,7 @@ func previewRegistry(t *testing.T, profile string) *plugins.Registry {
 	return configuredPreviewRegistry(t, profile, nil)
 }
 
-func configuredPreviewRegistry(t *testing.T, profile string, modify func(*manifest.Manifest)) *plugins.Registry {
+func configuredPreviewRegistry(t *testing.T, profile string, modify func(*manifest.Manifest), extraFiles ...map[string][]byte) *plugins.Registry {
 	t.Helper()
 	root := t.TempDir()
 	binary := filepath.Join(root, "ui")
@@ -125,6 +125,13 @@ func configuredPreviewRegistry(t *testing.T, profile string, modify func(*manife
 	for name, data := range map[string]string{"style.css": "[data-plugin-mount]{color:inherit}", "module.js": "export function mount(){}"} {
 		if err := os.WriteFile(filepath.Join(root, name), []byte(data), 0600); err != nil {
 			t.Fatal(err)
+		}
+	}
+	for _, files := range extraFiles {
+		for name, data := range files {
+			if err := os.WriteFile(filepath.Join(root, name), data, 0600); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	m := manifest.Manifest{ManifestVersion: 1, ID: "example.fixture", Version: "0.0.1", Name: "Fixture", Protocol: manifest.Protocol, UIProfile: profile, Targets: map[string]manifest.Target{runtime.GOOS + "/" + runtime.GOARCH: {UI: "ui"}}, ConnectionSchema: "schema.json", Secrets: []manifest.Secret{}, Queries: []manifest.Query{}, Pages: []manifest.Page{{ID: "current", Title: "Fixture page", Path: "/current", Methods: []string{"GET"}, Capabilities: []string{}}}, Navigation: []manifest.Navigation{{ID: "fixture", Title: "Fixture navigation", Page: "current"}}, Widgets: []manifest.Widget{{ID: "summary", Title: "Fixture widget", OptionsSchema: "schema.json", Capabilities: []string{}}}, Assets: []manifest.Asset{}, Capabilities: manifest.Capabilities{Required: []string{"page.content/v1", "home.widget/v1", "sidebar.navigation/v1"}, Optional: []string{}}}

@@ -171,3 +171,20 @@ Alpine or global CSS replacement. Fragment HTML replaces its contribution region
 Use templ's normal escaping for source text. Source/API credentials stay out of UI.
 
 See [operator guide](../docs/plugins/operations.md) and [acceptance ledger](../docs/plugins/acceptance.md).
+
+## Producer logo assets
+
+The optional top-level `icon` field names an asset ID, not a URL or symbol.
+Declare that asset with `kind: image` and `mediaType: image/png`. `manifest.Load`
+checks PNG headers and dimensions up to 2048x2048; scripts and SVG are rejected.
+The host renders the logo through a local, content-addressed asset URL without
+calling the plugin. The notification's authenticated source determines the logo,
+independently of its destination. Existing manifests without `icon` retain the
+navigation/source-symbol fallback.
+
+Declare license and attribution files with `kind: document`, `mediaType:
+text/plain` so packaging copies and hashes them alongside the image. Image and
+document assets follow the existing 5 MiB per-file bound and package-root rules.
+This additive alpha manifest contract requires a matching host; install upgraded
+host binaries and plugin package pins together. No notification payload or RPC
+change is required.

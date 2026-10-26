@@ -15,6 +15,7 @@ type Notification struct {
 	SourceKind, SourceLabel                        string
 	ProducerID, ProducerConnectionID, ProducerPage string
 	ProducerIcon                                   icon.Symbol
+	ProducerIconURL                                string
 	ReceivedAt                                     time.Time
 	Read, HasDestination, External                 bool
 }

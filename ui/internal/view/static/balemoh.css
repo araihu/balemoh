@@ -321,6 +321,7 @@ body {
 .balemoh-notification-tray-row:has(.balemoh-notification-unread-dot) { background: color-mix(in srgb, var(--color-primary) 6%, transparent); }
 .balemoh-notification-source-icon { width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--balemoh-border); border-radius: 50%; color: var(--balemoh-muted); }
 .balemoh-notification-source-icon svg { width: 1rem; height: 1rem; }
+.balemoh-notification-source-icon img { width: 1.5rem; height: 1.5rem; object-fit: contain; }
 .balemoh-notification-row-title { font-size: .875rem; line-height: 1.4; }
 .balemoh-notification-row-title a { color: inherit; font-weight: 600; }
 .balemoh-notification-row-meta { display: flex; flex-wrap: wrap; gap: .25rem .65rem; font-size: .72rem; color: var(--balemoh-muted); margin: .2rem 0; }

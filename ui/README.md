@@ -59,17 +59,19 @@ success, and upstream-error states are rendered explicitly.
 
 ## Notification producer icons
 
-Notifications from a plugin use the bundled Heroicons symbol declared in the
-manifest navigation item for their destination page. Source plugin and connection
-must match the destination. Declared detail pages without a navigation item use
-the first valid navigation icon in manifest order. The Alertmanager plugin already declares its bell
-through `navigation[].icon`, so saved notifications acquire that icon without
-rewriting inbox rows or changing the publication protocol.
+A plugin may declare a producer logo with manifest `icon`, referencing a bundled
+`image/png` asset of kind `image`. The logo takes priority in the bell and center,
+including saved notifications and messages without a destination. The BFF matches
+only authenticated source plugin/connection metadata. URLs are minted through the
+existing content-addressed local asset route; no remote image URLs or plugin calls
+are involved. PNG dimensions are bounded to 2048px and MIME/header checked at load.
 
-The BFF reads installed manifest metadata only. It does not contact the plugin
-process or load producer-supplied image URLs or markup. Missing plugins, missing
-page declarations and unknown symbols keep the host source-kind fallback.
-The same icon appears in the popover and notification center.
+Without a logo, the destination navigation's bundled Heroicon remains the fallback.
+Detail pages inherit the first valid navigation icon in manifest order. Unknown
+symbols keep the source-kind fallback. `document` assets use `text/plain` for
+bundling licenses and attribution alongside the icon in immutable plugin packages.
+The new optional manifest field requires a host with this SDK version; deploy the
+host and plugin pins together while the unpublished manifest remains alpha.
 
 ## Notification center presentation
 

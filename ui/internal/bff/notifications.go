@@ -65,6 +65,7 @@ func (s *server) notificationList(r *http.Request, limit int) (view.Notification
 	result.Items = slices.Clone(result.Items)
 	for i := range result.Items {
 		result.Items[i].ProducerIcon = s.notificationProducerIcon(result.Items[i])
+		result.Items[i].ProducerIconURL = s.notificationProducerLogo(result.Items[i])
 	}
 	return result, 200
 }
@@ -398,4 +399,20 @@ func (s *server) notificationProducerIcon(item view.Notification) icon.Symbol {
 	}
 	// Detail pages without sidebar entries inherit the producer's first valid navigation icon.
 	return producerIcon
+}
+
+// Asset URLs come from pinned local package metadata, never notification payloads.
+func (s *server) notificationProducerLogo(item view.Notification) string {
+	if s.plugins == nil || item.SourceKind != "plugin" {
+		return ""
+	}
+	entry := s.plugins.Connection(item.ProducerID, item.ProducerConnectionID)
+	if entry == nil || entry.Package.Manifest.Icon == "" {
+		return ""
+	}
+	assets, err := s.plugins.ResponseAssets(item.ProducerID, item.ProducerConnectionID, []string{entry.Package.Manifest.Icon})
+	if err != nil || len(assets) != 1 {
+		return ""
+	}
+	return assets[0].URL
 }

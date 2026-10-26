@@ -307,5 +307,11 @@ func notificationUnreadQuery(unread bool) string {
 }
 
 templ NotificationProducerIcon(item Notification) {
-	<span class="balemoh-notification-source-icon">@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: notificationIconSymbol(item), Decorative: true})</span>
+	<span class="balemoh-notification-source-icon">
+ if item.ProducerIconURL!="" {
+  <img src={item.ProducerIconURL} alt="" width="24" height="24" decoding="async"/>
+ } else {
+  @icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: notificationIconSymbol(item), Decorative: true})
+ }
+ </span>
 }
