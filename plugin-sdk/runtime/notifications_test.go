@@ -35,7 +35,7 @@ func notificationPackage(t *testing.T) *manifest.Package {
 	if err := os.WriteFile(filepath.Join(p.Root, "plugin.json"), data, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(p.Root, "schema.json"), []byte(`{"type":"object","properties":{"publish":{"type":"boolean"},"delayMs":{"type":"integer","minimum":0,"maximum":1000},"attempts":{"type":"integer","minimum":1,"maximum":4}},"additionalProperties":false}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(p.Root, "schema.json"), []byte(`{"type":"object","properties":{"publish":{"type":"boolean"},"delayMs":{"type":"integer","minimum":0,"maximum":1000},"attempts":{"type":"integer","minimum":1,"maximum":4},"configureDelayMs":{"type":"integer","minimum":0,"maximum":1000}},"additionalProperties":false}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	p, err = manifest.Load(p.Root)
@@ -155,6 +155,47 @@ func TestBackendPublisherRetryKeepsEventIdentityAndReceipt(t *testing.T) {
 	recorder.mu.Unlock()
 	if len(attempts) != 2 || attempts[0].EventID != attempts[1].EventID {
 		t.Fatalf("retry changed event identity: %+v", attempts)
+	}
+}
+
+func TestBackendPublisherSurvivesSameRevisionReplayAfterLostResponse(t *testing.T) {
+	p := notificationPackage(t)
+	child, err := pluginruntime.OpenBackend(t.Context(), p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(child.Close)
+	recorder := &notificationRecorder{acceptedC: make(chan notifications.Message, 2)}
+	config := backend.Config{ConnectionID: "connection", Revision: "1", Config: []byte(`{"publish":true,"delayMs":300,"configureDelayMs":120}`)}
+	// The first Configure commits before its delayed response, so its short
+	// caller deadline models a lost response. Replay the exact same config.
+	firstCtx, cancel := context.WithTimeout(t.Context(), 25*time.Millisecond)
+	if _, err := child.ConfigureWithNotifications(firstCtx, config, recorder); notifications.Code(err) != "deadline_exceeded" && notifications.Code(err) != "unavailable" {
+		cancel()
+		t.Fatalf("lost Configure response returned unexpected error: %v", err)
+	}
+	cancel()
+	if _, err := child.ConfigureWithNotifications(t.Context(), config, recorder); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case message := <-recorder.acceptedC:
+		if message.EventID != "fixture-event" {
+			t.Fatalf("unexpected replayed publisher message: %+v", message)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("retained publisher did not rebind to the active callback")
+	}
+	select {
+	case duplicate := <-recorder.acceptedC:
+		t.Fatalf("same-revision replay started a duplicate producer: %+v", duplicate)
+	case <-time.After(350 * time.Millisecond):
+	}
+	recorder.mu.Lock()
+	attempts := len(recorder.attempts)
+	recorder.mu.Unlock()
+	if attempts != 1 {
+		t.Fatalf("same-revision replay started a second producer: attempts=%d", attempts)
 	}
 }
 

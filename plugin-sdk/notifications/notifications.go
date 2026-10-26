@@ -8,6 +8,7 @@ package notifications
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"strconv"
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	// MaxEnvelope is the maximum serialized callback publication envelope.
+	// MaxEnvelope is the maximum canonical JSON message and callback envelope.
 	MaxEnvelope = 16 << 10
 	// MaxConcurrent is the per-connection publication concurrency bound.
 	MaxConcurrent = 4
@@ -128,8 +129,9 @@ func Code(err error) string {
 	return "unavailable"
 }
 
-// Validate checks the author-facing message shape. The host performs the
-// authoritative source, timestamp and destination policy checks as well.
+// Validate checks the author-facing message shape and canonical JSON envelope
+// size. The host performs the authoritative source, timestamp and destination
+// policy checks as well.
 func (m Message) Validate() error {
 	if !validText(m.EventID, "event ID", 128, false) || !validText(m.Title, "title", 0, false) || !validText(m.Body, "body", 0, true) || utf8.RuneCountInString(m.Title) > 200 || utf8.RuneCountInString(m.Body) > 4000 {
 		return Fail("invalid_argument")
@@ -147,7 +149,31 @@ func (m Message) Validate() error {
 			return err
 		}
 	}
+	canonical, err := canonicalMessageJSON(m)
+	if err != nil || len(canonical) > MaxEnvelope {
+		return Fail("invalid_argument")
+	}
 	return nil
+}
+
+type canonicalMessage struct {
+	EventID     string       `json:"eventId"`
+	Severity    string       `json:"severity"`
+	Title       string       `json:"title"`
+	Body        string       `json:"body,omitempty"`
+	OccurredAt  time.Time    `json:"occurredAt"`
+	Destination *Destination `json:"destination,omitempty"`
+}
+
+func canonicalMessageJSON(message Message) ([]byte, error) {
+	destination := message.Destination
+	if destination != nil && destination.IsZero() {
+		destination = nil
+	}
+	return json.Marshal(canonicalMessage{
+		EventID: message.EventID, Severity: message.Severity, Title: message.Title,
+		Body: message.Body, OccurredAt: message.OccurredAt.UTC(), Destination: destination,
+	})
 }
 
 func (d Destination) Validate() error {
@@ -174,7 +200,7 @@ func (d Destination) Validate() error {
 	}
 	switch d.Kind {
 	case DestinationCore:
-		if !validText(d.Route, "core destination route", 512, false) || d.PluginID != "" || d.ConnectionID != "" || d.Page != "" || d.URL != "" {
+		if !validText(d.Route, "core destination route", 512, false) || d.PluginID != "" || d.ConnectionID != "" || d.Page != "" || d.URL != "" || len(d.Params) > 0 || len(d.Query) > 0 {
 			return Fail("invalid_argument")
 		}
 	case DestinationPlugin:

@@ -57,12 +57,13 @@ type rpcServer struct {
 	pb.UnimplementedControlServer
 	pb.UnimplementedUIServer
 	pb.UnimplementedBackendServer
-	pkg                  *manifest.Package
-	handler              ui.Handler
-	backend              backend.Handler
-	broker               *plugin.GRPCBroker
-	notificationMu       sync.Mutex
-	notificationSessions map[string]*notificationSession
+	pkg                     *manifest.Package
+	handler                 ui.Handler
+	backend                 backend.Handler
+	broker                  *plugin.GRPCBroker
+	notificationMu          sync.Mutex
+	notificationConfigureMu sync.Mutex
+	notificationBindings    map[string]*notificationBinding
 }
 
 func (s *rpcServer) Describe(context.Context, *emptypb.Empty) (*pb.Description, error) {
@@ -74,6 +75,8 @@ func (*rpcServer) CheckHealth(context.Context, *emptypb.Empty) (*emptypb.Empty, 
 }
 
 func (s *rpcServer) Shutdown(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	s.notificationConfigureMu.Lock()
+	defer s.notificationConfigureMu.Unlock()
 	s.closeAllNotificationSessions()
 	return &emptypb.Empty{}, nil
 }

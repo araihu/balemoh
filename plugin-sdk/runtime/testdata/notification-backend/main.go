@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -15,9 +16,10 @@ import (
 )
 
 type config struct {
-	Publish  bool `json:"publish"`
-	DelayMS  int  `json:"delayMs"`
-	Attempts int  `json:"attempts"`
+	Publish          bool `json:"publish"`
+	DelayMS          int  `json:"delayMs"`
+	Attempts         int  `json:"attempts"`
+	ConfigureDelayMS int  `json:"configureDelayMs"`
 }
 
 type handler struct {
@@ -31,8 +33,16 @@ func (h *handler) Configure(_ context.Context, c backend.Config) (backend.Status
 		return backend.Status{}, backend.Fail("invalid_argument")
 	}
 	h.mu.Lock()
+	previous, alreadyConfigured := h.connections[c.ConnectionID]
+	if alreadyConfigured && previous.Revision == c.Revision && bytes.Equal(previous.Config, c.Config) && sameSecrets(previous.Secrets, c.Secrets) {
+		h.mu.Unlock()
+		return fixtureStatus(c), nil
+	}
 	h.connections[c.ConnectionID] = c
 	h.mu.Unlock()
+	if value.ConfigureDelayMS > 0 {
+		time.Sleep(time.Duration(value.ConfigureDelayMS) * time.Millisecond)
+	}
 	if c.Notifications != nil && value.Publish {
 		attempts := value.Attempts
 		if attempts < 1 {
@@ -48,8 +58,24 @@ func (h *handler) Configure(_ context.Context, c backend.Config) (backend.Status
 			}
 		}()
 	}
+	return fixtureStatus(c), nil
+}
+
+func fixtureStatus(c backend.Config) backend.Status {
 	now := time.Now().UTC()
-	return backend.Status{ConnectionID: c.ConnectionID, AppliedRevision: c.Revision, State: "fresh", ObservationRevision: "1", ObservedAt: &now, LastAttemptAt: &now, LastSuccessAt: &now}, nil
+	return backend.Status{ConnectionID: c.ConnectionID, AppliedRevision: c.Revision, State: "fresh", ObservationRevision: "1", ObservedAt: &now, LastAttemptAt: &now, LastSuccessAt: &now}
+}
+
+func sameSecrets(first, second map[string]string) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for key, value := range first {
+		if second[key] != value {
+			return false
+		}
+	}
+	return true
 }
 
 func (h *handler) Status(_ context.Context, id string) (backend.Status, error) {

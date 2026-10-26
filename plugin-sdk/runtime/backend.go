@@ -148,6 +148,8 @@ func (c *BackendClient) Query(ctx context.Context, r backend.Request) (backend.R
 	return resultFromWire(value)
 }
 func (s *rpcServer) Configure(ctx context.Context, r *pb.ConnectionConfig) (*pb.ConnectionStatus, error) {
+	s.notificationConfigureMu.Lock()
+	defer s.notificationConfigureMu.Unlock()
 	if proto.Size(r) > backend.MaxInput || r.ConnectionId == "" || !backend.Revision(r.Revision) || !backend.Object(r.ConfigJson, backend.MaxInput) || s.pkg.ValidateJSON(s.pkg.Manifest.ConnectionSchema, r.ConfigJson) != nil {
 		return nil, toRPC(backend.Fail("invalid_argument"))
 	}
@@ -174,14 +176,44 @@ func (s *rpcServer) Configure(ctx context.Context, r *pb.ConnectionConfig) (*pb.
 			return nil, toRPC(err)
 		}
 	}
-	result, err := s.backend.Configure(ctx, backend.Config{ConnectionID: r.ConnectionId, Revision: r.Revision, Config: r.ConfigJson, Secrets: r.Secrets, Notifications: publisherForSession(session)})
+	digest := notificationConfigDigest(r.ConfigJson, r.Secrets)
+	s.notificationMu.Lock()
+	existing := s.notificationBindings[r.ConnectionId]
+	sameConfiguration := existing.sameConfiguration(r.Revision, digest, session != nil)
+	s.notificationMu.Unlock()
+	var binding *notificationBinding
+	var publisher notifications.Publisher
+	if sameConfiguration {
+		publisher = existing.authorPublisher()
+	} else {
+		binding = newNotificationBinding(r.Revision, digest, session)
+		publisher = binding.authorPublisher()
+	}
+	result, err := s.backend.Configure(ctx, backend.Config{ConnectionID: r.ConnectionId, Revision: r.Revision, Config: r.ConfigJson, Secrets: r.Secrets, Notifications: publisher})
 	if err != nil {
-		if session != nil {
+		if binding != nil {
+			binding.revokeAndClose()
+		} else if session != nil {
 			session.Close()
 		}
 		return nil, toRPC(err)
 	}
-	s.replaceNotificationSession(r.ConnectionId, session)
+	if sameConfiguration {
+		if session != nil {
+			if !existing.publisher.rebind(session.publisher) {
+				session.Close()
+				return nil, toRPC(notifications.Fail("permission_denied"))
+			}
+			oldSession := existing.session
+			s.notificationMu.Lock()
+			existing.session = session
+			s.notificationMu.Unlock()
+			oldSession.Close()
+		}
+	} else {
+		old := s.replaceNotificationBinding(r.ConnectionId, binding)
+		old.revokeAndClose()
+	}
 	return statusToWire(result), nil
 }
 func (s *rpcServer) Status(ctx context.Context, r *pb.ConnectionID) (*pb.ConnectionStatus, error) {
@@ -192,8 +224,10 @@ func (s *rpcServer) Status(ctx context.Context, r *pb.ConnectionID) (*pb.Connect
 	return statusToWire(result), nil
 }
 func (s *rpcServer) CloseConnection(ctx context.Context, r *pb.ConnectionID) (*emptypb.Empty, error) {
+	s.notificationConfigureMu.Lock()
+	defer s.notificationConfigureMu.Unlock()
 	err := s.backend.CloseConnection(ctx, r.ConnectionId)
-	s.closeNotificationSession(r.ConnectionId)
+	s.closeNotificationBinding(r.ConnectionId)
 	if err != nil {
 		return nil, toRPC(err)
 	}

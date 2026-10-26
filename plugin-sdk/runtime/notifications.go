@@ -2,6 +2,8 @@ package runtime
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -24,11 +26,94 @@ type notificationSession struct {
 	once      sync.Once
 }
 
-func publisherForSession(session *notificationSession) notifications.Publisher {
-	if session == nil {
+// rebindableNotificationPublisher is the author-visible publisher for one
+// accepted connection configuration. A repeated successful configuration with
+// the same revision and digest rebases this object onto the replacement host
+// callback, so a handler that retained the original interface survives a lost
+// Configure response. The read lock spans the callback RPC; revocation and
+// rebinding therefore cannot close the old session underneath a publication.
+type rebindableNotificationPublisher struct {
+	mu        sync.RWMutex
+	publisher notifications.Publisher
+	revoked   bool
+}
+
+func (p *rebindableNotificationPublisher) Publish(ctx context.Context, message notifications.Message) (notifications.Receipt, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if p.revoked || p.publisher == nil {
+		return notifications.Receipt{}, notifications.Fail("permission_denied")
+	}
+	return p.publisher.Publish(ctx, message)
+}
+
+func (p *rebindableNotificationPublisher) rebind(publisher notifications.Publisher) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.revoked || publisher == nil {
+		return false
+	}
+	p.publisher = publisher
+	return true
+}
+
+func (p *rebindableNotificationPublisher) revoke() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.revoked = true
+	p.publisher = nil
+}
+
+type notificationBinding struct {
+	revision  string
+	digest    [32]byte
+	session   *notificationSession
+	publisher *rebindableNotificationPublisher
+}
+
+func newNotificationBinding(revision string, digest [32]byte, session *notificationSession) *notificationBinding {
+	binding := &notificationBinding{revision: revision, digest: digest, session: session}
+	if session != nil {
+		binding.publisher = &rebindableNotificationPublisher{publisher: session.publisher}
+	}
+	return binding
+}
+
+func (b *notificationBinding) sameConfiguration(revision string, digest [32]byte, hasPublisher bool) bool {
+	return b != nil && b.revision == revision && b.digest == digest && (b.session != nil) == hasPublisher
+}
+
+func (b *notificationBinding) authorPublisher() notifications.Publisher {
+	if b == nil {
 		return nil
 	}
-	return session.publisher
+	return b.publisher
+}
+
+func (b *notificationBinding) revokeAndClose() {
+	if b == nil {
+		return
+	}
+	if b.publisher != nil {
+		b.publisher.revoke()
+	}
+	if b.session != nil {
+		b.session.Close()
+	}
+}
+
+func notificationConfigDigest(config []byte, secrets map[string]string) [32]byte {
+	// Normalize nil and empty maps so an equivalent replay is not mistaken for
+	// a replacement merely because the caller allocated an empty secret map.
+	values := make(map[string]string, len(secrets))
+	for key, value := range secrets {
+		values[key] = value
+	}
+	payload, _ := json.Marshal(struct {
+		Config  []byte            `json:"config"`
+		Secrets map[string]string `json:"secrets"`
+	}{Config: config, Secrets: values})
+	return sha256.Sum256(payload)
 }
 
 func (s *notificationSession) Close() {
@@ -69,7 +154,7 @@ func notificationRequest(message notifications.Message) (*pb.NotificationPublish
 		Body:       message.Body,
 		OccurredAt: message.OccurredAt.UTC().Format(time.RFC3339Nano),
 	}
-	if message.Destination != nil {
+	if message.Destination != nil && !message.Destination.IsZero() {
 		d := message.Destination
 		wire.Destination = &pb.NotificationDestination{Kind: d.Kind, Route: d.Route, PluginId: d.PluginID, ConnectionId: d.ConnectionID, Page: d.Page, Url: d.URL}
 		if len(d.Params) > 0 {
@@ -102,22 +187,25 @@ func notificationMessage(message *pb.NotificationMessage) (notifications.Message
 	}
 	result := notifications.Message{EventID: message.EventId, Severity: message.Severity, Title: message.Title, Body: message.Body, OccurredAt: occurred}
 	if d := message.Destination; d != nil {
-		result.Destination = &notifications.Destination{Kind: d.Kind, Route: d.Route, PluginID: d.PluginId, ConnectionID: d.ConnectionId, Page: d.Page, URL: d.Url}
+		destination := notifications.Destination{Kind: d.Kind, Route: d.Route, PluginID: d.PluginId, ConnectionID: d.ConnectionId, Page: d.Page, URL: d.Url}
 		if len(d.Params) > 0 {
-			result.Destination.Params = make(map[string]string, len(d.Params))
+			destination.Params = make(map[string]string, len(d.Params))
 			for key, value := range d.Params {
-				result.Destination.Params[key] = value
+				destination.Params[key] = value
 			}
 		}
 		if len(d.Query) > 0 {
-			result.Destination.Query = make(map[string][]string, len(d.Query))
+			destination.Query = make(map[string][]string, len(d.Query))
 			for key, values := range d.Query {
 				if values == nil {
-					result.Destination.Query[key] = nil
+					destination.Query[key] = nil
 					continue
 				}
-				result.Destination.Query[key] = append([]string(nil), values.Values...)
+				destination.Query[key] = append([]string(nil), values.Values...)
 			}
+		}
+		if !destination.IsZero() {
+			result.Destination = &destination
 		}
 	}
 	if err := result.Validate(); err != nil {
@@ -263,40 +351,36 @@ func (s *rpcServer) openNotificationSession(brokerID uint32) (*notificationSessi
 	return &notificationSession{conn: conn, publisher: &notificationPublisher{client: pb.NewBackendHostClient(conn)}}, nil
 }
 
-func (s *rpcServer) replaceNotificationSession(connectionID string, session *notificationSession) {
+func (s *rpcServer) replaceNotificationBinding(connectionID string, binding *notificationBinding) *notificationBinding {
 	s.notificationMu.Lock()
-	if s.notificationSessions == nil {
-		s.notificationSessions = map[string]*notificationSession{}
+	if s.notificationBindings == nil {
+		s.notificationBindings = map[string]*notificationBinding{}
 	}
-	old := s.notificationSessions[connectionID]
-	if session == nil {
-		delete(s.notificationSessions, connectionID)
+	old := s.notificationBindings[connectionID]
+	if binding == nil {
+		delete(s.notificationBindings, connectionID)
 	} else {
-		s.notificationSessions[connectionID] = session
+		s.notificationBindings[connectionID] = binding
 	}
 	s.notificationMu.Unlock()
-	if old != nil {
-		old.Close()
-	}
+	return old
 }
 
-func (s *rpcServer) closeNotificationSession(connectionID string) {
+func (s *rpcServer) closeNotificationBinding(connectionID string) {
 	s.notificationMu.Lock()
-	old := s.notificationSessions[connectionID]
-	delete(s.notificationSessions, connectionID)
+	old := s.notificationBindings[connectionID]
+	delete(s.notificationBindings, connectionID)
 	s.notificationMu.Unlock()
-	if old != nil {
-		old.Close()
-	}
+	old.revokeAndClose()
 }
 
 func (s *rpcServer) closeAllNotificationSessions() {
 	s.notificationMu.Lock()
-	old := s.notificationSessions
-	s.notificationSessions = nil
+	old := s.notificationBindings
+	s.notificationBindings = nil
 	s.notificationMu.Unlock()
-	for _, session := range old {
-		session.Close()
+	for _, binding := range old {
+		binding.revokeAndClose()
 	}
 }
 
