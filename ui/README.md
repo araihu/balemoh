@@ -70,3 +70,20 @@ The BFF reads installed manifest metadata only. It does not contact the plugin
 process or load producer-supplied image URLs or markup. Missing plugins, missing
 page declarations and unknown symbols keep the host source-kind fallback.
 The same icon appears in the popover and notification center.
+
+## Notification center presentation
+
+The inbox and bell share notification rows, producer icons, unread indicators,
+source/time metadata and read controls. The center keeps full message text in a
+58rem reading column. Its Goshtoso panel, toggle and icon actions use the existing
+semantic tokens. App CSS only owns reading width, row layout and control spacing.
+
+| State/action | Result | Preserved context | Writes |
+|---|---|---|---|
+| Filter or refresh | Replace the center only | URL, filter, keyboard focus; shell and bell remain | None |
+| Filter/refresh failure | Show retry feedback and unavailable state | Current route and focused control | None |
+| Mark read | Update the row or filtered list | Filter and cursor; focus goes to the response target | Existing idempotent read endpoint |
+| Mark all read | Update inbox/count and announce completion | Filter and cursor; focus stays in inbox | Existing atomic read-all endpoint |
+| Clear action | Open separate confirmation; Escape restores trigger focus | Inbox unchanged until confirmed | None before confirmation |
+
+Clear confirmation and native POST fallbacks retain the existing contracts.

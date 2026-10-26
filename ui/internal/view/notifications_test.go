@@ -104,3 +104,27 @@ func TestMarkAllCoalescesQueuedSubmissions(t *testing.T) {
 		t.Fatal("page mark-all must coalesce while a refresh owns the lock")
 	}
 }
+
+func TestNotificationCenterKeepsFilterAndDistinctMutationTargets(t *testing.T) {
+	page := NotificationsPage{UnreadOnly: true, Before: "cursor", Items: []Notification{{ID: "same", Title: "Event", Body: "Full body\nSecond paragraph", SourceLabel: "Producer", Severity: "warning", ReceivedAt: time.Now()}}}
+	var center, tray bytes.Buffer
+	if err := NotificationsContent(page).Render(context.Background(), &center); err != nil {
+		t.Fatal(err)
+	}
+	if err := NotificationList(page, true).Render(context.Background(), &tray); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`id="notification-page-only-unread"`, `checked`, `hx-select="#notification-center"`, `id="notification-read-same"`, `id="notification-item-same"`, `aria-label="Mark all as read"`, `aria-label="Clear all notifications"`, `/notifications?before=cursor&amp;unread=true`, "Full body\nSecond paragraph"} {
+		if !strings.Contains(center.String(), want) {
+			t.Errorf("center missing %q", want)
+		}
+	}
+	if !strings.Contains(tray.String(), `id="notification-tray-read-same"`) || strings.Contains(tray.String(), `id="notification-read-same"`) {
+		t.Fatal("tray collided with inbox mutation target")
+	}
+	for _, html := range []string{center.String(), tray.String()} {
+		if !strings.Contains(html, `class="balemoh-notification-tray-row balemoh-notification-tray-row-unread"`) || !strings.Contains(html, "Unread") || !strings.Contains(html, "Mark read") {
+			t.Fatal("shared unread semantics missing")
+		}
+	}
+}

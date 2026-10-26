@@ -113,9 +113,11 @@ func notificationRetentionLabel(days int) string {
 	return fmt.Sprintf("Notifications are kept for %d days", days)
 }
 
-func notificationGroupPage(page NotificationsPage, items []Notification) NotificationsPage {
-	page.Items = items
-	return page
+func notificationItemID(id string, tray bool) string {
+	if tray {
+		return "notification-tray-item-" + id
+	}
+	return "notification-item-" + id
 }
 func notificationStatusRole(failed bool) string {
 	if failed {

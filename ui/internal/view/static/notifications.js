@@ -102,6 +102,7 @@
     });
     document.addEventListener('htmx:after:settle', () => {
       syncLabel();
+      if (returnPage && global.location.pathname === '/notifications') returnPage.value = global.location.pathname + global.location.search;
       const cleared = document.querySelector('[data-notifications-cleared]');
       if (cleared) {
         cleared.remove();
@@ -114,6 +115,7 @@
     });
     const readFocus = new WeakMap();
     const clearRequests = new WeakSet();
+    const pageRequests = new WeakSet();
     const bulkRequests = new WeakMap();
     let bulkPending = false;
     function bulkControls(disabled) {
@@ -142,6 +144,7 @@
     document.addEventListener('htmx:config:request', event => {
       const ctx = event.detail?.ctx;
       const form = ctx?.sourceElement?.closest?.('form[action^="/notifications/"]');
+      if (ctx?.sourceElement?.closest?.('#notification-page-filter, [data-notification-page-refresh]')) pageRequests.add(ctx);
       if (ctx?.sourceElement?.id === 'notification-mark-all' || form?.getAttribute('action') === '/notifications/read-all') {
         bulkRequests.set(ctx, {target:form ? '#notification-page-read-status' : '#notification-read-all-status',tray:!form});
       }
@@ -152,6 +155,15 @@
     });
     document.addEventListener('htmx:finally:request', event => {
       const ctx = event.detail?.ctx;
+      if (ctx && pageRequests.has(ctx)) {
+        pageRequests.delete(ctx);
+        if (!(ctx.response?.status >= 200 && ctx.response.status < 300)) {
+          const filter = document.getElementById('notification-page-only-unread');
+          if (filter) filter.checked = new URLSearchParams(global.location.search).get('unread') === 'true';
+          const status = document.getElementById('notification-page-read-status');
+          if (status) { status.textContent = 'Notifications could not refresh. Try again.'; status.setAttribute('role','alert'); }
+        }
+      }
       const bulk = ctx && bulkRequests.get(ctx);
       if (bulk) {
         bulkRequests.delete(ctx);
@@ -165,7 +177,11 @@
             target.setAttribute('role','alert');
           }
         }
-        if (status >= 200 && status < 300) scheduler.refresh();
+        if (status >= 200 && status < 300) {
+          const target = document.querySelector(bulk.target);
+          if (target) { target.textContent = 'Notifications marked read.'; target.setAttribute('role','status'); }
+          scheduler.refresh();
+        }
         if (document.activeElement === document.body) {
           const target = document.querySelector(!status || status >= 400 ? bulk.target : bulk.tray ? '#notification-actions-trigger' : '#notification-inbox');
           // HTMX reenables hx-disable targets after its finally event. Wait one
