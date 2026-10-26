@@ -52,3 +52,10 @@ go.work.sum
 *.goshtoso-iconpack.lock
 
 .iconpack/
+
+# Static documentation build and local deployment state
+/site/.build/
+/.manja/
+/.wrangler/
+/.impeccable/review/
+/hack/__pycache__/

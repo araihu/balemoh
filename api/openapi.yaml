@@ -2,6 +2,35 @@ openapi: 3.0.3
 info:
   title: Balemoh API
   version: 0.1.0
+  description: |-
+    Balemoh is a self-hosted homepage for services discovered in Kubernetes, Docker,
+    and Podman. This API backs the UI and accepts snapshots from federated agents.
+
+    Start by listing Staging to obtain stable service IDs and review endpoint evidence.
+    Save local display settings, then pin live services to add homepage cards. Manual
+    services start unpinned. Host widget selection is separate, and host telemetry is
+    opt-in. Discovery refreshes preserve gateway-owned display edits and pin choices.
+
+    The documented server is the local development API. Use your private instance's
+    API origin for integrations; this static documentation website does not serve the
+    API. Catalog, dashboard, host, and icon endpoints have no built-in authentication
+    and rely on your network or reverse-proxy access boundary. Federation imports
+    require a Bearer token registered for the exact source kind and ID in the body.
+
+    Check HTTP status and Content-Type. Structured success responses use JSON, but
+    errors can be ErrorResponse JSON or plain text as documented for each operation.
+    Reuse requestId when retrying manual creation. Pin, unpin, and widget selection
+    set the desired state. Refresh current state after a 409 before retrying a
+    lifecycle action or an icon revision update. No-content responses have no body.
+
+    Examples use synthetic data and reserved example.test addresses. Replace fixed
+    observation timestamps with current UTC before importing federation payloads.
+    Obtain IDs and icon revision digests from API responses. The integration guide
+    provides a complete request sequence; operation and schema sections below cover
+    field meaning, response formats, limits, and failure cases.
+  contact:
+    name: Balemoh maintainers
+    url: https://github.com/araihu/balemoh/issues
 paths:
   /api/v1/dashboard:
     get:
@@ -13,14 +42,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardSnapshot'
+              example:
+                items:
+                  - id: service-57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                    kind: service-links
+                    presentation: card
+                    sourceKind: service
+                    sourceId: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                    title: Grafana
+                    data:
+                      id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                      source:
+                        kind: container
+                        id: atlas
+                      resource:
+                        kind: container
+                        name: grafana
+                      displayName: Grafana
+                      description: Metrics and dashboards
+                      metadata:
+                        fixture: synthetic
+                      endpoints:
+                        - name: https
+                          url: https://grafana.example.test
+                          port: 443
+                          protocol: HTTPS
+                          provenance: synthetic
+                      images: []
+                      observedAt: '2026-10-25T12:00:00Z'
+                      status: live
+                      missing: false
+                      icon: selfhst:grafana
+                      address: ''
+                      resources:
+                        - resource:
+                            kind: container
+                            name: grafana
+                          endpoints:
+                            - name: https
+                              url: https://grafana.example.test
+                              port: 443
+                              protocol: HTTPS
+                              provenance: synthetic
+                          images: []
+                      pinned: true
+                      pinnedAt: '2026-10-25T12:00:00Z'
+                    error: ''
+                unavailable: []
         '503':
-          description: Dashboard unavailable
+          description: Unable to read the selected homepage widgets because required storage or a provider is
+            unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Dashboard
+      summary: Read the selected homepage widgets
+      description: |-
+        Returns selected service and host widgets. A failed provider is listed in unavailable while other providers can still return items with HTTP 200. A widget can carry an error and an empty data object when its source is no longer available. Responses use Cache-Control: no-store.
   /api/v1/dashboard/widgets/{sourceKind}/{sourceId}:
     put:
       operationId: SetDashboardSelection
       parameters:
-        - {name: sourceKind, in: path, required: true, schema: {type: string}}
-        - {name: sourceId, in: path, required: true, schema: {type: string}}
+        - {name: sourceKind, in: path, required: true, schema: {type: string}, description: Selection
+            provider. Use service for a catalog pin or host for a telemetry widget., example: host}
+        - {name: sourceId, in: path, required: true, schema: {type: string}, description: Opaque ID returned
+            by the service catalog or host list for the chosen provider., example:
+            485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf}
       requestBody:
         required: true
         content:
@@ -30,18 +122,55 @@ paths:
               required: [enabled]
               additionalProperties: false
               properties:
-                enabled: {type: boolean}
+                enabled: {type: boolean, description: Whether this source should be selected for the homepage.,
+                  example: true}
+              example:
+                enabled: true
+            example:
+              enabled: true
+        description: Desired selection state. Both enabled=true and enabled=false are explicit, repeatable
+          operations.
       responses:
         '204':
           description: Desired selection saved, including repeated requests
         '400':
-          description: Invalid source or desired state
+          description: Malformed selection JSON, unsupported provider, or invalid source ID.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Invalid selection\n"
+              example: "Invalid selection\n"
         '404':
-          description: Source identity not found
+          description: The source to enable no longer exists.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Source not found\n"
+              example: "Source not found\n"
         '409':
-          description: Selection limit reached or source state changed
+          description: The host selection limit is reached or a service changed state before selection.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Selection limit reached or source state changed\n"
+              example: "Selection limit reached or source state changed\n"
         '503':
-          description: Selection unavailable
+          description: Unable to set a widget selection because required storage or a provider is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Dashboard
+      summary: Set a widget selection
+      description: |-
+        Set enabled to true or false for a service or host ID obtained from the catalog or host list. Repeated requests set the same desired state. Service selection uses the catalog pin rules, so a hidden or missing service cannot be enabled. Host selections are retained separately, with a maximum of 128 selected hosts. Disabling a removed host is allowed so its stale widget can be cleared.
   /api/v1/hosts:
     get:
       operationId: GetHosts
@@ -58,8 +187,94 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Host'
+                    description: Docker machines and Kubernetes clusters registered at this gateway.
+                    example:
+                      - cpuPercent: 23.4
+                        memoryUsedBytes: 8589934592
+                        memoryTotalBytes: 34359738368
+                        node: ''
+                        architecture: amd64
+                        inventoryAvailable: true
+                        ready: ''
+                        workloads:
+                          - name: grafana
+                            namespace: ''
+                            state: running
+                            restarts: 0
+                        id: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
+                        name: atlas
+                        kind: docker
+                        source:
+                          kind: container
+                          id: atlas
+                        parentId: ''
+                        observedAt: '2026-10-25T12:00:00Z'
+                        receivedAt: '2026-10-25T12:00:00Z'
+                        status: fresh
+                description: Registered source roots, excluding Kubernetes child nodes.
+                example:
+                  hosts:
+                    - cpuPercent: 23.4
+                      memoryUsedBytes: 8589934592
+                      memoryTotalBytes: 34359738368
+                      node: ''
+                      architecture: amd64
+                      inventoryAvailable: true
+                      ready: ''
+                      workloads:
+                        - name: grafana
+                          namespace: ''
+                          state: running
+                          restarts: 0
+                      id: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
+                      name: atlas
+                      kind: docker
+                      source:
+                        kind: container
+                        id: atlas
+                      parentId: ''
+                      observedAt: '2026-10-25T12:00:00Z'
+                      receivedAt: '2026-10-25T12:00:00Z'
+                      status: fresh
+              example:
+                hosts:
+                  - cpuPercent: 23.4
+                    memoryUsedBytes: 8589934592
+                    memoryTotalBytes: 34359738368
+                    node: ''
+                    architecture: amd64
+                    inventoryAvailable: true
+                    ready: ''
+                    workloads:
+                      - name: grafana
+                        namespace: ''
+                        state: running
+                        restarts: 0
+                    id: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
+                    name: atlas
+                    kind: docker
+                    source:
+                      kind: container
+                      id: atlas
+                    parentId: ''
+                    observedAt: '2026-10-25T12:00:00Z'
+                    receivedAt: '2026-10-25T12:00:00Z'
+                    status: fresh
         '503':
-          description: Inventory unavailable
+          description: Unable to list registered host roots because required storage or a provider is
+            unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Hosts
+      summary: List registered host roots
+      description: |-
+        Returns Docker host and Kubernetes cluster roots, including registered discovery-only sources with status unavailable before their first telemetry report. Kubernetes nodes are children of a cluster and appear in that cluster's detail response, not in this top-level list. No live collection is triggered.
   /api/v1/hosts/{hostId}:
     get:
       operationId: GetHost
@@ -68,9 +283,14 @@ paths:
           in: path
           required: true
           schema: {type: string}
+          description: Stable host ID returned by GET /api/v1/hosts or a cluster detail response.
+          example: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
         - name: range
           in: query
           schema: {type: string, enum: [1h, 24h], default: 1h}
+          description: History interval. Defaults to 1h and accepts only 1h or 24h; returns one UTC minute
+            slot per minute.
+          example: 1h
       responses:
         '200':
           description: Host detail with one-minute samples and explicit null gaps
@@ -78,12 +298,68 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HostDetail'
+              example:
+                host:
+                  cpuPercent: 23.4
+                  memoryUsedBytes: 8589934592
+                  memoryTotalBytes: 34359738368
+                  node: ''
+                  architecture: amd64
+                  inventoryAvailable: true
+                  ready: ''
+                  workloads:
+                    - name: grafana
+                      namespace: ''
+                      state: running
+                      restarts: 0
+                  id: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
+                  name: atlas
+                  kind: docker
+                  source:
+                    kind: container
+                    id: atlas
+                  parentId: ''
+                  observedAt: '2026-10-25T12:00:00Z'
+                  receivedAt: '2026-10-25T12:00:00Z'
+                  status: fresh
+                children: []
+                samples:
+                  - cpuPercent: 23.4
+                    memoryUsedBytes: 8589934592
+                    memoryTotalBytes: 34359738368
+                    at: '2026-10-25T12:00:00Z'
+                range: 1h
         '400':
-          description: Invalid range
+          description: Unsupported history range; choose 1h or 24h.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid range\n"
+              example: "invalid range\n"
         '404':
-          description: Host not found
+          description: The requested host ID has no retained registration or observation.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "404 page not found\n"
+              example: "404 page not found\n"
         '503':
-          description: Inventory unavailable
+          description: Unable to read a host and its usage history because required storage or a provider is
+            unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Hosts
+      summary: Read a host and its usage history
+      description: |-
+        Returns the latest observation, direct child nodes, and one-minute history for 1h or 24h. Those ranges contain 60 or 1440 UTC minute slots, respectively, including the current minute. Missing measurements are explicit null values, not zero usage. Collection runs independently once per minute. The example is a one-sample excerpt. A stale report does not prove the host is offline.
   /api/v1/federation/telemetry:
     post:
       operationId: ImportTelemetry
@@ -95,19 +371,76 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TelemetryBatch'
+            example:
+              source:
+                kind: container
+                id: atlas
+              observedAt: '2026-10-25T12:00:00Z'
+              hosts:
+                - cpuPercent: 23.4
+                  memoryUsedBytes: 8589934592
+                  memoryTotalBytes: 34359738368
+                  node: ''
+                  architecture: amd64
+                  inventoryAvailable: true
+                  ready: ''
+                  workloads:
+                    - name: grafana
+                      namespace: ''
+                      state: running
+                      restarts: 0
+        description: Root and optional child reports for exactly one registered source. Use a current UTC
+          collection time.
       responses:
         '204':
           description: Accepted, including an already processed observation
         '400':
-          description: Invalid telemetry
+          description: Invalid telemetry fields, observation time, or retained-host limit.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid telemetry body\n"
+              example: "invalid telemetry body\n"
         '401':
-          description: Missing or invalid source credential
+          description: Missing or incorrect telemetry source credential.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "source not authorized\n"
+              example: "source not authorized\n"
         '403':
-          description: Source is not registered for this credential
+          description: This telemetry source is not registered at the gateway.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "source not authorized\n"
+              example: "source not authorized\n"
         '413':
-          description: Body exceeds 2 MiB
+          description: The telemetry body exceeds the 2 MiB request limit.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid telemetry body\n"
+              example: "invalid telemetry body\n"
         '503':
-          description: Telemetry storage unavailable
+          description: Unable to import a host telemetry report because required storage or a provider is
+            unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Federation
+      summary: Import a host telemetry report
+      description: |-
+        Accepts one source-scoped batch, limited to 2 MiB, 128 retained hosts per source, and 1000 workloads per host. Include the root observation with node set to an empty string; container sources must contain exactly that root. Node names must be unique in the batch. Observation times must be within the previous 24 hours and no more than 30 seconds in the future. Older or repeated reports are acknowledged without advancing stored state or heartbeat. Unknown JSON fields are rejected. This endpoint updates telemetry only; it does not discover services or change pins.
   /healthz:
     get:
       operationId: GetHealthz
@@ -118,12 +451,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
         '503':
-          description: Service is unavailable
+          description: Unable to check API readiness because required storage or a provider is unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: service unavailable
+      tags:
+        - Health
+      summary: Check API readiness
+      description: |-
+        Checks the configured health checker, including SQLite connectivity. A 200 confirms API readiness, not the health of discovered applications. This request does not trigger a scan.
   /api/v1/staging/services:
     post:
       operationId: CreateManualService
@@ -133,6 +476,14 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ManualServiceCreate'
+            example:
+              requestId: 0123456789abcdef0123456789abcdef
+              displayName: Grafana
+              description: Metrics and dashboards
+              address: https://grafana.example.test
+              icon: selfhst:grafana
+        description: Manual entry and retry key. Creation and replay return the current service with the same
+          requestId.
       responses:
         '201':
           description: Manual service created, or current record returned for a repeated requestId
@@ -140,10 +491,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceCandidate'
+              example:
+                id: f6d033600bf1d23eea5dc5cc8b9526103d377807b556245060d5fc361b7d27a6
+                source:
+                  kind: manual
+                  id: local
+                resource:
+                  kind: service
+                  name: 0123456789abcdef0123456789abcdef
+                displayName: Grafana
+                description: Metrics and dashboards
+                metadata: {}
+                endpoints: []
+                images: null
+                observedAt: '2026-10-25T12:00:00Z'
+                status: live
+                missing: false
+                icon: selfhst:grafana
+                address: https://grafana.example.test
+                resources: []
+                pinned: false
+                pinnedAt: null
+          headers:
+            Location:
+              description: API path of the current manual entry, including on requestId replay.
+              schema:
+                type: string
+              example:
+                /api/v1/staging/services/f6d033600bf1d23eea5dc5cc8b9526103d377807b556245060d5fc361b7d27a6
         '400':
-          description: Invalid name, address, icon or requestId
+          description: Invalid manual service name, address, icon, retry key, or JSON body.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Invalid service\n"
+              example: "Invalid service\n"
         '503':
-          description: Catalog unavailable
+          description: Unable to create a manual service because required storage or a provider is
+            unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Services
+      summary: Create a manual service
+      description: |-
+        Creates one live, initially unpinned service under the reserved manual/local source. Supply a client-generated 32-character hexadecimal requestId and reuse it after an ambiguous transport failure. A repeated request returns the existing record without overwriting later edits. Both first creation and replay return 201 and Location. The address must be absolute HTTP(S) without credentials. Pin the returned ID separately to show it on the homepage. Manual entries survive discovery scans and can be hidden through lifecycle actions.
     get:
       operationId: GetStagingServices
       responses:
@@ -153,12 +551,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceListResponse'
+              example:
+                services:
+                  - id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                    source:
+                      kind: container
+                      id: atlas
+                    resource:
+                      kind: container
+                      name: grafana
+                    displayName: Grafana
+                    description: Metrics and dashboards
+                    metadata:
+                      fixture: synthetic
+                    endpoints:
+                      - name: https
+                        url: https://grafana.example.test
+                        port: 443
+                        protocol: HTTPS
+                        provenance: synthetic
+                    images: []
+                    observedAt: '2026-10-25T12:00:00Z'
+                    status: live
+                    missing: false
+                    icon: selfhst:grafana
+                    address: ''
+                    resources:
+                      - resource:
+                          kind: container
+                          name: grafana
+                        endpoints:
+                          - name: https
+                            url: https://grafana.example.test
+                            port: 443
+                            protocol: HTTPS
+                            provenance: synthetic
+                        images: []
+                    pinned: true
+                    pinnedAt: '2026-10-25T12:00:00Z'
         '503':
-          description: Catalog is unavailable
+          description: Unable to list services for review because required storage or a provider is
+            unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Services
+      summary: List services for review
+      description: |-
+        Returns grouped discovered and manual services, including live, missing, and hidden entries. Filter the returned status in your client; this endpoint has no pagination or status query parameter. Pinning and local presentation overrides are independent of discovery. Endpoint evidence does not guarantee a healthy or publicly reachable application.
   /api/v1/staging/services/{serviceId}:
     parameters:
       - name: serviceId
@@ -166,6 +611,8 @@ paths:
         required: true
         schema:
           type: string
+        description: Catalog group to edit. Obtain its ID from the staging response.
+        example: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
     put:
       operationId: EditStagingService
       requestBody:
@@ -174,15 +621,47 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ServiceEdit'
+            example:
+              displayName: Grafana
+              description: Metrics and dashboards
+              address: https://grafana.example.test
+              icon: selfhst:grafana
+        description: Complete display settings with optional icon preservation/reset behavior.
       responses:
         '204':
           description: Local presentation saved, independently of discovery
         '400':
-          description: Invalid edit
+          description: Invalid display fields, icon reference, or edit JSON.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Invalid edit\n"
+              example: "Invalid edit\n"
         '404':
-          description: Service not found
+          description: The catalog group no longer exists for the request to save service display settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: not_found
+                message: service candidate not found
         '503':
-          description: Catalog unavailable
+          description: Unable to save service display settings because required storage or a provider is
+            unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Services
+      summary: Save service display settings
+      description: |-
+        Saves local presentation independently of discovery. displayName, description, and address are required, including when their value is empty. An empty address restores discovered endpoints for discovered services; manual services still require an address. Omitting icon preserves its current choice, while an empty icon restores the discovery default. Accepts one JSON object up to 16 KiB and rejects unknown fields. A successful update has no response body.
   /api/v1/staging/services/{serviceId}/pin:
     parameters:
       - name: serviceId
@@ -190,6 +669,8 @@ paths:
         required: true
         schema:
           type: string
+        description: Service group whose homepage pin should change. Use the ID returned by the catalog.
+        example: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
     post:
       operationId: PinStagingService
       responses:
@@ -199,18 +680,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceCandidate'
+              example:
+                id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                source:
+                  kind: container
+                  id: atlas
+                resource:
+                  kind: container
+                  name: grafana
+                displayName: Grafana
+                description: Metrics and dashboards
+                metadata:
+                  fixture: synthetic
+                endpoints:
+                  - name: https
+                    url: https://grafana.example.test
+                    port: 443
+                    protocol: HTTPS
+                    provenance: synthetic
+                images: []
+                observedAt: '2026-10-25T12:00:00Z'
+                status: live
+                missing: false
+                icon: selfhst:grafana
+                address: ''
+                resources:
+                  - resource:
+                      kind: container
+                      name: grafana
+                    endpoints:
+                      - name: https
+                        url: https://grafana.example.test
+                        port: 443
+                        protocol: HTTPS
+                        provenance: synthetic
+                    images: []
+                pinned: true
+                pinnedAt: '2026-10-25T12:00:00Z'
         '404':
-          description: Candidate was not found
+          description: The catalog group no longer exists for the request to pin a live service.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: not_found
+                message: service candidate not found
         '503':
-          description: Catalog is unavailable
+          description: Unable to pin a live service because required storage or a provider is unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+        '409':
+          description: Current catalog state does not allow this request to pin a live service; refresh
+            Staging before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: conflict
+                message: Service state changed. Refresh before trying again.
+      tags:
+        - Services
+      summary: Pin a live service
+      description: |-
+        Adds a live, visible service group to the homepage and returns its current catalog representation. Repeating a pin keeps the service pinned. A hidden or missing group returns 409; re-read Staging before trying again. Pins survive later discovery refreshes.
     delete:
       operationId: UnpinStagingService
       responses:
@@ -220,18 +759,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceCandidate'
+              example:
+                id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                source:
+                  kind: container
+                  id: atlas
+                resource:
+                  kind: container
+                  name: grafana
+                displayName: Grafana
+                description: Metrics and dashboards
+                metadata:
+                  fixture: synthetic
+                endpoints:
+                  - name: https
+                    url: https://grafana.example.test
+                    port: 443
+                    protocol: HTTPS
+                    provenance: synthetic
+                images: []
+                observedAt: '2026-10-25T12:00:00Z'
+                status: live
+                missing: false
+                icon: selfhst:grafana
+                address: ''
+                resources:
+                  - resource:
+                      kind: container
+                      name: grafana
+                    endpoints:
+                      - name: https
+                        url: https://grafana.example.test
+                        port: 443
+                        protocol: HTTPS
+                        provenance: synthetic
+                    images: []
+                pinned: false
+                pinnedAt: null
         '404':
-          description: Candidate was not found
+          description: The catalog group no longer exists for the request to unpin a service.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: not_found
+                message: service candidate not found
         '503':
-          description: Catalog is unavailable
+          description: Unable to unpin a service because required storage or a provider is unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Services
+      summary: Unpin a service
+      description: |-
+        Removes the service group from the homepage without deleting discovery data or saved display settings. Repeating an unpin leaves it unpinned. Related member pins are cleared with the group so a grouped service does not remain visible through an older member selection.
   /api/v1/homepage/services:
     get:
       operationId: GetHomepageServices
@@ -242,12 +829,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceListResponse'
+              example:
+                services:
+                  - id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                    source:
+                      kind: container
+                      id: atlas
+                    resource:
+                      kind: container
+                      name: grafana
+                    displayName: Grafana
+                    description: Metrics and dashboards
+                    metadata:
+                      fixture: synthetic
+                    endpoints:
+                      - name: https
+                        url: https://grafana.example.test
+                        port: 443
+                        protocol: HTTPS
+                        provenance: synthetic
+                    images: []
+                    observedAt: '2026-10-25T12:00:00Z'
+                    status: live
+                    missing: false
+                    icon: selfhst:grafana
+                    address: ''
+                    resources:
+                      - resource:
+                          kind: container
+                          name: grafana
+                        endpoints:
+                          - name: https
+                            url: https://grafana.example.test
+                            port: 443
+                            protocol: HTTPS
+                            provenance: synthetic
+                        images: []
+                    pinned: true
+                    pinnedAt: '2026-10-25T12:00:00Z'
         '503':
-          description: Catalog is unavailable
+          description: Unable to list pinned live services because required storage or a provider is
+            unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Services
+      summary: List pinned live services
+      description: |-
+        Returns the service groups currently eligible for homepage cards: pinned, live, and visible. Hidden and missing services are excluded even when their pin preference remains saved. Use the staging list when you need those entries or want to change their presentation.
   /api/v1/discovery/sync:
     post:
       operationId: SyncDiscovery
@@ -258,12 +892,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DiscoverySyncResponse'
+              example:
+                sources: 1
+                candidates: 1
         '503':
-          description: Discovery synchronization failed
+          description: Unable to synchronize local discovery sources because required storage or a provider is
+            unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Discovery
+      summary: Synchronize local discovery sources
+      description: |-
+        Runs a scan of the discovery sources configured on this API process and returns source and candidate counts. This request does not force remote federated agents to scan. A complete successful source snapshot marks absent observations missing; a failed source scan does not mark its catalog entries missing. Display edits and pin preferences survive synchronization. New candidates remain unpinned.
   /api/v1/federation/snapshots:
     post:
       operationId: ImportFederationSnapshot
@@ -275,6 +921,33 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FederationSnapshot'
+            example:
+              source:
+                kind: container
+                id: atlas
+              candidates:
+                - id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                  source:
+                    kind: container
+                    id: atlas
+                  resource:
+                    kind: container
+                    name: grafana
+                  displayName: Grafana
+                  description: Metrics and dashboards
+                  metadata:
+                    fixture: synthetic
+                  endpoints:
+                    - name: https
+                      url: https://grafana.example.test
+                      port: 443
+                      protocol: HTTPS
+                      provenance: synthetic
+                  images: []
+                  observedAt: '2026-10-25T12:00:00Z'
+              observedAt: '2026-10-25T12:00:00Z'
+        description: Complete observed candidate set for one source. Never submit an empty set to represent a
+          failed scan.
       responses:
         '200':
           description: Federated discovery snapshot imported
@@ -282,42 +955,69 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DiscoverySyncResponse'
+              example:
+                sources: 1
+                candidates: 1
         '400':
           description: Snapshot is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: invalid_snapshot
+                message: invalid federation snapshot
         '413':
           description: Snapshot exceeds the maximum accepted payload size
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: payload_too_large
+                message: federation snapshot exceeds the maximum size
         '401':
           description: Federation credentials are invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unauthorized
+                message: invalid federation credentials
         '403':
           description: Source is not registered at this gateway
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: source_not_registered
+                message: federation source is not registered
         '404':
           description: Federation ingestion is not enabled
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: federation_disabled
+                message: federation ingestion is not enabled
         '503':
-          description: Snapshot could not be stored
+          description: Unable to import a complete discovery snapshot because required storage or a provider
+            is unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Federation
+      summary: Import a complete discovery snapshot
+      description: |-
+        Replaces observations for one registered source using its source-bound Bearer credential. Every candidate must carry that same source and a valid deterministic ID. candidates is the complete source snapshot: an empty array marks its prior observations missing. Older or repeated snapshots do not replace newer catalog state. The gateway retains its own edits and pins. The request is limited to 2 MiB. A disabled snapshot importer returns 404. Replace the example timestamps with current UTC before sending.
   /api/v1/staging/services/{serviceId}/lifecycle:
     post:
       operationId: changeServiceLifecycle
@@ -327,6 +1027,9 @@ paths:
           required: true
           schema:
             type: string
+          description: Current catalog group to hide, show, or purge. Re-read Staging if its state has
+            changed.
+          example: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
       requestBody:
         required: true
         content:
@@ -338,17 +1041,60 @@ paths:
                 action:
                   type: string
                   enum: [hide, show, purge]
+                  description: hide suppresses a live service, show restores visibility, and purge permanently
+                    deletes only missing observations.
+                  example: hide
+              example:
+                action: hide
+            example:
+              action: hide
+        description: One lifecycle action evaluated against current catalog state.
       responses:
         '204':
           description: Visibility changed or missing resource permanently deleted
         '400':
-          description: Invalid action
+          description: The lifecycle action is absent, unknown, or malformed JSON.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Invalid action\n"
+              example: "Invalid action\n"
         '404':
-          description: Resource no longer exists
+          description: The catalog group no longer exists for the request to hide, restore, or purge a service
+            group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: not_found
+                message: service candidate not found
         '409':
-          description: Current resource state does not permit this action
+          description: Current catalog state does not allow this request to hide, restore, or purge a service
+            group; refresh Staging before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: conflict
+                message: Service state changed. Refresh before trying again.
         '503':
-          description: Catalog unavailable
+          description: Unable to hide, restore, or purge a service group because required storage or a
+            provider is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: unavailable
+                message: catalog unavailable
+      tags:
+        - Services
+      summary: Hide, restore, or purge a service group
+      description: |-
+        hide suppresses a live group while preserving its settings and pin choice; repeated hide is allowed. show restores a hidden group to live or missing according to discovery presence. purge permanently removes only missing observations and their saved edits, endpoints, and pins; still-live shared observations and uploaded icon files remain. A rediscovered purged service starts with discovery defaults. Current state is checked in the write transaction; refresh after 409 instead of blindly retrying. This changes the catalog only and never stops workloads.
   /api/v1/icons:
     get:
       operationId: listIcons
@@ -361,6 +1107,33 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UploadedIcon'
+                example:
+                  - id: upload:EXAMPLE
+                    name: Lab icon
+                    tags: lab,green
+                    mime: image/svg+xml
+                    digest: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
+                    usedBy: []
+              example:
+                - id: upload:EXAMPLE
+                  name: Lab icon
+                  tags: lab,green
+                  mime: image/svg+xml
+                  digest: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
+                  usedBy: []
+        '503':
+          description: Uploaded image storage is unavailable while attempting to list uploaded icons.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Icons unavailable\n"
+              example: "Icons unavailable\n"
+      tags:
+        - Icons
+      summary: List uploaded icons
+      description: |-
+        Returns uploaded icon metadata sorted by name and ID, with the display names of services using each icon. This endpoint does not enumerate the bundled Goshtoso or selfh.st collections. Binary images are fetched separately. An empty uploaded library returns an empty array.
     post:
       operationId: uploadIcon
       requestBody:
@@ -369,6 +1142,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IconUpload'
+            example:
+              name: Lab icon
+              tags: lab,green
+              data:
+                PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSIjODRjYzE2Ii8+PC9zdmc+
+        description: Image name, tags, and nonempty Base64-encoded bytes for a new upload.
       responses:
         '201':
           description: Icon stored
@@ -376,8 +1155,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadedIcon'
+              example:
+                id: upload:EXAMPLE
+                name: Lab icon
+                tags: lab,green
+                mime: image/svg+xml
+                digest: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
+                usedBy: []
         '400':
-          description: Invalid image
+          description: 'The icon metadata, image, or JSON body is invalid. Operation: Upload a service icon.'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Bad Request\n"
+              example: "Bad Request\n"
+        '503':
+          description: Uploaded image storage is unavailable while attempting to upload a service icon.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Icons unavailable\n"
+              example: "Icons unavailable\n"
+      tags:
+        - Icons
+      summary: Upload a service icon
+      description: |-
+        Creates an uploaded icon from Base64-encoded image bytes. data is required in practice for creation, even though the shared update schema allows it to be omitted. Supported formats are PNG, JPEG, WebP, and passive SVG, limited to 2 MiB and 4096 pixels. SVG scripts, CSS, embedded images, and external references are rejected. The JSON request is limited to 3 MiB. Use the returned upload: ID in a service edit; storing an icon does not select it for a service.
   /api/v1/icons/{iconID}:
     parameters:
       - name: iconID
@@ -385,6 +1190,8 @@ paths:
         required: true
         schema:
           type: string
+        description: 'Uploaded icon reference returned by icon creation or listing, including its upload: prefix.'
+        example: upload:EXAMPLE
     put:
       operationId: updateIcon
       requestBody:
@@ -393,6 +1200,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IconUpload'
+            example:
+              name: Lab icon
+              tags: lab,green
+              digest: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
+        description: Replacement metadata and current revision, with optional replacement image bytes.
       responses:
         '200':
           description: Icon updated
@@ -400,12 +1212,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadedIcon'
+              example:
+                id: upload:EXAMPLE
+                name: Lab icon
+                tags: lab,green
+                mime: image/svg+xml
+                digest: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
+                usedBy: []
         '400':
-          description: Invalid image
+          description: 'The icon metadata, image, or JSON body is invalid. Operation: Update an uploaded icon revision.'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Bad Request\n"
+              example: "Bad Request\n"
         '404':
-          description: Missing icon
+          description: 'This uploaded icon cannot be found. Operation: Update an uploaded icon revision.'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Not Found\n"
+              example: "Not Found\n"
         '409':
-          description: Icon changed since it was opened
+          description: 'The uploaded icon changed, remains in use, or cannot be deleted at this revision. Operation:
+            Update an uploaded icon revision.'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Conflict\n"
+              example: "Conflict\n"
+        '503':
+          description: Uploaded image storage is unavailable while attempting to update an uploaded icon
+            revision.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Icons unavailable\n"
+              example: "Icons unavailable\n"
+      tags:
+        - Icons
+      summary: Update an uploaded icon revision
+      description: |-
+        Updates an existing uploaded icon without changing its ID, so referencing services keep their choice. Send the current digest from the icon list. Omitting data or sending empty data keeps the current bytes while changing name or tags. A stale or missing revision returns 409; list icons again before retrying. Validation and request size limits match icon upload.
     delete:
       operationId: deleteIcon
       parameters:
@@ -414,11 +1266,35 @@ paths:
           required: true
           schema:
             type: string
+          description: Current icon revision from the uploaded icon list. Deletion fails with 409 if the
+            revision changed or the icon is in use.
+          example: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
       responses:
         '204':
           description: Unused icon deleted
         '409':
-          description: Icon in use or changed
+          description: 'The uploaded icon changed, remains in use, or cannot be deleted at this revision. Operation:
+            Delete an unused uploaded icon.'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Conflict\n"
+              example: "Conflict\n"
+        '503':
+          description: Uploaded image storage is unavailable while attempting to delete an unused uploaded
+            icon.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Icons unavailable\n"
+              example: "Icons unavailable\n"
+      tags:
+        - Icons
+      summary: Delete an unused uploaded icon
+      description: |-
+        Deletes only when the supplied digest matches the current revision and no service references the icon. Returns 409 for an icon that is in use, changed, or no longer exists. Re-read the icon list before retrying. Bundled icons cannot be deleted with this endpoint.
   /api/v1/icons/{iconID}/image:
     parameters:
       - name: iconID
@@ -426,24 +1302,61 @@ paths:
         required: true
         schema:
           type: string
+        description: 'Uploaded image to download. Use its complete upload: reference from the icon list.'
+        example: upload:EXAMPLE
     get:
       operationId: getIconImage
       responses:
         '200':
           description: Validated image
           content:
-            application/octet-stream:
+            image/*:
               schema:
                 type: string
                 format: binary
+              examples:
+                png:
+                  summary: Illustrative PNG bytes, returned directly without a JSON envelope
+                  externalValue: https://balemoh.araihu.com/site/assets/social-v1.png
+          headers:
+            ETag:
+              description: Quoted current icon digest. Send it in If-None-Match to reuse a cached image.
+              schema:
+                type: string
+              example: '"862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77"'
         '404':
-          description: Missing icon
-
+          description: 'This uploaded icon cannot be found. Operation: Download an uploaded icon image.'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Not Found\n"
+              example: "Not Found\n"
+        '503':
+          description: Uploaded image storage is unavailable while attempting to download an uploaded icon
+            image.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Icons unavailable\n"
+              example: "Icons unavailable\n"
+        '304':
+          description: The If-None-Match header equals the current digest. Reuse the cached image; this
+            response has no body.
+      tags:
+        - Icons
+      summary: Download an uploaded icon image
+      description: |-
+        Returns raw image bytes with the stored Content-Type, a quoted digest ETag, Cache-Control: no-cache, and X-Content-Type-Options: nosniff. Send that ETag in If-None-Match for a bodyless 304 response. This endpoint serves uploaded IDs only; it does not serve bundled icon references. No JSON envelope is used for successful downloads.
 components:
   securitySchemes:
     FederationBearer:
       type: http
       scheme: bearer
+      description: 'Source-bound agent credential. Send Authorization: Bearer <token>. The body source.kind and
+        source.id must match the source registered for that credential. This scheme applies only to the two federation
+        ingestion endpoints.'
   schemas:
     DashboardSnapshot:
       type: object
@@ -452,103 +1365,460 @@ components:
         items:
           type: array
           items: {$ref: '#/components/schemas/DashboardWidget'}
+          description: Selected widgets in provider order.
+          example:
+            - id: service-57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+              kind: service-links
+              presentation: card
+              sourceKind: service
+              sourceId: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+              title: Grafana
+              data:
+                id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+                source:
+                  kind: container
+                  id: atlas
+                resource:
+                  kind: container
+                  name: grafana
+                displayName: Grafana
+                description: Metrics and dashboards
+                metadata:
+                  fixture: synthetic
+                endpoints:
+                  - name: https
+                    url: https://grafana.example.test
+                    port: 443
+                    protocol: HTTPS
+                    provenance: synthetic
+                images: []
+                observedAt: '2026-10-25T12:00:00Z'
+                status: live
+                missing: false
+                icon: selfhst:grafana
+                address: ''
+                resources:
+                  - resource:
+                      kind: container
+                      name: grafana
+                    endpoints:
+                      - name: https
+                        url: https://grafana.example.test
+                        port: 443
+                        protocol: HTTPS
+                        provenance: synthetic
+                    images: []
+                pinned: true
+                pinnedAt: '2026-10-25T12:00:00Z'
+              error: ''
         unavailable:
           type: array
           items: {type: string}
+          description: Source kinds whose providers failed while building this snapshot; an empty list means
+            all providers responded.
+          example: []
+      description: Homepage widgets from the registered providers. A provider may fail independently; inspect
+        unavailable even when the HTTP status is 200.
+      example:
+        items:
+          - id: service-57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+            kind: service-links
+            presentation: card
+            sourceKind: service
+            sourceId: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+            title: Grafana
+            data:
+              id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+              source:
+                kind: container
+                id: atlas
+              resource:
+                kind: container
+                name: grafana
+              displayName: Grafana
+              description: Metrics and dashboards
+              metadata:
+                fixture: synthetic
+              endpoints:
+                - name: https
+                  url: https://grafana.example.test
+                  port: 443
+                  protocol: HTTPS
+                  provenance: synthetic
+              images: []
+              observedAt: '2026-10-25T12:00:00Z'
+              status: live
+              missing: false
+              icon: selfhst:grafana
+              address: ''
+              resources:
+                - resource:
+                    kind: container
+                    name: grafana
+                  endpoints:
+                    - name: https
+                      url: https://grafana.example.test
+                      port: 443
+                      protocol: HTTPS
+                      provenance: synthetic
+                  images: []
+              pinned: true
+              pinnedAt: '2026-10-25T12:00:00Z'
+            error: ''
+        unavailable: []
     DashboardWidget:
       type: object
       required: [id, kind, presentation, sourceKind, sourceId, title, data, error]
       properties:
-        id: {type: string}
-        kind: {type: string}
-        presentation: {type: string}
-        sourceKind: {type: string}
-        sourceId: {type: string}
-        title: {type: string}
+        id: {type: string, description: 'Widget identity, formed as sourceKind-sourceId.', example:
+            service-57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14}
+        kind: {type: string, description: Rendering kind such as service-links or host-metrics., example:
+            service-links}
+        presentation: {type: string, description: Presentation hint; the current providers use card., example:
+            card}
+        sourceKind: {type: string, description: 'Selection provider, currently service or host.', example:
+            service}
+        sourceId: {type: string, description: Catalog service ID or host ID used by the selection endpoint.,
+            example: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14}
+        title: {type: string, description: Display title for this widget., example: Grafana}
         data:
           type: object
           additionalProperties: true
-        error: {type: string}
+          description: Kind-specific payload; empty when no payload can be rendered.
+          example:
+            id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+            source:
+              kind: container
+              id: atlas
+            resource:
+              kind: container
+              name: grafana
+            displayName: Grafana
+            description: Metrics and dashboards
+            metadata:
+              fixture: synthetic
+            endpoints:
+              - name: https
+                url: https://grafana.example.test
+                port: 443
+                protocol: HTTPS
+                provenance: synthetic
+            images: []
+            observedAt: '2026-10-25T12:00:00Z'
+            status: live
+            missing: false
+            icon: selfhst:grafana
+            address: ''
+            resources:
+              - resource:
+                  kind: container
+                  name: grafana
+                endpoints:
+                  - name: https
+                    url: https://grafana.example.test
+                    port: 443
+                    protocol: HTTPS
+                    provenance: synthetic
+                images: []
+            pinned: true
+            pinnedAt: '2026-10-25T12:00:00Z'
+        error: {type: string, description: 'Readable per-widget failure, or an empty string on success.',
+            example: ''}
+      description: A selected homepage item. sourceKind and sourceId identify the selection; kind chooses the
+        rendering model. Service data contains ServiceCandidate fields, while host-metrics data contains
+        latest host readings without samples or workloads. Consumers must tolerate unfamiliar kinds and
+        per-item errors.
+      example:
+        id: service-57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+        kind: service-links
+        presentation: card
+        sourceKind: service
+        sourceId: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+        title: Grafana
+        data:
+          id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+          source:
+            kind: container
+            id: atlas
+          resource:
+            kind: container
+            name: grafana
+          displayName: Grafana
+          description: Metrics and dashboards
+          metadata:
+            fixture: synthetic
+          endpoints:
+            - name: https
+              url: https://grafana.example.test
+              port: 443
+              protocol: HTTPS
+              provenance: synthetic
+          images: []
+          observedAt: '2026-10-25T12:00:00Z'
+          status: live
+          missing: false
+          icon: selfhst:grafana
+          address: ''
+          resources:
+            - resource:
+                kind: container
+                name: grafana
+              endpoints:
+                - name: https
+                  url: https://grafana.example.test
+                  port: 443
+                  protocol: HTTPS
+                  provenance: synthetic
+              images: []
+          pinned: true
+          pinnedAt: '2026-10-25T12:00:00Z'
+        error: ''
     HostMetrics:
       type: object
       required: [cpuPercent, memoryUsedBytes, memoryTotalBytes]
       properties:
-        cpuPercent: {type: number, format: double, nullable: true, minimum: 0, maximum: 100}
-        memoryUsedBytes: {type: integer, format: int64, nullable: true, minimum: 0}
-        memoryTotalBytes: {type: integer, format: int64, nullable: true, minimum: 1}
+        cpuPercent: {type: number, format: double, nullable: true, minimum: 0, maximum: 100, description: Host
+            CPU usage as a percentage from 0 to 100; null when unavailable., example: 23.4}
+        memoryUsedBytes: {type: integer, format: int64, nullable: true, minimum: 0, description: Used host
+            memory in bytes; null when unavailable., example: 8589934592}
+        memoryTotalBytes: {type: integer, format: int64, nullable: true, minimum: 1, description: Total host
+            memory in bytes; positive when available., example: 34359738368}
+      description: Basic host measurements. Null means unavailable, not zero. CPU is a percentage of total CPU
+        capacity. Memory values are bytes and must be present as a valid pair.
+      example:
+        cpuPercent: 23.4
+        memoryUsedBytes: 8589934592
+        memoryTotalBytes: 34359738368
     HostWorkload:
       type: object
       required: [name, namespace, state, restarts]
       properties:
-        name: {type: string, minLength: 1, maxLength: 253}
-        namespace: {type: string, maxLength: 253}
-        state: {type: string, minLength: 1, maxLength: 64}
-        restarts: {type: integer, minimum: 0}
-        node: {type: string, maxLength: 253}
+        name: {type: string, minLength: 1, maxLength: 253, description: Reported container or pod name.,
+            example: grafana}
+        namespace: {type: string, maxLength: 253, description: 'Kubernetes pod namespace, or an empty string for
+            Docker.', example: ''}
+        state: {type: string, minLength: 1, maxLength: 64, description: Runtime state such as running for
+            Docker or Running for a pod., example: running}
+        restarts: {type: integer, minimum: 0, description: Reported Kubernetes pod restart count; Docker
+            reports zero because restart counts are not collected., example: 0}
+        node:
+          type: string
+          maxLength: 253
+          description: Kubernetes node hosting the pod. Omitted when unknown or not reported by the runtime.
+          example: atlas
         ready:
           type: boolean
           description: Pod Ready condition. Absent when unknown, from older agents, or for Docker containers. Does not verify HTTP reachability.
+          example: true
         reason:
           type: string
           maxLength: 253
           description: Current pod or container waiting/termination reason, never a previous termination reason.
+          example: CrashLoopBackOff
         images:
           type: array
           maxItems: 64
-          items: {type: string, minLength: 1, maxLength: 2048}
+          description: Container image references reported for this workload. Omitted when unavailable.
+          items:
+            type: string
+            minLength: 1
+            maxLength: 2048
+          example: [grafana/grafana:12.0.0]
+      description: A reported container or pod with runtime state. Docker does not collect restart counts, so
+        its restart field is zero; Kubernetes pod reports include namespace and restarts.
+      example:
+        name: grafana
+        namespace: ''
+        state: running
+        restarts: 0
     HostObservation:
       allOf:
         - $ref: '#/components/schemas/HostMetrics'
         - type: object
           required: [node, workloads, inventoryAvailable, ready]
           properties:
-            inventoryAvailable: {type: boolean}
-            ready: {type: string}
+            inventoryAvailable: {type: boolean, description: True when the workload list is complete and
+                available. False is different from an available empty list and can indicate truncation.,
+                example: true}
+            ready: {type: string, description: 'Kubernetes node readiness: True, False, Unknown, or empty when not
+                applicable.', example: ''}
             architecture:
               type: string
               maxLength: 64
-              description: CPU architecture reported by the host. Absent for older agents, unknown hosts, and cluster aggregates.
-            node: {type: string, maxLength: 253}
+              description: Host CPU architecture such as amd64 or arm64. Optional for older agents and unknown
+                hosts; omit on cluster aggregates.
+              example: amd64
+            node: {type: string, maxLength: 253, description: Empty for the source root; Kubernetes node name
+                for a child observation., example: ''}
             workloads:
               type: array
               maxItems: 1000
               items:
                 $ref: '#/components/schemas/HostWorkload'
+              description: Reported workload inventory, limited to 1000 entries for this host.
+              example:
+                - name: grafana
+                  namespace: ''
+                  state: running
+                  restarts: 0
+          description: Host identity within the source, architecture, readiness, and workload inventory.
+          example:
+            inventoryAvailable: true
+            ready: ''
+            architecture: amd64
+            node: ''
+            workloads:
+              - name: grafana
+                namespace: ''
+                state: running
+                restarts: 0
+      description: One host observation. An empty node identifies the source root. A Kubernetes batch can
+        include named child nodes; a Docker batch contains only its root. Inventory availability is separate
+        from CPU and memory availability.
+      example:
+        cpuPercent: 23.4
+        memoryUsedBytes: 8589934592
+        memoryTotalBytes: 34359738368
+        node: ''
+        architecture: amd64
+        inventoryAvailable: true
+        ready: ''
+        workloads:
+          - name: grafana
+            namespace: ''
+            state: running
+            restarts: 0
     TelemetryBatch:
       type: object
       required: [source, observedAt, hosts]
       properties:
         source:
           $ref: '#/components/schemas/SourceRef'
-        observedAt: {type: string, format: date-time}
+        observedAt: {type: string, format: date-time, description: UTC collection time shared by every host in
+            this batch., example: '2026-10-25T12:00:00Z'}
         hosts:
           type: array
           minItems: 1
           maxItems: 128
           items:
             $ref: '#/components/schemas/HostObservation'
+          description: Root and optional child observations. Always include node=""; container sources contain
+            exactly one host.
+          example:
+            - cpuPercent: 23.4
+              memoryUsedBytes: 8589934592
+              memoryTotalBytes: 34359738368
+              node: ''
+              architecture: amd64
+              inventoryAvailable: true
+              ready: ''
+              workloads:
+                - name: grafana
+                  namespace: ''
+                  state: running
+                  restarts: 0
+      description: A source-bound report collected at observedAt. Requires a root observation, unique node
+        names, at most 128 hosts, and at most 1000 workloads per host. One source retains no more than 128
+        hosts. Telemetry times must be within the last 24 hours and at most 30 seconds ahead of the gateway
+        clock.
+      example:
+        source:
+          kind: container
+          id: atlas
+        observedAt: '2026-10-25T12:00:00Z'
+        hosts:
+          - cpuPercent: 23.4
+            memoryUsedBytes: 8589934592
+            memoryTotalBytes: 34359738368
+            node: ''
+            architecture: amd64
+            inventoryAvailable: true
+            ready: ''
+            workloads:
+              - name: grafana
+                namespace: ''
+                state: running
+                restarts: 0
     Host:
       allOf:
         - $ref: '#/components/schemas/HostObservation'
         - type: object
           required: [id, name, kind, source, parentId, observedAt, receivedAt, status]
           properties:
-            id: {type: string}
-            name: {type: string}
-            kind: {type: string, enum: [docker, cluster, node, unknown]}
+            id: {type: string, description: Opaque stable host identity. Use the value returned by the host
+                API., example: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf}
+            name: {type: string, description: Source ID for a root or node name for a Kubernetes child.,
+                example: atlas}
+            kind: {type: string, enum: [docker, cluster, node, unknown], description: 'Host category: docker, cluster,
+                node, or unknown.', example: docker}
             source:
               $ref: '#/components/schemas/SourceRef'
-            parentId: {type: string}
-            observedAt: {type: string, format: date-time, nullable: true}
-            receivedAt: {type: string, format: date-time, nullable: true}
-            status: {type: string, enum: [fresh, partial, stale, unavailable]}
+            parentId: {type: string, description: Empty for roots; cluster host ID for child nodes., example: ''}
+            observedAt: {type: string, format: date-time, nullable: true, description: 'Last accepted collection
+                time, or null before any report.', example: '2026-10-25T12:00:00Z'}
+            receivedAt: {type: string, format: date-time, nullable: true, description: 'Gateway receipt time of
+                the latest accepted report, or null before a report.', example: '2026-10-25T12:00:00Z'}
+            status: {type: string, enum: [fresh, partial, stale, unavailable], description: fresh means
+                observation and receipt are at most three minutes old with complete metrics; partial means a
+                recent report lacks metrics; stale means either timestamp is older; unavailable means no
+                report has arrived., example: fresh}
+          description: Stored host identity, source linkage, accepted timestamps, and derived reporting
+            status.
+          example:
+            id: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
+            name: atlas
+            kind: docker
+            source:
+              kind: container
+              id: atlas
+            parentId: ''
+            observedAt: '2026-10-25T12:00:00Z'
+            receivedAt: '2026-10-25T12:00:00Z'
+            status: fresh
+      description: A registered source root or observed child node with its latest report and derived
+        reporting status. Registration can exist before measurements arrive. Reporting status is independent
+        of Kubernetes readiness.
+      example:
+        cpuPercent: 23.4
+        memoryUsedBytes: 8589934592
+        memoryTotalBytes: 34359738368
+        node: ''
+        architecture: amd64
+        inventoryAvailable: true
+        ready: ''
+        workloads:
+          - name: grafana
+            namespace: ''
+            state: running
+            restarts: 0
+        id: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
+        name: atlas
+        kind: docker
+        source:
+          kind: container
+          id: atlas
+        parentId: ''
+        observedAt: '2026-10-25T12:00:00Z'
+        receivedAt: '2026-10-25T12:00:00Z'
+        status: fresh
     HostSample:
       allOf:
         - $ref: '#/components/schemas/HostMetrics'
         - type: object
           required: [at]
           properties:
-            at: {type: string, format: date-time}
+            at: {type: string, format: date-time, description: UTC timestamp at the start of this sample
+                minute., example: '2026-10-25T12:00:00Z'}
+          description: UTC minute timestamp attached to the shared CPU and memory measurements.
+          example:
+            at: '2026-10-25T12:00:00Z'
+      description: One UTC minute slot in usage history. Metrics are null when no measurement exists for that
+        minute. History retains the most recent 24 hours.
+      example:
+        cpuPercent: 23.4
+        memoryUsedBytes: 8589934592
+        memoryTotalBytes: 34359738368
+        at: '2026-10-25T12:00:00Z'
     HostDetail:
       type: object
       required: [host, children, samples, range]
@@ -559,29 +1829,94 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Host'
+          description: Direct child hosts, usually Kubernetes nodes; empty for a Docker host.
+          example: []
         samples:
           type: array
           items:
             $ref: '#/components/schemas/HostSample'
-        range: {type: string, enum: [1h, 24h]}
+          description: Chronological minute slots. Missing minutes retain null metrics. The example is
+            abbreviated.
+          example:
+            - cpuPercent: 23.4
+              memoryUsedBytes: 8589934592
+              memoryTotalBytes: 34359738368
+              at: '2026-10-25T12:00:00Z'
+        range: {type: string, enum: [1h, 24h], description: 'History window applied by the server: 1h or 24h.',
+          example: 1h}
+      description: The requested host, its direct child nodes, and minute-aligned CPU and memory samples. The
+        example shows an excerpt; actual 1h and 24h responses contain 60 and 1440 sample slots.
+      example:
+        host:
+          cpuPercent: 23.4
+          memoryUsedBytes: 8589934592
+          memoryTotalBytes: 34359738368
+          node: ''
+          architecture: amd64
+          inventoryAvailable: true
+          ready: ''
+          workloads:
+            - name: grafana
+              namespace: ''
+              state: running
+              restarts: 0
+          id: 485497dc6417c5261c07e22ad6153c982eb4e0613c6a4bd568b361bc20190bbf
+          name: atlas
+          kind: docker
+          source:
+            kind: container
+            id: atlas
+          parentId: ''
+          observedAt: '2026-10-25T12:00:00Z'
+          receivedAt: '2026-10-25T12:00:00Z'
+          status: fresh
+        children: []
+        samples:
+          - cpuPercent: 23.4
+            memoryUsedBytes: 8589934592
+            memoryTotalBytes: 34359738368
+            at: '2026-10-25T12:00:00Z'
+        range: 1h
     UploadedIcon:
       type: object
       required: [id, name, tags, mime, digest, usedBy]
       properties:
         id:
           type: string
+          description: 'Assigned upload: reference. Reuse this ID in service icon settings.'
+          example: upload:EXAMPLE
         name:
           type: string
+          description: User-visible uploaded icon name.
+          example: Lab icon
         tags:
           type: string
+          description: User-supplied searchable icon tags.
+          example: lab,green
         mime:
           type: string
+          description: Validated image media type, used by the binary download response.
+          example: image/svg+xml
         digest:
           type: string
+          description: SHA-256 revision over name, a NUL byte, tags, a NUL byte, and image bytes. Supply it
+            for update or delete.
+          example: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
         usedBy:
           type: array
           items:
             type: string
+          description: Display names of services that currently reference this uploaded icon.
+          example: []
+      description: Metadata for a user-uploaded icon. digest is a revision of the trimmed name, tags, and
+        image bytes, not just an image hash. usedBy lists service display names rather than service IDs.
+      example:
+        id: upload:EXAMPLE
+        name: Lab icon
+        tags: lab,green
+        mime: image/svg+xml
+        digest: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
+        usedBy: []
     IconUpload:
       type: object
       additionalProperties: false
@@ -590,16 +1925,32 @@ components:
         name:
           type: string
           maxLength: 200
+          description: Nonblank icon name, at most 200 Unicode code points.
+          example: Lab icon
         tags:
           type: string
           maxLength: 1000
+          description: Icon search tags, at most 1000 Unicode code points.
+          example: lab,green
         data:
           type: string
           format: byte
-          description: Base64 image bytes. Omit to keep existing image.
+          description: Base64 image bytes. Required for creation; omitted or empty retains existing bytes on
+            update.
+          example:
+            PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSIjODRjYzE2Ii8+PC9zdmc+
         digest:
           type: string
-          description: Existing image revision required for updates.
+          description: Current uploaded icon revision, required for updates and ignored for creation.
+          example: 862019886d8c1034c41a62f1972409e18c6f76427f279a2e86469c28ee0cfe77
+      description: Shared create/update payload for uploaded images. Creation requires nonempty Base64 data.
+        Updates require the current digest; omitting data retains the existing image. Supported images are
+        limited to 2 MiB and 4096 pixels.
+      example:
+        name: Lab icon
+        tags: lab,green
+        data:
+          PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSIjODRjYzE2Ii8+PC9zdmc+
     HealthResponse:
       type: object
       required:
@@ -609,6 +1960,12 @@ components:
           type: string
           enum:
             - ok
+          description: ok means the API readiness checks passed.
+          example: ok
+      description: The readiness check succeeded, including the configured storage check. It does not describe
+        discovered application health.
+      example:
+        status: ok
     ErrorResponse:
       type: object
       required:
@@ -617,8 +1974,18 @@ components:
       properties:
         code:
           type: string
+          description: Machine-readable reason such as unavailable, not_found, conflict, or invalid_snapshot.
+          example: unavailable
         message:
           type: string
+          description: Human-readable explanation. Branch on code or HTTP status rather than matching this
+            text.
+          example: catalog unavailable
+      description: 'Structured API error with a stable code and a readable message. Not every endpoint uses this
+        envelope: plain-text errors are documented on their specific responses.'
+      example:
+        code: unavailable
+        message: catalog unavailable
     SourceRef:
       type: object
       required:
@@ -627,8 +1994,20 @@ components:
       properties:
         kind:
           type: string
+          description: Source kind, usually container or kubernetes. manual is reserved for local user-created
+            services.
+          example: container
         id:
           type: string
+          description: Stable source identifier such as atlas. It must match the gateway registration for
+            federation.
+          example: atlas
+      description: Stable discovery or telemetry source identity. container and kubernetes are agent source
+        kinds. manual/local is reserved for user-created services and cannot be imported through discovery
+        federation.
+      example:
+        kind: container
+        id: atlas
     ResourceRef:
       type: object
       required:
@@ -637,10 +2016,21 @@ components:
       properties:
         kind:
           type: string
+          description: Observed resource type, for example container, Service, or HTTPRoute.
+          example: container
         namespace:
           type: string
+          description: Namespace within the source, if the resource is namespaced.
+          example: ''
         name:
           type: string
+          description: Stable source resource name used in discovery identity.
+          example: grafana
+      description: Resource identity inside a source. Namespace is normally absent or empty for container
+        resources and set for namespaced Kubernetes resources.
+      example:
+        kind: container
+        name: grafana
     ServiceEndpoint:
       type: object
       required:
@@ -652,20 +2042,37 @@ components:
       properties:
         name:
           type: string
+          description: Observed endpoint or listener label.
+          example: https
         url:
           type: string
-          description: Empty when discovery has no exact hostname or route; HTTPRoute observations may be scheme-relative.
+          description: Discovered absolute or scheme-relative URL; empty if no exact address is known. Not a
+            health-check result.
+          example: https://grafana.example.test
         port:
           type: integer
           format: int32
           minimum: 0
           maximum: 65535
-          description: Zero when no port was observed.
+          description: Observed port, or zero when no port was observed.
+          example: 443
         protocol:
           type: string
+          description: Observed protocol such as HTTPS or TCP; not a guarantee that the application speaks
+            HTTP.
+          example: HTTPS
         provenance:
           type: string
-          description: Adapter evidence for the endpoint observation.
+          description: Adapter evidence that produced this endpoint, such as a route or published port.
+          example: synthetic
+      description: An observed endpoint and its discovery evidence. A published port alone is not proof of an
+        HTTP address. An empty URL retains port evidence; a scheme-relative HTTPRoute URL can begin with //.
+      example:
+        name: https
+        url: https://grafana.example.test
+        port: 443
+        protocol: HTTPS
+        provenance: synthetic
     ResourceObservation:
       type: object
       required: [resource, endpoints, images]
@@ -676,10 +2083,35 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ServiceEndpoint'
+          description: Endpoint evidence for this grouped resource.
+          example:
+            - name: https
+              url: https://grafana.example.test
+              port: 443
+              protocol: HTTPS
+              provenance: synthetic
         images:
           type: array
           items:
             type: string
+          description: Container image references observed for this resource; not URLs of service icons. Null
+            is returned when no image references are stored.
+          example: []
+          nullable: true
+          x-go-type-skip-optional-pointer: true
+      description: The resource, endpoints, and images retained behind one member of a grouped service. It is
+        evidence, not an independently selected homepage card.
+      example:
+        resource:
+          kind: container
+          name: grafana
+        endpoints:
+          - name: https
+            url: https://grafana.example.test
+            port: 443
+            protocol: HTTPS
+            provenance: synthetic
+        images: []
     ManualServiceCreate:
       type: object
       additionalProperties: false
@@ -688,11 +2120,25 @@ components:
         requestId:
           type: string
           pattern: '^[a-fA-F0-9]{32}$'
-          description: Random client-generated key reused on retries. Replays never overwrite later edits.
-        displayName: {type: string, minLength: 1, maxLength: 200}
-        description: {type: string, maxLength: 2000}
-        address: {type: string, minLength: 1, maxLength: 2048, description: Absolute HTTP(S) address without credentials}
-        icon: {type: string, maxLength: 256}
+          description: Client-generated 16-byte random key encoded as 32 hexadecimal characters. Reuse it for
+            retries; replays never overwrite edits.
+          example: 0123456789abcdef0123456789abcdef
+        displayName: {type: string, minLength: 1, maxLength: 200, description: 'Initial nonblank service name, up
+            to 200 Unicode code points.', example: Grafana}
+        description: {type: string, maxLength: 2000, description: Initial service description; send an empty
+            string when unused., example: Metrics and dashboards}
+        address: {type: string, minLength: 1, maxLength: 2048, description: Required absolute HTTP(S) address
+            without embedded credentials., example: https://grafana.example.test}
+        icon: {type: string, maxLength: 256, description: Optional bundled or uploaded reference such as
+            selfhst:grafana or upload:EXAMPLE., example: selfhst:grafana}
+      description: Idempotent creation input for an application outside automated discovery. The generated
+        catalog identity does not depend on the supplied name or URL. New records are live and unpinned.
+      example:
+        requestId: 0123456789abcdef0123456789abcdef
+        displayName: Grafana
+        description: Metrics and dashboards
+        address: https://grafana.example.test
+        icon: selfhst:grafana
     ServiceEdit:
       type: object
       additionalProperties: false
@@ -701,18 +2147,34 @@ components:
         icon:
           type: string
           maxLength: 256
-          description: Icon reference. Empty resets to discovery; omitted preserves selection.
+          description: Omit to preserve the icon choice, use an empty string to reset, or select a
+            bundled/uploaded reference.
+          example: selfhst:grafana
         displayName:
           type: string
           minLength: 1
           maxLength: 200
+          description: Saved nonblank display name, up to 200 Unicode code points.
+          example: Grafana
         description:
           type: string
           maxLength: 2000
+          description: Saved service description; required but may be empty.
+          example: Metrics and dashboards
         address:
           type: string
           maxLength: 2048
-          description: Absolute HTTP(S) homepage address; empty uses discovery
+          description: Homepage address override without credentials. Empty restores discovery for discovered
+            entries; not valid for manual entries.
+          example: https://grafana.example.test
+      description: Local name, description, address, and icon overrides. Discovery refreshes preserve these
+        fields. Empty address restores discovery except for manual services, which require a usable HTTP(S)
+        address.
+      example:
+        displayName: Grafana
+        description: Metrics and dashboards
+        address: https://grafana.example.test
+        icon: selfhst:grafana
     ServiceCandidate:
       type: object
       required:
@@ -733,53 +2195,139 @@ components:
         status:
           type: string
           enum: [live, missing, hidden]
-          description: Hidden takes precedence over missing until the user shows the service again.
+          description: Effective lifecycle state. hidden takes precedence over missing until the service is
+            shown again.
+          example: live
         missing:
           type: boolean
-          description: Absent from the latest successful source snapshot, including when hidden.
+          description: True when absent from the latest successful complete source snapshot, including a
+            hidden missing entry.
+          example: false
         icon:
           type: string
-          description: Local icon reference; empty uses discovery.
+          description: Effective local icon reference; an empty string uses the discovery default.
+          example: selfhst:grafana
         address:
           type: string
-          description: Local homepage address override; empty uses discovery
+          description: Local homepage address override; an empty string falls back to discovered endpoints.
+          example: ''
         resources:
           type: array
-          description: Resource evidence grouped under this Service; pin identity remains the Service ID.
+          description: Member observations grouped behind this service; pin identity remains the top-level
+            service ID.
           items:
             $ref: '#/components/schemas/ResourceObservation'
+          example:
+            - resource:
+                kind: container
+                name: grafana
+              endpoints:
+                - name: https
+                  url: https://grafana.example.test
+                  port: 443
+                  protocol: HTTPS
+                  provenance: synthetic
+              images: []
         id:
           type: string
+          description: Stable group identity returned by Staging; use this ID for edits, pins, and lifecycle
+            actions.
+          example: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
         source:
           $ref: '#/components/schemas/SourceRef'
         resource:
           $ref: '#/components/schemas/ResourceRef'
         displayName:
           type: string
+          description: Effective service name after applying any local override.
+          example: Grafana
         description:
           type: string
+          description: Effective service description shown by homepage cards and search.
+          example: Metrics and dashboards
         metadata:
           type: object
           additionalProperties:
             type: string
+          description: Adapter-provided string evidence. Keys are source-specific and should not be treated as
+            a universal contract.
+          example:
+            fixture: synthetic
         endpoints:
           type: array
           items:
             $ref: '#/components/schemas/ServiceEndpoint'
+          description: Grouped discovery addresses and port evidence, before a local address override.
+          example:
+            - name: https
+              url: https://grafana.example.test
+              port: 443
+              protocol: HTTPS
+              provenance: synthetic
         images:
           type: array
-          description: Container images observed for the candidate, when available.
+          description: Discovered container image names, not uploaded icon bytes. Null is returned when no
+            image references are stored.
           items:
             type: string
+          example: []
+          nullable: true
+          x-go-type-skip-optional-pointer: true
         observedAt:
           type: string
           format: date-time
+          description: Latest catalog observation timestamp in UTC.
+          example: '2026-10-25T12:00:00Z'
         pinned:
           type: boolean
+          description: Saved homepage selection. Hidden or missing services remain excluded even if this is
+            true.
+          example: true
         pinnedAt:
           type: string
           format: date-time
           nullable: true
+          description: UTC time when the pin was recorded, or null when unpinned.
+          example: '2026-10-25T12:00:00Z'
+      description: A grouped catalog entry combining observed resources with gateway-owned display settings,
+        visibility, and pin state. Only entries with pinned=true and status=live appear on the homepage.
+      example:
+        id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+        source:
+          kind: container
+          id: atlas
+        resource:
+          kind: container
+          name: grafana
+        displayName: Grafana
+        description: Metrics and dashboards
+        metadata:
+          fixture: synthetic
+        endpoints:
+          - name: https
+            url: https://grafana.example.test
+            port: 443
+            protocol: HTTPS
+            provenance: synthetic
+        images: []
+        observedAt: '2026-10-25T12:00:00Z'
+        status: live
+        missing: false
+        icon: selfhst:grafana
+        address: ''
+        resources:
+          - resource:
+              kind: container
+              name: grafana
+            endpoints:
+              - name: https
+                url: https://grafana.example.test
+                port: 443
+                protocol: HTTPS
+                provenance: synthetic
+            images: []
+        pinned: true
+        pinnedAt: '2026-10-25T12:00:00Z'
     ServiceListResponse:
       type: object
       required:
@@ -789,6 +2337,84 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ServiceCandidate'
+          description: Service groups included by this endpoint; empty when the requested view has no entries.
+          example:
+            - id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+              source:
+                kind: container
+                id: atlas
+              resource:
+                kind: container
+                name: grafana
+              displayName: Grafana
+              description: Metrics and dashboards
+              metadata:
+                fixture: synthetic
+              endpoints:
+                - name: https
+                  url: https://grafana.example.test
+                  port: 443
+                  protocol: HTTPS
+                  provenance: synthetic
+              images: []
+              observedAt: '2026-10-25T12:00:00Z'
+              status: live
+              missing: false
+              icon: selfhst:grafana
+              address: ''
+              resources:
+                - resource:
+                    kind: container
+                    name: grafana
+                  endpoints:
+                    - name: https
+                      url: https://grafana.example.test
+                      port: 443
+                      protocol: HTTPS
+                      provenance: synthetic
+                  images: []
+              pinned: true
+              pinnedAt: '2026-10-25T12:00:00Z'
+      description: Catalog service groups for the requested view. Staging includes every lifecycle state; the
+        homepage endpoint restricts the list to pinned live groups.
+      example:
+        services:
+          - id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+            source:
+              kind: container
+              id: atlas
+            resource:
+              kind: container
+              name: grafana
+            displayName: Grafana
+            description: Metrics and dashboards
+            metadata:
+              fixture: synthetic
+            endpoints:
+              - name: https
+                url: https://grafana.example.test
+                port: 443
+                protocol: HTTPS
+                provenance: synthetic
+            images: []
+            observedAt: '2026-10-25T12:00:00Z'
+            status: live
+            missing: false
+            icon: selfhst:grafana
+            address: ''
+            resources:
+              - resource:
+                  kind: container
+                  name: grafana
+                endpoints:
+                  - name: https
+                    url: https://grafana.example.test
+                    port: 443
+                    protocol: HTTPS
+                    provenance: synthetic
+                images: []
+            pinned: true
+            pinnedAt: '2026-10-25T12:00:00Z'
     DiscoverySyncResponse:
       type: object
       required:
@@ -799,10 +2425,19 @@ components:
           type: integer
           format: int32
           minimum: 0
+          description: Number of source snapshots acknowledged by this operation.
+          example: 1
         candidates:
           type: integer
           format: int32
           minimum: 0
+          description: Number of raw candidate observations acknowledged, before homepage selection.
+          example: 1
+      description: Counts acknowledged for the synchronization/import operation. candidates counts
+        observations processed, not services added to the homepage.
+      example:
+        sources: 1
+        candidates: 1
     FederationSnapshot:
       type: object
       required:
@@ -816,9 +2451,60 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FederatedCandidate'
+          description: Complete observed candidate set for the source. Empty marks prior observations missing.
+          example:
+            - id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+              source:
+                kind: container
+                id: atlas
+              resource:
+                kind: container
+                name: grafana
+              displayName: Grafana
+              description: Metrics and dashboards
+              metadata:
+                fixture: synthetic
+              endpoints:
+                - name: https
+                  url: https://grafana.example.test
+                  port: 443
+                  protocol: HTTPS
+                  provenance: synthetic
+              images: []
+              observedAt: '2026-10-25T12:00:00Z'
         observedAt:
           type: string
           format: date-time
+          description: UTC observation watermark. Older or repeated snapshot times do not replace newer state.
+          example: '2026-10-25T12:00:00Z'
+      description: A complete discovery snapshot for one source. Absent observations become missing after an
+        accepted newer snapshot; edits and pins remain gateway-owned. The empty candidates array is meaningful
+        and must not be used for a failed scan.
+      example:
+        source:
+          kind: container
+          id: atlas
+        candidates:
+          - id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+            source:
+              kind: container
+              id: atlas
+            resource:
+              kind: container
+              name: grafana
+            displayName: Grafana
+            description: Metrics and dashboards
+            metadata:
+              fixture: synthetic
+            endpoints:
+              - name: https
+                url: https://grafana.example.test
+                port: 443
+                protocol: HTTPS
+                provenance: synthetic
+            images: []
+            observedAt: '2026-10-25T12:00:00Z'
+        observedAt: '2026-10-25T12:00:00Z'
     FederatedCandidate:
       type: object
       required:
@@ -834,26 +2520,96 @@ components:
       properties:
         id:
           type: string
+          description: Deterministic SHA-256 of the length-prefixed source and resource identity described on
+            this schema.
+          example: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
         source:
           $ref: '#/components/schemas/SourceRef'
         resource:
           $ref: '#/components/schemas/ResourceRef'
         displayName:
           type: string
+          description: Discovered name before gateway-owned display overrides.
+          example: Grafana
         description:
           type: string
+          description: Description emitted by the source adapter.
+          example: Metrics and dashboards
         metadata:
           type: object
           additionalProperties:
             type: string
+          description: String metadata emitted by this source adapter.
+          example:
+            fixture: synthetic
         endpoints:
           type: array
           items:
             $ref: '#/components/schemas/ServiceEndpoint'
+          description: Observed addresses and port evidence to import.
+          example:
+            - name: https
+              url: https://grafana.example.test
+              port: 443
+              protocol: HTTPS
+              provenance: synthetic
         images:
           type: array
           items:
             type: string
+          description: Container image references reported by discovery.
+          example: []
         observedAt:
           type: string
           format: date-time
+          description: UTC time this resource was observed by the source.
+          example: '2026-10-25T12:00:00Z'
+      description: 'One raw observation in a complete source snapshot. The ID is SHA-256 of the concatenation of
+        five length-prefixed UTF-8 strings: source.kind, source.id, resource.kind, resource.namespace or empty,
+        and resource.name. Each trimmed string is encoded as its byte length in decimal, then a colon, then its
+        bytes. Prefer the agent implementation over constructing IDs by hand. Do not include gateway pin or edit
+        state.'
+      example:
+        id: 57dc88a4d1a5dec8a34e00cc6ff3683bd1b6343cd32f573356a0c6fb07161f14
+        source:
+          kind: container
+          id: atlas
+        resource:
+          kind: container
+          name: grafana
+        displayName: Grafana
+        description: Metrics and dashboards
+        metadata:
+          fixture: synthetic
+        endpoints:
+          - name: https
+            url: https://grafana.example.test
+            port: 443
+            protocol: HTTPS
+            provenance: synthetic
+        images: []
+        observedAt: '2026-10-25T12:00:00Z'
+servers:
+  - url: http://127.0.0.1:8080
+    description: Local development API. Replace with your private API origin; the static documentation host
+      does not serve this API.
+security: []
+tags:
+  - name: Health
+    description: Check API and SQLite readiness without triggering discovery.
+  - name: Dashboard
+    description: Read selected service and host widgets or change homepage selection.
+  - name: Services
+    description: Review the catalog, create manual entries, save presentation overrides, and manage pins.
+  - name: Discovery
+    description: Request a scan of discovery sources configured on this API process.
+  - name: Hosts
+    description: Read source roots, workload inventory, reporting status, and basic CPU and memory history.
+  - name: Federation
+    description: Import source-scoped discovery snapshots and telemetry with registered agent credentials.
+  - name: Icons
+    description: Manage uploaded image assets and their revision digests. Bundled icons are referenced by ID
+      through service edits.
+externalDocs:
+  description: API integration guide and request examples
+  url: https://balemoh.araihu.com/reference/api-integration/

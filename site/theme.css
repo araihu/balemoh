@@ -1,0 +1,133 @@
+/* Balemoh's ink and lime palette, using Margo's semantic theme tokens. */
+[data-theme="modern"] {
+  --color-surface: #fafbf7;
+  --color-surface-alt: #edf1e5;
+  --color-on-surface: #233142;
+  --color-on-surface-strong: #07111f;
+  --color-on-surface-muted: #4b5b64;
+  --color-primary: #3e5900;
+  --color-on-primary: #ffffff;
+  --color-outline: #64715d;
+  --color-surface-dark: #07111f;
+  --color-surface-dark-alt: #102236;
+  --color-on-surface-dark: #e0e7df;
+  --color-on-surface-dark-strong: #f3f2e9;
+  --color-on-surface-dark-muted: #aebebc;
+  --color-primary-dark: #c7ff4a;
+  --color-on-primary-dark: #07111f;
+  --color-outline-dark: #758687;
+  --font-body: ui-sans-serif, system-ui, sans-serif;
+  --font-title: var(--font-body);
+  --document-line-height: 1.7;
+  --margo-surface: var(--color-surface);
+  --margo-surface-alt: var(--color-surface-alt);
+  --margo-text: var(--color-on-surface);
+  --margo-text-strong: var(--color-on-surface-strong);
+  --margo-accent: var(--color-primary);
+  --margo-outline: var(--color-outline);
+}
+
+/* Use the complete shared wordmark without a second product-name label. */
+html .landing-shell__brand > img,
+html .margo-site-brand > img {
+  inline-size: 7rem;
+  block-size: auto;
+  max-inline-size: 7rem;
+  max-block-size: 2rem;
+}
+.landing-shell__brand-copy,
+.margo-site-brand > span {
+  display: none;
+}
+
+/* Use the complete wordmark at every docs breakpoint. */
+html .component-doc-shell__brand-logo-source {
+  display: inline-flex;
+  flex: none;
+}
+html .component-doc-shell__managed-logo {
+  inline-size: 7rem;
+  block-size: auto;
+  max-inline-size: 7rem;
+  max-block-size: 2rem;
+  object-fit: contain;
+}
+html .component-doc-shell__brand-compact-mark,
+html .component-doc-shell__brand-name {
+  display: none;
+}
+
+/* Let the running product carry the landing page's first viewport. */
+html .margo-landing-hero {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2.5rem;
+  padding-block: clamp(2.5rem, 5vw, 4.5rem) clamp(2rem, 4vw, 3rem);
+}
+html .margo-landing-hero__copy {
+  flex: initial;
+  max-inline-size: 75ch;
+}
+html .margo-landing-hero__copy h1 {
+  max-inline-size: 18ch;
+  font-size: clamp(2.6rem, 5.5vw, 4.8rem);
+  line-height: 1.07;
+  letter-spacing: -0.035em;
+}
+html .margo-landing-hero__copy .margo-document__lead {
+  max-inline-size: 62ch;
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  font-weight: 400;
+  color: var(--margo-text);
+}
+html .margo-landing-hero__copy > ul {
+  display: flex;
+  flex-wrap: wrap;
+}
+html .margo-landing-hero__copy > ul a {
+  min-block-size: 3rem;
+  border-radius: 0.75rem;
+}
+html .margo-landing-hero__visual {
+  flex: initial;
+  inline-size: 100%;
+  max-inline-size: 984px;
+}
+html .margo-landing-hero__visual img {
+  aspect-ratio: auto;
+  block-size: auto;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+html .margo-landing-section {
+  padding-block-start: clamp(3rem, 6vw, 5rem);
+}
+html .margo-landing-section a {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+html .margo-landing-section > .margo-landing-media {
+  max-inline-size: min(100%, 984px);
+  margin-block: 2rem 1.25rem;
+}
+html .margo-landing-section > .margo-landing-media > img {
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: auto;
+  border: 1px solid var(--margo-outline);
+  border-radius: 0.75rem;
+}
+html .margo-landing-hero a:focus-visible,
+html .margo-landing-section a:focus-visible {
+  outline: 3px solid var(--margo-accent);
+  outline-offset: 4px;
+}
+@media (max-width: 36rem) {
+  html .margo-landing-hero__copy > ul {
+    flex-direction: column;
+  }
+  html .margo-landing-hero__copy > ul a {
+    justify-content: center;
+  }
+}

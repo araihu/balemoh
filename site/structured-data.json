@@ -1,0 +1,22 @@
+{
+  "description": "A self-hosted homepage that discovers Kubernetes, Docker, and Podman services, lets you choose homepage pins, and shows basic host telemetry.",
+  "applicationCategory": "UtilitiesApplication",
+  "applicationSubCategory": "Self-hosted homelab dashboard",
+  "operatingSystem": "Linux",
+  "processorRequirements": "amd64 or arm64",
+  "sameAs": "https://github.com/araihu/balemoh",
+  "installUrl": "https://balemoh.araihu.com/getting-started/",
+  "screenshot": "https://balemoh.araihu.com/media/homepage-synthetic.jpg",
+  "offers": {
+    "@type": "Offer",
+    "price": 0,
+    "url": "https://github.com/araihu/balemoh/releases"
+  },
+  "featureList": [
+    "Automatic Kubernetes, Docker, and Podman service discovery",
+    "Review discovered services in Staging and pin them to the homepage",
+    "Search services by name, description, or address",
+    "Basic host CPU and memory telemetry with usage history",
+    "Authenticated discovery snapshots from federated agents"
+  ]
+}

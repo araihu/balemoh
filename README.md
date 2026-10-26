@@ -1,5 +1,9 @@
 # Balemoh
 
+Public documentation: [balemoh.araihu.com](https://balemoh.araihu.com).
+The static site uses Margo for guides and Manja for the OpenAPI reference.
+See [site build and Cloudflare deployment](site/README.md).
+
 Balemoh is a Go service. Local development uses Go 1.27 and the pinned
 dependencies and tools declared in `go.mod`.
 
