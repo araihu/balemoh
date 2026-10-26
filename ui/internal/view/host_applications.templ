@@ -1,0 +1,218 @@
+package view
+
+import (
+ "strconv"
+ "github.com/araihu/goshtoso/components/alert"
+ "github.com/araihu/goshtoso/components/badge"
+ "github.com/araihu/goshtoso/components/emptystate"
+ "github.com/araihu/goshtoso/components/table"
+ "github.com/araihu/goshtoso/components/textinput"
+ "github.com/araihu/goshtoso/components/toolbar"
+ selectfield "github.com/araihu/goshtoso/components/select"
+)
+
+// Operate: preserve Balemoh's console, compact rows and semantic tokens.
+// Scan application state first; disclose exact runtime evidence on demand.
+// Native details supports rich summaries and remains usable without Alpine.
+templ HostApplicationsPanel(page HostDetail) {
+ <div id="host-applications" x-data="{ applicationFilter: 'current' }" x-init="$watch('applicationFilter', () => $nextTick(() => $dispatch('application-filter-changed')))">
+  <p class="balemoh-muted">Applications and their reported workloads. Readiness describes runtime state; it does not verify the application's address.</p>
+  @toolbar.Toolbar(toolbar.Config{Label:"Filter applications",Search:HostApplicationSearch(),Filters:HostApplicationFilter()})
+  <div id="host-application-results">@HostApplicationResults(page)</div>
+  <p id="host-application-filter-status" role="status" class="balemoh-muted" hidden></p>
+ </div>
+}
+
+// Preserve filters and disclosures. Reconcile the collection only when its
+// membership/order changes; runtime value changes update individual rows.
+templ HostInventorySnapshot(page HostDetail,previous *HostDetail) {
+ @HostLiveSnapshot(page)
+ if !sameApplications(page,previous) {
+  <div id="host-application-results" hx-swap-oob="innerMorph">@HostApplicationResults(page)</div>
+ } else {
+  <div id="host-application-observation" hx-swap-oob="innerMorph">@HostApplicationObservation(page)</div>
+  for i,app:=range page.Applications {
+   if applicationChanged(app,previous.Applications[i]) {
+    @HostApplicationRow(app,page.Host.Kind,true)
+   }
+  }
+ }
+}
+
+templ HostApplicationSearch() {
+ @textinput.TextInput(textinput.Config{ID:"host-application-search",Label:"Search applications and workloads",Type:textinput.TypeSearch,Placeholder:"Name, namespace, node or image",InputAttrs:templ.Attributes{"data-application-search":"","autocomplete":"off"}})
+}
+
+templ HostApplicationFilter() {
+ @selectfield.Select(selectfield.Config{ID:"host-application-filter",Label:"Show",Options:[]selectfield.Option{
+  {Value:"current",Label:"Current applications",Selected:true},
+  {Value:"attention",Label:"Needs attention"},
+  {Value:"missing",Label:"Absent from discovery"},
+ },Alpine:&selectfield.AlpineConfig{Model:"applicationFilter"},InputAttrs:templ.Attributes{"data-application-filter":""}})
+}
+
+templ HostApplicationResults(page HostDetail) {
+ <div id="host-application-observation">@HostApplicationObservation(page)</div>
+ if len(page.Applications)==0 {
+  @emptystate.EmptyState(emptystate.Config{Title:"No applications or workloads reported",Description:"Applications appear after service discovery and workload inventory arrive from this source."})
+ } else {
+  <div class="balemoh-application-list">
+   for _,app:=range page.Applications {
+    @HostApplicationRow(app,page.Host.Kind,false)
+   }
+  </div>
+ }
+}
+
+templ HostApplicationObservation(page HostDetail) {
+ <div class="balemoh-application-observation">
+  <p>{ applicationCounts(page) }</p>
+  @ReportTime("Workloads observed:",page.Host.ObservedAt)
+ </div>
+ if page.Host.Status=="stale" || page.Host.Status=="unavailable" {
+  @alert.Alert(alert.Config{Title:"Current state is not confirmed",Description:"Showing last received observations. Wait for a fresh agent report before treating this as current application health.",Tone:alert.ToneWarning})
+ }
+ if !page.ServicesAvailable {
+  @alert.Alert(alert.Config{Title:"Application catalog unavailable",Description:"Workloads remain visible without application associations. Discovery will be retried automatically.",Tone:alert.ToneWarning})
+ }
+ if !page.Host.InventoryAvailable {
+  @alert.Alert(alert.Config{Title:"Workload inventory is unavailable or incomplete",Description:"Counts cover only received workloads. An application with no reported workloads has unknown runtime state.",Tone:alert.ToneWarning})
+ }
+}
+
+templ HostApplicationRow(app HostApplication,kind string,oob bool) {
+ <article id={ "host-application-"+app.Service.ID } class="balemoh-application-row" data-application-row data-search={ app.SearchText() } data-scope={ app.Scope() } data-attention={ strconv.FormatBool(app.Attention()) } hidden?={ app.Missing }
+ if oob {
+  hx-swap-oob="outerMorph"
+ }
+ >
+  <details id={ "host-application-details-"+app.Service.ID } data-application-details>
+   <summary id={ "host-application-summary-"+app.Service.ID }>
+    <span class="balemoh-application-heading">
+     <span class="balemoh-application-name">{ app.Service.DisplayName }</span>
+     @badge.Badge(badge.Config{Label:app.Summary(),Tone:app.Tone(),Appearance:badge.AppearanceSoft})
+    </span>
+    <span class="balemoh-application-location balemoh-muted">
+     if app.Service.Namespace!="" {
+      <span>Namespace: { app.Service.Namespace }</span>
+     }
+     if app.Locations()!="" {
+      <span>Runs on: { app.Locations() }</span>
+     }
+     if app.Attention() {
+      <span>Needs attention</span>
+     }
+    </span>
+   </summary>
+   <div class="balemoh-application-body">
+    if app.Unassociated {
+     <p class="balemoh-muted">No catalog application references these workloads. Names alone are not used to infer ownership.</p>
+    } else {
+     if app.Service.Description!="" {
+      <p>{ app.Service.Description }</p>
+     }
+     <div class="balemoh-application-catalog">
+      @GroupAddresses(app.Service)
+      @ReportTime("Catalog observed:",&app.ObservedAt)
+     </div>
+    }
+    if app.Missing {
+     <p class="balemoh-muted">Historical catalog entry, absent from the latest successful discovery. Current runtime state is unknown.</p>
+    } else if len(app.Workloads)==0 {
+     <p class="balemoh-muted">No associated workloads in the received inventory. Runtime state is unknown.</p>
+    } else {
+     @HostApplicationWorkloadsMobile(app,kind)
+     <div class="balemoh-table-scroll balemoh-workloads-table" tabindex="0" role="region" aria-label={ app.Service.DisplayName+" workloads" }>
+      @table.Table(table.Config{ID:"application-workloads-"+app.Service.ID,Caption:app.Service.DisplayName+" reported workloads",Columns:applicationWorkloadColumns(kind),Rows:applicationWorkloadRows(app.Workloads)})
+     </div>
+     if kind!="Docker host" {
+      <p class="balemoh-muted">Restarts are cumulative for each pod, including init containers. They do not indicate when a restart occurred.</p>
+     }
+    }
+   </div>
+  </details>
+ </article>
+}
+
+// The pinned Table has no responsive field-label contract. Keep its desktop
+// representation and compose read-only semantic workload evidence for mobile.
+templ HostApplicationWorkloadsMobile(app HostApplication,kind string) {
+ <ul class="balemoh-workloads-mobile" role="list" aria-label={ app.Service.DisplayName+" reported workloads" }>
+  for _,w:=range app.Workloads {
+   <li>
+    <div class="balemoh-workload-identity">
+     <span class="balemoh-application-name">{ w.Name }</span>
+     if w.Namespace!="" {
+      <small class="balemoh-muted">{ w.Namespace }</small>
+     }
+    </div>
+    <dl class="balemoh-workload-fields">
+     <div><dt>State</dt><dd>{ w.State }</dd></div>
+     if kind!="Docker host" {
+      <div><dt>Readiness</dt><dd>{ w.Readiness() }</dd></div>
+     }
+     <div>
+      <dt>Location</dt>
+      <dd>
+       if w.Node!="" {
+        { w.Node }
+       } else {
+        Not reported
+       }
+      </dd>
+     </div>
+     if kind!="Docker host" {
+      <div><dt>Total restarts</dt><dd>{ strconv.Itoa(w.Restarts) }</dd></div>
+     }
+     if w.Reason!="" {
+      <div class="balemoh-workload-wide"><dt>Reason</dt><dd>{ w.Reason }</dd></div>
+     }
+     if len(w.Images)>0 {
+      <div class="balemoh-workload-wide">
+       <dt>Images</dt>
+       <dd>
+        <ul role="list">
+         for _,image:=range w.Images {
+          <li>{ image }</li>
+         }
+        </ul>
+       </dd>
+      </div>
+     }
+    </dl>
+   </li>
+  }
+ </ul>
+}
+
+func applicationWorkloadColumns(kind string) []table.Column {
+ columns:=[]table.Column{{Key:"name",Label:"Workload"},{Key:"state",Label:"State"},{Key:"node",Label:"Location"}}
+ if kind!="Docker host" {columns=append(columns,table.Column{Key:"ready",Label:"Readiness"},table.Column{Key:"restarts",Label:"Total restarts"})}
+ return columns
+}
+
+func applicationWorkloadRows(workloads []HostWorkload) []table.Row {
+ rows:=make([]table.Row,0,len(workloads))
+ for _,w:=range workloads {
+  node:=w.Node;if node==""{node="Not reported"}
+  rows=append(rows,table.Row{ID:w.Namespace+"/"+w.Name,Cells:map[string]table.Cell{
+   "name":{Component:HostApplicationWorkloadName(w)},"state":{Text:w.State},"node":{Text:node},"ready":{Text:w.Readiness()},"restarts":{Text:strconv.Itoa(w.Restarts)},
+  }})
+ }
+ return rows
+}
+
+templ HostApplicationWorkloadName(w HostWorkload) {
+ <div class="balemoh-workload-identity">
+  <span>{ w.Name }</span>
+  if w.Namespace!="" {
+   <small class="balemoh-muted">{ w.Namespace }</small>
+  }
+  if w.Reason!="" {
+   <span>Reason: { w.Reason }</span>
+  }
+  for _,image:=range w.Images {
+   <small class="balemoh-muted">{ image }</small>
+  }
+ </div>
+}

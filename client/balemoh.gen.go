@@ -288,10 +288,18 @@ type HostSample struct {
 
 // HostWorkload defines model for HostWorkload.
 type HostWorkload struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Restarts  int    `json:"restarts"`
-	State     string `json:"state"`
+	Images    *[]string `json:"images,omitempty"`
+	Name      string    `json:"name"`
+	Namespace string    `json:"namespace"`
+	Node      *string   `json:"node,omitempty"`
+
+	// Ready Pod Ready condition. Absent when unknown, from older agents, or for Docker containers. Does not verify HTTP reachability.
+	Ready *bool `json:"ready,omitempty"`
+
+	// Reason Current pod or container waiting/termination reason, never a previous termination reason.
+	Reason   *string `json:"reason,omitempty"`
+	Restarts int     `json:"restarts"`
+	State    string  `json:"state"`
 }
 
 // IconUpload defines model for IconUpload.

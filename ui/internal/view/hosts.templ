@@ -30,15 +30,13 @@ type Host struct {
 }
 type HostsPage struct { Hosts []Host; Selected map[string]bool; SelectionError string }
 type HostSample struct {At time.Time; CPU,Memory *float64}
-type HostWorkload struct{Name,Namespace,State string;Restarts int}
-type HostService struct{ID,Name string}
 type HostDetail struct {
  Host Host
  Window string
  Children []Host
  Samples []HostSample
  Workloads []HostWorkload
- Services []HostService
+ Applications []HostApplication
  ServicesAvailable bool
  Pinned bool
  Missing bool
@@ -82,9 +80,6 @@ func historyChart(page HostDetail,cpu bool)line.Config{
  cfg.Series=[]line.Series{{Name:title+" (%)",Data:points}};return cfg
 }
 func hasHistory(page HostDetail,cpu bool)bool{for _,s:=range page.Samples{if cpu&&s.CPU!=nil||!cpu&&s.Memory!=nil{return true}};return false}
-func workloadRows(workloads []HostWorkload)[]table.Row{
- rows:=[]table.Row{};for i,w:=range workloads{rows=append(rows,table.Row{ID:fmt.Sprintf("workload-%d",i),Cells:map[string]table.Cell{"name":{Text:w.Name},"namespace":{Text:w.Namespace},"state":{Text:w.State},"restarts":{Text:strconv.Itoa(w.Restarts)}}})};return rows
-}
 templ HostLink(host Host) {
  @link.Link("/hosts/"+host.ID) { @HostIdentity(host) }
  <small class="balemoh-muted">{ host.Kind }</small>
@@ -148,18 +143,17 @@ templ HostContent(page HostDetail) {
    @link.Link("/hosts/"+page.Host.ParentID) { Cluster }
   }
  </nav>
- @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,TitleSuffix:HostDetailIndicators(page.Host),HideSeparator:true,Actions:HostSelection(page.Host.ID,page.Pinned,page.SelectionError!="",page.Window,page.SelectionError,false,false)})
+ @pageheader.PageHeader(pageheader.Config{Title:page.Host.Name,TitleSuffix:HostDetailIndicators(page.Host),HideSeparator:true,RootClass:"balemoh-host-page-header",Actions:HostSelection(page.Host.ID,page.Pinned,page.SelectionError!="",page.Window,page.SelectionError,false,false)})
  if page.Missing {
  @alert.Alert(alert.Config{Title:"Host no longer available",Description:"Uncheck Show on home to remove this widget.",Tone:alert.ToneWarning})
  } else {
- @tabs.Tabs(tabs.Config{ID:"host-tabs",RootClass:"min-w-0",DefaultTab:"overview",SyncHash:true,Tabs:hostTabs(page)})
+ @tabs.Tabs(tabs.Config{ID:"host-tabs",RootClass:"min-w-0 balemoh-host-tabs",DefaultTab:"overview",SyncHash:true,Tabs:hostTabs(page)})
  }
 }
 func hostTabs(page HostDetail)[]tabs.Tab{
  result:=[]tabs.Tab{{ID:"overview",Label:"Overview",Content:HostOverviewPanel(page)}}
  if page.Host.Kind=="Kubernetes cluster"{result=append(result,tabs.Tab{ID:"nodes",Label:"Nodes",Content:HostNodesPanel(page)})}
- result=append(result,tabs.Tab{ID:"workloads",Label:"Workloads",Content:HostWorkloadsPanel(page)})
- if page.Host.ParentID==""{result=append(result,tabs.Tab{ID:"services",Label:"Services",Content:HostServices(page)})}
+ result=append(result,tabs.Tab{ID:"applications",Label:"Applications",Content:HostApplicationsPanel(page)})
  return result
 }
 templ HostOverviewPanel(page HostDetail){
@@ -186,32 +180,8 @@ templ HostOverview(page HostDetail){
   @card.Card(card.Config{RootClass:"balemoh-host-card",Title:"Memory usage",Body:HostChart(page,false)})
  </div>
 }
-templ HostServices(page HostDetail){
- if page.Host.ParentID=="" {
-  <p class="balemoh-muted">Applications discovered on this source, with their catalog settings and homepage links. One application can include several workloads.</p>
-  if !page.ServicesAvailable {
-   <p>Catalog services are unavailable.</p>
-  } else if len(page.Services)==0 {
-   <p>No catalog services discovered for this source.</p>
-  } else {
-   <ul class="balemoh-host-services">
-    for _,service:=range page.Services {
-     <li>@link.Link("/staging/services/"+service.ID+"/edit") { { service.Name } }</li>
-    }
-   </ul>
-  }
- }
-}
 templ HostNodesPanel(page HostDetail){
  <div id="host-nodes">@HostNodes(page)</div>
-}
-templ HostWorkloadsPanel(page HostDetail){
- <div id="host-workloads-panel">@HostWorkloads(page)</div>
-}
-
-func workloadColumns(kind string)[]table.Column{
- columns:=[]table.Column{{Key:"name",Label:"Name"},{Key:"state",Label:"State"}}
- if kind!="Docker host"{columns=append(columns,table.Column{Key:"namespace",Label:"Namespace"},table.Column{Key:"restarts",Label:"Restarts"})};return columns
 }
 func historyLinkAttrs(page HostDetail,window string)templ.Attributes{
  return templ.Attributes{"hx-get":"/hosts/"+page.Host.ID+"?range="+window,"hx-target":"#host-overview","hx-swap":"innerHTML","hx-push-url":strconv.FormatBool(window!=page.Window),"hx-sync":"#host-overview:replace"}
@@ -272,19 +242,6 @@ templ HostNodes(page HostDetail) {
   }
  }
 }
-templ HostWorkloads(page HostDetail) {
- <p class="balemoh-muted">Reported pods or containers, their runtime state and restart counts.</p>
- if !page.Host.InventoryAvailable {
-  <p>Workload inventory is unavailable or incomplete.</p>
- }
- if len(page.Workloads)>0 {
-  <div class="balemoh-table-scroll" tabindex="0" role="region" aria-label="Workload inventory">
-   @table.Table(table.Config{RootClass:"balemoh-host-workloads",ID:"host-workloads",Caption:"Last reported workloads",Columns:workloadColumns(page.Host.Kind),Rows:workloadRows(page.Workloads)})
-  </div>
- } else if page.Host.InventoryAvailable {
-  <p>No workloads reported.</p>
- }
-}
 func hostChartID(cpu bool)string{if cpu{return "host-cpu-chart"};return "host-memory-chart"}
 templ HostChart(page HostDetail,cpu bool) {
  @chartcontrol.Wrapper(chartcontrol.WrapperConfig{Label:historyChart(page,cpu).Label,Export:&chartcontrol.ExportOptions{Disabled:true}},HostChartTarget(page,cpu))
@@ -322,7 +279,6 @@ templ HostLiveSnapshot(page HostDetail) {
  if page.Host.Kind=="Kubernetes cluster" {
  <div id="host-nodes" hx-swap-oob="innerMorph">@HostNodes(page)</div>
  }
- <div id="host-workloads-panel" hx-swap-oob="innerMorph">@HostWorkloads(page)</div>
 }
 templ HostChartContent(page HostDetail,cpu bool) {
  if hasHistory(page,cpu) {

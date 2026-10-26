@@ -14,6 +14,12 @@ func TestTelemetryValidationAndFreshness(t *testing.T) {
 		change func(*Batch)
 	}{
 		{"architecture control", func(b *Batch) { b.Hosts[0].Architecture = "arm64\n" }},
+		{"workload reason control", func(b *Batch) {
+			b.Hosts[0].Workloads = []Workload{{Name: "pod", State: "Running", Reason: "bad\nreason"}}
+		}},
+		{"workload image limit", func(b *Batch) {
+			b.Hosts[0].Workloads = []Workload{{Name: "pod", State: "Running", Images: make([]string, 65)}}
+		}},
 		{"future", func(b *Batch) { b.ObservedAt = now.Add(time.Minute) }}, {"expired", func(b *Batch) { b.ObservedAt = now.Add(-25 * time.Hour) }},
 		{"spoof node", func(b *Batch) { b.Hosts[0].Node = "node" }}, {"nan", func(b *Batch) { v := math.NaN(); b.Hosts[0].CPUPercent = &v }},
 		{"memory", func(b *Batch) { b.Hosts[0].MemoryUsedBytes = new(int64(1)) }}, {"missing root", func(b *Batch) { b.Hosts = nil }},
