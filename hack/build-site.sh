@@ -7,7 +7,7 @@ export GOWORK=off
 
 # Keep publication tools independent from the application's module graph.
 margo_version=v0.0.25
-manja_version=v0.1.16
+manja_version=v0.1.17
 mkdir -p bin site/.build dist
 if ! bash hack/lint-openapi.sh > site/.build/vacuum-report.txt 2>&1; then
   cat site/.build/vacuum-report.txt >&2

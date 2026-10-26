@@ -6,7 +6,7 @@ offline: true
 site:
   name: Balemoh
   description: A self-hosted homepage that discovers your services, keeps your favorites close, and shows how your hosts are doing.
-  version: v0.0.6
+  version: v0.0.8
   repository_url: https://github.com/araihu/balemoh
   base_url: https://balemoh.araihu.com
   home: index.md

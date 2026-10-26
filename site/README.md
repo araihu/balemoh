@@ -14,7 +14,7 @@ bash hack/build-site.sh
 python3 -m http.server 8090 --directory dist/site
 ```
 
-The script installs Margo v0.0.25 and Manja v0.1.16 into ignored `bin/`.
+The script installs Margo v0.0.25 and Manja v0.1.17 into ignored `bin/`.
 It copies the existing envdoc outputs and icon guide into an ignored content
 tree, builds fresh artifacts, verifies the Manja receipt, checks metadata and
 cross-generator links, then replaces `dist/site`. Failed builds leave the last
