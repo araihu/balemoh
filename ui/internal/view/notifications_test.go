@@ -47,3 +47,21 @@ func TestNotificationUnavailableIsDistinctFromZero(t *testing.T) {
 		t.Fatal("unavailable rendered as zero")
 	}
 }
+
+func TestClearConfirmationCoalescesQueuedSubmissions(t *testing.T) {
+	var b bytes.Buffer
+	if err := NotificationClearForm("", true).Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	html := b.String()
+	if !strings.Contains(html, `hx-sync="#balemoh-notifications:queue last"`) || strings.Contains(html, "queue all") {
+		t.Fatal("destructive clear must coalesce while a refresh owns the lock")
+	}
+	b.Reset()
+	if err := NotificationClearForm("", false).Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(b.String(), "hx-post") || strings.Contains(b.String(), "click.prevent") {
+		t.Fatal("native confirmation must retain normal POST/cancel navigation")
+	}
+}

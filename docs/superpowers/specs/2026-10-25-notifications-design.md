@@ -221,6 +221,18 @@ failures remain in the confirmation and do not suggest zero messages.
 | Storage/transport failure | no confirmed effect | 503/error feedback; no automatic retry | confirmation remains open; no false zero |
 | Native confirmed POST | yes | 303 to inbox | stable GET after refresh |
 
+Queued clear submissions coalesce with HTMX `queue last`; a refresh holding the
+shared notification lock must not admit multiple DELETEs from repeated clicks.
+The manual real-browser harness in
+`ui/internal/bff/testdata/notification-clear-queue.py` holds that refresh and
+records the number of clears. It injects one fixture message after the first
+clear and refuses a second destructive request. Run it only with disposable
+loopback API/UI fixtures. Assert three queued submissions yield exactly one
+clear and the API retains the post-clear message. HTTP/storage tests cover
+mixed read states, more than one page, empty repetition, denied credentials,
+confirmation validation and native PRG; rendering tests retain coalescing and
+native fallback attributes.
+
 ## Limits, retention and recovery
 
 The initial author envelope limit is 16 KiB of canonical Go `encoding/json`

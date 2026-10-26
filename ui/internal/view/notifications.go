@@ -61,7 +61,7 @@ func notificationClearAttrs(dialog bool) templ.Attributes {
 	if !dialog {
 		return nil
 	}
-	return templ.Attributes{"hx-post": "/notifications/clear", "hx-target": "#notification-clear-form", "hx-swap": "innerMorph", "hx-sync": "#balemoh-notifications:queue all", "hx-request": "timeout:4s", "hx-disable": "find button[type='submit']"}
+	return templ.Attributes{"hx-post": "/notifications/clear", "hx-target": "#notification-clear-form", "hx-swap": "innerMorph", "hx-sync": "#balemoh-notifications:queue last", "hx-request": "timeout:4s", "hx-disable": "find button[type='submit']"}
 }
 func notificationClearCancelAttrs(dialog bool) templ.Attributes {
 	if !dialog {
