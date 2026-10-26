@@ -658,3 +658,109 @@ var Host_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "plugin.proto",
 }
+
+const (
+	BackendHost_Publish_FullMethodName = "/balemoh.plugins.v1alpha1.BackendHost/Publish"
+)
+
+// BackendHostClient is the client API for BackendHost service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Connection-scoped backend callback. UI children never receive this broker.
+type BackendHostClient interface {
+	Publish(ctx context.Context, in *NotificationPublishRequest, opts ...grpc.CallOption) (*NotificationReceipt, error)
+}
+
+type backendHostClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewBackendHostClient(cc grpc.ClientConnInterface) BackendHostClient {
+	return &backendHostClient{cc}
+}
+
+func (c *backendHostClient) Publish(ctx context.Context, in *NotificationPublishRequest, opts ...grpc.CallOption) (*NotificationReceipt, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotificationReceipt)
+	err := c.cc.Invoke(ctx, BackendHost_Publish_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// BackendHostServer is the server API for BackendHost service.
+// All implementations must embed UnimplementedBackendHostServer
+// for forward compatibility.
+//
+// Connection-scoped backend callback. UI children never receive this broker.
+type BackendHostServer interface {
+	Publish(context.Context, *NotificationPublishRequest) (*NotificationReceipt, error)
+	mustEmbedUnimplementedBackendHostServer()
+}
+
+// UnimplementedBackendHostServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedBackendHostServer struct{}
+
+func (UnimplementedBackendHostServer) Publish(context.Context, *NotificationPublishRequest) (*NotificationReceipt, error) {
+	return nil, status.Error(codes.Unimplemented, "method Publish not implemented")
+}
+func (UnimplementedBackendHostServer) mustEmbedUnimplementedBackendHostServer() {}
+func (UnimplementedBackendHostServer) testEmbeddedByValue()                     {}
+
+// UnsafeBackendHostServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to BackendHostServer will
+// result in compilation errors.
+type UnsafeBackendHostServer interface {
+	mustEmbedUnimplementedBackendHostServer()
+}
+
+func RegisterBackendHostServer(s grpc.ServiceRegistrar, srv BackendHostServer) {
+	// If the following call panics, it indicates UnimplementedBackendHostServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&BackendHost_ServiceDesc, srv)
+}
+
+func _BackendHost_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotificationPublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BackendHostServer).Publish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BackendHost_Publish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BackendHostServer).Publish(ctx, req.(*NotificationPublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// BackendHost_ServiceDesc is the grpc.ServiceDesc for BackendHost service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var BackendHost_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "balemoh.plugins.v1alpha1.BackendHost",
+	HandlerType: (*BackendHostServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Publish",
+			Handler:    _BackendHost_Publish_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "plugin.proto",
+}

@@ -70,6 +70,16 @@ and optional sanitized source error. Both host and SDK validate query schemas.
 Use `backend.Fail` for typed errors. Hosts never forward arbitrary error text.
 `CloseConnection` cancels collection and releases connection resources.
 
+Backends may optionally declare `notifications.publish/v1`. The declaration
+requires a backend executable for every target, including packages with no
+queries. Hosts grant publication per connection with
+`BackendClient.ConfigureWithNotifications`; the resulting
+`backend.Config.Notifications` is a scoped `notifications.Publisher`. The
+callback accepts only `notifications.Message` and returns a host-issued
+`notifications.Receipt`; source identity never crosses from the child. The
+SDK applies a 16 KiB envelope bound, four concurrent calls per connection and
+a five-second publish deadline. UI handlers receive no publisher.
+
 Backend queries allow four concurrent calls per child, without queuing. Input
 is limited to 64 KiB; data result to 1 MiB. Caller deadlines propagate through
 API and callback. UI requests retain their separate eight-call budget. Each UI

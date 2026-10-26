@@ -23,14 +23,15 @@ const (
 )
 
 type Description struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	PluginId       string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
-	Version        string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	ManifestDigest string                 `protobuf:"bytes,3,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifest_digest,omitempty"`
-	Protocol       string                 `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	UiProfile      string                 `protobuf:"bytes,5,opt,name=ui_profile,json=uiProfile,proto3" json:"ui_profile,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	PluginId               string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	Version                string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	ManifestDigest         string                 `protobuf:"bytes,3,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifest_digest,omitempty"`
+	Protocol               string                 `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	UiProfile              string                 `protobuf:"bytes,5,opt,name=ui_profile,json=uiProfile,proto3" json:"ui_profile,omitempty"`
+	NotificationsSupported bool                   `protobuf:"varint,6,opt,name=notifications_supported,json=notificationsSupported,proto3" json:"notifications_supported,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Description) Reset() {
@@ -96,6 +97,13 @@ func (x *Description) GetUiProfile() string {
 		return x.UiProfile
 	}
 	return ""
+}
+
+func (x *Description) GetNotificationsSupported() bool {
+	if x != nil {
+		return x.NotificationsSupported
+	}
+	return false
 }
 
 type Values struct {
@@ -731,13 +739,14 @@ func (x *ConnectionID) GetConnectionId() string {
 }
 
 type ConnectionConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
-	Revision      string                 `protobuf:"bytes,2,opt,name=revision,proto3" json:"revision,omitempty"`
-	ConfigJson    []byte                 `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	Secrets       map[string]string      `protobuf:"bytes,4,rep,name=secrets,proto3" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	ConnectionId          string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	Revision              string                 `protobuf:"bytes,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	ConfigJson            []byte                 `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	Secrets               map[string]string      `protobuf:"bytes,4,rep,name=secrets,proto3" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	NotificationsBrokerId uint32                 `protobuf:"varint,5,opt,name=notifications_broker_id,json=notificationsBrokerId,proto3" json:"notifications_broker_id,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ConnectionConfig) Reset() {
@@ -796,6 +805,13 @@ func (x *ConnectionConfig) GetSecrets() map[string]string {
 		return x.Secrets
 	}
 	return nil
+}
+
+func (x *ConnectionConfig) GetNotificationsBrokerId() uint32 {
+	if x != nil {
+		return x.NotificationsBrokerId
+	}
+	return 0
 }
 
 type ConnectionStatus struct {
@@ -1034,18 +1050,299 @@ func (x *PlacementResult) GetRevision() string {
 	return ""
 }
 
+type NotificationPublishRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       *NotificationMessage   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotificationPublishRequest) Reset() {
+	*x = NotificationPublishRequest{}
+	mi := &file_plugin_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotificationPublishRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotificationPublishRequest) ProtoMessage() {}
+
+func (x *NotificationPublishRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotificationPublishRequest.ProtoReflect.Descriptor instead.
+func (*NotificationPublishRequest) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *NotificationPublishRequest) GetMessage() *NotificationMessage {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+type NotificationMessage struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	EventId       string                   `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	Severity      string                   `protobuf:"bytes,2,opt,name=severity,proto3" json:"severity,omitempty"`
+	Title         string                   `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Body          string                   `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	OccurredAt    string                   `protobuf:"bytes,5,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	Destination   *NotificationDestination `protobuf:"bytes,6,opt,name=destination,proto3" json:"destination,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotificationMessage) Reset() {
+	*x = NotificationMessage{}
+	mi := &file_plugin_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotificationMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotificationMessage) ProtoMessage() {}
+
+func (x *NotificationMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotificationMessage.ProtoReflect.Descriptor instead.
+func (*NotificationMessage) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *NotificationMessage) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *NotificationMessage) GetSeverity() string {
+	if x != nil {
+		return x.Severity
+	}
+	return ""
+}
+
+func (x *NotificationMessage) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *NotificationMessage) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
+func (x *NotificationMessage) GetOccurredAt() string {
+	if x != nil {
+		return x.OccurredAt
+	}
+	return ""
+}
+
+func (x *NotificationMessage) GetDestination() *NotificationDestination {
+	if x != nil {
+		return x.Destination
+	}
+	return nil
+}
+
+type NotificationDestination struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Kind          string                 `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Route         string                 `protobuf:"bytes,2,opt,name=route,proto3" json:"route,omitempty"`
+	PluginId      string                 `protobuf:"bytes,3,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	ConnectionId  string                 `protobuf:"bytes,4,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	Page          string                 `protobuf:"bytes,5,opt,name=page,proto3" json:"page,omitempty"`
+	Params        map[string]string      `protobuf:"bytes,6,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Query         map[string]*Values     `protobuf:"bytes,7,rep,name=query,proto3" json:"query,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Url           string                 `protobuf:"bytes,8,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotificationDestination) Reset() {
+	*x = NotificationDestination{}
+	mi := &file_plugin_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotificationDestination) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotificationDestination) ProtoMessage() {}
+
+func (x *NotificationDestination) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotificationDestination.ProtoReflect.Descriptor instead.
+func (*NotificationDestination) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *NotificationDestination) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *NotificationDestination) GetRoute() string {
+	if x != nil {
+		return x.Route
+	}
+	return ""
+}
+
+func (x *NotificationDestination) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *NotificationDestination) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
+}
+
+func (x *NotificationDestination) GetPage() string {
+	if x != nil {
+		return x.Page
+	}
+	return ""
+}
+
+func (x *NotificationDestination) GetParams() map[string]string {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+func (x *NotificationDestination) GetQuery() map[string]*Values {
+	if x != nil {
+		return x.Query
+	}
+	return nil
+}
+
+func (x *NotificationDestination) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type NotificationReceipt struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Created       bool                   `protobuf:"varint,2,opt,name=created,proto3" json:"created,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotificationReceipt) Reset() {
+	*x = NotificationReceipt{}
+	mi := &file_plugin_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotificationReceipt) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotificationReceipt) ProtoMessage() {}
+
+func (x *NotificationReceipt) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotificationReceipt.ProtoReflect.Descriptor instead.
+func (*NotificationReceipt) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *NotificationReceipt) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *NotificationReceipt) GetCreated() bool {
+	if x != nil {
+		return x.Created
+	}
+	return false
+}
+
 var File_plugin_proto protoreflect.FileDescriptor
 
 const file_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\fplugin.proto\x12\x18balemoh.plugins.v1alpha1\x1a\x1bgoogle/protobuf/empty.proto\"\xa8\x01\n" +
+	"\fplugin.proto\x12\x18balemoh.plugins.v1alpha1\x1a\x1bgoogle/protobuf/empty.proto\"\xe1\x01\n" +
 	"\vDescription\x12\x1b\n" +
 	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12'\n" +
 	"\x0fmanifest_digest\x18\x03 \x01(\tR\x0emanifestDigest\x12\x1a\n" +
 	"\bprotocol\x18\x04 \x01(\tR\bprotocol\x12\x1d\n" +
 	"\n" +
-	"ui_profile\x18\x05 \x01(\tR\tuiProfile\" \n" +
+	"ui_profile\x18\x05 \x01(\tR\tuiProfile\x127\n" +
+	"\x17notifications_supported\x18\x06 \x01(\bR\x16notificationsSupported\" \n" +
 	"\x06Values\x12\x16\n" +
 	"\x06values\x18\x01 \x03(\tR\x06values\"\xf1\a\n" +
 	"\tUIRequest\x12\x1d\n" +
@@ -1119,13 +1416,14 @@ const file_plugin_proto_rawDesc = "" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1c\n" +
 	"\tretryable\x18\x03 \x01(\bR\tretryable\"3\n" +
 	"\fConnectionID\x12#\n" +
-	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"\x83\x02\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"\xbb\x02\n" +
 	"\x10ConnectionConfig\x12#\n" +
 	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12\x1a\n" +
 	"\brevision\x18\x02 \x01(\tR\brevision\x12\x1f\n" +
 	"\vconfig_json\x18\x03 \x01(\fR\n" +
 	"configJson\x12Q\n" +
-	"\asecrets\x18\x04 \x03(\v27.balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntryR\asecrets\x1a:\n" +
+	"\asecrets\x18\x04 \x03(\v27.balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntryR\asecrets\x126\n" +
+	"\x17notifications_broker_id\x18\x05 \x01(\rR\x15notificationsBrokerId\x1a:\n" +
 	"\fSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe2\x02\n" +
@@ -1150,7 +1448,36 @@ const file_plugin_proto_rawDesc = "" +
 	"\fplacement_id\x18\x01 \x01(\tR\vplacementId\x12'\n" +
 	"\x0fcontribution_id\x18\x02 \x01(\tR\x0econtributionId\x12!\n" +
 	"\foptions_json\x18\x03 \x01(\fR\voptionsJson\x12\x1a\n" +
-	"\brevision\x18\x04 \x01(\tR\brevision2\xcf\x01\n" +
+	"\brevision\x18\x04 \x01(\tR\brevision\"e\n" +
+	"\x1aNotificationPublishRequest\x12G\n" +
+	"\amessage\x18\x01 \x01(\v2-.balemoh.plugins.v1alpha1.NotificationMessageR\amessage\"\xec\x01\n" +
+	"\x13NotificationMessage\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1a\n" +
+	"\bseverity\x18\x02 \x01(\tR\bseverity\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x12\n" +
+	"\x04body\x18\x04 \x01(\tR\x04body\x12\x1f\n" +
+	"\voccurred_at\x18\x05 \x01(\tR\n" +
+	"occurredAt\x12S\n" +
+	"\vdestination\x18\x06 \x01(\v21.balemoh.plugins.v1alpha1.NotificationDestinationR\vdestination\"\xed\x03\n" +
+	"\x17NotificationDestination\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x14\n" +
+	"\x05route\x18\x02 \x01(\tR\x05route\x12\x1b\n" +
+	"\tplugin_id\x18\x03 \x01(\tR\bpluginId\x12#\n" +
+	"\rconnection_id\x18\x04 \x01(\tR\fconnectionId\x12\x12\n" +
+	"\x04page\x18\x05 \x01(\tR\x04page\x12U\n" +
+	"\x06params\x18\x06 \x03(\v2=.balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntryR\x06params\x12R\n" +
+	"\x05query\x18\a \x03(\v2<.balemoh.plugins.v1alpha1.NotificationDestination.QueryEntryR\x05query\x12\x10\n" +
+	"\x03url\x18\b \x01(\tR\x03url\x1a9\n" +
+	"\vParamsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aZ\n" +
+	"\n" +
+	"QueryEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x126\n" +
+	"\x05value\x18\x02 \x01(\v2 .balemoh.plugins.v1alpha1.ValuesR\x05value:\x028\x01\"?\n" +
+	"\x13NotificationReceipt\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\acreated\x18\x02 \x01(\bR\acreated2\xcf\x01\n" +
 	"\aControl\x12I\n" +
 	"\bDescribe\x12\x16.google.protobuf.Empty\x1a%.balemoh.plugins.v1alpha1.Description\x12=\n" +
 	"\vCheckHealth\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12:\n" +
@@ -1164,7 +1491,9 @@ const file_plugin_proto_rawDesc = "" +
 	"\x0fCloseConnection\x12&.balemoh.plugins.v1alpha1.ConnectionID\x1a\x16.google.protobuf.Empty2\xae\x01\n" +
 	"\x04Host\x12V\n" +
 	"\x05Query\x12&.balemoh.plugins.v1alpha1.QueryRequest\x1a%.balemoh.plugins.v1alpha1.QueryResult\x12N\n" +
-	"\tPlacement\x12\x16.google.protobuf.Empty\x1a).balemoh.plugins.v1alpha1.PlacementResultBAZ?github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1;protocolb\x06proto3"
+	"\tPlacement\x12\x16.google.protobuf.Empty\x1a).balemoh.plugins.v1alpha1.PlacementResult2}\n" +
+	"\vBackendHost\x12n\n" +
+	"\aPublish\x124.balemoh.plugins.v1alpha1.NotificationPublishRequest\x1a-.balemoh.plugins.v1alpha1.NotificationReceiptBAZ?github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1;protocolb\x06proto3"
 
 var (
 	file_plugin_proto_rawDescOnce sync.Once
@@ -1178,67 +1507,80 @@ func file_plugin_proto_rawDescGZIP() []byte {
 	return file_plugin_proto_rawDescData
 }
 
-var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_plugin_proto_goTypes = []any{
-	(*Description)(nil),         // 0: balemoh.plugins.v1alpha1.Description
-	(*Values)(nil),              // 1: balemoh.plugins.v1alpha1.Values
-	(*UIRequest)(nil),           // 2: balemoh.plugins.v1alpha1.UIRequest
-	(*UIResponse)(nil),          // 3: balemoh.plugins.v1alpha1.UIResponse
-	(*Redirect)(nil),            // 4: balemoh.plugins.v1alpha1.Redirect
-	(*QueryRequest)(nil),        // 5: balemoh.plugins.v1alpha1.QueryRequest
-	(*QueryResult)(nil),         // 6: balemoh.plugins.v1alpha1.QueryResult
-	(*Failure)(nil),             // 7: balemoh.plugins.v1alpha1.Failure
-	(*ConnectionID)(nil),        // 8: balemoh.plugins.v1alpha1.ConnectionID
-	(*ConnectionConfig)(nil),    // 9: balemoh.plugins.v1alpha1.ConnectionConfig
-	(*ConnectionStatus)(nil),    // 10: balemoh.plugins.v1alpha1.ConnectionStatus
-	(*BackendQueryRequest)(nil), // 11: balemoh.plugins.v1alpha1.BackendQueryRequest
-	(*PlacementResult)(nil),     // 12: balemoh.plugins.v1alpha1.PlacementResult
-	nil,                         // 13: balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
-	nil,                         // 14: balemoh.plugins.v1alpha1.UIRequest.QueryEntry
-	nil,                         // 15: balemoh.plugins.v1alpha1.UIRequest.FormEntry
-	nil,                         // 16: balemoh.plugins.v1alpha1.Redirect.ParamsEntry
-	nil,                         // 17: balemoh.plugins.v1alpha1.Redirect.QueryEntry
-	nil,                         // 18: balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
-	(*emptypb.Empty)(nil),       // 19: google.protobuf.Empty
+	(*Description)(nil),                // 0: balemoh.plugins.v1alpha1.Description
+	(*Values)(nil),                     // 1: balemoh.plugins.v1alpha1.Values
+	(*UIRequest)(nil),                  // 2: balemoh.plugins.v1alpha1.UIRequest
+	(*UIResponse)(nil),                 // 3: balemoh.plugins.v1alpha1.UIResponse
+	(*Redirect)(nil),                   // 4: balemoh.plugins.v1alpha1.Redirect
+	(*QueryRequest)(nil),               // 5: balemoh.plugins.v1alpha1.QueryRequest
+	(*QueryResult)(nil),                // 6: balemoh.plugins.v1alpha1.QueryResult
+	(*Failure)(nil),                    // 7: balemoh.plugins.v1alpha1.Failure
+	(*ConnectionID)(nil),               // 8: balemoh.plugins.v1alpha1.ConnectionID
+	(*ConnectionConfig)(nil),           // 9: balemoh.plugins.v1alpha1.ConnectionConfig
+	(*ConnectionStatus)(nil),           // 10: balemoh.plugins.v1alpha1.ConnectionStatus
+	(*BackendQueryRequest)(nil),        // 11: balemoh.plugins.v1alpha1.BackendQueryRequest
+	(*PlacementResult)(nil),            // 12: balemoh.plugins.v1alpha1.PlacementResult
+	(*NotificationPublishRequest)(nil), // 13: balemoh.plugins.v1alpha1.NotificationPublishRequest
+	(*NotificationMessage)(nil),        // 14: balemoh.plugins.v1alpha1.NotificationMessage
+	(*NotificationDestination)(nil),    // 15: balemoh.plugins.v1alpha1.NotificationDestination
+	(*NotificationReceipt)(nil),        // 16: balemoh.plugins.v1alpha1.NotificationReceipt
+	nil,                                // 17: balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
+	nil,                                // 18: balemoh.plugins.v1alpha1.UIRequest.QueryEntry
+	nil,                                // 19: balemoh.plugins.v1alpha1.UIRequest.FormEntry
+	nil,                                // 20: balemoh.plugins.v1alpha1.Redirect.ParamsEntry
+	nil,                                // 21: balemoh.plugins.v1alpha1.Redirect.QueryEntry
+	nil,                                // 22: balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
+	nil,                                // 23: balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
+	nil,                                // 24: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
+	(*emptypb.Empty)(nil),              // 25: google.protobuf.Empty
 }
 var file_plugin_proto_depIdxs = []int32{
-	13, // 0: balemoh.plugins.v1alpha1.UIRequest.path_params:type_name -> balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
-	14, // 1: balemoh.plugins.v1alpha1.UIRequest.query:type_name -> balemoh.plugins.v1alpha1.UIRequest.QueryEntry
-	15, // 2: balemoh.plugins.v1alpha1.UIRequest.form:type_name -> balemoh.plugins.v1alpha1.UIRequest.FormEntry
+	17, // 0: balemoh.plugins.v1alpha1.UIRequest.path_params:type_name -> balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
+	18, // 1: balemoh.plugins.v1alpha1.UIRequest.query:type_name -> balemoh.plugins.v1alpha1.UIRequest.QueryEntry
+	19, // 2: balemoh.plugins.v1alpha1.UIRequest.form:type_name -> balemoh.plugins.v1alpha1.UIRequest.FormEntry
 	4,  // 3: balemoh.plugins.v1alpha1.UIResponse.redirect:type_name -> balemoh.plugins.v1alpha1.Redirect
-	16, // 4: balemoh.plugins.v1alpha1.Redirect.params:type_name -> balemoh.plugins.v1alpha1.Redirect.ParamsEntry
-	17, // 5: balemoh.plugins.v1alpha1.Redirect.query:type_name -> balemoh.plugins.v1alpha1.Redirect.QueryEntry
+	20, // 4: balemoh.plugins.v1alpha1.Redirect.params:type_name -> balemoh.plugins.v1alpha1.Redirect.ParamsEntry
+	21, // 5: balemoh.plugins.v1alpha1.Redirect.query:type_name -> balemoh.plugins.v1alpha1.Redirect.QueryEntry
 	7,  // 6: balemoh.plugins.v1alpha1.QueryResult.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
-	18, // 7: balemoh.plugins.v1alpha1.ConnectionConfig.secrets:type_name -> balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
+	22, // 7: balemoh.plugins.v1alpha1.ConnectionConfig.secrets:type_name -> balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
 	7,  // 8: balemoh.plugins.v1alpha1.ConnectionStatus.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
-	1,  // 9: balemoh.plugins.v1alpha1.UIRequest.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	1,  // 10: balemoh.plugins.v1alpha1.UIRequest.FormEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	1,  // 11: balemoh.plugins.v1alpha1.Redirect.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	19, // 12: balemoh.plugins.v1alpha1.Control.Describe:input_type -> google.protobuf.Empty
-	19, // 13: balemoh.plugins.v1alpha1.Control.CheckHealth:input_type -> google.protobuf.Empty
-	19, // 14: balemoh.plugins.v1alpha1.Control.Shutdown:input_type -> google.protobuf.Empty
-	2,  // 15: balemoh.plugins.v1alpha1.UI.Handle:input_type -> balemoh.plugins.v1alpha1.UIRequest
-	9,  // 16: balemoh.plugins.v1alpha1.Backend.Configure:input_type -> balemoh.plugins.v1alpha1.ConnectionConfig
-	8,  // 17: balemoh.plugins.v1alpha1.Backend.Status:input_type -> balemoh.plugins.v1alpha1.ConnectionID
-	11, // 18: balemoh.plugins.v1alpha1.Backend.Query:input_type -> balemoh.plugins.v1alpha1.BackendQueryRequest
-	8,  // 19: balemoh.plugins.v1alpha1.Backend.CloseConnection:input_type -> balemoh.plugins.v1alpha1.ConnectionID
-	5,  // 20: balemoh.plugins.v1alpha1.Host.Query:input_type -> balemoh.plugins.v1alpha1.QueryRequest
-	19, // 21: balemoh.plugins.v1alpha1.Host.Placement:input_type -> google.protobuf.Empty
-	0,  // 22: balemoh.plugins.v1alpha1.Control.Describe:output_type -> balemoh.plugins.v1alpha1.Description
-	19, // 23: balemoh.plugins.v1alpha1.Control.CheckHealth:output_type -> google.protobuf.Empty
-	19, // 24: balemoh.plugins.v1alpha1.Control.Shutdown:output_type -> google.protobuf.Empty
-	3,  // 25: balemoh.plugins.v1alpha1.UI.Handle:output_type -> balemoh.plugins.v1alpha1.UIResponse
-	10, // 26: balemoh.plugins.v1alpha1.Backend.Configure:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
-	10, // 27: balemoh.plugins.v1alpha1.Backend.Status:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
-	6,  // 28: balemoh.plugins.v1alpha1.Backend.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
-	19, // 29: balemoh.plugins.v1alpha1.Backend.CloseConnection:output_type -> google.protobuf.Empty
-	6,  // 30: balemoh.plugins.v1alpha1.Host.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
-	12, // 31: balemoh.plugins.v1alpha1.Host.Placement:output_type -> balemoh.plugins.v1alpha1.PlacementResult
-	22, // [22:32] is the sub-list for method output_type
-	12, // [12:22] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	14, // 9: balemoh.plugins.v1alpha1.NotificationPublishRequest.message:type_name -> balemoh.plugins.v1alpha1.NotificationMessage
+	15, // 10: balemoh.plugins.v1alpha1.NotificationMessage.destination:type_name -> balemoh.plugins.v1alpha1.NotificationDestination
+	23, // 11: balemoh.plugins.v1alpha1.NotificationDestination.params:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
+	24, // 12: balemoh.plugins.v1alpha1.NotificationDestination.query:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
+	1,  // 13: balemoh.plugins.v1alpha1.UIRequest.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	1,  // 14: balemoh.plugins.v1alpha1.UIRequest.FormEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	1,  // 15: balemoh.plugins.v1alpha1.Redirect.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	1,  // 16: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	25, // 17: balemoh.plugins.v1alpha1.Control.Describe:input_type -> google.protobuf.Empty
+	25, // 18: balemoh.plugins.v1alpha1.Control.CheckHealth:input_type -> google.protobuf.Empty
+	25, // 19: balemoh.plugins.v1alpha1.Control.Shutdown:input_type -> google.protobuf.Empty
+	2,  // 20: balemoh.plugins.v1alpha1.UI.Handle:input_type -> balemoh.plugins.v1alpha1.UIRequest
+	9,  // 21: balemoh.plugins.v1alpha1.Backend.Configure:input_type -> balemoh.plugins.v1alpha1.ConnectionConfig
+	8,  // 22: balemoh.plugins.v1alpha1.Backend.Status:input_type -> balemoh.plugins.v1alpha1.ConnectionID
+	11, // 23: balemoh.plugins.v1alpha1.Backend.Query:input_type -> balemoh.plugins.v1alpha1.BackendQueryRequest
+	8,  // 24: balemoh.plugins.v1alpha1.Backend.CloseConnection:input_type -> balemoh.plugins.v1alpha1.ConnectionID
+	5,  // 25: balemoh.plugins.v1alpha1.Host.Query:input_type -> balemoh.plugins.v1alpha1.QueryRequest
+	25, // 26: balemoh.plugins.v1alpha1.Host.Placement:input_type -> google.protobuf.Empty
+	13, // 27: balemoh.plugins.v1alpha1.BackendHost.Publish:input_type -> balemoh.plugins.v1alpha1.NotificationPublishRequest
+	0,  // 28: balemoh.plugins.v1alpha1.Control.Describe:output_type -> balemoh.plugins.v1alpha1.Description
+	25, // 29: balemoh.plugins.v1alpha1.Control.CheckHealth:output_type -> google.protobuf.Empty
+	25, // 30: balemoh.plugins.v1alpha1.Control.Shutdown:output_type -> google.protobuf.Empty
+	3,  // 31: balemoh.plugins.v1alpha1.UI.Handle:output_type -> balemoh.plugins.v1alpha1.UIResponse
+	10, // 32: balemoh.plugins.v1alpha1.Backend.Configure:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
+	10, // 33: balemoh.plugins.v1alpha1.Backend.Status:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
+	6,  // 34: balemoh.plugins.v1alpha1.Backend.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
+	25, // 35: balemoh.plugins.v1alpha1.Backend.CloseConnection:output_type -> google.protobuf.Empty
+	6,  // 36: balemoh.plugins.v1alpha1.Host.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
+	12, // 37: balemoh.plugins.v1alpha1.Host.Placement:output_type -> balemoh.plugins.v1alpha1.PlacementResult
+	16, // 38: balemoh.plugins.v1alpha1.BackendHost.Publish:output_type -> balemoh.plugins.v1alpha1.NotificationReceipt
+	28, // [28:39] is the sub-list for method output_type
+	17, // [17:28] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_plugin_proto_init() }
@@ -1252,9 +1594,9 @@ func file_plugin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_plugin_proto_rawDesc), len(file_plugin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   25,
 			NumExtensions: 0,
-			NumServices:   4,
+			NumServices:   5,
 		},
 		GoTypes:           file_plugin_proto_goTypes,
 		DependencyIndexes: file_plugin_proto_depIdxs,

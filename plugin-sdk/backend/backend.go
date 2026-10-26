@@ -8,16 +8,19 @@ import (
 	"errors"
 	"strconv"
 	"time"
+
+	"github.com/araihu/balemoh/plugin-sdk/notifications"
 )
 
 const MaxInput = 64 << 10
 const MaxResult = 1 << 20
 
 type Config struct {
-	ConnectionID string            `json:"connectionId"`
-	Revision     string            `json:"revision"`
-	Config       json.RawMessage   `json:"config"`
-	Secrets      map[string]string `json:"-"`
+	ConnectionID  string                  `json:"connectionId"`
+	Revision      string                  `json:"revision"`
+	Config        json.RawMessage         `json:"config"`
+	Secrets       map[string]string       `json:"-"`
+	Notifications notifications.Publisher `json:"-"`
 }
 type Status struct {
 	ConnectionID        string     `json:"connectionId"`

@@ -112,9 +112,13 @@ func TestContentEscapes(t *testing.T){r,e:=render.Component(t.Context(),"Example
 }
 
 const backendSource = `package main
-import("context";"encoding/json";"os";"sync";"strconv";"time";"github.com/araihu/balemoh/plugin-sdk/backend";"github.com/araihu/balemoh/plugin-sdk/manifest";"github.com/araihu/balemoh/plugin-sdk/runtime")
+import("context";"encoding/json";"os";"sync";"strconv";"time";"github.com/araihu/balemoh/plugin-sdk/backend";"github.com/araihu/balemoh/plugin-sdk/manifest";"github.com/araihu/balemoh/plugin-sdk/notifications";"github.com/araihu/balemoh/plugin-sdk/runtime")
 type observation struct{status backend.Status;result backend.Result}
 type example struct{mu sync.Mutex;connections map[string]observation}
+// publishOptionalExample demonstrates the optional notifications callback. Add
+// notifications.publish/v1 to plugin.json and obtain a deployment grant before
+// calling this helper; scaffolded manifests do not grant publication by default.
+func publishOptionalExample(ctx context.Context,publisher notifications.Publisher) error{if publisher==nil{return nil};_,err:=publisher.Publish(ctx,notifications.Message{EventID:"example.event",Severity:"info",Title:"Example notification",OccurredAt:time.Now().UTC()});return err}
 func(e *example)Configure(ctx context.Context,c backend.Config)(backend.Status,error){
  e.mu.Lock();defer e.mu.Unlock();if ctx.Err()!=nil{return backend.Status{},ctx.Err()}
  if previous,ok:=e.connections[c.ConnectionID];ok{if previous.status.AppliedRevision==c.Revision{return previous.status,nil};old,_:=strconv.ParseUint(previous.status.AppliedRevision,10,64);next,_:=strconv.ParseUint(c.Revision,10,64);if next<old{return backend.Status{},backend.Fail("conflict")}}

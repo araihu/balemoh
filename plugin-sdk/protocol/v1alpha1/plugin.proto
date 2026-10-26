@@ -23,12 +23,17 @@ service Host {
   rpc Query(QueryRequest) returns (QueryResult);
   rpc Placement(google.protobuf.Empty) returns (PlacementResult);
 }
+// Connection-scoped backend callback. UI children never receive this broker.
+service BackendHost {
+  rpc Publish(NotificationPublishRequest) returns (NotificationReceipt);
+}
 message Description {
   string plugin_id = 1;
   string version = 2;
   string manifest_digest = 3;
   string protocol = 4;
   string ui_profile = 5;
+  bool notifications_supported = 6;
 }
 message Values { repeated string values = 1; }
 message UIRequest {
@@ -79,6 +84,7 @@ message ConnectionConfig {
  string revision = 2;
  bytes config_json = 3;
  map<string,string> secrets = 4;
+ uint32 notifications_broker_id = 5;
 }
 message ConnectionStatus {
  string connection_id = 1;
@@ -96,4 +102,29 @@ message PlacementResult {
   string contribution_id = 2;
   bytes options_json = 3;
   string revision = 4;
+}
+message NotificationPublishRequest {
+  NotificationMessage message = 1;
+}
+message NotificationMessage {
+  string event_id = 1;
+  string severity = 2;
+  string title = 3;
+  string body = 4;
+  string occurred_at = 5;
+  NotificationDestination destination = 6;
+}
+message NotificationDestination {
+  string kind = 1;
+  string route = 2;
+  string plugin_id = 3;
+  string connection_id = 4;
+  string page = 5;
+  map<string,string> params = 6;
+  map<string,Values> query = 7;
+  string url = 8;
+}
+message NotificationReceipt {
+  string id = 1;
+  bool created = 2;
 }

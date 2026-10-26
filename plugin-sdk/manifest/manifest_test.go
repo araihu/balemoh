@@ -152,3 +152,33 @@ func TestNavigationIconMetadataIsOptional(t *testing.T) {
 		})
 	}
 }
+
+func TestNotificationsCapabilityRequiresBackendOnEveryTarget(t *testing.T) {
+	var input map[string]any
+	if err := json.Unmarshal([]byte(valid), &input); err != nil {
+		t.Fatal(err)
+	}
+	caps := input["capabilities"].(map[string]any)
+	caps["optional"] = []string{"notifications.publish/v1"}
+	data, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := manifest.Decode(strings.NewReader(string(data))); err == nil {
+		t.Fatal("notification capability accepted without backend target")
+	}
+	targets := input["targets"].(map[string]any)
+	linux := targets["linux/amd64"].(map[string]any)
+	linux["backend"] = "bin/backend"
+	data, err = json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, _, err := manifest.Decode(strings.NewReader(string(data)))
+	if err != nil {
+		t.Fatalf("publisher-only backend rejected: %v", err)
+	}
+	if len(decoded.Queries) != 0 || decoded.Targets["linux/amd64"].Backend == "" {
+		t.Fatal("publisher-only backend contract changed")
+	}
+}

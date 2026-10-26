@@ -23,6 +23,22 @@ func TestInitPackageIndependentConsumers(t *testing.T) {
 			if err := Init(source, "example.fixture", "example.com/fixture", backend); err != nil {
 				t.Fatal(err)
 			}
+			manifestData, err := os.ReadFile(filepath.Join(source, "plugin.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(manifestData), "notifications.publish/v1") {
+				t.Fatal("scaffold granted notification publication by default")
+			}
+			if backend {
+				backendData, err := os.ReadFile(filepath.Join(source, "cmd/backend/main.go"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !strings.Contains(string(backendData), "publishOptionalExample") {
+					t.Fatal("backend scaffold omitted optional publisher example")
+				}
+			}
 			if err := Init(source, "example.fixture", "example.com/fixture", backend); err == nil {
 				t.Fatal("overwrote nonempty project")
 			}

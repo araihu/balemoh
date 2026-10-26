@@ -3,10 +3,12 @@ package runtime
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/araihu/balemoh/plugin-sdk/backend"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
+	"github.com/araihu/balemoh/plugin-sdk/notifications"
 	pb "github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1"
 	"github.com/hashicorp/go-hclog"
 	plugin "github.com/hashicorp/go-plugin"
@@ -24,28 +26,85 @@ func ServeBackend(p *manifest.Package, h backend.Handler) {
 }
 
 type BackendClient struct {
-	process *Client
-	slots   chan struct{}
+	process               *Client
+	slots                 chan struct{}
+	lifecycleCtx          context.Context
+	lifecycleCancel       context.CancelFunc
+	closeOnce             sync.Once
+	notificationMu        sync.Mutex
+	notificationCallbacks map[string]*hostNotificationCallback
+	monitorDone           chan struct{}
 }
 
 func OpenBackend(ctx context.Context, p *manifest.Package) (*BackendClient, error) {
-	c, err := open(ctx, p, "backend")
+	lifecycleCtx, lifecycleCancel := context.WithCancel(ctx)
+	c, err := open(lifecycleCtx, p, "backend")
 	if err != nil {
+		lifecycleCancel()
 		return nil, err
 	}
-	return &BackendClient{c, make(chan struct{}, 4)}, nil
+	client := &BackendClient{process: c, slots: make(chan struct{}, 4), lifecycleCtx: lifecycleCtx, lifecycleCancel: lifecycleCancel, notificationCallbacks: map[string]*hostNotificationCallback{}, monitorDone: make(chan struct{})}
+	go client.monitorBackendExit()
+	return client, nil
 }
-func (c *BackendClient) Close()       { c.process.Close() }
-func (c *BackendClient) Exited() bool { return c.process.Exited() }
-func (c *BackendClient) PID() int     { return c.process.PID() }
+func (c *BackendClient) Close() {
+	c.closeOnce.Do(func() {
+		c.lifecycleCancel()
+		close(c.monitorDone)
+		c.revokeAllNotificationCallbacks()
+		c.process.Close()
+	})
+}
+func (c *BackendClient) Exited() bool {
+	exited := c.process.Exited()
+	if exited {
+		c.revokeAllNotificationCallbacks()
+	}
+	return exited
+}
+func (c *BackendClient) PID() int { return c.process.PID() }
 func (c *BackendClient) Configure(ctx context.Context, config backend.Config) (backend.Status, error) {
+	return c.configure(ctx, config, config.Notifications)
+}
+
+// ConfigureWithNotifications configures a connection and grants its backend a
+// connection-scoped Publisher. The callback outlives the Configure RPC and is
+// revoked on replacement, CloseConnection, child exit or Close.
+func (c *BackendClient) ConfigureWithNotifications(ctx context.Context, config backend.Config, publisher notifications.Publisher) (backend.Status, error) {
+	config.Notifications = publisher
+	return c.configure(ctx, config, publisher)
+}
+func (c *BackendClient) configure(ctx context.Context, config backend.Config, publisher notifications.Publisher) (backend.Status, error) {
+	var callback *hostNotificationCallback
+	if publisher != nil {
+		var err error
+		callback, err = c.startNotificationCallback(publisher)
+		if err != nil {
+			return backend.Status{}, err
+		}
+	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	r, err := c.process.wire.backend.Configure(ctx, &pb.ConnectionConfig{ConnectionId: config.ConnectionID, Revision: config.Revision, ConfigJson: config.Config, Secrets: config.Secrets})
+	brokerID := uint32(0)
+	if callback != nil {
+		brokerID = callback.id
+	}
+	r, err := c.process.wire.backend.Configure(ctx, &pb.ConnectionConfig{ConnectionId: config.ConnectionID, Revision: config.Revision, ConfigJson: config.Config, Secrets: config.Secrets, NotificationsBrokerId: brokerID})
 	if err != nil {
+		if callback != nil {
+			callback.Stop()
+		}
 		return backend.Status{}, fromRPC(err)
 	}
-	return statusFromWire(r)
+	statusValue, err := statusFromWire(r)
+	if err != nil {
+		if callback != nil {
+			callback.Stop()
+		}
+		return backend.Status{}, err
+	}
+	c.replaceNotificationCallback(config.ConnectionID, callback)
+	return statusValue, nil
 }
 func (c *BackendClient) Status(ctx context.Context, id string) (backend.Status, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -60,6 +119,7 @@ func (c *BackendClient) CloseConnection(ctx context.Context, id string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 	_, err := c.process.wire.backend.CloseConnection(ctx, &pb.ConnectionID{ConnectionId: id})
+	c.revokeNotificationCallback(id)
 	if err != nil {
 		return fromRPC(err)
 	}
@@ -103,10 +163,25 @@ func (s *rpcServer) Configure(ctx context.Context, r *pb.ConnectionConfig) (*pb.
 			return nil, toRPC(backend.Fail("invalid_argument"))
 		}
 	}
-	result, err := s.backend.Configure(ctx, backend.Config{ConnectionID: r.ConnectionId, Revision: r.Revision, Config: r.ConfigJson, Secrets: r.Secrets})
+	if r.NotificationsBrokerId != 0 && !s.pkg.Manifest.Declares("notifications.publish/v1") {
+		return nil, toRPC(backend.Fail("permission_denied"))
+	}
+	var session *notificationSession
+	if r.NotificationsBrokerId != 0 {
+		var err error
+		session, err = s.openNotificationSession(r.NotificationsBrokerId)
+		if err != nil {
+			return nil, toRPC(err)
+		}
+	}
+	result, err := s.backend.Configure(ctx, backend.Config{ConnectionID: r.ConnectionId, Revision: r.Revision, Config: r.ConfigJson, Secrets: r.Secrets, Notifications: publisherForSession(session)})
 	if err != nil {
+		if session != nil {
+			session.Close()
+		}
 		return nil, toRPC(err)
 	}
+	s.replaceNotificationSession(r.ConnectionId, session)
 	return statusToWire(result), nil
 }
 func (s *rpcServer) Status(ctx context.Context, r *pb.ConnectionID) (*pb.ConnectionStatus, error) {
@@ -117,7 +192,9 @@ func (s *rpcServer) Status(ctx context.Context, r *pb.ConnectionID) (*pb.Connect
 	return statusToWire(result), nil
 }
 func (s *rpcServer) CloseConnection(ctx context.Context, r *pb.ConnectionID) (*emptypb.Empty, error) {
-	if err := s.backend.CloseConnection(ctx, r.ConnectionId); err != nil {
+	err := s.backend.CloseConnection(ctx, r.ConnectionId)
+	s.closeNotificationSession(r.ConnectionId)
+	if err != nil {
 		return nil, toRPC(err)
 	}
 	return &emptypb.Empty{}, nil

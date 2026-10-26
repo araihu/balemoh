@@ -57,20 +57,24 @@ type rpcServer struct {
 	pb.UnimplementedControlServer
 	pb.UnimplementedUIServer
 	pb.UnimplementedBackendServer
-	pkg     *manifest.Package
-	handler ui.Handler
-	backend backend.Handler
-	broker  *plugin.GRPCBroker
+	pkg                  *manifest.Package
+	handler              ui.Handler
+	backend              backend.Handler
+	broker               *plugin.GRPCBroker
+	notificationMu       sync.Mutex
+	notificationSessions map[string]*notificationSession
 }
 
 func (s *rpcServer) Describe(context.Context, *emptypb.Empty) (*pb.Description, error) {
 	m := s.pkg.Manifest
-	return &pb.Description{PluginId: m.ID, Version: m.Version, ManifestDigest: s.pkg.Digest, Protocol: m.Protocol, UiProfile: m.UIProfile}, nil
+	return &pb.Description{PluginId: m.ID, Version: m.Version, ManifestDigest: s.pkg.Digest, Protocol: m.Protocol, UiProfile: m.UIProfile, NotificationsSupported: s.backend != nil && m.Declares("notifications.publish/v1")}, nil
 }
 func (*rpcServer) CheckHealth(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return &emptypb.Empty{}, nil
 }
-func (*rpcServer) Shutdown(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+
+func (s *rpcServer) Shutdown(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	s.closeAllNotificationSessions()
 	return &emptypb.Empty{}, nil
 }
 func (s *rpcServer) Handle(ctx context.Context, r *pb.UIRequest) (*pb.UIResponse, error) {
@@ -108,12 +112,13 @@ func Serve(p *manifest.Package, h ui.Handler) {
 }
 
 type Client struct {
-	client *plugin.Client
-	wire   *wireClient
-	pkg    *manifest.Package
-	once   sync.Once
-	slots  chan struct{}
-	cancel context.CancelFunc
+	client                *plugin.Client
+	wire                  *wireClient
+	pkg                   *manifest.Package
+	once                  sync.Once
+	slots                 chan struct{}
+	cancel                context.CancelFunc
+	supportsNotifications bool
 }
 
 func Open(ctx context.Context, p *manifest.Package) (*Client, error) {
@@ -165,7 +170,7 @@ func open(ctx context.Context, p *manifest.Package, role string) (*Client, error
 		return nil, errors.New("plugin startup deadline exceeded")
 	}
 	failed = false
-	return &Client{client: process, wire: wire, pkg: p, slots: make(chan struct{}, 8), cancel: stopChild}, nil
+	return &Client{client: process, wire: wire, pkg: p, slots: make(chan struct{}, 8), cancel: stopChild, supportsNotifications: d.NotificationsSupported}, nil
 }
 
 func (c *Client) Close() {
@@ -266,7 +271,7 @@ func validateContribution(m manifest.Manifest, kind, id, mode string) error {
 	return nil
 }
 func supportedCapability(c string) bool {
-	return c == "page.content/v1" || c == "sidebar.navigation/v1" || c == "home.widget/v1" || c == "data.query/v1"
+	return c == "page.content/v1" || c == "sidebar.navigation/v1" || c == "home.widget/v1" || c == "data.query/v1" || c == "notifications.publish/v1"
 }
 func toWire(r ui.Request) *pb.UIRequest {
 	q := map[string]*pb.Values{}

@@ -158,6 +158,13 @@ func (m Manifest) Validate() error {
 			return errors.New("invalid executable target")
 		}
 	}
+	if m.Declares("notifications.publish/v1") {
+		for _, t := range m.Targets {
+			if t.Backend == "" {
+				return errors.New("notification publication requires backend target")
+			}
+		}
+	}
 	caps := map[string]bool{}
 	for _, c := range append(append([]string{}, m.Capabilities.Required...), m.Capabilities.Optional...) {
 		if c == "" || caps[c] {
