@@ -1,6 +1,6 @@
 # Host telemetry
 
-Hosts links to dedicated pages for Docker machines, Kubernetes clusters and nodes. Each page shows CPU, memory, one-minute history for 1h or 24h, reporting timestamps and workload inventory. Root pages also link to catalog services.
+Hosts links to dedicated pages for Docker machines, Kubernetes clusters and nodes. Each page shows CPU, memory, one-minute history for 1h or 24h, reporting timestamps and an [Applications view](host-applications.md) grouping catalog applications with their reported workloads.
 
 Telemetry is opt-in and independent of discovery. Enable it on each agent:
 
@@ -51,7 +51,7 @@ CPU and memory come from the Node Metrics API. Without Metrics Server or with de
 
 Unavailable workload inventory is distinguished from an empty inventory. Kubernetes node readiness is displayed separately. Docker restart counts and per-workload CPU/RAM are not collected.
 
-Each source is limited to 128 retained hosts, with up to 1,000 workloads per host and 2 MiB per remote batch. Missing node inventory persists for 24 hours, then expires. Truncated workload lists are marked incomplete. Samples expire after 24 hours; registered roots remain. Repeated or old batches cannot refresh heartbeat. Interactive range charts show the timestamp and percentage on hover or tap and keep missing minutes as gaps. Captions and exact-value disclosures are hidden on host pages. Host detail pages update through one SSE connection using Goshtoso HTMX. The UI server checks for changes every five seconds; agents still collect once per minute. Charts, latest values, reporting status and inventory update automatically, including expanded charts. Each chart snapshot replaces its contents inside the stable expansion wrapper; measurements, status and inventory retain morph updates. Missing values remain gaps. A failed update keeps the last data visible and shows retry status. Interrupted streams reconnect; background tabs pause and resume. Initial connection failures offer Refresh. Range links and Refresh update the host detail section without reloading the page. The selected range remains in the URL and its SSE connection follows the selection. Catalog links also refresh with these requests. Reverse proxies must allow streaming responses without buffering and an idle timeout above the five-second keepalive interval.
+Each source is limited to 128 retained hosts, with up to 1,000 workloads per host and 2 MiB per remote batch. Missing node inventory persists for 24 hours, then expires. Truncated workload lists are marked incomplete. Samples expire after 24 hours; registered roots remain. Repeated or old batches cannot refresh heartbeat. Interactive range charts show the timestamp and percentage on hover or tap and keep missing minutes as gaps. Captions and exact-value disclosures are hidden on host pages. Host detail pages update through one SSE connection using Goshtoso HTMX. The UI server checks for changes every five seconds; agents still collect once per minute. Charts, latest values, reporting status and inventory update automatically, including expanded charts. Each chart snapshot replaces its contents inside the stable expansion wrapper; measurements, status and inventory retain morph updates. Missing values remain gaps. A failed update keeps the last data visible and shows retry status. Interrupted streams reconnect; background tabs pause and resume. Initial connection failures offer Refresh. Range links and Refresh update the host detail section without reloading the page. The selected range remains in the URL and its SSE connection follows the selection. Application associations update through the same host stream. Reverse proxies must allow streaming responses without buffering and an idle timeout above the five-second keepalive interval.
 
 ## Development checks
 
@@ -74,11 +74,14 @@ Migration 000008 adds telemetry tables only. Disable collection to stop new writ
 
 ## Host details and CPU architecture
 
-Host details have Overview, Workloads and Services tabs. Kubernetes clusters also
-have a Nodes tab. Nodes omit Services because catalog membership belongs to the
-discovery source, not an individual node. Workloads are reported pods or Docker
-containers with runtime state. Services are application entries with catalog
-settings and homepage links; one application can include multiple workloads.
+Host details have Overview and Applications tabs. Kubernetes clusters also have
+a Nodes tab. Applications groups catalog entries with their reported pods or
+Docker containers using exact source and resource references. Node pages show
+only applications with workloads in that node's received inventory; historical
+placement is not inferred from cluster-wide discovery. Expand an application for
+runtime evidence and address links. This view is informational and contains no
+catalog editing or workload mutation controls. See [Host applications](host-applications.md)
+for search, filters, historical entries and state meaning.
 
 Agents report the optional `architecture` observation field. Kubernetes uses
 `Node.status.nodeInfo.architecture`; Docker uses the daemon's system information,
@@ -87,7 +90,11 @@ not the architecture of the agent binary. Common aliases normalize to `amd64`,
 the Nodes table for mixed clusters. Older agents and missing information display
 Unknown. The field is stored with the latest observation, not every metric sample.
 
-SSE updates measurements, charts, nodes and workloads without replacing the tab
-controls. Range filters replace only Overview. Tab selection uses the URL hash.
+SSE updates measurements, charts, nodes and application observations without
+replacing tab, search or filter controls. Runtime changes morph individual
+application rows; membership/order changes reconcile the results collection.
+Open workload disclosures survive updates. Range filters replace only Overview.
+Tab selection uses the URL hash; legacy `#workloads` and `#services` links select
+Applications.
 Deploy the API before newer Docker agents because older APIs reject unknown
 observation fields. Older agent reports remain accepted by the new API.

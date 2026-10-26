@@ -214,7 +214,7 @@ func TestHostPartialNavigation(t *testing.T) {
 		if strings.Count(body, `hx-target="#host-overview"`) != 3 {
 			t.Fatal("all history actions must use partial navigation")
 		}
-		if kind == "partial" && (strings.Contains(body, `role="tab"`) || strings.Contains(body, `id="host-workloads-panel"`) || strings.Contains(body, `id="host-selection-action-host"`)) {
+		if kind == "partial" && (strings.Contains(body, `role="tab"`) || strings.Contains(body, `id="host-applications"`) || strings.Contains(body, `id="host-selection-action-host"`)) {
 			t.Fatal("history filter replaced unrelated host content")
 		}
 		if strings.Contains(body, chartassets.RuntimeURL) != (kind == "full") {

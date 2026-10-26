@@ -32,6 +32,12 @@ func (c *liveHostCatalog) Host(ctx context.Context, id, window string) (api.Host
 	}
 	return c.detail, c.err
 }
+
+func (c *liveHostCatalog) Staging(context.Context) ([]api.ServiceCandidate, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]api.ServiceCandidate(nil), c.staging...), c.stagingErr
+}
 func TestHostEventStream(t *testing.T) {
 	now := time.Now().UTC()
 	value := 0.0
@@ -70,7 +76,7 @@ func TestHostEventStream(t *testing.T) {
 		}
 	}
 	first := frame()
-	for _, want := range []string{`id="host-cpu-chart" hx-swap-oob="innerHTML"`, `id="host-memory-chart" hx-swap-oob="innerHTML"`, `id="host-measurements" hx-swap-oob="innerMorph"`, `id="host-workloads-panel" hx-swap-oob="innerMorph"`, `0.0%`, `goshtoso-charts-interactive`, `Unavailable`} {
+	for _, want := range []string{`id="host-cpu-chart" hx-swap-oob="innerHTML"`, `id="host-memory-chart" hx-swap-oob="innerHTML"`, `id="host-measurements" hx-swap-oob="innerMorph"`, `id="host-application-results" hx-swap-oob="innerMorph"`, `0.0%`, `goshtoso-charts-interactive`, `Unavailable`} {
 		if !strings.Contains(first, want) {
 			t.Errorf("missing %s", want)
 		}
@@ -80,6 +86,18 @@ func TestHostEventStream(t *testing.T) {
 	}
 	if next := frame(); next != ": keepalive\n" {
 		t.Fatal("unchanged snapshot was resent")
+	}
+	// Catalog changes must refresh associations even when telemetry is identical.
+	catalog.mu.Lock()
+	catalog.staging = []api.ServiceCandidate{{Id: "catalog-only", DisplayName: "Catalog-only application", Resource: api.ResourceRef{Kind: "service", Name: "catalog-only"}}}
+	catalog.mu.Unlock()
+	for next := frame(); ; next = frame() {
+		if strings.Contains(next, "Catalog-only application") {
+			if !strings.Contains(next, `id="host-application-results" hx-swap-oob="innerMorph"`) {
+				t.Fatal("catalog-only membership change did not reconcile applications")
+			}
+			break
+		}
 	}
 	catalog.mu.Lock()
 	catalog.err = errors.New("private upstream error")

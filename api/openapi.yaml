@@ -484,6 +484,18 @@ components:
         namespace: {type: string, maxLength: 253}
         state: {type: string, minLength: 1, maxLength: 64}
         restarts: {type: integer, minimum: 0}
+        node: {type: string, maxLength: 253}
+        ready:
+          type: boolean
+          description: Pod Ready condition. Absent when unknown, from older agents, or for Docker containers. Does not verify HTTP reachability.
+        reason:
+          type: string
+          maxLength: 253
+          description: Current pod or container waiting/termination reason, never a previous termination reason.
+        images:
+          type: array
+          maxItems: 64
+          items: {type: string, minLength: 1, maxLength: 2048}
     HostObservation:
       allOf:
         - $ref: '#/components/schemas/HostMetrics'

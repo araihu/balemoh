@@ -76,11 +76,44 @@ func (d *Docker) Collect(ctx context.Context) model.Batch {
 			if len(c.Names) > 0 {
 				name = strings.TrimPrefix(c.Names[0], "/")
 			}
-			h.Workloads = append(h.Workloads, model.Workload{Name: name, State: string(c.State)})
+			workload := model.Workload{Name: name, State: string(c.State)}
+			if c.Image != "" {
+				workload.Images = []string{c.Image}
+			}
+			h.Workloads = append(h.Workloads, workload)
 		}
 	}
 	return model.Batch{Source: model.Source{Kind: "container", ID: d.SourceID}, ObservedAt: now, Hosts: []model.Observation{h}}
 }
+func podWorkload(pod corev1.Pod) model.Workload {
+	w := model.Workload{Name: pod.Name, Namespace: pod.Namespace, Node: pod.Spec.NodeName, State: string(pod.Status.Phase), Reason: pod.Status.Reason}
+	if w.State == "" {
+		w.State = "Unknown"
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionUnknown {
+			ready := condition.Status == corev1.ConditionTrue
+			w.Ready = &ready
+		}
+	}
+	for _, container := range pod.Spec.Containers {
+		if container.Image != "" {
+			w.Images = append(w.Images, container.Image)
+		}
+	}
+	statuses := append(append([]corev1.ContainerStatus{}, pod.Status.InitContainerStatuses...), pod.Status.ContainerStatuses...)
+	for _, status := range statuses {
+		w.Restarts += int(status.RestartCount)
+		// Report the current cause, never an old termination as a current failure.
+		if status.State.Waiting != nil && status.State.Waiting.Reason != "" {
+			w.Reason = status.State.Waiting.Reason
+		} else if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 && status.State.Terminated.Reason != "" {
+			w.Reason = status.State.Terminated.Reason
+		}
+	}
+	return w
+}
+
 func cpuCounters(path string) (uint64, uint64, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -199,17 +232,7 @@ func (k *Kubernetes) Collect(ctx context.Context) model.Batch {
 	root.InventoryAvailable = podErr == nil
 	if podErr == nil {
 		for _, pod := range pods.Items {
-			restarts := 0
-			for _, c := range pod.Status.ContainerStatuses {
-				restarts += int(c.RestartCount)
-			}
-			for _, c := range pod.Status.InitContainerStatuses {
-				restarts += int(c.RestartCount)
-			}
-			workload := model.Workload{Name: pod.Name, Namespace: pod.Namespace, State: string(pod.Status.Phase), Restarts: restarts}
-			if workload.State == "" {
-				workload.State = "Unknown"
-			}
+			workload := podWorkload(pod)
 			byNode[pod.Spec.NodeName] = append(byNode[pod.Spec.NodeName], workload)
 			if len(root.Workloads) < 1000 {
 				root.Workloads = append(root.Workloads, workload)

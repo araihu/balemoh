@@ -23,10 +23,14 @@ type Metrics struct {
 	MemoryTotalBytes *int64   `json:"memoryTotalBytes"`
 }
 type Workload struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	State     string `json:"state"`
-	Restarts  int    `json:"restarts"`
+	Name      string   `json:"name"`
+	Namespace string   `json:"namespace"`
+	State     string   `json:"state"`
+	Restarts  int      `json:"restarts"`
+	Node      string   `json:"node,omitempty"`
+	Ready     *bool    `json:"ready,omitempty"`
+	Reason    string   `json:"reason,omitempty"`
+	Images    []string `json:"images,omitempty"`
 }
 type Observation struct {
 	Node               string `json:"node"`
@@ -129,6 +133,14 @@ func (b Batch) Validate(now time.Time) error {
 		for _, w := range h.Workloads {
 			if !validText(w.Name, 253, true) || !validText(w.Namespace, 253, false) || !validText(w.State, 64, true) || w.Restarts < 0 {
 				return fmt.Errorf("invalid workload")
+			}
+			if !validText(w.Node, 253, false) || !validText(w.Reason, 253, false) || len(w.Images) > 64 {
+				return fmt.Errorf("invalid workload details")
+			}
+			for _, image := range w.Images {
+				if !validText(image, 2048, true) {
+					return fmt.Errorf("invalid workload image")
+				}
 			}
 		}
 	}

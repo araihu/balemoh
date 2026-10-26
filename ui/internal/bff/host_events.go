@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
-	api "github.com/araihu/balemoh/client"
 	"github.com/araihu/balemoh/ui/internal/view"
 )
 
@@ -34,10 +33,18 @@ func (s *server) streamHost(w http.ResponseWriter, r *http.Request, interval tim
 		http.Error(w, "Live updates unavailable. Refresh to reconnect.", http.StatusServiceUnavailable)
 		return
 	}
-	fetch := func() (api.HostDetail, error) {
+	fetch := func() (view.HostDetail, error) {
 		ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 		defer cancel()
-		return catalog.Host(ctx, r.PathValue("hostID"), window)
+		detail, err := catalog.Host(ctx, r.PathValue("hostID"), window)
+		if err != nil {
+			return view.HostDetail{}, err
+		}
+		page := hostDetailView(detail, window)
+		services, catalogErr := s.catalog.Staging(ctx)
+		page.Applications = hostApplications(detail, services)
+		page.ServicesAvailable = catalogErr == nil
+		return page, nil
 	}
 	detail, err := fetch()
 	if err != nil {
@@ -58,6 +65,7 @@ func (s *server) streamHost(w http.ResponseWriter, r *http.Request, interval tim
 	defer ticker.Stop()
 	var previous [sha256.Size]byte
 	failed := false
+	var previousPage *view.HostDetail
 	for {
 		var component templ.Component
 		if err != nil {
@@ -73,8 +81,10 @@ func (s *server) streamHost(w http.ResponseWriter, r *http.Request, interval tim
 			}
 			digest := sha256.Sum256(encoded)
 			if digest != previous || failed {
-				component = view.HostLiveSnapshot(hostDetailView(detail, window))
+				component = view.HostInventorySnapshot(detail, previousPage)
 				previous = digest
+				last := detail
+				previousPage = &last
 			}
 			failed = false
 		}
@@ -106,7 +116,8 @@ func (s *server) streamHost(w http.ResponseWriter, r *http.Request, interval tim
 		case <-r.Context().Done():
 			return
 		case <-ticker.C:
-			detail, err = fetch()
+			next, fetchErr := fetch()
+			detail, err = next, fetchErr
 		}
 	}
 }
