@@ -214,10 +214,14 @@ func TestBulkNotificationReadIsSeparateProtectedAndScoped(t *testing.T) {
 func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
 	for _, tc := range []struct {
 		name, symbol, kind, connection, page, want string
-		nested                                     bool
+		nested, precedingIcon                      bool
 	}{
 		{name: "declared", symbol: "hi-16-solid-bell", want: "hi-16-solid-bell"},
 		{name: "nested", symbol: "hi-16-solid-bell", want: "hi-16-solid-bell", nested: true},
+		{name: "detail without navigation", symbol: "hi-16-solid-bell", page: "detail", want: "hi-16-solid-bell"},
+		{name: "detail with nested producer", symbol: "hi-16-solid-bell", page: "detail", want: "hi-16-solid-bell", nested: true},
+		{name: "page icon takes precedence", symbol: "hi-16-solid-bell", want: "hi-16-solid-bell", precedingIcon: true},
+		{name: "detail unknown icon", symbol: "future-icon", page: "detail", want: "hi-16-solid-cube"},
 		{name: "unknown", symbol: "future-icon", want: "hi-16-solid-cube"},
 		{name: "URL rejected", symbol: "https://invalid.example/icon.svg", want: "hi-16-solid-cube"},
 		{name: "missing icon", want: "hi-16-solid-cube"},
@@ -229,6 +233,10 @@ func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
 			registry := configuredPreviewRegistry(t, manifest.UIProfile, func(m *manifest.Manifest) {
 				m.Targets[runtime.GOOS+"/"+runtime.GOARCH] = manifest.Target{UI: "hung"}
 				m.Navigation[0].Icon = tc.symbol
+				m.Pages = append(m.Pages, manifest.Page{ID: "detail", Title: "Detail", Path: "/detail/{id}", Methods: []string{"GET"}, Capabilities: []string{}})
+				if tc.precedingIcon {
+					m.Navigation = append([]manifest.Navigation{{ID: "detail", Title: "Detail", Page: "detail", Icon: "hi-16-solid-cube"}}, m.Navigation...)
+				}
 				if tc.nested {
 					m.Navigation = []manifest.Navigation{{ID: "group", Title: "Group", Children: m.Navigation}}
 				}

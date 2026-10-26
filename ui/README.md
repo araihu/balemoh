@@ -61,7 +61,8 @@ success, and upstream-error states are rendered explicitly.
 
 Notifications from a plugin use the bundled Heroicons symbol declared in the
 manifest navigation item for their destination page. Source plugin and connection
-must match the destination. The Alertmanager plugin already declares its bell
+must match the destination. Declared detail pages without a navigation item use
+the first valid navigation icon in manifest order. The Alertmanager plugin already declares its bell
 through `navigation[].icon`, so saved notifications acquire that icon without
 rewriting inbox rows or changing the publication protocol.
 

@@ -373,20 +373,29 @@ func (s *server) notificationProducerIcon(item view.Notification) icon.Symbol {
 		return ""
 	}
 	entry := s.plugins.Connection(item.ProducerID, item.ProducerConnectionID)
-	if entry == nil {
+	if entry == nil || !pluginruntime.Available(entry.Package.Manifest, "page", item.ProducerPage) {
 		return ""
 	}
-	var find func([]manifest.Navigation) string
-	find = func(items []manifest.Navigation) string {
+	var producerIcon icon.Symbol
+	var find func([]manifest.Navigation) (icon.Symbol, bool)
+	find = func(items []manifest.Navigation) (icon.Symbol, bool) {
 		for _, nav := range items {
-			if nav.Page == item.ProducerPage {
-				return nav.Icon
+			symbol := pluginIconSymbol(nav.Icon, "")
+			if producerIcon == "" {
+				producerIcon = symbol
 			}
-			if value := find(nav.Children); value != "" {
-				return value
+			if nav.Page == item.ProducerPage {
+				return symbol, true
+			}
+			if value, found := find(nav.Children); found {
+				return value, true
 			}
 		}
-		return ""
+		return "", false
 	}
-	return pluginIconSymbol(find(entry.Package.Manifest.Navigation), "")
+	if symbol, found := find(entry.Package.Manifest.Navigation); found {
+		return symbol
+	}
+	// Detail pages without sidebar entries inherit the producer's first valid navigation icon.
+	return producerIcon
 }
