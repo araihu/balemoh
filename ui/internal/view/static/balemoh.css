@@ -13,6 +13,9 @@ body {
 	margin: 0;
 }
 
+.balemoh-header-icon { width: 2.5rem; height: 2.5rem; padding: 0; flex-shrink: 0; }
+.balemoh-header-icon svg { width: 1.25rem; height: 1.25rem; }
+
 /* Keep absolute chart controls and table captions inside the shell scroll area. */
 #main-content { position: relative; }
 

@@ -18,6 +18,7 @@ func ConsolePage(data PageData) templ.Component {
 	if data.ColorScheme == "" {
 		data.ColorScheme = "system"
 	}
+	persistPreferences := data.Theme == "goshtoso" && data.ColorScheme == "system"
 	runtimeScripts := []string{"/ui/plugin-runtime.js"}
 	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, assets.HTMXExtSSEURL, "/ui/host-live.js")
@@ -48,13 +49,14 @@ func ConsolePage(data PageData) templ.Component {
 			Appearance: consoleshell.AppearanceConfig{
 				DefaultTheme:       data.Theme,
 				InitialColorScheme: consoleshell.ColorScheme(data.ColorScheme),
-				PersistPreferences: data.Theme == "goshtoso" && data.ColorScheme == "system",
+				PersistPreferences: persistPreferences,
 				ThemeStylesheets:   []string{"/ui/balemoh.css"},
 			},
-			Interactions: consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
-			MainID:       "main-content",
-			ContentID:    "balemoh-content",
-			Footer:       AttributionLinks(),
+			Interactions:  consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
+			HeaderActions: HeaderActions(persistPreferences),
+			MainID:        "main-content",
+			ContentID:     "balemoh-content",
+			Footer:        AttributionLinks(),
 		},
 		consoleshell.Page{
 			Title:         data.Title,
