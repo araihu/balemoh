@@ -169,7 +169,7 @@ func widgetRequest(h http.Handler, method, path string, values url.Values) *http
 func TestWidgetManagementListAndIndividualEditors(t *testing.T) {
 	h, f := widgetManagementHandler(t)
 	list := widgetRequest(h, "GET", "/plugins/widgets", nil)
-	if list.Code != 200 || !strings.Contains(list.Body.String(), `id="saved-plugin-widgets"`) || !strings.Contains(list.Body.String(), `id="available-plugin-widgets"`) || strings.Contains(list.Body.String(), `name="option.search"`) || strings.Count(list.Body.String(), ">Plugins/Widgets</span>") != 1 {
+	if list.Code != 200 || strings.Count(list.Body.String(), "<table ") != 1 || !strings.Contains(list.Body.String(), `id="plugin-widgets-table"`) || strings.Contains(list.Body.String(), `name="option.search"`) || strings.Count(list.Body.String(), ">Plugins/Widgets</span>") != 1 {
 		t.Fatalf("list mixed editors or duplicated sidebar: %d", list.Code)
 	}
 	for _, id := range []string{"00000000-0000-4000-8000-000000000002", "00000000-0000-4000-8000-000000000003"} {
@@ -198,7 +198,7 @@ func TestWidgetManagementListAndIndividualEditors(t *testing.T) {
 	f.unavailable = true
 	f.mu.Unlock()
 	outage := widgetRequest(h, "GET", "/plugins/widgets", nil)
-	if outage.Code != 503 || !strings.Contains(outage.Body.String(), "Back to Plugins/Widgets") || strings.Contains(outage.Body.String(), "No saved widgets") {
+	if outage.Code != 503 || !strings.Contains(outage.Body.String(), "Back to Plugins/Widgets") || strings.Contains(outage.Body.String(), "No widgets available") {
 		t.Fatal("outage confused with empty list")
 	}
 	for _, path := range []string{"/", "/healthz", "/staging"} {
@@ -248,7 +248,7 @@ func TestWidgetListRetainsUnavailableAndDisabledRecords(t *testing.T) {
 	f.catalog.Definitions = nil
 	f.mu.Unlock()
 	list := widgetRequest(h, "GET", "/plugins/widgets", nil)
-	if list.Code != 200 || !strings.Contains(list.Body.String(), "Unavailable widget summary") || !strings.Contains(list.Body.String(), "Hidden") {
+	if list.Code != 200 || !strings.Contains(list.Body.String(), "Unavailable widget summary") || !strings.Contains(list.Body.String(), `id="plugin-selection-action-00000000-0000-4000-8000-000000000003"`) {
 		t.Fatal("unavailable saved configuration disappeared")
 	}
 	edit := widgetRequest(h, "GET", "/plugin-widgets/00000000-0000-4000-8000-000000000003/edit", nil)
@@ -259,7 +259,7 @@ func TestWidgetListRetainsUnavailableAndDisabledRecords(t *testing.T) {
 	f.catalog.Placements = nil
 	f.mu.Unlock()
 	empty := widgetRequest(h, "GET", "/plugins/widgets", nil)
-	if empty.Code != 200 || !strings.Contains(empty.Body.String(), "No saved widgets") || !strings.Contains(empty.Body.String(), "No widgets available") {
+	if empty.Code != 200 || !strings.Contains(empty.Body.String(), "No widgets available") {
 		t.Fatal("empty list lacks guidance")
 	}
 }

@@ -2,13 +2,11 @@ package bff
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"uuid"
@@ -58,34 +56,7 @@ func (s *server) pluginWidgetsIndex(w http.ResponseWriter, r *http.Request) {
 		s.widgetConfigurationError(w, r, "Widget configuration is unavailable. Try again.", 503)
 		return
 	}
-	page := view.PluginWidgetList{}
-	for _, p := range c.Placements {
-		d, ok := widgetDefinition(c, p.PluginID, p.ContributionID)
-		title := d.Title
-		if !ok {
-			title = "Unavailable widget " + p.ContributionID
-		}
-		plugin, connection := s.widgetNames(p.PluginID, p.ConnectionID)
-		page.Saved = append(page.Saved, view.PluginWidgetRow{ID: p.PlacementID, Title: title, Plugin: plugin, Connection: connection, URL: widgetEditURL(p.PlacementID), Enabled: p.Enabled})
-	}
-	for _, e := range s.plugins.Entries() {
-		if !e.Compatible || e.Package == nil {
-			continue
-		}
-		for _, d := range c.Definitions {
-			if d.PluginID != e.Package.Manifest.ID {
-				continue
-			}
-			page.Available = append(page.Available, view.PluginWidgetRow{ID: plugins.NavID(d.PluginID, e.Installation.ConnectionID, d.ContributionID), Title: d.Title, Plugin: e.Package.Manifest.Name, Connection: e.ConnectionName, URL: widgetNewURL(d.PluginID, e.Installation.ConnectionID, d.ContributionID)})
-		}
-	}
-	sortRows := func(rows []view.PluginWidgetRow) {
-		slices.SortFunc(rows, func(a, b view.PluginWidgetRow) int {
-			return cmp.Or(strings.Compare(a.Plugin, b.Plugin), strings.Compare(a.Connection, b.Connection), strings.Compare(a.Title, b.Title), strings.Compare(a.ID, b.ID))
-		})
-	}
-	sortRows(page.Saved)
-	sortRows(page.Available)
+	page := view.PluginWidgetList{Rows: s.widgetRows(c)}
 	s.render(w, r, view.PageData{Title: "Plugins/Widgets", Description: "Manage plugin widgets and their individual configuration.", Path: r.URL.Path, Active: widgetNavigationID, PluginContent: view.PluginWidgetsIndex(page)}, 200)
 }
 func (s *server) pluginWidgetEdit(w http.ResponseWriter, r *http.Request) {
@@ -136,13 +107,21 @@ func (s *server) renderPluginWidgetEditor(w http.ResponseWriter, r *http.Request
 		title = "Add " + title
 	}
 	plugin, connection := s.widgetNames(p.PluginID, p.ConnectionID)
-	page := view.PluginManagement{Name: title, PluginName: plugin, ConnectionName: connection, Error: message, ReloadURL: reload, OptionsAvailable: ok && fieldErr == nil, Form: view.PluginForm{ID: p.PlacementID, Revision: p.Revision, Title: title, Action: action, Fields: fields, Values: values, Enabled: p.Enabled, Create: create}}
+	newURL := ""
+	if !create && ok && s.plugins.Connection(p.PluginID, p.ConnectionID) != nil {
+		newURL = widgetNewURL(p.PluginID, p.ConnectionID, p.ContributionID)
+	}
+	page := view.PluginManagement{NewURL: newURL, Name: title, PluginName: plugin, ConnectionName: connection, Error: message, ReloadURL: reload, OptionsAvailable: ok && fieldErr == nil, Form: view.PluginForm{ID: p.PlacementID, Revision: p.Revision, Title: title, Action: action, Fields: fields, Values: values, Enabled: p.Enabled, Create: create}}
 	s.render(w, r, view.PageData{Title: title, Description: "Configure an individual plugin widget.", Path: r.URL.Path, Active: widgetNavigationID, PluginContent: view.PluginWidgets(page)}, status)
 }
 func (s *server) pluginPlacementWrite(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	if r.ParseForm() != nil {
 		http.Error(w, "Invalid widget form", 400)
+		return
+	}
+	if r.PathValue("action") == "selection" && r.PostForm.Get("selection_form") == "plugin-widget" {
+		s.pluginWidgetSelection(w, r)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)

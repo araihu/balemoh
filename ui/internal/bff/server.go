@@ -64,6 +64,7 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/widgets", server.pluginWidgets)
 		protection := http.NewCrossOriginProtection()
 		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/pages/{pluginPath...}", protection.Handler(http.HandlerFunc(server.pluginPagePost)))
+		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}/selection", protection.Handler(http.HandlerFunc(server.pluginWidgetSelection)))
 		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}", protection.Handler(http.HandlerFunc(server.pluginPlacementWrite)))
 		mux.Handle("POST /plugin-widgets/{placementID}/{action}", protection.Handler(http.HandlerFunc(server.pluginPlacementWrite)))
 	}

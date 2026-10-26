@@ -299,10 +299,11 @@ First delivery inherits existing shared-dashboard browser access boundary. Insta
 | `GET /plugins/{pluginId}/connections/{connectionId}/pages/{relativePath...}` | Validate route; return shell and host-owned loading slot without plugin RPC |
 | `GET /plugins/{pluginId}/connections/{connectionId}/page-content/{relativePath...}` | Revalidate registered page; render only its content under an isolated deadline |
 | `GET /plugins/{pluginId}/connections/{connectionId}/fragments/{contributionId}/{region}` | Resolve SDK-registered local fragment |
-| `GET /plugins/widgets` | Host-owned global Goshtoso tables of saved and available widgets, grouped by plugin/connection metadata; no plugin RPC |
+| `GET /plugins/widgets` | Host-owned single Goshtoso table with native homepage selection checkboxes and individual editor links; no plugin RPC |
 | `GET /plugin-widgets/{placementId}/edit` | One persisted widget editor, selected by placement UUID |
 | `GET /plugins/{pluginId}/connections/{connectionId}/widgets/{contributionId}/new` | One creation editor with a generated stable submission UUID |
 | `GET /plugins/{pluginId}/connections/{connectionId}/widgets` | Legacy bookmark redirects to the global widget list |
+| `POST /plugins/{pluginId}/connections/{connectionId}/widgets/{contributionId}/selection` | Pin an unconfigured row with stable identity and declared defaults |
 | `POST /plugins/{pluginId}/connections/{connectionId}/widgets/{contributionId}` | Create placement through data API using form UUID/options/desired state |
 | `GET /plugin-widgets/{placementId}` | Resolve one placement; render only its content under an isolated deadline |
 | `POST /plugin-widgets/{placementId}/selection` | Explicit enabled state; PRG or scoped control response |
@@ -310,14 +311,21 @@ First delivery inherits existing shared-dashboard browser access boundary. Insta
 | `POST /plugin-widgets/{placementId}/delete` | Revision-checked removal with host confirmation |
 | `GET /plugins/assets/{pluginId}/{packageDigest}/{assetPath...}` | Only declared packaged files |
 
-The sidebar contains one host-owned `Plugins/Widgets` item, independent of plugin-provided page links and still present if plugin discovery fails. Saved rows retain disabled and unavailable placements. Each row exposes a native detail link and a short placement identifier, plus plugin, connection and home-selection state. Available rows open a separate creation editor for each compatible connection and definition. Empty catalog and API failure are distinct states. The list never executes plugin UI code.
+The sidebar contains one host-owned `Plugins/Widgets` item, independent of plugin-provided page links and still present if plugin discovery fails. Its single Goshtoso table follows the Hosts/Staging selection pattern. Each saved placement has one native checkbox and one editor link, without a competing whole-row link. Disabled and unavailable saved placements remain visible. For each compatible connection/definition with no saved placement, one unchecked row appears. Unchecking removes the widget from Home while retaining identity and options. Existing independent placements of the same definition remain separate rows; the individual editor retains an Add another widget link.
 
-Save and home-selection success redirect to that placement's editor. Delete success redirects to the list. Form errors display only the affected editor, keep submitted options and expose a reload link for conflict recovery. Unknown placement IDs retain the host shell and list recovery. Home widget configuration links target their own editor.
+Checking an unconfigured row creates a placement with declared option defaults under a deterministic UUID derived from plugin, connection and definition. The API still validates options; a definition requiring additional input returns a local error and keeps its configuration link. Stable submission identity makes concurrent/repeated initial pins idempotent. A stale available row cannot create an extra placement after another editor saved a different instance. Saved-checkbox writes carry the rendered revision and preserve current options. An unchecked unconfigured row performs no write.
+
+A checkbox request swaps only its stable control wrapper. Initial creation also updates that row's title link through a scoped OOB fragment, including replay from another stale tab. In the individual editor, a successful pin with a matching rendered revision updates only the options form's hidden revision and enabled inputs. Unsaved option drafts remain mounted. A stale idempotent pin must not advance the options form revision. Row neighbors, table, document shell, scroll and unrelated focus remain mounted. Pending controls are disabled and deduplicated. Server failures render current authoritative selection when available; transport failure restores the last confirmed state, marks it unconfirmed and requires refresh. Keyboard focus returns without scrolling unless the user moved elsewhere. Native no-JavaScript submission uses PRG back to the list or editor. Empty catalog and API failure remain distinct states. Listing and pinning never execute plugin UI code.
+
+Options-save success redirects to that placement's editor. Native checkbox selection redirects to its originating list or editor; partial selection responds with only that control. Delete success redirects to the list. Form errors display only the affected editor, keep submitted options and expose a reload link for conflict recovery. Unknown placement IDs retain the host shell and list recovery. Home widget configuration links target their own editor.
 
 | State | Action | Response and destination | Effect |
 | --- | --- | --- | --- |
-| Saved widget/current revision | Save options or explicit home selection | 303 to same placement editor | Only named placement updated |
+| Saved widget/current revision | Save options or explicit home selection | 303 to originating list/editor or scoped checkbox fragment | Only named placement updated |
 | Saved widget/stale revision | Save options | 409, same editor with submitted draft and current-configuration reload | No stale update |
+| Unconfigured row | Check pin | Scoped control plus individual link update; stable create identity | At most one placement |
+| Saved row/stale revision | Check or uncheck pin | Current selection and revision with local conflict, or idempotent confirmation | No stale overwrite |
+| Pin transport failure | Check or uncheck pin | Restore confirmed checkbox, unconfirmed feedback, refresh link | No duplicate retry |
 | Invalid options | Save options | 409, same editor with draft | No update |
 | Saved widget/no confirmation | Delete | 400, same editor | No deletion |
 | Saved widget/current revision and confirmation | Delete | 303 to global list | Named placement removed |
@@ -325,7 +333,7 @@ Save and home-selection success redirect to that placement's editor. Delete succ
 | API unavailable | Open list/editor | 503 in host shell with retry destination | No false empty state |
 | Missing definition | Open saved editor | Retained identity and selection/delete controls, no options editor | No implicit options replacement |
 
-Host provides placement creation/options controls as well as desired-state selection. Every mutation revalidates connection, definition and options, applies same-origin/CSRF checks and carries revision. Create forms generate placement UUID before submission so retries reuse identity. Selection form includes an explicit boolean enabled value and revision. Repeated actions reconcile desired state, never toggle. Page POST handlers may validate local UI input; they do not grant source-side mutations. On native requests use PRG. Full navigation remains valid for page changes/deep links/no-JavaScript fallback.
+Host provides placement creation/options controls as well as desired-state selection. Every mutation revalidates connection, definition and options, applies same-origin/CSRF checks and carries revision. Create forms generate placement UUID before submission so retries reuse identity. Checkbox forms carry a marker defining unchecked omission as false; saved placements also carry the rendered revision. Legacy explicit-boolean submissions remain accepted. Repeated actions reconcile desired state, never toggle. Page POST handlers may validate local UI input; they do not grant source-side mutations. On native requests use PRG. Full navigation remains valid for page changes/deep links/no-JavaScript fallback.
 
 Host rejects encoded path separators/traversal and routes shadowing core/other plugins. Relative pattern matching cannot become arbitrary proxying. Local fragment names resolve through SDK handlers, not CSS targets. Plugin validates query/row identifiers. Host wrappers remain mounted during fragment updates.
 

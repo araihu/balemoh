@@ -8,68 +8,82 @@ import (
  "github.com/araihu/goshtoso/components/button"
  "github.com/araihu/goshtoso/components/pageheader"
  "github.com/araihu/goshtoso/components/table"
- "github.com/araihu/goshtoso/components/badge"
  "github.com/araihu/goshtoso/components/breadcrumbs"
  "github.com/araihu/goshtoso/components/emptystate"
  "github.com/araihu/goshtoso/components/alert"
  "github.com/araihu/goshtoso/components/link"
+ "github.com/araihu/goshtoso/components/tooltip"
 )
 
-func pluginWidgetRows(items []PluginWidgetRow, saved bool) []table.Row {
+func pluginWidgetColumns() []table.Column {
+ return []table.Column{{Key:"home",Label:"Pinned",HeaderSuffix:tooltip.Help("widget-pinning-help","How pinning works","Check to show a widget on your homepage. Uncheck to remove it while keeping its configuration.")},{Key:"widget",Label:"Widget"},{Key:"plugin",Label:"Plugin"},{Key:"connection",Label:"Connection"}}
+}
+func pluginWidgetRows(items []PluginWidgetRow) []table.Row {
  rows := make([]table.Row, 0, len(items))
  for _, item := range items {
-  row := table.Row{ID:item.ID,Link:item.URL,LinkMode:table.LinkFull,Cells:map[string]table.Cell{
-   "widget":{Component:PluginWidgetName(item,saved)},"plugin":{Text:item.Plugin},"connection":{Text:item.Connection},
-  }}
-  if saved { row.Cells["home"] = table.Cell{Component:PluginWidgetSelectionBadge(item.Enabled)} }
-  rows=append(rows,row)
+  rows=append(rows,table.Row{ID:item.ID,Cells:map[string]table.Cell{
+   "home":{Component:PluginWidgetSelection(item,true,false)},"widget":{Component:PluginWidgetName(item)},"plugin":{Text:item.Plugin},"connection":{Text:item.Connection},
+  }})
  }
  return rows
 }
-templ PluginWidgetName(item PluginWidgetRow, saved bool) {
+templ PluginWidgetName(item PluginWidgetRow) {
+ <span id={ "plugin-widget-name-"+item.ID }>@PluginWidgetNameContent(item)</span>
+}
+templ PluginWidgetNameContent(item PluginWidgetRow) {
  @link.Link(item.URL) { { item.Title } }
- if saved {
+ if item.Saved {
   <small class="balemoh-muted">{ " · "+item.ID[:min(8,len(item.ID))] }</small>
  }
 }
-templ PluginWidgetSelectionBadge(enabled bool) {
- if enabled {
-  @badge.Badge(badge.Config{Label:"On home",Tone:badge.ToneSuccess,Appearance:badge.AppearanceSoft})
- } else {
-  @badge.Badge(badge.Config{Label:"Hidden",Tone:badge.ToneDefault,Appearance:badge.AppearanceSoft})
- }
+templ PluginWidgetNameUpdate(item PluginWidgetRow) {
+ <span id={ "plugin-widget-name-"+item.ID } hx-swap-oob="innerHTML">@PluginWidgetNameContent(item)</span>
 }
-templ PluginWidgetTable(items []PluginWidgetRow, saved bool) {
- {{ columns := []table.Column{{Key:"widget",Label:"Widget"},{Key:"plugin",Label:"Plugin"},{Key:"connection",Label:"Connection"}} }}
- {{ id, caption := "available-plugin-widgets", "Available widgets. Open a row to create a configuration." }}
- if saved {
-  {{ columns=append(columns,table.Column{Key:"home",Label:"Home"}); id="saved-plugin-widgets"; caption="Saved widgets. Open a row to configure a widget." }}
- }
- <div class="balemoh-table-scroll">
-  @table.Table(table.Config{ID:id,Caption:caption,Columns:columns,Rows:pluginWidgetRows(items,saved)})
+templ PluginWidgetSelection(item PluginWidgetRow, list, focus bool) {
+ <div id={ "plugin-selection-"+item.ID } hx-morph-skip>
+  <form method="post" action={ templ.SafeURL(item.SelectionURL) } hx-post={ item.SelectionURL } hx-target={ "#plugin-selection-"+item.ID } hx-swap="outerHTML" hx-disable="find input[type='checkbox']" hx-sync="this:drop" x-data="{}"
+   hx-on::finally:request="if (event.detail.ctx.status.startsWith('error:') || event.detail.ctx.hx?.reswap === 'none') { queueMicrotask(() => { const input = this.querySelector('input[type=checkbox]'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }); }">
+   <input type="hidden" name="selection_form" value="plugin-widget"/>
+   <input type="hidden" name="selection_context" value={ pluginSelectionContext(list) }/>
+   <input type="hidden" name="revision" value={ item.Revision }/>
+   <input type="hidden" name="previous" value={ pluginSelectionValue(item.Enabled) }/>
+   {{ label := "Show on home"; if list { label = "" } }}
+   @checkbox.Checkbox(checkbox.Config{ID:"plugin-selection-action-"+item.ID,Name:"enabled",Value:"true",Label:label,Checked:item.Enabled,Disabled:item.Disabled,InputAttrs:templ.Attributes{"aria-label":"Show "+item.Title+" on home","onchange":"this.form.requestSubmit()","aria-describedby":"plugin-selection-feedback-"+item.ID,"style":"border-color: var(--balemoh-muted)"}})
+   if focus {
+    <span hidden x-data="{}" x-init="$nextTick(() => { const root = $el.parentElement; if (document.activeElement !== document.body && !root.contains(document.activeElement)) return; const input = root.querySelector('input[type=checkbox]'); const target = input?.disabled ? root.querySelector('[data-selection-error]') : input; target?.focus({preventScroll:true}); })"></span>
+   }
+   <span id={ "plugin-selection-feedback-"+item.ID } role="alert" tabindex="-1" data-selection-error>{ item.Error }</span>
+   <small hidden data-pin-error role="alert">Save unconfirmed. @link.Link("/plugins/widgets") { Refresh }</small>
+   if item.Disabled {
+    @link.Link("/plugins/widgets") { Refresh }
+   }
+   <noscript>@button.Button(button.WithType("submit"),button.WithSize(button.SizeSmall)) { Save }</noscript>
+  </form>
  </div>
 }
+func pluginSelectionContext(list bool) string { if list {return "widgets"};return "edit" }
+func pluginSelectionValue(enabled bool) string { if enabled {return "true"};return "false" }
+templ PluginWidgetOptionsSelectionUpdate(item PluginWidgetRow) {
+ <input type="hidden" id={ "plugin-options-revision-"+item.ID } name="revision" value={ item.Revision } hx-swap-oob="outerHTML"/>
+ <input type="hidden" id={ "plugin-options-enabled-"+item.ID } name="enabled" value={ pluginSelectionValue(item.Enabled) } hx-swap-oob="outerHTML"/>
+}
 templ PluginWidgetsIndex(page PluginWidgetList) {
- @pageheader.PageHeader(pageheader.Config{Title:"Plugins/Widgets",Description:"Open a saved widget to configure it, or choose an available widget to add another.",HideSeparator:true})
- <section aria-label="Saved widgets">
-  <h2>Saved widgets</h2>
-  if len(page.Saved)==0 {
-   @emptystate.EmptyState(emptystate.Config{Title:"No saved widgets",Description:"Choose an available widget below to create its first configuration."})
-  } else {
-   @PluginWidgetTable(page.Saved,true)
-  }
- </section>
- <section aria-label="Available widgets">
-  <h2>Available widgets</h2>
-  if len(page.Available)==0 {
-   @emptystate.EmptyState(emptystate.Config{Title:"No widgets available",Description:"Available widgets appear here when a compatible plugin and connection are configured."})
-  } else {
-   @PluginWidgetTable(page.Available,false)
-  }
- </section>
+ @pageheader.PageHeader(pageheader.Config{Title:"Plugins/Widgets",Description:"Choose what appears on your homepage. Open a widget to configure its options.",HideSeparator:true})
+ if len(page.Rows)==0 {
+  @emptystate.EmptyState(emptystate.Config{Title:"No widgets available",Description:"Widgets appear here when a compatible plugin and connection are configured."})
+ } else {
+  <div class="balemoh-table-scroll">
+   @table.Table(table.Config{ID:"plugin-widgets-table",Caption:"Plugin widgets and homepage selection",Columns:pluginWidgetColumns(),Rows:pluginWidgetRows(page.Rows)})
+  </div>
+ }
+}
+templ PluginWidgetAddAnother(url string) {
+ if url!="" {
+  @link.Link(url) { Add another widget }
+ }
 }
 templ PluginWidgets(page PluginManagement) {
- @pageheader.PageHeader(pageheader.Config{Title:page.Name,Description:page.PluginName+" · "+page.ConnectionName,HideSeparator:true,Breadcrumbs:breadcrumbs.Breadcrumbs(breadcrumbs.Config{Items:[]breadcrumbs.Item{{Label:"Plugins/Widgets",Href:"/plugins/widgets"}},Current:page.Name})})
+ @pageheader.PageHeader(pageheader.Config{Title:page.Name,Description:page.PluginName+" · "+page.ConnectionName,HideSeparator:true,Actions:PluginWidgetAddAnother(page.NewURL),Breadcrumbs:breadcrumbs.Breadcrumbs(breadcrumbs.Config{Items:[]breadcrumbs.Item{{Label:"Plugins/Widgets",Href:"/plugins/widgets"}},Current:page.Name})})
  if page.Error != "" {
   <div role="alert" tabindex="-1" autofocus id="plugin-form-error">
    @alert.Alert(alert.Config{Title:"Widget could not be saved",Description:page.Error,Tone:alert.ToneWarning})
@@ -90,8 +104,8 @@ templ PluginPlacementForm(f PluginForm, optionsAvailable bool) {
   if optionsAvailable {
   @form.Form(form.Config{Action:f.Action,Method:"post",Footer:&form.FooterConfig{SubmitLabel:"Save options",CancelLabel:"Back to list",CancelHref:"/plugins/widgets"}}) {
    <input type="hidden" name="placementId" value={ f.ID }/>
-   <input type="hidden" name="revision" value={ f.Revision }/>
-   <input type="hidden" name="enabled" value={ f.Value("enabled") }/>
+   <input type="hidden" id={ "plugin-options-revision-"+f.ID } name="revision" value={ f.Revision }/>
+   <input type="hidden" id={ "plugin-options-enabled-"+f.ID } name="enabled" value={ f.Value("enabled") }/>
    <div class="balemoh-widget-form-fields">
    for _, field := range f.Fields {
     if field.Type == "array" && field.Items != nil {
@@ -121,16 +135,9 @@ templ PluginPlacementForm(f PluginForm, optionsAvailable bool) {
    @alert.Alert(alert.Config{Title:"Widget definition unavailable",Description:"Saved configuration is retained. Restore the plugin to edit its options.",Tone:alert.ToneWarning})
   }
   if !f.Create {
-   <form class="balemoh-widget-actions" method="post" action={ templ.SafeURL("/plugin-widgets/"+f.ID+"/selection") }>
-    <input type="hidden" name="revision" value={ f.Revision }/>
-    if f.Enabled {
-     <input type="hidden" name="enabled" value="false"/>
-     @button.Button(button.WithType("submit"),button.WithTone(button.ToneSecondary)) { Remove from home }
-    } else {
-     <input type="hidden" name="enabled" value="true"/>
-     @button.Button(button.WithType("submit"),button.WithTone(button.ToneSecondary)) { Show on home }
-    }
-   </form>
+   <div class="balemoh-widget-actions">
+    @PluginWidgetSelection(PluginWidgetRow{ID:f.ID,Title:f.Title,Revision:f.Revision,Enabled:f.Enabled,Saved:true,SelectionURL:"/plugin-widgets/"+f.ID+"/selection"},false,false)
+   </div>
    <form class="balemoh-widget-actions" method="post" action={ templ.SafeURL("/plugin-widgets/"+f.ID+"/delete") }>
     <input type="hidden" name="revision" value={ f.Revision }/>
     @checkbox.Checkbox(checkbox.Config{ID:f.ID+"-confirm",Name:"confirm",Value:"true",Label:"Delete saved widget configuration",InputAttrs:templ.Attributes{"required":true}})

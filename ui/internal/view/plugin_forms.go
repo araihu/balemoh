@@ -16,16 +16,18 @@ type PluginForm struct {
 	Create                             bool
 }
 type PluginManagement struct {
-	Name, PluginName, ConnectionName, Error, ReloadURL string
-	Form                                               PluginForm
-	OptionsAvailable                                   bool
+	Name, PluginName, ConnectionName, Error, ReloadURL, NewURL string
+	Form                                                       PluginForm
+	OptionsAvailable                                           bool
 }
 type PluginWidgetRow struct {
-	ID, Title, Plugin, Connection, URL string
-	Enabled                            bool
+	ID, Title, Plugin, Connection, URL, SelectionURL, Revision string
+	PluginID, ConnectionID, ContributionID                     string
+	Error                                                      string
+	Enabled, Saved, Disabled                                   bool
 }
 type PluginWidgetList struct {
-	Saved, Available []PluginWidgetRow
+	Rows []PluginWidgetRow
 }
 
 func (f PluginForm) Value(key string) string {
