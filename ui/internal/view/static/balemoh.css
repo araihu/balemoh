@@ -352,3 +352,9 @@ body {
 .balemoh-notification-center .balemoh-notification-page-toolbar { padding: .6rem 1.25rem; font-size: .75rem; color: var(--balemoh-muted); }
 .balemoh-notification-center .balemoh-notification-group-heading { padding-top: .4rem; }
 .balemoh-notification-center #notification-page-list + a { display: inline-block; margin: 0 1.25rem 1rem; }
+@media (max-width: 480px) {
+ .balemoh-notification-center-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+ .balemoh-notification-center-heading h1 { font-size: 1.125rem; }
+ .balemoh-notification-center-heading .balemoh-header-icon { width: 2rem; height: 2rem; }
+ .balemoh-notification-center-heading .balemoh-notification-filter { grid-column: 1 / -1; grid-row: 2; }
+}
