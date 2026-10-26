@@ -21,3 +21,10 @@ sources:
     license: MIT
     licensePath: LICENSE
     licenseUrl: https://raw.githubusercontent.com/tailwindlabs/heroicons/0435d4ca364a608cc75e2f8683d374e55abbae26/LICENSE
+  - id: lucide
+    kind: file
+    url: https://raw.githubusercontent.com/lucide-icons/lucide/03f11e2d6adc319ea21e9a1d5820a99cd3767257/icons/check-check.svg
+    path: check-check.svg
+    license: ISC
+    licensePath: LICENSE
+    licenseUrl: https://raw.githubusercontent.com/lucide-icons/lucide/03f11e2d6adc319ea21e9a1d5820a99cd3767257/LICENSE

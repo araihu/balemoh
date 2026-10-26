@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/badge"
 	"github.com/araihu/goshtoso/components/button"
 	"github.com/araihu/goshtoso/components/checkbox"
@@ -75,7 +76,7 @@ templ NotificationTray() {
 		}
 		<div hx-sync:inherited="#balemoh-notifications:queue last" hx-request:inherited="timeout:4s" hx-disable:inherited="#notification-mark-all, #notification-actions-trigger" hx-include:inherited="#notification-filter">
 			@dropdown.Dropdown(dropdown.Config{ID: "notification-actions", Label: "Notification actions", Trigger: NotificationActionsTrigger(), MenuAlign: dropdown.AlignEnd, Sections: []dropdown.Section{{Items: []dropdown.Item{
-				{ID: "notification-mark-all", Label: "Mark all as read", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCheckCircle, Decorative: true}), HTMX: &dropdown.HTMXConfig{Post: "/notifications/read-all", Target: "#notification-read-all-status", Swap: "innerMorph", Vals: `{"returnTo":"tray"}`}},
+				{ID: "notification-mark-all", Label: "Mark all as read", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconLucideCheckCheck, Decorative: true}), HTMX: &dropdown.HTMXConfig{Post: "/notifications/read-all", Target: "#notification-read-all-status", Swap: "innerMorph", Vals: `{"returnTo":"tray"}`}},
 				{Label: "Refresh notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true}), OnClick: "window.dispatchEvent(new CustomEvent('notifications:refresh'))"},
 			}}}})
 		</div>
@@ -105,7 +106,7 @@ templ NotificationMarkAllForm(returnTo string) {
 	<form method="post" action="/notifications/read-all" hx-post="/notifications/read-all" hx-target="#notification-page-read-status" hx-swap="innerMorph" hx-sync="#balemoh-notifications:queue last" hx-request="timeout:4s" hx-disable="find button[type='submit']">
 		<input type="hidden" name="returnTo" value={ returnTo }/>
 		@button.Button(button.WithType("submit"), button.WithAppearance(button.AppearancePlain), button.WithLoadingText("Marking read…"), button.WithRootClass("balemoh-header-icon"), button.WithAttrs(templ.Attributes{"aria-label": "Mark all as read", "title": "Mark all as read"})) {
-			@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCheckCircle, Decorative: true})
+			@appicons.Icon(appicons.Config{Symbol: appicons.IconLucideCheckCheck, Decorative: true})
 		}
 	</form>
 }
