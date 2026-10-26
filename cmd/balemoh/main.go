@@ -108,6 +108,12 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 		catalogService,
 		sourceTokens,
 	)
+	notificationService, notificationAuth, err := configureNotifications(options, db)
+	if err != nil {
+		_ = db.Close()
+		return nil, nil, nil, fmt.Errorf("configure notifications: %w", err)
+	}
+	handler = handler.WithNotifications(notificationService, notificationAuth)
 	handler = handler.WithIcons(sqlite.NewIconStore(db))
 	telemetryStore := sqlite.NewTelemetryStore(db)
 	sources := []telemetry.Source{}

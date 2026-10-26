@@ -38,6 +38,23 @@ type DiscoverySourceSnapshot struct {
 	ObservedAt string `json:"observed_at"`
 }
 
+type Notification struct {
+	Sequence        int64          `json:"sequence"`
+	ID              string         `json:"id"`
+	SourceKind      string         `json:"source_kind"`
+	SourceID        string         `json:"source_id"`
+	ConnectionID    string         `json:"connection_id"`
+	EventID         string         `json:"event_id"`
+	Severity        string         `json:"severity"`
+	Title           string         `json:"title"`
+	Body            string         `json:"body"`
+	OccurredAt      string         `json:"occurred_at"`
+	ReceivedAt      string         `json:"received_at"`
+	DestinationJson string         `json:"destination_json"`
+	PayloadJson     string         `json:"payload_json"`
+	ReadAt          sql.NullString `json:"read_at"`
+}
+
 type PluginConnection struct {
 	ID             string `json:"id"`
 	PluginID       string `json:"plugin_id"`

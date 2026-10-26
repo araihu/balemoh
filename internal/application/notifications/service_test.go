@@ -1,0 +1,120 @@
+package notifications
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+)
+
+type recordingStore struct {
+	publishCalls int
+	canonical    []byte
+	message      Message
+}
+
+func (s *recordingStore) Publish(_ context.Context, _ Source, message Message, canonical []byte, _ time.Time) (Receipt, error) {
+	s.publishCalls++
+	s.canonical = append([]byte(nil), canonical...)
+	s.message = message
+	return Receipt{ID: "receipt", CreatedAt: time.Unix(10, 0).UTC(), Accepted: true}, nil
+}
+
+func (s *recordingStore) List(context.Context, ListOptions) (Page, error) { return Page{}, nil }
+func (s *recordingStore) Get(context.Context, string) (Notification, error) {
+	return Notification{}, ErrNotFound
+}
+func (s *recordingStore) MarkRead(context.Context, string, time.Time) error { return nil }
+
+func TestServicePublishNormalizesAndCanonicalizes(t *testing.T) {
+	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)
+	store := &recordingStore{}
+	service := NewServiceWithClock(store, func() time.Time { return now })
+	receipt, err := service.Publish(context.Background(), Source{Kind: " external ", ID: " agent "}, Message{
+		EventID: "event-1", Severity: SeverityWarning, Title: "hostile <title>", Body: "line 1\nline 2", OccurredAt: now,
+		Destination: Destination{Kind: SourceExternal, URL: "https://example.test/path?a=1"},
+	})
+	if err != nil {
+		t.Fatalf("Publish() error = %v", err)
+	}
+	if !receipt.Accepted || store.publishCalls != 1 {
+		t.Fatalf("receipt = %#v, calls = %d", receipt, store.publishCalls)
+	}
+	if store.message.Title != "hostile <title>" || store.message.Body != "line 1\nline 2" || store.message.EventID != "event-1" {
+		t.Fatalf("normalized message = %#v", store.message)
+	}
+	if !strings.Contains(string(store.canonical), "hostile") {
+		t.Fatalf("canonical payload lost title: %s", store.canonical)
+	}
+}
+
+func TestSourceValidationSeparatesConnectionIdentity(t *testing.T) {
+	validPlugin := Source{Kind: SourcePlugin, ID: "alertmanager", ConnectionID: "550e8400-e29b-41d4-a716-446655440000"}
+	if err := validPlugin.Validate(); err != nil {
+		t.Fatalf("valid plugin source rejected: %v", err)
+	}
+	for _, source := range []Source{
+		{Kind: "unknown", ID: "one"},
+		{Kind: SourcePlugin, ID: "one"},
+		{Kind: SourceCore, ID: "one", ConnectionID: "connection"},
+		{Kind: SourceExternal, ID: "one\x00two"},
+	} {
+		if err := source.Validate(); !errors.Is(err, ErrInvalid) {
+			t.Errorf("Source(%#v) error = %v, want ErrInvalid", source, err)
+		}
+	}
+}
+
+func TestMessageValidationRejectsUnsafeValuesAndHostileURLs(t *testing.T) {
+	now := time.Now().UTC()
+	base := Message{EventID: "event", Severity: SeverityInfo, Title: "title", OccurredAt: now}
+	cases := []struct {
+		name   string
+		mutate func(*Message)
+	}{
+		{name: "future", mutate: func(m *Message) { m.OccurredAt = now.Add(5*time.Minute + time.Nanosecond) }},
+		{name: "title too long", mutate: func(m *Message) { m.Title = strings.Repeat("x", MaxTitleCharacters+1) }},
+		{name: "body too long", mutate: func(m *Message) { m.Body = strings.Repeat("x", MaxBodyCharacters+1) }},
+		{name: "invalid severity", mutate: func(m *Message) { m.Severity = "fatal" }},
+		{name: "userinfo URL", mutate: func(m *Message) {
+			m.Destination = Destination{Kind: SourceExternal, URL: "https://user:password@example.test"}
+		}},
+		{name: "protocol relative URL", mutate: func(m *Message) { m.Destination = Destination{Kind: SourceExternal, URL: "//example.test/path"} }},
+		{name: "invalid port URL", mutate: func(m *Message) {
+			m.Destination = Destination{Kind: SourceExternal, URL: "https://example.test:99999/path"}
+		}},
+		{name: "plugin route missing UUID", mutate: func(m *Message) {
+			m.Destination = Destination{Kind: SourcePlugin, PluginID: "p", ConnectionID: "not-a-uuid", Page: "page"}
+		}},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			message := base
+			test.mutate(&message)
+			if err := message.Validate(now); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("Message.Validate() error = %v, want ErrInvalid", err)
+			}
+		})
+	}
+}
+
+func TestCanonicalPayloadSortsMaps(t *testing.T) {
+	now := time.Unix(100, 0).UTC()
+	message := Message{EventID: "event", Severity: SeveritySuccess, Title: "title", OccurredAt: now, Destination: Destination{
+		Kind: SourceCore, Route: "/notifications", Params: map[string]string{"z": "last", "a": "first"}, Query: map[string][]string{"q": {"one", "two"}},
+	}}
+	first, err := CanonicalPayload(Source{Kind: SourceCore, ID: "service"}, message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := CanonicalPayload(Source{Kind: SourceCore, ID: "service"}, Message{EventID: "event", Severity: SeveritySuccess, Title: "title", OccurredAt: now, Destination: Destination{
+		Kind: SourceCore, Route: "/notifications", Params: map[string]string{"a": "first", "z": "last"}, Query: map[string][]string{"q": {"one", "two"}},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(first) != string(second) {
+		t.Fatalf("canonical payload differs for map order: %s != %s", first, second)
+	}
+}

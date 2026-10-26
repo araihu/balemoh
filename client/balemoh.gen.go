@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	FederationBearerScopes federationBearerContextKey = "FederationBearer.Scopes"
-	PluginServiceScopes    pluginServiceContextKey    = "PluginService.Scopes"
+	FederationBearerScopes      federationBearerContextKey      = "FederationBearer.Scopes"
+	NotificationOperatorScopes  notificationOperatorContextKey  = "NotificationOperator.Scopes"
+	NotificationPublisherScopes notificationPublisherContextKey = "NotificationPublisher.Scopes"
+	PluginServiceScopes         pluginServiceContextKey         = "PluginService.Scopes"
 )
 
 // Defines values for HealthResponseStatus.
@@ -98,6 +100,96 @@ func (e HostDetailRange) Valid() bool {
 	case HostDetailRangeN1h:
 		return true
 	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSeverity.
+const (
+	NotificationSeverityCritical NotificationSeverity = "critical"
+	NotificationSeverityInfo     NotificationSeverity = "info"
+	NotificationSeveritySuccess  NotificationSeverity = "success"
+	NotificationSeverityWarning  NotificationSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSeverity enum.
+func (e NotificationSeverity) Valid() bool {
+	switch e {
+	case NotificationSeverityCritical:
+		return true
+	case NotificationSeverityInfo:
+		return true
+	case NotificationSeveritySuccess:
+		return true
+	case NotificationSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationDestinationKind.
+const (
+	NotificationDestinationKindCore     NotificationDestinationKind = "core"
+	NotificationDestinationKindExternal NotificationDestinationKind = "external"
+	NotificationDestinationKindPlugin   NotificationDestinationKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationDestinationKind enum.
+func (e NotificationDestinationKind) Valid() bool {
+	switch e {
+	case NotificationDestinationKindCore:
+		return true
+	case NotificationDestinationKindExternal:
+		return true
+	case NotificationDestinationKindPlugin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPublishRequestSeverity.
+const (
+	NotificationPublishRequestSeverityCritical NotificationPublishRequestSeverity = "critical"
+	NotificationPublishRequestSeverityInfo     NotificationPublishRequestSeverity = "info"
+	NotificationPublishRequestSeveritySuccess  NotificationPublishRequestSeverity = "success"
+	NotificationPublishRequestSeverityWarning  NotificationPublishRequestSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationPublishRequestSeverity enum.
+func (e NotificationPublishRequestSeverity) Valid() bool {
+	switch e {
+	case NotificationPublishRequestSeverityCritical:
+		return true
+	case NotificationPublishRequestSeverityInfo:
+		return true
+	case NotificationPublishRequestSeveritySuccess:
+		return true
+	case NotificationPublishRequestSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSourceKind.
+const (
+	NotificationSourceKindCore     NotificationSourceKind = "core"
+	NotificationSourceKindExternal NotificationSourceKind = "external"
+	NotificationSourceKindPlugin   NotificationSourceKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSourceKind enum.
+func (e NotificationSourceKind) Valid() bool {
+	switch e {
+	case NotificationSourceKindCore:
+		return true
+	case NotificationSourceKindExternal:
+		return true
+	case NotificationSourceKindPlugin:
 		return true
 	default:
 		return false
@@ -367,6 +459,75 @@ type ManualServiceCreate struct {
 	RequestId string `json:"requestId"`
 }
 
+// Notification defines model for Notification.
+type Notification struct {
+	Body        string                   `json:"body"`
+	Destination *NotificationDestination `json:"destination,omitempty"`
+	EventId     string                   `json:"eventId"`
+	Id          openapi_types.UUID       `json:"id"`
+	OccurredAt  time.Time                `json:"occurredAt"`
+	ReadAt      *time.Time               `json:"readAt"`
+	ReceivedAt  time.Time                `json:"receivedAt"`
+	Severity    NotificationSeverity     `json:"severity"`
+	Source      NotificationSource       `json:"source"`
+	Title       string                   `json:"title"`
+}
+
+// NotificationSeverity defines model for Notification.Severity.
+type NotificationSeverity string
+
+// NotificationDestination defines model for NotificationDestination.
+type NotificationDestination struct {
+	ConnectionId *string                     `json:"connectionId,omitempty"`
+	Kind         NotificationDestinationKind `json:"kind"`
+	Page         *string                     `json:"page,omitempty"`
+	Params       *map[string]string          `json:"params,omitempty"`
+	PluginId     *string                     `json:"pluginId,omitempty"`
+	Query        *map[string][]string        `json:"query,omitempty"`
+	Route        *string                     `json:"route,omitempty"`
+	Url          *string                     `json:"url,omitempty"`
+}
+
+// NotificationDestinationKind defines model for NotificationDestination.Kind.
+type NotificationDestinationKind string
+
+// NotificationPage defines model for NotificationPage.
+type NotificationPage struct {
+	NextCursor    *string        `json:"nextCursor,omitempty"`
+	Notifications []Notification `json:"notifications"`
+	UnreadCount   int32          `json:"unreadCount"`
+}
+
+// NotificationPublishRequest defines model for NotificationPublishRequest.
+type NotificationPublishRequest struct {
+	Body        *string                            `json:"body,omitempty"`
+	Destination *NotificationDestination           `json:"destination,omitempty"`
+	EventId     string                             `json:"eventId"`
+	OccurredAt  time.Time                          `json:"occurredAt"`
+	Severity    NotificationPublishRequestSeverity `json:"severity"`
+	Title       string                             `json:"title"`
+}
+
+// NotificationPublishRequestSeverity defines model for NotificationPublishRequest.Severity.
+type NotificationPublishRequestSeverity string
+
+// NotificationReceipt defines model for NotificationReceipt.
+type NotificationReceipt struct {
+	Accepted  bool               `json:"accepted"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
+// NotificationSource defines model for NotificationSource.
+type NotificationSource struct {
+	ConnectionId *string                `json:"connectionId,omitempty"`
+	Id           string                 `json:"id"`
+	Kind         NotificationSourceKind `json:"kind"`
+}
+
+// NotificationSourceKind defines model for NotificationSource.Kind.
+type NotificationSourceKind string
+
 // PluginCatalog defines model for PluginCatalog.
 type PluginCatalog struct {
 	Plugins  []PluginDescriptor          `json:"plugins"`
@@ -567,6 +728,12 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// notificationOperatorContextKey is the context key for NotificationOperator security scheme
+type notificationOperatorContextKey string
+
+// notificationPublisherContextKey is the context key for NotificationPublisher security scheme
+type notificationPublisherContextKey string
+
 // pluginServiceContextKey is the context key for PluginService security scheme
 type pluginServiceContextKey string
 
@@ -586,6 +753,13 @@ type GetHostParamsRange string
 // DeleteIconParams defines parameters for DeleteIcon.
 type DeleteIconParams struct {
 	Digest string `form:"digest" json:"digest"`
+}
+
+// GetNotificationsParams defines parameters for GetNotifications.
+type GetNotificationsParams struct {
+	Before *string `form:"before,omitempty" json:"before,omitempty"`
+	Unread *bool   `form:"unread,omitempty" json:"unread,omitempty"`
+	Limit  *int32  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // DeletePluginWidgetParams defines parameters for DeletePluginWidget.
@@ -625,6 +799,9 @@ type UploadIconJSONRequestBody = IconUpload
 
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
+
+// PublishNotificationJSONRequestBody defines body for PublishNotification for application/json ContentType.
+type PublishNotificationJSONRequestBody = NotificationPublishRequest
 
 // PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
 type PutPluginWidgetJSONRequestBody = PluginPlacementBody
@@ -762,6 +939,20 @@ type ClientInterface interface {
 
 	// GetIconImage request
 	GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotifications request
+	GetNotifications(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PublishNotificationWithBody request with any body
+	PublishNotificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotification request
+	GetNotification(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MarkNotificationRead request
+	MarkNotificationRead(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPluginWidgets request
 	GetPluginWidgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1016,6 +1207,66 @@ func (c *Client) UpdateIcon(ctx context.Context, iconID string, body UpdateIconJ
 
 func (c *Client) GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetIconImageRequest(c.Server, iconID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetNotifications(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotificationsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PublishNotificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPublishNotificationRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPublishNotificationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetNotification(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotificationRequest(c.Server, notificationId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MarkNotificationRead(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMarkNotificationReadRequest(c.Server, notificationId)
 	if err != nil {
 		return nil, err
 	}
@@ -1738,6 +1989,192 @@ func NewGetIconImageRequest(server string, iconID string) (*http.Request, error)
 	return req, nil
 }
 
+// NewGetNotificationsRequest generates requests for GetNotifications
+func NewGetNotificationsRequest(server string, params *GetNotificationsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Before != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "before", *params.Before, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Unread != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "unread", *params.Unread, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPublishNotificationRequest calls the generic PublishNotification builder with application/json body
+func NewPublishNotificationRequest(server string, body PublishNotificationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPublishNotificationRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPublishNotificationRequestWithBody generates requests for PublishNotification with any type of body
+func NewPublishNotificationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetNotificationRequest generates requests for GetNotification
+func NewGetNotificationRequest(server string, notificationId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notificationId", notificationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewMarkNotificationReadRequest generates requests for MarkNotificationRead
+func NewMarkNotificationReadRequest(server string, notificationId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notificationId", notificationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/%s/read", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetPluginWidgetsRequest generates requests for GetPluginWidgets
 func NewGetPluginWidgetsRequest(server string) (*http.Request, error) {
 	var err error
@@ -2312,6 +2749,20 @@ type ClientWithResponsesInterface interface {
 	// GetIconImageWithResponse request
 	GetIconImageWithResponse(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*GetIconImageResponse, error)
 
+	// GetNotificationsWithResponse request
+	GetNotificationsWithResponse(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*GetNotificationsResponse, error)
+
+	// PublishNotificationWithBodyWithResponse request with any body
+	PublishNotificationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error)
+
+	PublishNotificationWithResponse(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error)
+
+	// GetNotificationWithResponse request
+	GetNotificationWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*GetNotificationResponse, error)
+
+	// MarkNotificationReadWithResponse request
+	MarkNotificationReadWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*MarkNotificationReadResponse, error)
+
 	// GetPluginWidgetsWithResponse request
 	GetPluginWidgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginWidgetsResponse, error)
 
@@ -2749,6 +3200,126 @@ func (r GetIconImageResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetIconImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetNotificationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *NotificationPage
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotificationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotificationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetNotificationsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PublishNotificationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *NotificationReceipt
+	JSON201      *NotificationReceipt
+}
+
+// Status returns HTTPResponse.Status
+func (r PublishNotificationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PublishNotificationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PublishNotificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetNotificationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Notification
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotificationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotificationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetNotificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type MarkNotificationReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r MarkNotificationReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MarkNotificationReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MarkNotificationReadResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3279,6 +3850,50 @@ func (c *ClientWithResponses) GetIconImageWithResponse(ctx context.Context, icon
 	return ParseGetIconImageResponse(rsp)
 }
 
+// GetNotificationsWithResponse request returning *GetNotificationsResponse
+func (c *ClientWithResponses) GetNotificationsWithResponse(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*GetNotificationsResponse, error) {
+	rsp, err := c.GetNotifications(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotificationsResponse(rsp)
+}
+
+// PublishNotificationWithBodyWithResponse request with arbitrary body returning *PublishNotificationResponse
+func (c *ClientWithResponses) PublishNotificationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error) {
+	rsp, err := c.PublishNotificationWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePublishNotificationResponse(rsp)
+}
+
+func (c *ClientWithResponses) PublishNotificationWithResponse(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error) {
+	rsp, err := c.PublishNotification(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePublishNotificationResponse(rsp)
+}
+
+// GetNotificationWithResponse request returning *GetNotificationResponse
+func (c *ClientWithResponses) GetNotificationWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*GetNotificationResponse, error) {
+	rsp, err := c.GetNotification(ctx, notificationId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotificationResponse(rsp)
+}
+
+// MarkNotificationReadWithResponse request returning *MarkNotificationReadResponse
+func (c *ClientWithResponses) MarkNotificationReadWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*MarkNotificationReadResponse, error) {
+	rsp, err := c.MarkNotificationRead(ctx, notificationId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMarkNotificationReadResponse(rsp)
+}
+
 // GetPluginWidgetsWithResponse request returning *GetPluginWidgetsResponse
 func (c *ClientWithResponses) GetPluginWidgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginWidgetsResponse, error) {
 	rsp, err := c.GetPluginWidgets(ctx, reqEditors...)
@@ -3776,6 +4391,107 @@ func ParseGetIconImageResponse(rsp *http.Response) (*GetIconImageResponse, error
 	}
 
 	response := &GetIconImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetNotificationsResponse parses an HTTP response from a GetNotificationsWithResponse call
+func ParseGetNotificationsResponse(rsp *http.Response) (*GetNotificationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotificationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePublishNotificationResponse parses an HTTP response from a PublishNotificationWithResponse call
+func ParsePublishNotificationResponse(rsp *http.Response) (*PublishNotificationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PublishNotificationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationReceipt
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest NotificationReceipt
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetNotificationResponse parses an HTTP response from a GetNotificationWithResponse call
+func ParseGetNotificationResponse(rsp *http.Response) (*GetNotificationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotificationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Notification
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMarkNotificationReadResponse parses an HTTP response from a MarkNotificationReadWithResponse call
+func ParseMarkNotificationReadResponse(rsp *http.Response) (*MarkNotificationReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MarkNotificationReadResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	FederationBearerScopes federationBearerContextKey = "FederationBearer.Scopes"
-	PluginServiceScopes    pluginServiceContextKey    = "PluginService.Scopes"
+	FederationBearerScopes      federationBearerContextKey      = "FederationBearer.Scopes"
+	NotificationOperatorScopes  notificationOperatorContextKey  = "NotificationOperator.Scopes"
+	NotificationPublisherScopes notificationPublisherContextKey = "NotificationPublisher.Scopes"
+	PluginServiceScopes         pluginServiceContextKey         = "PluginService.Scopes"
 )
 
 // Defines values for HealthResponseStatus.
@@ -96,6 +98,96 @@ func (e HostDetailRange) Valid() bool {
 	case HostDetailRangeN1h:
 		return true
 	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSeverity.
+const (
+	NotificationSeverityCritical NotificationSeverity = "critical"
+	NotificationSeverityInfo     NotificationSeverity = "info"
+	NotificationSeveritySuccess  NotificationSeverity = "success"
+	NotificationSeverityWarning  NotificationSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSeverity enum.
+func (e NotificationSeverity) Valid() bool {
+	switch e {
+	case NotificationSeverityCritical:
+		return true
+	case NotificationSeverityInfo:
+		return true
+	case NotificationSeveritySuccess:
+		return true
+	case NotificationSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationDestinationKind.
+const (
+	NotificationDestinationKindCore     NotificationDestinationKind = "core"
+	NotificationDestinationKindExternal NotificationDestinationKind = "external"
+	NotificationDestinationKindPlugin   NotificationDestinationKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationDestinationKind enum.
+func (e NotificationDestinationKind) Valid() bool {
+	switch e {
+	case NotificationDestinationKindCore:
+		return true
+	case NotificationDestinationKindExternal:
+		return true
+	case NotificationDestinationKindPlugin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPublishRequestSeverity.
+const (
+	NotificationPublishRequestSeverityCritical NotificationPublishRequestSeverity = "critical"
+	NotificationPublishRequestSeverityInfo     NotificationPublishRequestSeverity = "info"
+	NotificationPublishRequestSeveritySuccess  NotificationPublishRequestSeverity = "success"
+	NotificationPublishRequestSeverityWarning  NotificationPublishRequestSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationPublishRequestSeverity enum.
+func (e NotificationPublishRequestSeverity) Valid() bool {
+	switch e {
+	case NotificationPublishRequestSeverityCritical:
+		return true
+	case NotificationPublishRequestSeverityInfo:
+		return true
+	case NotificationPublishRequestSeveritySuccess:
+		return true
+	case NotificationPublishRequestSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSourceKind.
+const (
+	NotificationSourceKindCore     NotificationSourceKind = "core"
+	NotificationSourceKindExternal NotificationSourceKind = "external"
+	NotificationSourceKindPlugin   NotificationSourceKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSourceKind enum.
+func (e NotificationSourceKind) Valid() bool {
+	switch e {
+	case NotificationSourceKindCore:
+		return true
+	case NotificationSourceKindExternal:
+		return true
+	case NotificationSourceKindPlugin:
 		return true
 	default:
 		return false
@@ -365,6 +457,75 @@ type ManualServiceCreate struct {
 	RequestId string `json:"requestId"`
 }
 
+// Notification defines model for Notification.
+type Notification struct {
+	Body        string                   `json:"body"`
+	Destination *NotificationDestination `json:"destination,omitempty"`
+	EventId     string                   `json:"eventId"`
+	Id          openapi_types.UUID       `json:"id"`
+	OccurredAt  time.Time                `json:"occurredAt"`
+	ReadAt      *time.Time               `json:"readAt"`
+	ReceivedAt  time.Time                `json:"receivedAt"`
+	Severity    NotificationSeverity     `json:"severity"`
+	Source      NotificationSource       `json:"source"`
+	Title       string                   `json:"title"`
+}
+
+// NotificationSeverity defines model for Notification.Severity.
+type NotificationSeverity string
+
+// NotificationDestination defines model for NotificationDestination.
+type NotificationDestination struct {
+	ConnectionId *string                     `json:"connectionId,omitempty"`
+	Kind         NotificationDestinationKind `json:"kind"`
+	Page         *string                     `json:"page,omitempty"`
+	Params       *map[string]string          `json:"params,omitempty"`
+	PluginId     *string                     `json:"pluginId,omitempty"`
+	Query        *map[string][]string        `json:"query,omitempty"`
+	Route        *string                     `json:"route,omitempty"`
+	Url          *string                     `json:"url,omitempty"`
+}
+
+// NotificationDestinationKind defines model for NotificationDestination.Kind.
+type NotificationDestinationKind string
+
+// NotificationPage defines model for NotificationPage.
+type NotificationPage struct {
+	NextCursor    *string        `json:"nextCursor,omitempty"`
+	Notifications []Notification `json:"notifications"`
+	UnreadCount   int32          `json:"unreadCount"`
+}
+
+// NotificationPublishRequest defines model for NotificationPublishRequest.
+type NotificationPublishRequest struct {
+	Body        *string                            `json:"body,omitempty"`
+	Destination *NotificationDestination           `json:"destination,omitempty"`
+	EventId     string                             `json:"eventId"`
+	OccurredAt  time.Time                          `json:"occurredAt"`
+	Severity    NotificationPublishRequestSeverity `json:"severity"`
+	Title       string                             `json:"title"`
+}
+
+// NotificationPublishRequestSeverity defines model for NotificationPublishRequest.Severity.
+type NotificationPublishRequestSeverity string
+
+// NotificationReceipt defines model for NotificationReceipt.
+type NotificationReceipt struct {
+	Accepted  bool               `json:"accepted"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
+// NotificationSource defines model for NotificationSource.
+type NotificationSource struct {
+	ConnectionId *string                `json:"connectionId,omitempty"`
+	Id           string                 `json:"id"`
+	Kind         NotificationSourceKind `json:"kind"`
+}
+
+// NotificationSourceKind defines model for NotificationSource.Kind.
+type NotificationSourceKind string
+
 // PluginCatalog defines model for PluginCatalog.
 type PluginCatalog struct {
 	Plugins  []PluginDescriptor          `json:"plugins"`
@@ -565,6 +726,12 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// notificationOperatorContextKey is the context key for NotificationOperator security scheme
+type notificationOperatorContextKey string
+
+// notificationPublisherContextKey is the context key for NotificationPublisher security scheme
+type notificationPublisherContextKey string
+
 // pluginServiceContextKey is the context key for PluginService security scheme
 type pluginServiceContextKey string
 
@@ -584,6 +751,13 @@ type GetHostParamsRange string
 // DeleteIconParams defines parameters for DeleteIcon.
 type DeleteIconParams struct {
 	Digest string `form:"digest" json:"digest"`
+}
+
+// GetNotificationsParams defines parameters for GetNotifications.
+type GetNotificationsParams struct {
+	Before *string `form:"before,omitempty" json:"before,omitempty"`
+	Unread *bool   `form:"unread,omitempty" json:"unread,omitempty"`
+	Limit  *int32  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // DeletePluginWidgetParams defines parameters for DeletePluginWidget.
@@ -623,6 +797,9 @@ type UploadIconJSONRequestBody = IconUpload
 
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
+
+// PublishNotificationJSONRequestBody defines body for PublishNotification for application/json ContentType.
+type PublishNotificationJSONRequestBody = NotificationPublishRequest
 
 // PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
 type PutPluginWidgetJSONRequestBody = PluginPlacementBody
@@ -680,6 +857,18 @@ type ServerInterface interface {
 
 	// (GET /api/v1/icons/{iconID}/image)
 	GetIconImage(w http.ResponseWriter, r *http.Request, iconID string)
+
+	// (GET /api/v1/notifications)
+	GetNotifications(w http.ResponseWriter, r *http.Request, params GetNotificationsParams)
+
+	// (POST /api/v1/notifications)
+	PublishNotification(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/v1/notifications/{notificationId})
+	GetNotification(w http.ResponseWriter, r *http.Request, notificationId string)
+
+	// (PUT /api/v1/notifications/{notificationId}/read)
+	MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId string)
 
 	// (GET /api/v1/plugin-widgets)
 	GetPluginWidgets(w http.ResponseWriter, r *http.Request)
@@ -1013,6 +1202,155 @@ func (siw *ServerInterfaceWrapper) GetIconImage(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetIconImage(w, r, iconID)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNotifications operation middleware
+func (siw *ServerInterfaceWrapper) GetNotifications(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetNotificationsParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unread" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unread", r.URL.Query(), &params.Unread, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unread"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unread", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotifications(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PublishNotification operation middleware
+func (siw *ServerInterfaceWrapper) PublishNotification(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationPublisherScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PublishNotification(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNotification operation middleware
+func (siw *ServerInterfaceWrapper) GetNotification(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "notificationId" -------------
+	var notificationId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "notificationId", r.PathValue("notificationId"), &notificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "notificationId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotification(w, r, notificationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkNotificationRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "notificationId" -------------
+	var notificationId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "notificationId", r.PathValue("notificationId"), &notificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "notificationId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkNotificationRead(w, r, notificationId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1503,6 +1841,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.DeleteIcon)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.UpdateIcon)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{iconID}/image", wrapper.GetIconImage)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications", wrapper.GetNotifications)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notifications", wrapper.PublishNotification)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications/{notificationId}", wrapper.GetNotification)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugin-widgets", wrapper.GetPluginWidgets)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.DeletePluginWidget)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.PutPluginWidget)

@@ -125,6 +125,81 @@ paths:
                 $ref: '#/components/schemas/DashboardSnapshot'
         '503':
           description: Dashboard unavailable
+
+  /api/v1/notifications:
+    get:
+      operationId: GetNotifications
+      security:
+        - NotificationOperator: []
+      parameters:
+        - {name: before, in: query, required: false, schema: {type: string}}
+        - {name: unread, in: query, required: false, schema: {type: boolean, default: false}}
+        - {name: limit, in: query, required: false, schema: {type: integer, format: int32, minimum: 1, maximum: 50, default: 50}}
+      responses:
+        '200':
+          description: One stable inbox page and unread total
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/NotificationPage'}
+        '400': {description: Invalid cursor or page options}
+        '401': {description: Missing or invalid operator credential}
+        '503': {description: Notification storage unavailable}
+    post:
+      operationId: PublishNotification
+      security:
+        - NotificationPublisher: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NotificationPublishRequest'}
+      responses:
+        '201':
+          description: New notification durably accepted
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/NotificationReceipt'}
+        '200':
+          description: Identical event replay acknowledged
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/NotificationReceipt'}
+        '400': {description: Invalid notification envelope}
+        '401': {description: Missing or invalid publisher credential}
+        '409': {description: Event identity conflicts with immutable content}
+        '413': {description: Request body exceeds 16 KiB}
+        '429': {description: Producer concurrency or inbox capacity exceeded}
+        '503': {description: Notification storage unavailable}
+
+  /api/v1/notifications/{notificationId}/read:
+    parameters:
+      - {name: notificationId, in: path, required: true, schema: {type: string}}
+    put:
+      operationId: MarkNotificationRead
+      security:
+        - NotificationOperator: []
+      responses:
+        '204': {description: Notification marked read, including an idempotent replay}
+        '401': {description: Missing or invalid operator credential}
+        '404': {description: Notification was not found}
+        '503': {description: Notification storage unavailable}
+
+  /api/v1/notifications/{notificationId}:
+    parameters:
+      - {name: notificationId, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: GetNotification
+      security:
+        - NotificationOperator: []
+      responses:
+        '200':
+          description: One notification without changing its read state
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Notification'}
+        '401': {description: Missing or invalid operator credential}
+        '404': {description: Notification was not found}
+        '503': {description: Notification storage unavailable}
   /api/v1/dashboard/widgets/{sourceKind}/{sourceId}:
     put:
       operationId: SetDashboardSelection
@@ -557,6 +632,12 @@ components:
     FederationBearer:
       type: http
       scheme: bearer
+    NotificationOperator:
+      type: http
+      scheme: bearer
+    NotificationPublisher:
+      type: http
+      scheme: bearer
   schemas:
     PluginPlacementBody:
       type: object
@@ -829,6 +910,76 @@ components:
           type: string
         id:
           type: string
+
+    NotificationSource:
+      type: object
+      additionalProperties: false
+      required: [kind, id]
+      properties:
+        kind: {type: string, enum: [core, plugin, external]}
+        id: {type: string}
+        connectionId: {type: string, nullable: true}
+
+    NotificationDestination:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: {type: string, enum: [core, plugin, external]}
+        route: {type: string}
+        pluginId: {type: string}
+        connectionId: {type: string}
+        page: {type: string}
+        params: {type: object, additionalProperties: {type: string}}
+        query: {type: object, additionalProperties: {type: array, items: {type: string}}}
+        url: {type: string, format: uri}
+
+    NotificationPublishRequest:
+      type: object
+      additionalProperties: false
+      required: [eventId, severity, title, occurredAt]
+      properties:
+        eventId: {type: string, maxLength: 128}
+        severity: {type: string, enum: [info, success, warning, critical]}
+        title: {type: string, minLength: 1, maxLength: 200}
+        body: {type: string, maxLength: 4000}
+        occurredAt: {type: string, format: date-time}
+        destination: {$ref: '#/components/schemas/NotificationDestination', nullable: true}
+
+    Notification:
+      type: object
+      additionalProperties: false
+      required: [id, source, eventId, severity, title, body, occurredAt, receivedAt, readAt]
+      properties:
+        id: {type: string, format: uuid}
+        source: {$ref: '#/components/schemas/NotificationSource'}
+        eventId: {type: string}
+        severity: {type: string, enum: [info, success, warning, critical]}
+        title: {type: string}
+        body: {type: string}
+        occurredAt: {type: string, format: date-time}
+        receivedAt: {type: string, format: date-time}
+        destination: {$ref: '#/components/schemas/NotificationDestination', nullable: true}
+        readAt: {type: string, format: date-time, nullable: true}
+
+    NotificationReceipt:
+      type: object
+      additionalProperties: false
+      required: [id, createdAt, accepted]
+      properties:
+        id: {type: string, format: uuid}
+        createdAt: {type: string, format: date-time}
+        accepted: {type: boolean}
+
+    NotificationPage:
+      type: object
+      additionalProperties: false
+      required: [notifications, unreadCount]
+      properties:
+        notifications: {type: array, items: {$ref: '#/components/schemas/Notification'}}
+        unreadCount: {type: integer, format: int32, minimum: 0}
+        nextCursor: {type: string, nullable: true}
+
     ResourceRef:
       type: object
       required:

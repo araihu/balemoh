@@ -9,19 +9,31 @@ import (
 	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/application/dashboard"
 	"github.com/araihu/balemoh/internal/application/health"
+	"github.com/araihu/balemoh/internal/application/notifications"
 	"github.com/araihu/balemoh/internal/application/plugins"
 )
 
 type Handler struct {
-	plugins          *plugins.Service
-	pluginToken      string
-	dashboard        *dashboard.Service
-	telemetry        TelemetryStore
-	icons            IconStore
-	checker          health.Checker
-	catalog          catalog.UseCase
-	federation       catalog.SnapshotImporter
-	federationTokens map[catalog.SourceRef]string
+	plugins           *plugins.Service
+	pluginToken       string
+	dashboard         *dashboard.Service
+	telemetry         TelemetryStore
+	icons             IconStore
+	checker           health.Checker
+	catalog           catalog.UseCase
+	federation        catalog.SnapshotImporter
+	federationTokens  map[catalog.SourceRef]string
+	notifications     *notifications.Service
+	notificationAuth  NotificationAuth
+	notificationSlots map[string]chan struct{}
+}
+
+// NotificationAuth contains two intentionally independent bearer classes.
+// OperatorToken can list/read; Publishers can only publish as their mapped
+// external source ID.
+type NotificationAuth struct {
+	OperatorToken string
+	Publishers    map[string]string
 }
 
 func NewHandler(checker health.Checker, catalogService catalog.UseCase) Handler {
@@ -44,6 +56,22 @@ func NewHandlerWithFederation(checker health.Checker, catalogService catalog.Use
 		federation:       importer,
 		federationTokens: tokens,
 	}
+}
+
+func (h Handler) WithNotifications(service *notifications.Service, auth NotificationAuth) Handler {
+	publishers := make(map[string]string, len(auth.Publishers))
+	for sourceID, token := range auth.Publishers {
+		publishers[strings.TrimSpace(sourceID)] = strings.TrimSpace(token)
+	}
+	auth.OperatorToken = strings.TrimSpace(auth.OperatorToken)
+	auth.Publishers = publishers
+	h.notifications = service
+	h.notificationAuth = auth
+	h.notificationSlots = make(map[string]chan struct{}, len(publishers))
+	for sourceID := range publishers {
+		h.notificationSlots[sourceID] = make(chan struct{}, 4)
+	}
+	return h
 }
 
 func (h Handler) GetHealthz(w http.ResponseWriter, r *http.Request) {

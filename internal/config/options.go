@@ -17,6 +17,10 @@ type Options struct {
 	PluginConfig string `env:"BALEMOH_PLUGIN_CONFIG"`
 	// PluginServiceTokenFile contains the private BFF service credential used only by new plugin API routes.
 	PluginServiceTokenFile string `env:"BALEMOH_PLUGIN_SERVICE_TOKEN_FILE"`
+	// NotificationOperatorTokenFile contains the private operator credential used only by notification list and read routes.
+	NotificationOperatorTokenFile string `env:"BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE"`
+	// NotificationPublishersFile points to a bounded JSON object mapping external notification source IDs to token-file paths. Empty disables external publication.
+	NotificationPublishersFile string `env:"BALEMOH_NOTIFICATION_PUBLISHERS_FILE"`
 	// TelemetryEnabled collects host CPU, memory and workload inventory every minute, independently of discovery.
 	TelemetryEnabled bool `env:"BALEMOH_TELEMETRY_ENABLED" envDefault:"false"`
 	// HostProcPath is a read-only mount of the Docker host proc filesystem. Never use the agent container proc filesystem.
@@ -74,6 +78,12 @@ func ParseEnvironment(environment map[string]string) (Options, error) {
 func (o Options) Validate() error {
 	if (strings.TrimSpace(o.PluginConfig) == "") != (strings.TrimSpace(o.PluginServiceTokenFile) == "") {
 		return fmt.Errorf("plugin configuration and service credential file must be set together")
+	}
+	if strings.ContainsRune(o.NotificationOperatorTokenFile, '\x00') || strings.ContainsRune(o.NotificationPublishersFile, '\x00') {
+		return fmt.Errorf("notification credential file paths must not contain NUL")
+	}
+	if (o.NotificationOperatorTokenFile != "" && strings.TrimSpace(o.NotificationOperatorTokenFile) == "") || (o.NotificationPublishersFile != "" && strings.TrimSpace(o.NotificationPublishersFile) == "") {
+		return fmt.Errorf("notification credential file paths must not be whitespace-only")
 	}
 	if o.TelemetryEnabled && !o.ContainerEnabled && !o.KubernetesEnabled {
 		return fmt.Errorf("telemetry requires a local discovery source")
