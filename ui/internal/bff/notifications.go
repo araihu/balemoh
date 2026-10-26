@@ -20,6 +20,7 @@ type NotificationCatalog interface {
 	Notifications(context.Context, string, bool, int) (view.NotificationsPage, error)
 	Notification(context.Context, string) (NotificationRecord, error)
 	MarkNotificationRead(context.Context, string) error
+	ClearNotifications(context.Context) error
 }
 type NotificationRecord struct {
 	Item   view.Notification
@@ -143,6 +144,48 @@ func (s *server) notificationRead(w http.ResponseWriter, r *http.Request) {
 	}
 	renderNotificationFragment(w, r, 200, component)
 }
+func (s *server) notificationClearPage(w http.ResponseWriter, r *http.Request) {
+	page := view.NotificationsPage{ClearConfirmation: true}
+	s.render(w, r, view.PageData{Title: "Clear notifications", Description: "Confirm permanent deletion of the notification inbox.", Path: "/notifications", NotificationsPage: &page}, http.StatusOK)
+}
+
+func (s *server) notificationClear(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 2048)
+	status := http.StatusBadRequest
+	failure := "Confirm permanent deletion of all notifications."
+	if err := r.ParseForm(); err == nil && r.PostForm.Get("confirm") == "true" {
+		client, ok := s.catalog.(NotificationCatalog)
+		ctx, cancel := context.WithTimeout(r.Context(), min(s.timeout, 3*time.Second))
+		defer cancel()
+		var err error
+		if !ok {
+			err = errors.New("notification client unavailable")
+		} else {
+			err = client.ClearNotifications(ctx)
+		}
+		if err == nil {
+			if r.Header.Get("HX-Request-Type") != "partial" {
+				redirect(w, r, "/notifications")
+				return
+			}
+			// Start from the newest page after deleting the entire inbox. A publisher
+			// committing after DELETE may already have delivered a new notification.
+			page, listStatus := s.notificationList(r.Clone(r.Context()), 50)
+			w.Header().Set("HX-Retarget", "#notification-inbox")
+			renderNotificationFragment(w, r, 200, templ.Join(view.NotificationInbox(page, true), view.NotificationSummaryOOB(page.UnreadCount, listStatus == 200)))
+			return
+		}
+		status = http.StatusServiceUnavailable
+		failure = "Clear not confirmed. Refresh the inbox before trying again."
+	}
+	if r.Header.Get("HX-Request-Type") == "partial" {
+		renderNotificationFragment(w, r, status, view.NotificationClearForm(failure, true))
+		return
+	}
+	page := view.NotificationsPage{ClearConfirmation: true, ClearError: failure}
+	s.render(w, r, view.PageData{Title: "Clear notifications", Description: "Confirm permanent deletion of the notification inbox.", Path: "/notifications", NotificationsPage: &page}, status)
+}
+
 func notificationReturnTo(value string) string {
 	if value == "tray" {
 		return value

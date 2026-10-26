@@ -10,6 +10,15 @@ import (
 	"database/sql"
 )
 
+const clearNotifications = `-- name: ClearNotifications :exec
+DELETE FROM notifications
+`
+
+func (q *Queries) ClearNotifications(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, clearNotifications)
+	return err
+}
+
 const countNotifications = `-- name: CountNotifications :one
 SELECT COUNT(*) FROM notifications
 `

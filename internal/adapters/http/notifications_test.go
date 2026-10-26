@@ -243,3 +243,38 @@ func validNotificationJSON() string {
 func validNotificationJSONWithURL(url string) string {
 	return `{"eventId":"event-1","severity":"warning","title":"<script>alert(1)</script>","body":"body","occurredAt":"2026-10-25T12:00:00Z","destination":{"kind":"external","url":"` + url + `"}}`
 }
+
+func TestClearNotificationsRequiresOperatorAndRemovesInbox(t *testing.T) {
+	handler, service, cleanup := notificationHTTPHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+	receipt, err := service.Publish(ctx, notifications.Source{Kind: notifications.SourceCore, ID: "test"}, notifications.Message{EventID: "event", Title: "message", Severity: notifications.SeverityWarning, OccurredAt: time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, token := range []string{"", "publisher-secret", "plugin-service-secret"} {
+		r := httptest.NewRequest("DELETE", "/api/v1/notifications", nil)
+		r.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != 401 {
+			t.Fatalf("nonoperator clear status=%d", w.Code)
+		}
+		if _, err := service.Get(ctx, receipt.ID); err != nil {
+			t.Fatal("denied clear removed inbox", err)
+		}
+	}
+	for range 2 {
+		r := httptest.NewRequest("DELETE", "/api/v1/notifications", nil)
+		r.Header.Set("Authorization", "Bearer operator-secret")
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != 204 {
+			t.Fatalf("clear status=%d, %s", w.Code, w.Body.String())
+		}
+	}
+	page, err := service.List(ctx, notifications.ListOptions{})
+	if err != nil || len(page.Notifications) != 0 || page.UnreadCount != 0 {
+		t.Fatalf("inbox=%#v, %v", page, err)
+	}
+}

@@ -127,6 +127,15 @@ paths:
           description: Dashboard unavailable
 
   /api/v1/notifications:
+    delete:
+      operationId: ClearNotifications
+      description: Permanently remove all stored notifications, read and unread, across sources and pages. This also resets their deduplication identities. Messages committed after the clear statement remain. No source alerts are changed.
+      security:
+        - NotificationOperator: []
+      responses:
+        '204': {description: Inbox cleared, including an already empty inbox}
+        '401': {description: Missing or invalid operator credential}
+        '503': {description: Notification storage unavailable}
     get:
       operationId: GetNotifications
       security:

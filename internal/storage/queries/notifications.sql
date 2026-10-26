@@ -37,3 +37,6 @@ WHERE id = ?;
 UPDATE notifications
 SET read_at = COALESCE(read_at, ?)
 WHERE id = ?;
+
+-- name: ClearNotifications :exec
+DELETE FROM notifications;

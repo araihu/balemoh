@@ -51,6 +51,22 @@ func (h Handler) GetNotifications(w http.ResponseWriter, r *http.Request, params
 	writeJSON(w, http.StatusOK, response)
 }
 
+func (h Handler) ClearNotifications(w http.ResponseWriter, r *http.Request) {
+	setNotificationRequestID(w)
+	if !h.notificationOperatorAuth(w, r) {
+		return
+	}
+	if h.notifications == nil {
+		writeNotificationUnavailable(w)
+		return
+	}
+	if err := h.notifications.ClearAll(r.Context()); err != nil {
+		writeNotificationError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h Handler) GetNotification(w http.ResponseWriter, r *http.Request, id string) {
 	setNotificationRequestID(w)
 	if !h.notificationOperatorAuth(w, r) {

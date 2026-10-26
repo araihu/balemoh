@@ -189,6 +189,38 @@ mounted. Use Escape/focus restoration from the supported popover runtime.
 The bell has an accessible name reflecting unread count or unavailability;
 count display caps visually at `99+` while accessible text retains the total.
 
+## Clearing the inbox
+
+The operator may permanently clear all stored notifications, including read
+messages and messages outside the current page/filter. `DELETE /api/v1/notifications`
+requires the operator credential. Producers cannot clear the inbox. SQLite executes
+one atomic DELETE without resetting its sequence. Messages committed after that
+statement remain visible; an empty inbox clears successfully too.
+
+Clearing removes deduplication identities with their messages and frees inbox
+capacity. A later publisher retry of a cleared event is a new acceptance. Clearing
+never acknowledges, resolves or silences an alert at its source. No automatic
+clear retry occurs after an ambiguous timeout. The UI asks the operator to refresh
+before a new clear attempt.
+
+The full inbox offers Clear all through a Goshtoso confirmation dialog with an
+explicit required checkbox. A native GET confirmation and POST/Redirect/Get path
+work without JavaScript. Same-origin protection wraps the BFF mutation. Successful
+partial writes update the inbox, bell and count without replacing the shell;
+failures remain in the confirmation and do not suggest zero messages.
+
+| State/request | Allowed | Response/effect | Preserved context and focus |
+|---|---|---|---|
+| Inbox, open or cancel confirmation | yes | no write | existing inbox; trigger focus on close |
+| Missing confirmation, POST | no | 400; zero clears | confirmation error and retry control |
+| Cross-origin POST | no | 403; zero clears | stored messages unchanged |
+| Publisher/anonymous DELETE | no | 401; zero clears | stored messages unchanged |
+| Confirmed clear, read/unread and multiple pages | yes | 204 API; empty stored inbox | shell retained; confirmation closes to trigger |
+| Already empty, repeated clear | yes | 204; remains empty | no duplicate request while pending |
+| Publisher commits after clear | yes | new message retained | refreshed list/count show actual new state |
+| Storage/transport failure | no confirmed effect | 503/error feedback; no automatic retry | confirmation remains open; no false zero |
+| Native confirmed POST | yes | 303 to inbox | stable GET after refresh |
+
 ## Limits, retention and recovery
 
 The initial author envelope limit is 16 KiB of canonical Go `encoding/json`

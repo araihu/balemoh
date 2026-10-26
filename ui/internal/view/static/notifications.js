@@ -87,19 +87,45 @@
     const visibilityChanged = () => scheduler.visibilityChanged();
     document.addEventListener('visibilitychange', visibilityChanged);
     document.getElementById('notification-refresh')?.addEventListener('click', () => scheduler.refresh());
-    document.addEventListener('htmx:after:settle', syncLabel);
+    document.addEventListener('htmx:after:settle', () => {
+      syncLabel();
+      const cleared = document.querySelector('[data-notifications-cleared]');
+      if (cleared) {
+        cleared.remove();
+        document.querySelector('form[action="/notifications/clear"]')?.reset();
+        const failure = document.querySelector('[data-notification-clear-error]');
+        if (failure) { failure.hidden = true; failure.textContent = ''; }
+        global.dispatchEvent(new CustomEvent('notifications-cleared'));
+        scheduler.refresh();
+      }
+    });
     const readFocus = new WeakMap();
+    const clearRequests = new WeakSet();
     // HTMX may replace ctx.sourceElement with the swap target after removing
     // the form. Keep focus state on the request context, which stays stable.
     document.addEventListener('htmx:config:request', event => {
       const ctx = event.detail?.ctx;
       const form = ctx?.sourceElement?.closest?.('form[action^="/notifications/"]');
+      if (form?.getAttribute('action') === '/notifications/clear') clearRequests.add(ctx);
       if (form?.contains(document.activeElement)) {
         readFocus.set(ctx, {previous: document.activeElement, target: form.getAttribute('hx-target')});
       }
     });
     document.addEventListener('htmx:finally:request', event => {
       const ctx = event.detail?.ctx;
+      if (ctx && clearRequests.has(ctx)) {
+        clearRequests.delete(ctx);
+        if (!ctx.response?.status) {
+          const failure = document.querySelector('[data-notification-clear-error]');
+          if (failure) {
+            failure.textContent = 'Clear not confirmed. Refresh the inbox before trying again.';
+            failure.hidden = false;
+            if (document.activeElement === document.body && failure.closest('dialog')?.open) {
+              failure.focus({preventScroll:true});
+            }
+          }
+        }
+      }
       const saved = ctx && readFocus.get(ctx);
       if (!saved) return;
       readFocus.delete(ctx);

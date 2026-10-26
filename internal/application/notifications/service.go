@@ -15,6 +15,7 @@ type Store interface {
 	List(context.Context, ListOptions) (Page, error)
 	Get(context.Context, string) (Notification, error)
 	MarkRead(context.Context, string, time.Time) error
+	ClearAll(context.Context) error
 }
 
 // Service owns notification validation and the core application contract.
@@ -109,9 +110,19 @@ func (s *Service) MarkRead(ctx context.Context, id string) error {
 	return s.store.MarkRead(ctx, strings.TrimSpace(id), s.now().UTC())
 }
 
+// ClearAll permanently removes the inbox and its deduplication identities.
+// Publishers committing after the atomic clear retain their messages.
+func (s *Service) ClearAll(ctx context.Context) error {
+	if s == nil || s.store == nil {
+		return ErrUnavailable
+	}
+	return s.store.ClearAll(ctx)
+}
+
 var _ interface {
 	Publish(context.Context, Source, Message) (Receipt, error)
 	List(context.Context, ListOptions) (Page, error)
 	Get(context.Context, string) (Notification, error)
 	MarkRead(context.Context, string) error
+	ClearAll(context.Context) error
 } = (*Service)(nil)

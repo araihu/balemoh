@@ -174,6 +174,15 @@ func (s *NotificationStore) MarkRead(ctx context.Context, id string, readAt time
 	return nil
 }
 
+// A single DELETE provides an atomic boundary against concurrent publishers.
+// Keep sqlite_sequence intact so stale page cursors cannot alias new messages.
+func (s *NotificationStore) ClearAll(ctx context.Context) error {
+	if err := s.queries.ClearNotifications(ctx); err != nil {
+		return fmt.Errorf("clear notifications: %w", err)
+	}
+	return nil
+}
+
 func notificationFromRow(row sqlc.Notification) (notifications.Notification, error) {
 	occurredAt, err := time.Parse(time.RFC3339Nano, row.OccurredAt)
 	if err != nil {

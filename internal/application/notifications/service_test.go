@@ -27,6 +27,8 @@ func (s *recordingStore) Get(context.Context, string) (Notification, error) {
 }
 func (s *recordingStore) MarkRead(context.Context, string, time.Time) error { return nil }
 
+func (s *recordingStore) ClearAll(context.Context) error { return nil }
+
 func TestServicePublishNormalizesAndCanonicalizes(t *testing.T) {
 	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)
 	store := &recordingStore{}

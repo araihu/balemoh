@@ -204,4 +204,73 @@ func TestNotificationCapacityAllowsReplayButRejectsNewEvent(t *testing.T) {
 	if _, err := service.Publish(context.Background(), source, testMessage("event-new", "new", now)); !errors.Is(err, notifications.ErrCapacity) {
 		t.Fatalf("capacity new event error = %v, want ErrCapacity", err)
 	}
+	if err := service.ClearAll(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if receipt, err := service.Publish(context.Background(), source, testMessage("event-new", "new", now)); err != nil || !receipt.Accepted {
+		t.Fatalf("clear did not free capacity: %#v, %v", receipt, err)
+	}
+}
+
+func TestClearNotificationsIncludesReadUnreadAndAllPages(t *testing.T) {
+	service, cleanup := openNotificationService(t)
+	defer cleanup()
+	ctx := context.Background()
+	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)
+	var ids []string
+	for i := 0; i < 55; i++ {
+		source := notifications.Source{Kind: notifications.SourceCore, ID: fmt.Sprintf("source-%d", i%2)}
+		receipt, err := service.Publish(ctx, source, testMessage(fmt.Sprintf("event-%d", i), "message", now))
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, receipt.ID)
+		if i%2 == 0 {
+			if err := service.MarkRead(ctx, receipt.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	page, err := service.List(ctx, notifications.ListOptions{Limit: 50})
+	if err != nil || len(page.Notifications) != 50 || page.NextBefore == 0 {
+		t.Fatalf("setup page = %#v, %v", page, err)
+	}
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if err := service.ClearAll(canceled); err == nil {
+		t.Fatal("canceled clear succeeded")
+	}
+	if _, err := service.Get(ctx, ids[0]); err != nil {
+		t.Fatal("canceled clear removed data", err)
+	}
+	for range 2 {
+		if err := service.ClearAll(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, unread := range []bool{false, true} {
+		page, err := service.List(ctx, notifications.ListOptions{Limit: 50, UnreadOnly: unread})
+		if err != nil || len(page.Notifications) != 0 || page.UnreadCount != 0 || page.NextBefore != 0 {
+			t.Fatalf("after clear = %#v, %v", page, err)
+		}
+	}
+	for _, id := range ids {
+		if _, err := service.Get(ctx, id); !errors.Is(err, notifications.ErrNotFound) {
+			t.Fatalf("old message %s = %v", id, err)
+		}
+	}
+	// Clear deliberately resets dedup identities; a subsequent publish survives
+	// and cannot alias a stale pagination cursor because sequences are not reset.
+	next, err := service.Publish(ctx, notifications.Source{Kind: notifications.SourceCore, ID: "source-0"}, testMessage("event-0", "message", now))
+	if err != nil || !next.Accepted || next.ID == ids[0] {
+		t.Fatalf("post-clear publish = %#v, %v", next, err)
+	}
+	page, err = service.List(ctx, notifications.ListOptions{Limit: 50})
+	if err != nil || len(page.Notifications) != 1 || page.UnreadCount != 1 {
+		t.Fatalf("new page = %#v, %v", page, err)
+	}
+	oldPage, err := service.List(ctx, notifications.ListOptions{Limit: 50, Before: 6})
+	if err != nil || len(oldPage.Notifications) != 0 {
+		t.Fatal("old cursor aliased new messages", err)
+	}
 }

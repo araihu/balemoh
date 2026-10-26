@@ -858,6 +858,9 @@ type ServerInterface interface {
 	// (GET /api/v1/icons/{iconID}/image)
 	GetIconImage(w http.ResponseWriter, r *http.Request, iconID string)
 
+	// (DELETE /api/v1/notifications)
+	ClearNotifications(w http.ResponseWriter, r *http.Request)
+
 	// (GET /api/v1/notifications)
 	GetNotifications(w http.ResponseWriter, r *http.Request, params GetNotificationsParams)
 
@@ -1202,6 +1205,26 @@ func (siw *ServerInterfaceWrapper) GetIconImage(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetIconImage(w, r, iconID)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClearNotifications operation middleware
+func (siw *ServerInterfaceWrapper) ClearNotifications(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearNotifications(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1841,6 +1864,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.DeleteIcon)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.UpdateIcon)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{iconID}/image", wrapper.GetIconImage)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notifications", wrapper.ClearNotifications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications", wrapper.GetNotifications)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notifications", wrapper.PublishNotification)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications/{notificationId}", wrapper.GetNotification)

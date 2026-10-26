@@ -78,6 +78,21 @@ func (c *APIClient) MarkNotificationRead(ctx context.Context, id string) error {
 	}
 	return nil
 }
+func (c *APIClient) ClearNotifications(ctx context.Context) error {
+	auth, err := c.notificationAuthority()
+	if err != nil {
+		return err
+	}
+	response, err := c.client.ClearNotificationsWithResponse(ctx, auth)
+	if err != nil {
+		return &upstreamError{operation: "clear notifications", cause: err}
+	}
+	if response.StatusCode() != http.StatusNoContent {
+		return &upstreamError{operation: "clear notifications", status: response.StatusCode()}
+	}
+	return nil
+}
+
 func notificationView(item api.Notification) view.Notification {
 	source := string(item.Source.Kind) + " · " + item.Source.Id
 	if item.Source.ConnectionId != nil {

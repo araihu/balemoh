@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"github.com/a-h/templ"
 	"time"
 
 	"github.com/araihu/goshtoso/components/badge"
@@ -18,6 +19,8 @@ type NotificationsPage struct {
 	UnreadCount               int
 	NextCursor, Before, Error string
 	UnreadOnly                bool
+	ClearConfirmation         bool
+	ClearError                string
 }
 
 func notificationTone(severity string) badge.Tone {
@@ -52,4 +55,17 @@ func notificationAge(at time.Time) string {
 		return fmt.Sprintf("%d h ago", int(d.Hours()))
 	}
 	return at.UTC().Format("02 Jan 2006")
+}
+
+func notificationClearAttrs(dialog bool) templ.Attributes {
+	if !dialog {
+		return nil
+	}
+	return templ.Attributes{"hx-post": "/notifications/clear", "hx-target": "#notification-clear-form", "hx-swap": "innerMorph", "hx-sync": "#balemoh-notifications:queue all", "hx-request": "timeout:4s", "hx-disable": "find button[type='submit']"}
+}
+func notificationClearCancelAttrs(dialog bool) templ.Attributes {
+	if !dialog {
+		return nil
+	}
+	return templ.Attributes{"x-on:click.prevent": "$dispatch('modal:close', {id:'clear-notifications'})"}
 }

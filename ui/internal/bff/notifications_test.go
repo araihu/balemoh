@@ -18,11 +18,11 @@ import (
 
 type notificationFixture struct {
 	fakeCatalog
-	calls, reads atomic.Int32
-	blocked      bool
-	failure      error
-	page         view.NotificationsPage
-	record       NotificationRecord
+	calls, reads, clears atomic.Int32
+	blocked              bool
+	failure              error
+	page                 view.NotificationsPage
+	record               NotificationRecord
 }
 
 func (f *notificationFixture) Notifications(ctx context.Context, _ string, _ bool, _ int) (view.NotificationsPage, error) {
@@ -38,6 +38,10 @@ func (f *notificationFixture) Notification(context.Context, string) (Notificatio
 }
 func (f *notificationFixture) MarkNotificationRead(context.Context, string) error {
 	f.reads.Add(1)
+	return f.failure
+}
+func (f *notificationFixture) ClearNotifications(context.Context) error {
+	f.clears.Add(1)
 	return f.failure
 }
 func TestNotificationClientCannotBlockBaseShell(t *testing.T) {
@@ -116,4 +120,53 @@ func TestNotificationReadProtectionAndAcknowledgement(t *testing.T) {
 		t.Fatal("acknowledged read action not scoped")
 	}
 	_ = http.StatusOK
+}
+
+func TestNotificationClearConfirmationProtectionAndResult(t *testing.T) {
+	f := &notificationFixture{}
+	h, _ := New(f, time.Second)
+	post := func(body, origin string, partial bool) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("POST", "/notifications/clear", strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if partial {
+			r.Header.Set("HX-Request-Type", "partial")
+		}
+		if origin != "" {
+			r.Header.Set("Origin", origin)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	if w := post("confirm=true", "https://attacker.test", true); w.Code != 403 || f.clears.Load() != 0 {
+		t.Fatal("cross-origin clear reached client")
+	}
+	if w := post("", "", true); w.Code != 400 || f.clears.Load() != 0 || !strings.Contains(w.Body.String(), "Confirm permanent deletion") {
+		t.Fatal("missing confirmation accepted")
+	}
+	f.failure = errors.New("storage unavailable")
+	w := post("confirm=true", "", true)
+	if w.Code != 503 || !strings.Contains(w.Body.String(), "Clear not confirmed") || strings.Contains(w.Body.String(), "No notifications.") {
+		t.Fatal("failed clear rendered empty inbox")
+	}
+	f.failure = nil
+	// A message delivered after DELETE must be rendered, not overwritten with zero.
+	f.page = view.NotificationsPage{UnreadCount: 1, Items: []view.Notification{{ID: "new", Title: "After clear", ReceivedAt: time.Now()}}}
+	w = post("confirm=true", "", true)
+	if w.Code != 200 || w.Header().Get("HX-Retarget") != "#notification-inbox" || !strings.Contains(w.Body.String(), "After clear") || !strings.Contains(w.Body.String(), "data-notifications-cleared") {
+		t.Fatalf("clear response %d: %s", w.Code, w.Body.String())
+	}
+	w = post("confirm=true", "", false)
+	if w.Code != 303 || w.Header().Get("Location") != "/notifications" {
+		t.Fatal("native clear lacks PRG")
+	}
+	for _, path := range []string{"/notifications/clear", "/notifications"} {
+		w = request(t, h, "GET", path, "")
+		if w.Code != 200 || !strings.Contains(w.Body.String(), "Clear all notifications") {
+			t.Fatalf("missing clear control: %s", path)
+		}
+	}
+	if f.clears.Load() != 3 {
+		t.Fatalf("clear effect count %d", f.clears.Load())
+	}
 }

@@ -32,6 +32,8 @@ func TestAPIClientScopesNotificationCredentialToNotificationRequests(t *testing.
 			_, _ = io.WriteString(w, notificationClientTestJSONWithExternalDestination())
 		case r.Method == http.MethodPut && r.URL.Path == "/api/v1/notifications/"+notificationClientTestID+"/read":
 			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/notifications":
+			w.WriteHeader(http.StatusNoContent)
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/homepage/services":
 			_, _ = io.WriteString(w, `{"services":[]}`)
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/staging/services":
@@ -71,6 +73,9 @@ func TestAPIClientScopesNotificationCredentialToNotificationRequests(t *testing.
 	if err := client.MarkNotificationRead(context.Background(), notificationClientTestID); err != nil {
 		t.Fatalf("MarkNotificationRead() error = %v", err)
 	}
+	if err := client.ClearNotifications(context.Background()); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := client.Homepage(context.Background()); err != nil {
 		t.Fatalf("Homepage() error = %v", err)
 	}
@@ -87,8 +92,8 @@ func TestAPIClientScopesNotificationCredentialToNotificationRequests(t *testing.
 		t.Fatalf("Sync() error = %v", err)
 	}
 
-	if len(observed) != 8 {
-		t.Fatalf("observed %d requests, want 8", len(observed))
+	if len(observed) != 9 {
+		t.Fatalf("observed %d requests, want 9", len(observed))
 	}
 	for _, request := range observed {
 		isNotification := strings.HasPrefix(request.path, "/api/v1/notifications")
@@ -121,6 +126,7 @@ func TestAPIClientNotificationMethodsFailClosedWithoutCredential(t *testing.T) {
 			_, err := client.Notification(ctx, notificationClientTestID)
 			return err
 		}},
+		{name: "clear", call: func(ctx context.Context) error { return client.ClearNotifications(ctx) }},
 		{name: "mark read", call: func(ctx context.Context) error {
 			return client.MarkNotificationRead(ctx, notificationClientTestID)
 		}},

@@ -940,6 +940,9 @@ type ClientInterface interface {
 	// GetIconImage request
 	GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ClearNotifications request
+	ClearNotifications(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetNotifications request
 	GetNotifications(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1207,6 +1210,18 @@ func (c *Client) UpdateIcon(ctx context.Context, iconID string, body UpdateIconJ
 
 func (c *Client) GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetIconImageRequest(c.Server, iconID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ClearNotifications(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewClearNotificationsRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1989,6 +2004,33 @@ func NewGetIconImageRequest(server string, iconID string) (*http.Request, error)
 	return req, nil
 }
 
+// NewClearNotificationsRequest generates requests for ClearNotifications
+func NewClearNotificationsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetNotificationsRequest generates requests for GetNotifications
 func NewGetNotificationsRequest(server string, params *GetNotificationsParams) (*http.Request, error) {
 	var err error
@@ -2749,6 +2791,9 @@ type ClientWithResponsesInterface interface {
 	// GetIconImageWithResponse request
 	GetIconImageWithResponse(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*GetIconImageResponse, error)
 
+	// ClearNotificationsWithResponse request
+	ClearNotificationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearNotificationsResponse, error)
+
 	// GetNotificationsWithResponse request
 	GetNotificationsWithResponse(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*GetNotificationsResponse, error)
 
@@ -3200,6 +3245,35 @@ func (r GetIconImageResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetIconImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ClearNotificationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ClearNotificationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ClearNotificationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ClearNotificationsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3850,6 +3924,15 @@ func (c *ClientWithResponses) GetIconImageWithResponse(ctx context.Context, icon
 	return ParseGetIconImageResponse(rsp)
 }
 
+// ClearNotificationsWithResponse request returning *ClearNotificationsResponse
+func (c *ClientWithResponses) ClearNotificationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearNotificationsResponse, error) {
+	rsp, err := c.ClearNotifications(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseClearNotificationsResponse(rsp)
+}
+
 // GetNotificationsWithResponse request returning *GetNotificationsResponse
 func (c *ClientWithResponses) GetNotificationsWithResponse(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*GetNotificationsResponse, error) {
 	rsp, err := c.GetNotifications(ctx, params, reqEditors...)
@@ -4391,6 +4474,22 @@ func ParseGetIconImageResponse(rsp *http.Response) (*GetIconImageResponse, error
 	}
 
 	response := &GetIconImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseClearNotificationsResponse parses an HTTP response from a ClearNotificationsWithResponse call
+func ParseClearNotificationsResponse(rsp *http.Response) (*ClearNotificationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ClearNotificationsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

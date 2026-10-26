@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/araihu/goshtoso/components/badge"
 	"github.com/araihu/goshtoso/components/button"
+ "github.com/araihu/goshtoso/components/checkbox"
+ "github.com/araihu/goshtoso/components/modal"
 	"github.com/araihu/goshtoso/components/icon"
 	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/link"
@@ -143,27 +145,54 @@ templ NotificationReadControl(id string, read bool, failure, returnTo string) {
 }
 
 templ NotificationsContent(page NotificationsPage) {
-	@pageheader.PageHeader(pageheader.Config{Title: "Notifications", Description: "Messages from Balemoh, plugins and connected integrations.", HideSeparator: true})
-	<div class="balemoh-notification-page-toolbar">
-		@NotificationPageCount(page.UnreadCount, page.Error == "", false)
-		if page.UnreadOnly {
-			@link.Link("/notifications") {
-				Show all
-			}
-		} else {
-			@link.Link("/notifications?unread=true") {
-				Unread only
-			}
-		}
-	</div>
-	@panel.Panel(panel.Config{}) {
-		<div id="notification-page-list" tabindex="-1">@NotificationList(page, false)</div>
-	}
-	if page.NextCursor!="" {
-		@link.Link("/notifications?before=" + url.QueryEscape(page.NextCursor) + notificationUnreadQuery(page.UnreadOnly)) {
-			Older notifications
-		}
-	}
+ if page.ClearConfirmation {
+  @pageheader.PageHeader(pageheader.Config{Title:"Clear all notifications?", HideSeparator:true})
+  <div id="notification-clear-form">@NotificationClearForm(page.ClearError,false)</div>
+ } else {
+  <div x-data="{}" x-on:notifications-cleared.window="$dispatch('modal:close', {id:'clear-notifications'})">
+   <div class="balemoh-notification-page-toolbar">
+    @pageheader.PageHeader(pageheader.Config{Title:"Notifications",Description:"Messages from Balemoh, plugins and connected integrations.",HideSeparator:true})
+    @button.Button(button.WithID("notification-clear-trigger"),button.WithAppearance(button.AppearancePlain),button.WithTone(button.ToneDanger),button.WithAttrs(templ.Attributes{"x-on:click":"$dispatch('modal:open', {id:'clear-notifications'})","aria-haspopup":"dialog","aria-controls":"clear-notifications","x-cloak":true})) { Clear all }
+    <noscript>@link.Link("/notifications/clear") { Clear all }</noscript>
+   </div>
+   <div id="notification-inbox" tabindex="-1">@NotificationInbox(page,false)</div>
+   @modal.Dialog(modal.DialogConfig{ID:"clear-notifications",Title:"Clear all notifications?",Content:NotificationClearDialog()})
+  </div>
+ }
+}
+
+templ NotificationClearDialog() {
+ <div id="notification-clear-form">@NotificationClearForm("",true)</div>
+}
+
+templ NotificationClearForm(failure string, dialog bool) {
+ <p>Permanently delete all notifications, read and unread, across every page? Alerts at their source are unchanged.</p>
+ <form method="post" action="/notifications/clear" { notificationClearAttrs(dialog)... }>
+  @checkbox.Checkbox(checkbox.Config{ID:"notification-clear-confirm",Name:"confirm",Value:"true",Label:"Delete all notifications permanently",InputAttrs:templ.Attributes{"required":true}})
+  <p role="alert" tabindex="-1" data-notification-clear-error hidden?={failure==""}>{failure}</p>
+  <div class="balemoh-notification-actions">
+   @button.Button(button.WithType("submit"),button.WithTone(button.ToneDanger),button.WithLoadingText("Clearing…")) { Clear all notifications }
+   @link.Link("/notifications",link.WithAttrs(notificationClearCancelAttrs(dialog))) { Cancel }
+  </div>
+ </form>
+}
+
+templ NotificationInbox(page NotificationsPage, cleared bool) {
+ if cleared {
+ <span hidden data-notifications-cleared></span>
+ }
+ <div class="balemoh-notification-page-toolbar">
+  @NotificationPageCount(page.UnreadCount,page.Error=="",false)
+  if page.UnreadOnly {
+ @link.Link("/notifications") { Show all }
+ } else {
+ @link.Link("/notifications?unread=true") { Unread only }
+ }
+ </div>
+ @panel.Panel(panel.Config{}) { <div id="notification-page-list" tabindex="-1">@NotificationList(page,false)</div> }
+ if page.NextCursor!="" {
+  @link.Link("/notifications?before="+url.QueryEscape(page.NextCursor)+notificationUnreadQuery(page.UnreadOnly)) { Older notifications }
+ }
 }
 
 func notificationUnreadQuery(unread bool) string {
