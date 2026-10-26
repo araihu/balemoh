@@ -13,10 +13,12 @@ import (
 func TestMessageValidation(t *testing.T) {
 	valid := notifications.Message{EventID: "event-1", Severity: "warning", Title: "Title", Body: "Body", OccurredAt: time.Now().UTC()}
 	for name, message := range map[string]notifications.Message{
-		"valid":          valid,
-		"external":       withDestination(valid, &notifications.Destination{Kind: "external", URL: "https://example.test/runbook"}),
-		"plugin page":    withDestination(valid, &notifications.Destination{Kind: "plugin", PluginID: "example.alerts", ConnectionID: "connection", Page: "detail", Params: map[string]string{"fingerprint": "abc"}}),
-		"multiline text": withBody(valid, "line 1\nline 2\t"),
+		"valid":             valid,
+		"empty destination": withDestination(valid, &notifications.Destination{}),
+		"core route":        withDestination(valid, &notifications.Destination{Kind: notifications.DestinationCore, Route: "/alerts"}),
+		"external":          withDestination(valid, &notifications.Destination{Kind: "external", URL: "https://example.test/runbook"}),
+		"plugin page":       withDestination(valid, &notifications.Destination{Kind: "plugin", PluginID: "example.alerts", ConnectionID: "00000000-0000-4000-8000-000000000001", Page: "detail", Params: map[string]string{"fingerprint": "abc"}}),
+		"multiline text":    withBody(valid, "line 1\nline 2\t"),
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := message.Validate(); err != nil {
@@ -25,13 +27,21 @@ func TestMessageValidation(t *testing.T) {
 		})
 	}
 	for name, message := range map[string]notifications.Message{
-		"missing event ID": withEvent(valid, ""),
-		"bad severity":     withSeverity(valid, "debug"),
-		"missing title":    withTitle(valid, ""),
-		"oversized body":   withBody(valid, strings.Repeat("x", 4001)),
-		"zero time":        withOccurredAt(valid, time.Time{}),
-		"bad external URL": withDestination(valid, &notifications.Destination{Kind: "external", URL: "http://example.test"}),
-		"URL userinfo":     withDestination(valid, &notifications.Destination{Kind: "external", URL: "https://user:pass@example.test/path"}),
+		"missing event ID":               withEvent(valid, ""),
+		"blank event ID":                 withEvent(valid, " \t"),
+		"bad severity":                   withSeverity(valid, "debug"),
+		"missing title":                  withTitle(valid, ""),
+		"blank title":                    withTitle(valid, " \t"),
+		"oversized body":                 withBody(valid, strings.Repeat("x", 4001)),
+		"zero time":                      withOccurredAt(valid, time.Time{}),
+		"bad external URL":               withDestination(valid, &notifications.Destination{Kind: "external", URL: "http://example.test"}),
+		"URL userinfo":                   withDestination(valid, &notifications.Destination{Kind: "external", URL: "https://user:pass@example.test/path"}),
+		"bad external port":              withDestination(valid, &notifications.Destination{Kind: "external", URL: "https://example.test:99999/path"}),
+		"unknown kind":                   withDestination(valid, &notifications.Destination{Kind: "other", Route: "/alerts"}),
+		"core plugin fields":             withDestination(valid, &notifications.Destination{Kind: "core", Route: "/alerts", PluginID: "example.alerts"}),
+		"plugin mixed URL":               withDestination(valid, &notifications.Destination{Kind: "plugin", PluginID: "example.alerts", ConnectionID: "00000000-0000-4000-8000-000000000001", Page: "detail", URL: "https://example.test"}),
+		"plugin noncanonical connection": withDestination(valid, &notifications.Destination{Kind: "plugin", PluginID: "example.alerts", ConnectionID: "00000000-0000-4000-8000-00000000000A", Page: "detail"}),
+		"external typed fields":          withDestination(valid, &notifications.Destination{Kind: "external", URL: "https://example.test", Query: map[string][]string{"tab": {"summary"}}}),
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := message.Validate(); err == nil || notifications.Code(err) != "invalid_argument" {
@@ -42,7 +52,7 @@ func TestMessageValidation(t *testing.T) {
 }
 
 func TestMessageJSONUsesStableCamelCaseFields(t *testing.T) {
-	message := notifications.Message{EventID: "event-1", Severity: "info", Title: "Title", OccurredAt: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC), Destination: &notifications.Destination{Kind: "plugin", PluginID: "example.alerts", ConnectionID: "connection", Page: "current", Query: map[string][]string{"tab": {"summary"}}}}
+	message := notifications.Message{EventID: "event-1", Severity: "info", Title: "Title", OccurredAt: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC), Destination: &notifications.Destination{Kind: "plugin", PluginID: "example.alerts", ConnectionID: "00000000-0000-4000-8000-000000000001", Page: "current", Query: map[string][]string{"tab": {"summary"}}}}
 	data, err := json.Marshal(message)
 	if err != nil {
 		t.Fatal(err)

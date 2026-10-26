@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -23,6 +24,24 @@ const (
 	MaxConcurrent = 4
 	// PublishTimeout is the callback deadline applied by the SDK transport.
 	PublishTimeout = 5 * time.Second
+
+	// ErrorInfoDomain identifies SDK publication status details.
+	ErrorInfoDomain = "balemoh.plugins"
+	// ErrorInfoReasonBusy marks retryable per-connection callback contention.
+	ErrorInfoReasonBusy = "NOTIFICATION_BUSY"
+	// ErrorInfoReasonCapacity marks permanent inbox capacity exhaustion.
+	ErrorInfoReasonCapacity = "NOTIFICATION_CAPACITY"
+	// ErrorInfoReasonUnavailable marks an unavailable or unknown safe failure.
+	ErrorInfoReasonUnavailable = "NOTIFICATION_UNAVAILABLE"
+
+	SeverityInfo     = "info"
+	SeveritySuccess  = "success"
+	SeverityWarning  = "warning"
+	SeverityCritical = "critical"
+
+	DestinationCore     = "core"
+	DestinationPlugin   = "plugin"
+	DestinationExternal = "external"
 )
 
 // Message is the source payload accepted by the host notification service.
@@ -78,6 +97,7 @@ var errorMessages = map[string]string{
 	"permission_denied":  "Notification publication is not granted.",
 	"conflict":           "Notification publication conflicts with an existing event.",
 	"resource_exhausted": "Notification publication capacity exceeded.",
+	"capacity_exceeded":  "Notification inbox capacity is full.",
 	"deadline_exceeded":  "Notification publication timed out.",
 	"unavailable":        "Notification publication is unavailable.",
 }
@@ -111,11 +131,11 @@ func Code(err error) string {
 // Validate checks the author-facing message shape. The host performs the
 // authoritative source, timestamp and destination policy checks as well.
 func (m Message) Validate() error {
-	if len(m.EventID) > 128 || !validText(m.EventID, 128, true) || !validText(m.Title, 200, true) || !validText(m.Body, 4000, false) {
+	if !validText(m.EventID, "event ID", 128, false) || !validText(m.Title, "title", 0, false) || !validText(m.Body, "body", 0, true) || utf8.RuneCountInString(m.Title) > 200 || utf8.RuneCountInString(m.Body) > 4000 {
 		return Fail("invalid_argument")
 	}
 	switch m.Severity {
-	case "info", "success", "warning", "critical":
+	case SeverityInfo, SeveritySuccess, SeverityWarning, SeverityCritical:
 	default:
 		return Fail("invalid_argument")
 	}
@@ -131,54 +151,56 @@ func (m Message) Validate() error {
 }
 
 func (d Destination) Validate() error {
-	if d.Kind == "" || !validToken(d.Kind, 32) || !validToken(d.Route, 512) || !validToken(d.PluginID, 128) || !validToken(d.ConnectionID, 128) || !validToken(d.Page, 128) || len(d.Params) > 32 || len(d.Query) > 32 {
+	if d.IsZero() {
+		return nil
+	}
+	if !validText(d.Kind, "destination kind", 32, false) || len(d.Params) > 32 || len(d.Query) > 32 {
 		return Fail("invalid_argument")
 	}
 	for key, value := range d.Params {
-		if !validToken(key, 64) || !validText(value, 512, true) {
+		if !validText(key, "destination parameter key", 512, false) || !validText(value, "destination parameter value", 512, true) {
 			return Fail("invalid_argument")
 		}
 	}
 	for key, values := range d.Query {
-		if !validToken(key, 128) || len(values) > 32 {
+		if !validText(key, "destination query key", 512, false) || len(values) > 32 {
 			return Fail("invalid_argument")
 		}
 		for _, value := range values {
-			if !validText(value, 512, true) {
+			if !validText(value, "destination query value", 512, true) {
 				return Fail("invalid_argument")
 			}
 		}
 	}
-	if len(d.URL) > 2048 {
-		return Fail("invalid_argument")
-	}
-	if d.URL != "" {
-		if err := validateExternalURL(d.URL); err != nil {
-			return err
+	switch d.Kind {
+	case DestinationCore:
+		if !validText(d.Route, "core destination route", 512, false) || d.PluginID != "" || d.ConnectionID != "" || d.Page != "" || d.URL != "" {
+			return Fail("invalid_argument")
 		}
-	}
-	if d.Kind == "external" && d.URL == "" {
-		return Fail("invalid_argument")
-	}
-	if d.Kind == "plugin" && (d.PluginID == "" || d.ConnectionID == "" || d.Page == "") {
+	case DestinationPlugin:
+		if !validText(d.PluginID, "plugin destination plugin ID", 256, false) || !validText(d.Page, "plugin destination page", 256, false) || !canonicalUUID(d.ConnectionID) || d.Route != "" || d.URL != "" {
+			return Fail("invalid_argument")
+		}
+	case DestinationExternal:
+		if len(d.URL) > 2048 || validateExternalURL(d.URL) != nil || d.Route != "" || d.PluginID != "" || d.ConnectionID != "" || d.Page != "" || len(d.Params) > 0 || len(d.Query) > 0 {
+			return Fail("invalid_argument")
+		}
+	default:
 		return Fail("invalid_argument")
 	}
 	return nil
 }
 
-func validToken(s string, max int) bool {
-	if s == "" {
-		return true
-	}
-	return utf8.ValidString(s) && utf8.RuneCountInString(s) <= max && strings.TrimSpace(s) != "" && !strings.ContainsAny(s, "\x00\r\n")
+func (d Destination) IsZero() bool {
+	return d.Kind == "" && d.Route == "" && d.PluginID == "" && d.ConnectionID == "" && d.Page == "" && len(d.Params) == 0 && len(d.Query) == 0 && d.URL == ""
 }
 
-func validText(s string, max int, required bool) bool {
-	if required && s == "" || utf8.RuneCountInString(s) > max || !utf8.ValidString(s) {
+func validText(s, _ string, maxBytes int, allowEmpty bool) bool {
+	if !allowEmpty && strings.TrimSpace(s) == "" || len(s) > maxBytes && maxBytes > 0 || !utf8.ValidString(s) {
 		return false
 	}
 	for _, r := range s {
-		if r == '\x00' || (unicode.IsControl(r) && r != '\n' && r != '\r' && r != '\t') {
+		if r == '\x00' || r == '\x7f' || (unicode.IsControl(r) && r != '\n' && r != '\r' && r != '\t') {
 			return false
 		}
 	}
@@ -186,12 +208,32 @@ func validText(s string, max int, required bool) bool {
 }
 
 func validateExternalURL(raw string) error {
-	if strings.ContainsAny(raw, "\x00\r\n") {
+	if raw == "" || strings.ContainsAny(raw, "\x00\r\n\t") {
 		return Fail("invalid_argument")
 	}
 	u, err := url.Parse(raw)
 	if err != nil || u.Scheme != "https" || u.Host == "" || u.Hostname() == "" || u.User != nil || u.Opaque != "" {
 		return Fail("invalid_argument")
 	}
+	if port := u.Port(); port != "" {
+		if n, err := strconv.ParseUint(port, 10, 16); err != nil || n == 0 {
+			return Fail("invalid_argument")
+		}
+	}
 	return nil
+}
+
+func canonicalUUID(value string) bool {
+	if len(value) != 36 || value[8] != '-' || value[13] != '-' || value[18] != '-' || value[23] != '-' {
+		return false
+	}
+	for i, r := range value {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			continue
+		}
+		if !(r >= '0' && r <= '9') && !(r >= 'a' && r <= 'f') {
+			return false
+		}
+	}
+	return true
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/araihu/balemoh/plugin-sdk/backend"
 	"github.com/araihu/balemoh/plugin-sdk/notifications"
 	pb "github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -134,7 +135,8 @@ func notificationReceipt(receipt *pb.NotificationReceipt) (notifications.Receipt
 
 func fromNotificationRPC(err error) error {
 	code := "unavailable"
-	switch status.Code(err) {
+	statusCode := status.Code(err)
+	switch statusCode {
 	case codes.InvalidArgument:
 		code = "invalid_argument"
 	case codes.PermissionDenied, codes.Unauthenticated:
@@ -147,6 +149,9 @@ func fromNotificationRPC(err error) error {
 		code = "deadline_exceeded"
 	case codes.Canceled:
 		code = "unavailable"
+	}
+	if statusCode == codes.ResourceExhausted && notificationErrorInfoReason(err) == notifications.ErrorInfoReasonCapacity {
+		code = "capacity_exceeded"
 	}
 	return notifications.Fail(code)
 }
@@ -165,12 +170,43 @@ func toNotificationRPC(err error) error {
 		"permission_denied":  codes.PermissionDenied,
 		"conflict":           codes.Aborted,
 		"resource_exhausted": codes.ResourceExhausted,
+		"capacity_exceeded":  codes.ResourceExhausted,
 		"deadline_exceeded":  codes.DeadlineExceeded,
 	}[code]
 	if grpcCode == codes.OK {
 		grpcCode = codes.Unavailable
 	}
-	return status.Error(grpcCode, notifications.Fail(code).Message)
+	result := status.New(grpcCode, notifications.Fail(code).Message)
+	result, detailsErr := result.WithDetails(&errdetails.ErrorInfo{Domain: notifications.ErrorInfoDomain, Reason: notificationErrorInfoReasonForCode(code)})
+	if detailsErr != nil {
+		return status.Error(grpcCode, notifications.Fail(code).Message)
+	}
+	return result.Err()
+}
+
+func notificationErrorInfoReason(err error) string {
+	result, ok := status.FromError(err)
+	if !ok {
+		return ""
+	}
+	for _, detail := range result.Details() {
+		info, ok := detail.(*errdetails.ErrorInfo)
+		if ok && info.Domain == notifications.ErrorInfoDomain {
+			return info.Reason
+		}
+	}
+	return ""
+}
+
+func notificationErrorInfoReasonForCode(code string) string {
+	switch code {
+	case "resource_exhausted":
+		return notifications.ErrorInfoReasonBusy
+	case "capacity_exceeded":
+		return notifications.ErrorInfoReasonCapacity
+	default:
+		return notifications.ErrorInfoReasonUnavailable
+	}
 }
 
 // backendHostServer is registered only by the host's backend connection
