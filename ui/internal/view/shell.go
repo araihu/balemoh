@@ -36,7 +36,15 @@ func ConsolePage(data PageData) templ.Component {
 					{ID: "nav-home", Label: "Home", Href: "/", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHome, Decorative: true})},
 					{ID: "nav-staging", Label: "Staging", Href: "/staging", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidQueueList, Decorative: true})},
 					{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
-					{ID: "nav-icons", Label: "Icons", Href: "/icons", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
+					{
+						ID:    "nav-config",
+						Label: "Config",
+						Href:  "/presentation",
+						Icon:  icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
+						Items: []sidebar.Item{
+							{ID: "nav-presentation", Label: "Presentation", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
+						},
+					},
 				},
 			},
 			Appearance: consoleshell.AppearanceConfig{

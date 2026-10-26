@@ -176,7 +176,7 @@ func PageContent(data PageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else if data.IconPage != nil {
-			templ_7745c5c3_Err = IconsContent(*data.IconPage).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = PresentationContent(*data.IconPage).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

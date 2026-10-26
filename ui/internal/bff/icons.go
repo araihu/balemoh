@@ -84,7 +84,7 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 		_ = view.IconResults(data).Render(r.Context(), w)
 		return
 	}
-	s.render(w, r, view.PageData{Title: "Icons", Description: "Search bundled icons and manage your uploaded service icons.", Path: "/icons", Active: "nav-icons", IconPage: &data}, 200)
+	s.render(w, r, view.PageData{Title: "Presentation", Description: "Manage icons and presentation settings.", Path: "/presentation", Active: "nav-presentation", IconPage: &data}, 200)
 }
 func (s *server) editIcon(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
@@ -96,7 +96,7 @@ func (s *server) editIcon(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, i := range list {
 		if i.ID == r.PathValue("iconID") && i.Source == "uploads" {
-			s.render(w, r, view.PageData{Title: "Edit icon", Description: "Manage this uploaded icon and its service references.", Path: view.IconEditURL(i.ID), Active: "nav-icons", IconPage: &view.IconPage{Editing: &i}}, 200)
+			s.render(w, r, view.PageData{Title: "Edit icon", Description: "Manage this uploaded icon and its service references.", Path: view.IconEditURL(i.ID), Active: "nav-presentation", IconPage: &view.IconPage{Editing: &i}}, 200)
 			return
 		}
 	}
@@ -123,7 +123,7 @@ func (s *server) iconDetails(w http.ResponseWriter, r *http.Request) {
 		if selected.Name != "" {
 			title = selected.Name + " icon"
 		}
-		s.render(w, r, view.PageData{Title: title, Description: "Icon source, license, and available variants in the Balemoh library.", Path: view.IconDetailsURL(r.PathValue("iconID")), Active: "nav-icons", IconPage: &view.IconPage{Details: &selected, Error: message}}, status)
+		s.render(w, r, view.PageData{Title: title, Description: "Icon source, license, and available variants in the Balemoh library.", Path: view.IconDetailsURL(r.PathValue("iconID")), Active: "nav-presentation", IconPage: &view.IconPage{Details: &selected, Error: message}}, status)
 		return
 	}
 	var body bytes.Buffer
@@ -194,7 +194,7 @@ func (s *server) uploadIcon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Header.Get("HX-Request-Type") == "partial" && r.Header.Get("HX-Target") == "div#icon-upload-body" {
-		w.Header().Set("HX-Redirect", "/icons?source=uploads")
+		w.Header().Set("HX-Redirect", "/presentation?source=uploads#icons")
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -215,7 +215,7 @@ func (s *server) iconUploadError(w http.ResponseWriter, r *http.Request, draft v
 		_ = view.IconUploadDrawerBody(draft, message).Render(r.Context(), w)
 		return
 	}
-	s.render(w, r, view.PageData{Title: "Edit icon", Description: "Manage uploaded service icons.", Path: "/icons", Active: "nav-icons", IconPage: &view.IconPage{Editing: &draft, Error: message}}, http.StatusOK)
+	s.render(w, r, view.PageData{Title: "Edit icon", Description: "Manage uploaded service icons.", Path: "/presentation", Active: "nav-presentation", IconPage: &view.IconPage{Editing: &draft, Error: message}}, http.StatusOK)
 }
 func (s *server) deleteIcon(w http.ResponseWriter, r *http.Request) {
 	if s.icons == nil {
@@ -233,7 +233,7 @@ func (s *server) deleteIcon(w http.ResponseWriter, r *http.Request) {
 		s.renderIcons(w, r, "Icon could not be deleted. It may be in use or changed. Refresh, then remove service references in Staging before deleting.")
 		return
 	}
-	redirect(w, r, "/icons?source=uploads")
+	redirect(w, r, "/presentation?source=uploads#icons")
 }
 func (s *server) iconImage(w http.ResponseWriter, r *http.Request) {
 	if s.icons == nil {
