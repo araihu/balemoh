@@ -176,17 +176,16 @@ func (s *rpcServer) Configure(ctx context.Context, r *pb.ConnectionConfig) (*pb.
 			return nil, toRPC(err)
 		}
 	}
-	digest := notificationConfigDigest(r.ConfigJson, r.Secrets)
 	s.notificationMu.Lock()
 	existing := s.notificationBindings[r.ConnectionId]
-	sameConfiguration := existing.sameConfiguration(r.Revision, digest, session != nil)
+	sameConfiguration := existing.sameConfiguration(r.Revision, session != nil)
 	s.notificationMu.Unlock()
 	var binding *notificationBinding
 	var publisher notifications.Publisher
 	if sameConfiguration {
 		publisher = existing.authorPublisher()
 	} else {
-		binding = newNotificationBinding(r.Revision, digest, session)
+		binding = newNotificationBinding(r.Revision, session)
 		publisher = binding.authorPublisher()
 	}
 	result, err := s.backend.Configure(ctx, backend.Config{ConnectionID: r.ConnectionId, Revision: r.Revision, Config: r.ConfigJson, Secrets: r.Secrets, Notifications: publisher})

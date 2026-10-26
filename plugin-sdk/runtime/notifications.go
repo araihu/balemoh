@@ -1,11 +1,7 @@
 package runtime
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/json"
-	"io"
 	"sync"
 	"time"
 
@@ -30,7 +26,7 @@ type notificationSession struct {
 
 // rebindableNotificationPublisher is the author-visible publisher for one
 // accepted connection configuration. A repeated successful configuration with
-// the same revision and digest rebases this object onto the replacement host
+// the same revision rebases this object onto the replacement host
 // callback, so a handler that retained the original interface survives a lost
 // Configure response. The read lock spans the callback RPC; revocation and
 // rebinding therefore cannot close the old session underneath a publication.
@@ -68,21 +64,20 @@ func (p *rebindableNotificationPublisher) revoke() {
 
 type notificationBinding struct {
 	revision  string
-	digest    [32]byte
 	session   *notificationSession
 	publisher *rebindableNotificationPublisher
 }
 
-func newNotificationBinding(revision string, digest [32]byte, session *notificationSession) *notificationBinding {
-	binding := &notificationBinding{revision: revision, digest: digest, session: session}
+func newNotificationBinding(revision string, session *notificationSession) *notificationBinding {
+	binding := &notificationBinding{revision: revision, session: session}
 	if session != nil {
 		binding.publisher = &rebindableNotificationPublisher{publisher: session.publisher}
 	}
 	return binding
 }
 
-func (b *notificationBinding) sameConfiguration(revision string, digest [32]byte, hasPublisher bool) bool {
-	return b != nil && b.revision == revision && b.digest == digest && (b.session != nil) == hasPublisher
+func (b *notificationBinding) sameConfiguration(revision string, hasPublisher bool) bool {
+	return b != nil && b.revision == revision && (b.session != nil) == hasPublisher
 }
 
 func (b *notificationBinding) authorPublisher() notifications.Publisher {
@@ -102,39 +97,6 @@ func (b *notificationBinding) revokeAndClose() {
 	if b.session != nil {
 		b.session.Close()
 	}
-}
-
-func notificationConfigDigest(config []byte, secrets map[string]string) [32]byte {
-	// Normalize nil and empty maps so an equivalent replay is not mistaken for
-	// a replacement merely because the caller allocated an empty secret map.
-	config = canonicalConfigJSON(config)
-	values := make(map[string]string, len(secrets))
-	for key, value := range secrets {
-		values[key] = value
-	}
-	payload, _ := json.Marshal(struct {
-		Config  []byte            `json:"config"`
-		Secrets map[string]string `json:"secrets"`
-	}{Config: config, Secrets: values})
-	return sha256.Sum256(payload)
-}
-
-func canonicalConfigJSON(config []byte) []byte {
-	decoder := json.NewDecoder(bytes.NewReader(config))
-	decoder.UseNumber()
-	var value any
-	if err := decoder.Decode(&value); err != nil {
-		return config
-	}
-	var extra any
-	if err := decoder.Decode(&extra); err != io.EOF {
-		return config
-	}
-	canonical, err := json.Marshal(value)
-	if err != nil {
-		return config
-	}
-	return canonical
 }
 
 func (s *notificationSession) Close() {
