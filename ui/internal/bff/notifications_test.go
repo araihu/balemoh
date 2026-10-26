@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -207,5 +208,88 @@ func TestBulkNotificationReadIsSeparateProtectedAndScoped(t *testing.T) {
 	w = post("", "returnTo=%2Fnotifications%3Funread%3Dtrue", false)
 	if w.Code != 303 || w.Header().Get("Location") != "/notifications?unread=true" {
 		t.Fatal("missing native bulk PRG")
+	}
+}
+
+func TestNotificationUsesProducerPageIconWithoutPluginRendering(t *testing.T) {
+	for _, tc := range []struct {
+		name, symbol, kind, connection, page, want string
+		nested                                     bool
+	}{
+		{name: "declared", symbol: "hi-16-solid-bell", want: "hi-16-solid-bell"},
+		{name: "nested", symbol: "hi-16-solid-bell", want: "hi-16-solid-bell", nested: true},
+		{name: "unknown", symbol: "future-icon", want: "hi-16-solid-cube"},
+		{name: "URL rejected", symbol: "https://invalid.example/icon.svg", want: "hi-16-solid-cube"},
+		{name: "missing icon", want: "hi-16-solid-cube"},
+		{name: "other connection", symbol: "hi-16-solid-bell", connection: "00000000-0000-4000-8000-000000000099", want: "hi-16-solid-cube"},
+		{name: "other page", symbol: "hi-16-solid-bell", page: "absent", want: "hi-16-solid-cube"},
+		{name: "external producer", symbol: "hi-16-solid-bell", kind: "external", want: "hi-16-solid-arrow-down-tray"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			registry := configuredPreviewRegistry(t, manifest.UIProfile, func(m *manifest.Manifest) {
+				m.Targets[runtime.GOOS+"/"+runtime.GOARCH] = manifest.Target{UI: "hung"}
+				m.Navigation[0].Icon = tc.symbol
+				if tc.nested {
+					m.Navigation = []manifest.Navigation{{ID: "group", Title: "Group", Children: m.Navigation}}
+				}
+			})
+			// Wait only for metadata publication, never the hung UI handshake.
+			deadline := time.NewTimer(5 * time.Second)
+			defer deadline.Stop()
+			tick := time.NewTicker(time.Millisecond)
+			defer tick.Stop()
+			for registry.Connection("example.fixture", notificationClientTestID) == nil {
+				select {
+				case <-tick.C:
+				case <-deadline.C:
+					t.Fatal("plugin metadata not published")
+				}
+			}
+			kind := tc.kind
+			if kind == "" {
+				kind = "plugin"
+			}
+			connection := tc.connection
+			if connection == "" {
+				connection = notificationClientTestID
+			}
+			page := tc.page
+			if page == "" {
+				page = "current"
+			}
+			f := &notificationFixture{page: view.NotificationsPage{Items: []view.Notification{{ID: "icon-fixture", Title: "Event", Read: true, SourceKind: kind, ProducerID: "example.fixture", ProducerConnectionID: connection, ProducerPage: page}}}}
+			h, err := NewWithPlugins(f, time.Second, nil, registry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, route := range []string{"/notifications/tray", "/notifications"} {
+				w := httptest.NewRecorder()
+				h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, route, nil))
+				if w.Code != 200 {
+					t.Fatalf("%s status %d", route, w.Code)
+				}
+				id := "notification-item-icon-fixture"
+				if strings.HasSuffix(route, "tray") {
+					id = "notification-tray-item-icon-fixture"
+				}
+				_, row, ok := strings.Cut(w.Body.String(), `id="`+id+`"`)
+				if !ok {
+					t.Fatal("notification row missing")
+				}
+				row, _, _ = strings.Cut(row, "</li>")
+				if !strings.Contains(row, "#"+tc.want) {
+					t.Fatalf("%s missing producer/fallback icon %s", route, tc.want)
+				}
+				if strings.Contains(row, "https://invalid.example") {
+					t.Fatal("producer URL reached notification markup")
+				}
+			}
+			if f.page.Items[0].ProducerIcon != "" {
+				t.Fatal("render mutated catalog-owned notification slice")
+			}
+			if f.reads.Load()+f.clears.Load()+f.bulkReads.Load() != 0 {
+				t.Fatal("icon rendering changed read state")
+			}
+		})
 	}
 }

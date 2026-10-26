@@ -4,15 +4,19 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/a-h/templ"
-	pluginruntime "github.com/araihu/balemoh/plugin-sdk/runtime"
-	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
-	"github.com/araihu/balemoh/ui/internal/view"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 	"uuid"
+
+	"github.com/a-h/templ"
+	"github.com/araihu/balemoh/plugin-sdk/manifest"
+	pluginruntime "github.com/araihu/balemoh/plugin-sdk/runtime"
+	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
+	"github.com/araihu/balemoh/ui/internal/view"
+	"github.com/araihu/goshtoso/components/icon"
 )
 
 // NotificationCatalog never invokes plugin discovery or rendering.
@@ -58,6 +62,10 @@ func (s *server) notificationList(r *http.Request, limit int) (view.Notification
 		return page, 503
 	}
 	result.Before, result.UnreadOnly = page.Before, page.UnreadOnly
+	result.Items = slices.Clone(result.Items)
+	for i := range result.Items {
+		result.Items[i].ProducerIcon = s.notificationProducerIcon(result.Items[i])
+	}
 	return result, 200
 }
 func (s *server) notificationSummary(w http.ResponseWriter, r *http.Request) {
@@ -357,4 +365,28 @@ func (s *server) notificationDestination(target NotificationTarget) string {
 		return path
 	}
 	return ""
+}
+
+// Read installed metadata only; notification rendering never calls a plugin process.
+func (s *server) notificationProducerIcon(item view.Notification) icon.Symbol {
+	if s.plugins == nil || item.SourceKind != "plugin" || item.ProducerPage == "" {
+		return ""
+	}
+	entry := s.plugins.Connection(item.ProducerID, item.ProducerConnectionID)
+	if entry == nil {
+		return ""
+	}
+	var find func([]manifest.Navigation) string
+	find = func(items []manifest.Navigation) string {
+		for _, nav := range items {
+			if nav.Page == item.ProducerPage {
+				return nav.Icon
+			}
+			if value := find(nav.Children); value != "" {
+				return value
+			}
+		}
+		return ""
+	}
+	return pluginIconSymbol(find(entry.Package.Manifest.Navigation), "")
 }

@@ -346,3 +346,7 @@ body {
 .dark .balemoh-notification-count:not(.balemoh-notification-count-warning) { background: var(--color-primary-dark); color: var(--color-on-primary-dark); }
 .dark .balemoh-notification-unread-dot { background: var(--color-primary-dark); }
 .dark .balemoh-notification-tray-row-unread { background: color-mix(in srgb, var(--color-primary-dark) 6%, transparent); }
+
+.balemoh-notification-title { display: flex; align-items: center; gap: .75rem; margin: .6rem 0 .35rem; }
+.balemoh-notification-title h3 { margin: 0; min-width: 0; }
+.balemoh-notification-title .balemoh-notification-source-icon { flex: none; }

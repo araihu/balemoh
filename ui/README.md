@@ -35,7 +35,7 @@ Configuration is documented in
 - `BALEMOH_UI_API_BASE_URL` defaults to `http://127.0.0.1:8080`.
 - request and shutdown timeouts default to `5s`.
 
-The UI pins Goshtoso v0.3.0 with HTMX 4.0.0 and Alpine.js 3.17.2. Runtime
+The UI pins Goshtoso v0.4.5 with HTMX 4.0.0 and Alpine.js 3.17.2. Runtime
 assets are served locally through Goshtoso and the compatible App Shells module.
 Navigation and service editing use native links and POST/Redirect/GET. Pin
 checkboxes, icon search, details, and uploads use HTMX fragments identified by
@@ -56,3 +56,16 @@ list inside a responsive Goshtoso console shell, with this information order:
 The visual direction is restrained and operational: semantic Goshtoso states,
 neutral panels and dividers, no metric-card gallery, and reduced motion. Empty,
 success, and upstream-error states are rendered explicitly.
+
+## Notification producer icons
+
+Notifications from a plugin use the bundled Heroicons symbol declared in the
+manifest navigation item for their destination page. Source plugin and connection
+must match the destination. The Alertmanager plugin already declares its bell
+through `navigation[].icon`, so saved notifications acquire that icon without
+rewriting inbox rows or changing the publication protocol.
+
+The BFF reads installed manifest metadata only. It does not contact the plugin
+process or load producer-supplied image URLs or markup. Missing plugins, missing
+page declarations and unknown symbols keep the host source-kind fallback.
+The same icon appears in the popover and notification center.

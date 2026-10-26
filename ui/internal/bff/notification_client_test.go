@@ -2,7 +2,9 @@ package bff
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	api "github.com/araihu/balemoh/client"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -227,4 +229,25 @@ func notificationClientTestJSON() string {
 
 func notificationClientTestJSONWithExternalDestination() string {
 	return `{"id":"` + notificationClientTestID + `","source":{"kind":"core","id":"core"},"eventId":"event-1","severity":"info","title":"Title","body":"Body","occurredAt":"2026-10-25T12:00:00Z","receivedAt":"2026-10-25T12:01:00Z","destination":{"kind":"external","url":"https://example.test/incident"}}`
+}
+
+func TestNotificationProducerPageUsesOwnDestinationOnly(t *testing.T) {
+	for _, foreign := range []bool{false, true} {
+		raw := `{"id":"` + notificationClientTestID + `","source":{"kind":"plugin","id":"example.fixture","connectionId":"` + notificationClientTestID + `"},"destination":{"kind":"plugin","pluginId":"example.fixture","connectionId":"` + notificationClientTestID + `","page":"current"}}`
+		if foreign {
+			raw = strings.Replace(raw, `"pluginId":"example.fixture"`, `"pluginId":"other.plugin"`, 1)
+		}
+		var item api.Notification
+		if err := json.Unmarshal([]byte(raw), &item); err != nil {
+			t.Fatal(err)
+		}
+		got := notificationView(item)
+		want := "current"
+		if foreign {
+			want = ""
+		}
+		if got.ProducerPage != want || got.ProducerID != "example.fixture" || got.ProducerConnectionID != notificationClientTestID {
+			t.Fatalf("producer identity/page = %#v", got)
+		}
+	}
 }

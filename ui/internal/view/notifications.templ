@@ -149,7 +149,7 @@ templ NotificationList(page NotificationsPage, tray bool) {
 
 templ NotificationCompactItem(item Notification,page NotificationsPage) {
  <li id={"notification-tray-item-"+item.ID} class={notificationCompactClass(item.Read)}>
-  <span class="balemoh-notification-source-icon">@icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:notificationSourceSymbol(item.SourceKind),Decorative:true})</span>
+  @NotificationProducerIcon(item)
   <div class="balemoh-notification-row-content">
    <div class="balemoh-notification-row-title">
     if item.HasDestination {
@@ -190,7 +190,7 @@ templ NotificationFullList(page NotificationsPage, tray bool) {
 						@badge.Badge(badge.Config{Label: item.Severity, Tone: notificationTone(item.Severity), Appearance: badge.AppearanceSoft, Size: badge.SizeSM})
 						<time datetime={ item.ReceivedAt.UTC().Format(time.RFC3339Nano) } title={ item.ReceivedAt.UTC().Format(time.RFC1123) }>{ notificationAge(item.ReceivedAt) }</time>
 					</div>
-					<h3>{ item.Title }</h3>
+					<div class="balemoh-notification-title">@NotificationProducerIcon(item)<h3>{ item.Title }</h3></div>
 					if item.Body != "" {
 						<p class="balemoh-notification-body">{ item.Body }</p>
 					}
@@ -315,4 +315,8 @@ func notificationUnreadQuery(unread bool) string {
 		return "&unread=true"
 	}
 	return ""
+}
+
+templ NotificationProducerIcon(item Notification) {
+ <span class="balemoh-notification-source-icon">@icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:notificationIconSymbol(item),Decorative:true})</span>
 }

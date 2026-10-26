@@ -166,13 +166,7 @@ func (s *server) pluginNavigation() []sidebar.Item {
 	convert = func(ns []plugins.Navigation) []sidebar.Item {
 		out := []sidebar.Item{}
 		for _, n := range ns {
-			symbol := heroicons.Icon16SolidSquares2x2
-			for _, glyph := range heroicons.Glyphs {
-				if string(glyph.Symbol) == n.Icon {
-					symbol = glyph.Symbol
-					break
-				}
-			}
+			symbol := pluginIconSymbol(n.Icon, heroicons.Icon16SolidSquares2x2)
 			out = append(out, sidebar.Item{ID: n.ID, Label: n.Title, Href: n.Href, Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: symbol, Decorative: true}), Items: convert(n.Children), Collapsible: len(n.Children) > 0})
 		}
 		return out
@@ -246,4 +240,14 @@ func (s *server) pluginPagePost(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	response, err := s.plugins.PageRequest(ctx, r.PathValue("pluginID"), r.PathValue("connectionID"), "/"+r.PathValue("pluginPath"), "POST", r.URL.Query(), form, body)
 	s.pluginContent(w, r, response, err)
+}
+
+// Resolve only bundled symbols. Producer strings never become URLs or markup.
+func pluginIconSymbol(value string, fallback icon.Symbol) icon.Symbol {
+	for _, glyph := range heroicons.Glyphs {
+		if string(glyph.Symbol) == value {
+			return glyph.Symbol
+		}
+	}
+	return fallback
 }

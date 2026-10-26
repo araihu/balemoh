@@ -2,19 +2,21 @@ package view
 
 import (
 	"fmt"
-	"github.com/a-h/templ"
-	"github.com/araihu/goshtoso/components/icon"
-	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
 )
 
 type Notification struct {
-	ID, Title, Body, Severity, Source string
-	SourceKind, SourceLabel           string
-	ReceivedAt                        time.Time
-	Read, HasDestination, External    bool
+	ID, Title, Body, Severity, Source              string
+	SourceKind, SourceLabel                        string
+	ProducerID, ProducerConnectionID, ProducerPage string
+	ProducerIcon                                   icon.Symbol
+	ReceivedAt                                     time.Time
+	Read, HasDestination, External                 bool
 }
 
 type NotificationsPage struct {
@@ -127,6 +129,13 @@ func notificationCompactClass(read bool) string {
 	}
 	return "balemoh-notification-tray-row balemoh-notification-tray-row-unread"
 }
+func notificationIconSymbol(item Notification) icon.Symbol {
+	if item.ProducerIcon != "" {
+		return item.ProducerIcon
+	}
+	return notificationSourceSymbol(item.SourceKind)
+}
+
 func notificationSourceSymbol(kind string) icon.Symbol {
 	switch kind {
 	case "plugin":

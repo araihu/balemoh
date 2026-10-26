@@ -87,6 +87,7 @@ type Page struct {
 }
 type Navigation struct {
 	// Icon is an optional bundled Heroicons symbol. Unknown symbols use the host fallback.
+	// Notifications from this plugin also use it when their destination names this page.
 	Icon     string       `json:"icon,omitempty"`
 	ID       string       `json:"id"`
 	Title    string       `json:"title"`

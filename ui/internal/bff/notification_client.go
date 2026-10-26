@@ -2,9 +2,10 @@ package bff
 
 import (
 	"context"
+	"net/http"
+
 	api "github.com/araihu/balemoh/client"
 	"github.com/araihu/balemoh/ui/internal/view"
-	"net/http"
 )
 
 func (c *APIClient) notificationAuthority() (api.RequestEditorFn, error) {
@@ -113,7 +114,11 @@ func notificationView(item api.Notification) view.Notification {
 	if item.Source.ConnectionId != nil {
 		source += " · " + *item.Source.ConnectionId
 	}
-	return view.Notification{SourceKind: string(item.Source.Kind), SourceLabel: item.Source.Id, ID: item.Id.String(), Title: item.Title, Body: item.Body, Severity: string(item.Severity), Source: source, ReceivedAt: item.ReceivedAt, Read: item.ReadAt != nil, HasDestination: item.Destination != nil, External: item.Destination != nil && string(item.Destination.Kind) == "external"}
+	itemView := view.Notification{ProducerID: item.Source.Id, ProducerConnectionID: notificationString(item.Source.ConnectionId), SourceKind: string(item.Source.Kind), SourceLabel: item.Source.Id, ID: item.Id.String(), Title: item.Title, Body: item.Body, Severity: string(item.Severity), Source: source, ReceivedAt: item.ReceivedAt, Read: item.ReadAt != nil, HasDestination: item.Destination != nil, External: item.Destination != nil && string(item.Destination.Kind) == "external"}
+	if d := item.Destination; d != nil && string(d.Kind) == "plugin" && notificationString(d.PluginId) == item.Source.Id && notificationString(d.ConnectionId) == itemView.ProducerConnectionID {
+		itemView.ProducerPage = notificationString(d.Page)
+	}
+	return itemView
 }
 func notificationString(value *string) string {
 	if value == nil {
