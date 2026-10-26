@@ -84,3 +84,23 @@ func TestNotificationGroupingUsesReceiptDayAndUniqueTrayTargets(t *testing.T) {
 		t.Fatal("empty unread state/retention missing")
 	}
 }
+
+func TestMarkAllCoalescesQueuedSubmissions(t *testing.T) {
+	var b bytes.Buffer
+	if err := NotificationTray().Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	html := b.String()
+	for _, want := range []string{`hx-sync:inherited="#balemoh-notifications:queue last"`, `hx-request:inherited="timeout:4s"`, `hx-include:inherited="#notification-filter"`, `id="notification-mark-all"`, `hx-post="/notifications/read-all"`} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("tray mark-all missing queue admission contract %s", want)
+		}
+	}
+	b.Reset()
+	if err := NotificationMarkAllForm("/notifications?unread=true").Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), `hx-sync="#balemoh-notifications:queue last"`) || strings.Contains(b.String(), "queue all") {
+		t.Fatal("page mark-all must coalesce while a refresh owns the lock")
+	}
+}

@@ -1,10 +1,11 @@
-"""Manual real-browser regression for clear admission behind a held refresh.
+"""Manual real-browser regression for bulk admission behind a held refresh.
 
-Run against disposable local API/UI fixtures with an empty inbox. Open the proxy
-URL, open Clear all and check confirmation. Create STATE/hold, wait for
-STATE/held, submit repeatedly, then create STATE/release. Assert STATE/clears is
-exactly 1 and the API retains the post-clear message. A second clear is blocked
-by this harness and counted as a regression. No production endpoints are allowed.
+Use disposable local API/UI fixtures only. Open the proxy and the selected action,
+create STATE/hold, click Refresh notifications, then submit repeatedly. Verify
+STATE/held exists and STATE/reads or STATE/clears is absent before creating
+STATE/release. After release, the counter must equal 1 and the post-action message
+must remain unread. A duplicate write is counted and rejected by this harness.
+No production endpoints are allowed. --action defaults to clear for compatibility.
 """
 import argparse
 import http.server

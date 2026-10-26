@@ -370,7 +370,7 @@ func NotificationTray() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div hx-sync:inherited=\"#balemoh-notifications:queue all\" hx-request:inherited=\"timeout:4s\" hx-disable:inherited=\"#notification-mark-all, #notification-actions-trigger\" hx-include:inherited=\"#notification-filter\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div hx-sync:inherited=\"#balemoh-notifications:queue last\" hx-request:inherited=\"timeout:4s\" hx-disable:inherited=\"#notification-mark-all, #notification-actions-trigger\" hx-include:inherited=\"#notification-filter\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -553,7 +553,7 @@ func NotificationMarkAllForm(returnTo string) templ.Component {
 			templ_7745c5c3_Var20 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<form method=\"post\" action=\"/notifications/read-all\" hx-post=\"/notifications/read-all\" hx-target=\"#notification-page-read-status\" hx-swap=\"innerMorph\" hx-sync=\"#balemoh-notifications:queue all\" hx-request=\"timeout:4s\" hx-disable=\"find button[type='submit']\"><input type=\"hidden\" name=\"returnTo\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<form method=\"post\" action=\"/notifications/read-all\" hx-post=\"/notifications/read-all\" hx-target=\"#notification-page-read-status\" hx-swap=\"innerMorph\" hx-sync=\"#balemoh-notifications:queue last\" hx-request=\"timeout:4s\" hx-disable=\"find button[type='submit']\"><input type=\"hidden\" name=\"returnTo\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1454,7 +1454,7 @@ func NotificationReadControl(id string, read bool, failure, returnTo string) tem
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = button.Button(button.WithAppearance(button.AppearancePlain), button.WithType("submit"), button.WithLoadingText("Saving…")).Render(templ.WithChildren(ctx, templ_7745c5c3_Var62), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = button.Button(button.WithAppearance(button.AppearancePlain), button.WithType("submit")).Render(templ.WithChildren(ctx, templ_7745c5c3_Var62), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

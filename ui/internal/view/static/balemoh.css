@@ -342,3 +342,7 @@ body {
  .balemoh-notification-tray-row { padding: .85rem 1rem; gap: .5rem; }
  #notification-tray { max-height: 60dvh; }
 }
+
+.dark .balemoh-notification-count:not(.balemoh-notification-count-warning) { background: var(--color-primary-dark); color: var(--color-on-primary-dark); }
+.dark .balemoh-notification-unread-dot { background: var(--color-primary-dark); }
+.dark .balemoh-notification-tray-row-unread { background: color-mix(in srgb, var(--color-primary-dark) 6%, transparent); }

@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1070
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/balemoh/plugin-sdk v0.0.0
-	github.com/araihu/goshtoso v0.4.4
+	github.com/araihu/goshtoso v0.4.5
 	github.com/araihu/goshtoso-app-shells v0.1.9-0.20260910224508-5b2222e54637
 	github.com/araihu/goshtoso-charts v0.0.4
 	github.com/caarlos0/env/v11 v11.4.1

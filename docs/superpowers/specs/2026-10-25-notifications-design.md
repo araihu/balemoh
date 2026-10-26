@@ -342,21 +342,21 @@ uses `queue last` for coalescing. Pending actions disable their trigger. Native
 full-inbox forms retain POST/Redirect/Get. Ambiguous failures are announced without
 automatically retrying a mutation.
 
-`BALEMOH_NOTIFICATION_RETENTION_DAYS` is a typed integer, default30 for unset or
-empty values, range1 through3650. Each day is24h from `receivedAt`; expiration
+`BALEMOH_NOTIFICATION_RETENTION_DAYS` is a typed integer, default 30 for unset or
+empty values, range 1 through 3650. Each day is 24h from `receivedAt`; expiration
 uses UTC epoch-second precision with the cutoff rounded down to the second.
 Read and unread messages expire alike. List/count/get/read-state operations hide
 expired messages immediately. A core-owned worker physically deletes them at
-startup and hourly, with a5s deadline per sweep, cancellation and shutdown join.
+startup and hourly, with a 5s deadline per sweep, cancellation and shutdown join.
 HTTP and plugin publication share the same configured service. Publication
 atomically reclaims expired identities or full inbox capacity before acceptance.
 No migration or plugin SDK contract change is required.
 
 Physical expiry deletes deduplication identities too. A later producer retry is a
-new acceptance with a new receipt timestamp. The10,000-row cap still rejects new
+new acceptance with a new receipt timestamp. The 10,000-row cap still rejects new
 messages if retained rows fill capacity. Increasing retention cannot restore
 rows already pruned; restoring a database requires separate recovery review.
-The UI displays the server's actual retention period rather than assuming30 days.
+The UI displays the server's actual retention period rather than assuming 30 days.
 
 Surface brief: operator scanning incoming events; compact operations list inside
 the existing shell; title and unread state first, source/time second, preview and
