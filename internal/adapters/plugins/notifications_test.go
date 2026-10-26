@@ -3,10 +3,14 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	storage "github.com/araihu/balemoh/internal/adapters/sqlite"
 	core "github.com/araihu/balemoh/internal/application/notifications"
+	app "github.com/araihu/balemoh/internal/application/plugins"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
 	sdk "github.com/araihu/balemoh/plugin-sdk/notifications"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -139,5 +143,156 @@ func TestNotificationCapabilityGrantIsExplicitAndAffectsRevision(t *testing.T) {
 	deployment, err = Load(path)
 	if err != nil || len(deployment.Problems()) != 1 {
 		t.Fatal("unknown capability grant accepted")
+	}
+}
+
+func TestOversizedPublicationFailureIsPermanent(t *testing.T) {
+	err := notificationFailure(core.ErrTooLarge)
+	typed, ok := err.(*sdk.Error)
+	if !ok || typed.Code != "invalid_argument" || typed.Retryable {
+		t.Fatal("oversized publication must not be retried", err)
+	}
+}
+
+func notificationOnlyDeployment(t *testing.T) (string, File) {
+	t.Helper()
+	path, file := deploymentFixture(t)
+	installation := &file.Installations[0]
+	manifestPath := filepath.Join(installation.Package, "plugin.json")
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m manifest.Manifest
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	m.Queries = []manifest.Query{}
+	m.Capabilities.Required = []string{"page.content/v1"}
+	m.Capabilities.Optional = []string{notificationPublishCapability}
+	m.Pages[0].Capabilities = []string{}
+	data, err = json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := manifest.Load(installation.Package)
+	if err != nil {
+		t.Fatal(err)
+	}
+	installation.ManifestDigest = pkg.Digest
+	installation.PackageDigest, err = pkg.ContentDigest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	installation.Connections[0].Grants = []string{}
+	installation.Connections[0].CapabilityGrants = []string{notificationPublishCapability}
+	return path, file
+}
+
+func TestNotificationOnlyBackendReportsActualConfigurationAndExit(t *testing.T) {
+	for _, reject := range []bool{true, false} {
+		t.Run(map[bool]string{true: "rejected", false: "configured-and-exited"}[reject], func(t *testing.T) {
+			path, file := notificationOnlyDeployment(t)
+			if reject {
+				if err := os.WriteFile(filepath.Join(filepath.Dir(path), "token"), []byte("wrong-token"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			saveDeployment(t, path, file)
+			deployment, err := Load(path)
+			if err != nil || len(deployment.Problems()) != 0 {
+				t.Fatal("invalid fixture", err, deployment.Problems())
+			}
+			id := "00000000-0000-4000-8000-000000000002"
+			r := NewRuntime(t.Context(), deployment, []app.Connection{{ID: id, PluginID: "example.fixture", Key: "one", Revision: "7", Enabled: true}}, &notificationSink{})
+			t.Cleanup(r.Close)
+			deadline := time.Now().Add(10 * time.Second)
+			for {
+				state, grants := r.CachedStatus("example.fixture", id)
+				if len(grants) != 0 {
+					t.Fatal("notification-only backend acquired query grants")
+				}
+				if reject {
+					if state.Ready || state.AppliedRevision != nil {
+						t.Fatal("rejected backend fabricated readiness", state)
+					}
+					if state.ConfigurationError != nil {
+						break
+					}
+				} else if state.Ready {
+					if state.AppliedRevision == nil || *state.AppliedRevision != "7" {
+						t.Fatal("configured revision missing", state)
+					}
+					break
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("backend did not report actual Configure result", state)
+				}
+				time.Sleep(5 * time.Millisecond)
+			}
+			r.Close()
+			state, grants := r.CachedStatus("example.fixture", id)
+			if state.Ready || state.State != "unavailable" || len(grants) != 0 {
+				t.Fatal("stopped backend fabricated readiness", state)
+			}
+		})
+	}
+}
+
+func TestSDKEnvelopeContractReachesDurableCore(t *testing.T) {
+	db, err := storage.Open(t.Context(), filepath.Join(t.TempDir(), "inbox.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if err := storage.RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+	service := core.NewService(storage.NewNotificationStore(db))
+	publisher, message := publisherFixture(&notificationSink{})
+	publisher.publisher = service
+	for _, tc := range []struct{ name, body string }{
+		{"unicode-fits", strings.Repeat("\u2028", 2000)},
+		{"unicode-too-large", strings.Repeat("\u2028", 3000)},
+		{"html-fits", strings.Repeat("<>&", 600)},
+		{"html-too-large", strings.Repeat("<>&", 1000)},
+		{"emoji", strings.Repeat("😀", 3900)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := message
+			m.EventID = tc.name
+			m.Body = tc.body
+			m.OccurredAt = m.OccurredAt.UTC()
+			encoded, err := json.Marshal(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			coreMessage := core.Message{EventID: m.EventID, Severity: core.Severity(m.Severity), Title: m.Title, Body: m.Body, OccurredAt: m.OccurredAt}
+			size, err := core.EnvelopeBytes(coreMessage)
+			if err != nil || size != len(encoded) {
+				t.Fatal("SDK/core JSON shapes differ", size, len(encoded), err)
+			}
+			valid := size <= core.MaxEnvelopeBytes
+			if (m.Validate() == nil) != valid {
+				t.Fatal("SDK disagrees with the core envelope limit", size)
+			}
+			receipt, err := publisher.Publish(t.Context(), m)
+			if !valid {
+				if sdk.Code(err) != "invalid_argument" {
+					t.Fatal("oversize rejection changed semantics", err)
+				}
+				return
+			}
+			if err != nil || !receipt.Created {
+				t.Fatal("SDK-valid message rejected by core", size, err)
+			}
+			stored, err := service.Get(t.Context(), receipt.ID)
+			if err != nil || stored.Body != m.Body {
+				t.Fatal("message lost or changed at persistence", err)
+			}
+		})
 	}
 }

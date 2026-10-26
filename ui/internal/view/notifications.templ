@@ -17,7 +17,7 @@ import (
 templ NotificationBell() {
 	@popover.Popover(popover.Config{ID: "balemoh-notifications", Trigger: NotificationTrigger(), Content: NotificationTray(), Placement: popover.PlacementBottomEnd, Role: "dialog", Label: "Notifications", TrapFocus: true, RootClass: "balemoh-notification-popover", PanelClass: "balemoh-notification-panel"})
 	<noscript>@link.Link("/notifications") {
-	Notifications 
+	Notifications
 }</noscript>
 }
 
@@ -61,7 +61,7 @@ templ NotificationTray() {
 	<div class="balemoh-notification-heading"><h2>Notifications</h2>@NotificationRefresh()</div>
 	<div id="notification-tray" data-notification-tray hx-sync="#balemoh-notifications:queue all" hx-request="timeout:4s" aria-live="polite"><p class="balemoh-muted">Loading notifications…</p></div>
 	<div class="balemoh-notification-footer">@link.Link("/notifications") {
-	All notifications 
+	All notifications
 }</div>
 }
 
@@ -133,7 +133,7 @@ templ NotificationReadControl(id string, read bool, failure, returnTo string) {
 		<form method="post" action={ templ.SafeURL("/notifications/" + id + "/read") } hx-post={ "/notifications/" + id + "/read" } hx-target={ "#notification-read-" + id } hx-swap="innerMorph" hx-sync="#balemoh-notifications:queue all" hx-request="timeout:4s" hx-disable="find button[type='submit']">
 			<input type="hidden" name="returnTo" value={ returnTo }/>
 			@button.Button(button.WithAppearance(button.AppearancePlain), button.WithType("submit"), button.WithLoadingText("Saving…")) {
-				Mark read 
+				Mark read
 			}
 		</form>
 		if failure!="" {
@@ -161,7 +161,7 @@ templ NotificationsContent(page NotificationsPage) {
 	}
 	if page.NextCursor!="" {
 		@link.Link("/notifications?before=" + url.QueryEscape(page.NextCursor) + notificationUnreadQuery(page.UnreadOnly)) {
-			Older notifications 
+			Older notifications
 		}
 	}
 }

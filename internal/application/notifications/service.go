@@ -52,12 +52,16 @@ func (s *Service) Publish(ctx context.Context, source Source, message Message) (
 	if err := validateDestinationScope(source, message.Destination); err != nil {
 		return Receipt{}, err
 	}
-	canonical, err := CanonicalPayload(source, message)
+	envelopeBytes, err := EnvelopeBytes(message)
 	if err != nil {
 		return Receipt{}, ErrUnavailable
 	}
-	if len(canonical) > MaxEnvelopeBytes {
+	if envelopeBytes > MaxEnvelopeBytes {
 		return Receipt{}, ErrTooLarge
+	}
+	canonical, err := CanonicalPayload(source, message)
+	if err != nil {
+		return Receipt{}, ErrUnavailable
 	}
 	return s.store.Publish(ctx, source, message, canonical, now)
 }

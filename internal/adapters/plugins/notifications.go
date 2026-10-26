@@ -69,7 +69,7 @@ func (p *connectionPublisher) Publish(ctx context.Context, message sdk.Message) 
 }
 func notificationFailure(err error) error {
 	switch {
-	case errors.Is(err, core.ErrInvalid):
+	case errors.Is(err, core.ErrInvalid), errors.Is(err, core.ErrTooLarge):
 		return sdk.Fail("invalid_argument")
 	case errors.Is(err, core.ErrConflict):
 		return sdk.Fail("conflict")

@@ -323,26 +323,49 @@ func validateText(value, label string, maxBytes int, allowEmpty bool) error {
 	return nil
 }
 
-// CanonicalPayload returns the immutable payload bytes used for replay and
-// conflict detection. encoding/json sorts map keys, making this stable.
-func CanonicalPayload(source Source, message Message) ([]byte, error) {
-	destination := any(nil)
+// CanonicalMessageJSON returns the stable author envelope used for the
+// publication size bound. It intentionally excludes host-bound source
+// identity, normalizes the timestamp to UTC and omits empty optional fields.
+func CanonicalMessageJSON(message Message) ([]byte, error) {
+	message = message.Normalize()
+	var destination *Destination
 	if !message.Destination.IsZero() {
-		destination = message.Destination.Normalize()
+		normalized := message.Destination.Normalize()
+		destination = &normalized
 	}
 	canonicalMessage := struct {
-		EventID     string    `json:"eventId"`
-		Severity    Severity  `json:"severity"`
-		Title       string    `json:"title"`
-		Body        string    `json:"body,omitempty"`
-		OccurredAt  time.Time `json:"occurredAt"`
-		Destination any       `json:"destination,omitempty"`
+		EventID     string       `json:"eventId"`
+		Severity    Severity     `json:"severity"`
+		Title       string       `json:"title"`
+		Body        string       `json:"body,omitempty"`
+		OccurredAt  time.Time    `json:"occurredAt"`
+		Destination *Destination `json:"destination,omitempty"`
 	}{
 		EventID: message.EventID, Severity: message.Severity, Title: message.Title,
 		Body: message.Body, OccurredAt: message.OccurredAt.UTC(), Destination: destination,
 	}
+	return json.Marshal(canonicalMessage)
+}
+
+// EnvelopeBytes reports the serialized author envelope size used by Publish.
+func EnvelopeBytes(message Message) (int, error) {
+	payload, err := CanonicalMessageJSON(message)
+	if err != nil {
+		return 0, err
+	}
+	return len(payload), nil
+}
+
+// CanonicalPayload returns the immutable source-bound payload bytes used for
+// replay and conflict detection. encoding/json sorts map keys, making this
+// stable. The source is deliberately excluded from EnvelopeBytes.
+func CanonicalPayload(source Source, message Message) ([]byte, error) {
+	canonicalMessage, err := CanonicalMessageJSON(message)
+	if err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
-		Source  Source `json:"source"`
-		Message any    `json:"message"`
+		Source  Source          `json:"source"`
+		Message json.RawMessage `json:"message"`
 	}{Source: source.Normalize(), Message: canonicalMessage})
 }

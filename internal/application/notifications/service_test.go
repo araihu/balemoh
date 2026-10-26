@@ -95,6 +95,48 @@ func TestServicePublishRequiresTitleAndEnforcesCoreBounds(t *testing.T) {
 	}
 }
 
+func TestServicePublishEnvelopeBoundIgnoresSourceIdentity(t *testing.T) {
+	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)
+	message := Message{
+		EventID: "near-boundary", Severity: SeverityInfo, Title: "title", Body: strings.Repeat("\u2028", 2700), OccurredAt: now,
+		Destination: Destination{Kind: SourceExternal, URL: "https://example.test/incident"},
+	}
+	size, err := EnvelopeBytes(message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if size > MaxEnvelopeBytes || MaxEnvelopeBytes-size > 256 {
+		t.Fatalf("envelope size = %d, want within 256 bytes below %d", size, MaxEnvelopeBytes)
+	}
+
+	for _, source := range []Source{
+		{Kind: SourceExternal, ID: "monitor"},
+		{Kind: SourceExternal, ID: strings.Repeat("x", MaxSourceIDBytes)},
+	} {
+		store := &recordingStore{}
+		service := NewServiceWithClock(store, func() time.Time { return now })
+		receipt, err := service.Publish(context.Background(), source, message)
+		if err != nil || !receipt.Accepted {
+			t.Errorf("source ID length %d publish = %#v, %v; want accepted", len(source.ID), receipt, err)
+		}
+	}
+}
+
+func TestCanonicalMessageJSONUsesAuthorEnvelopeShape(t *testing.T) {
+	message := Message{
+		EventID: "event", Severity: SeverityInfo, Title: "title",
+		OccurredAt: time.Date(2026, time.October, 25, 12, 0, 0, 0, time.FixedZone("offset", 2*60*60)),
+	}
+	canonical, err := CanonicalMessageJSON(message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `{"eventId":"event","severity":"info","title":"title","occurredAt":"2026-10-25T10:00:00Z"}`
+	if string(canonical) != want {
+		t.Fatalf("canonical author envelope = %s, want %s", canonical, want)
+	}
+}
+
 func TestServicePublishScopesPluginDestinationToSource(t *testing.T) {
 	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)
 	source := Source{Kind: SourcePlugin, ID: "alertmanager", ConnectionID: "550e8400-e29b-41d4-a716-446655440000"}

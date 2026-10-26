@@ -191,7 +191,12 @@ count display caps visually at `99+` while accessible text retains the total.
 
 ## Limits, retention and recovery
 
-The initial envelope limit is 16 KiB. Publication permits at most four
+The initial author envelope limit is 16 KiB of canonical Go `encoding/json`
+message bytes, excluding host-assigned source identity. It uses camelCase message
+fields, a UTC timestamp, and omits empty body and absent/zero destination. SDK and
+core enforce the same representation, including JSON escaping overhead. HTTP raw
+request bodies and callback protobuf requests each have a separate 16 KiB bound.
+Oversized input is a permanent validation failure, never retryable unavailability. Publication permits at most four
 concurrent calls per producer and uses a five-second deadline. There is no
 time-window rate guarantee in this trusted initial milestone. Concurrency,
 envelope and inbox bounds are enforced before acknowledgement. Busy concurrency

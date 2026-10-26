@@ -88,3 +88,25 @@ func TestLoadNotificationAuthRejectsShortCredential(t *testing.T) {
 		t.Fatal("loadNotificationAuth accepted a short publisher credential")
 	}
 }
+
+func TestLoadNotificationAuthRejectsNormalizedDuplicateSourceIDs(t *testing.T) {
+	directory := t.TempDir()
+	firstPath := filepath.Join(directory, "first.token")
+	secondPath := filepath.Join(directory, "second.token")
+	firstToken := "first-publisher-token-value-123456789"
+	secondToken := "second-publisher-token-value-123456"
+	if err := os.WriteFile(firstPath, []byte(firstToken), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(secondPath, []byte(secondToken), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	publishersPath := filepath.Join(directory, "publishers.json")
+	contents := `{"monitor":"` + firstPath + `"," monitor ":"` + secondPath + `"}`
+	if err := os.WriteFile(publishersPath, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadNotificationAuth(config.Options{NotificationPublishersFile: publishersPath}); err == nil {
+		t.Fatal("loadNotificationAuth accepted normalized duplicate source IDs")
+	}
+}

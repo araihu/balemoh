@@ -196,14 +196,14 @@ func (r *Runtime) CachedStatus(plugin, id string) (app.Status, []string) {
 		return app.Status{State: "unavailable"}, []string{}
 	}
 	state := c.status
-	if len(p.pkg.Manifest.Queries) == 0 {
+	if len(p.pkg.Manifest.Queries) == 0 && !p.pkg.Manifest.Declares(notificationPublishCapability) {
 		return app.Status{Ready: true, State: "unavailable", AppliedRevision: &c.record.Revision}, []string{}
 	}
 	if p.client == nil || p.client.Exited() {
 		state.State = "unavailable"
 		state.Ready = false
 	}
-	if !state.Ready {
+	if !state.Ready || len(p.pkg.Manifest.Queries) == 0 {
 		return state, []string{}
 	}
 	return state, append([]string{}, c.config.grants...)

@@ -60,6 +60,9 @@ func loadNotificationAuth(options config.Options) (httpadapter.NotificationAuth,
 			if err := (notifications.Source{Kind: notifications.SourceExternal, ID: sourceID}).Validate(); err != nil {
 				return httpadapter.NotificationAuth{}, fmt.Errorf("read notification publishers file: invalid source ID: %w", err)
 			}
+			if _, exists := publishers[sourceID]; exists {
+				return httpadapter.NotificationAuth{}, fmt.Errorf("read notification publishers file: duplicate normalized source ID")
+			}
 			token, err := readNotificationTokenFile(tokenPath, "publisher")
 			if err != nil {
 				return httpadapter.NotificationAuth{}, err
