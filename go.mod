@@ -1,6 +1,6 @@
 module github.com/araihu/balemoh
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/araihu/balemoh/client v0.0.0

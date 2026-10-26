@@ -1,6 +1,6 @@
 module github.com/araihu/balemoh/client
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/araihu/goshtoso v0.3.2
