@@ -1,0 +1,44 @@
+version: 1
+organization:
+  title: Balemoh API
+  readme: >-
+    Integrate with your own Balemoh instance. Review discovered services, manage
+    homepage pins, read host telemetry, and connect source-bound agents.
+    Operations include request examples, response formats, and failure cases.
+    This site serves static documentation, not the API itself.
+    [Feature guides](https://balemoh.araihu.com/guides/) ·
+    [API integration](https://balemoh.araihu.com/reference/api-integration/) ·
+    [Installation](https://balemoh.araihu.com/getting-started/).
+  seo:
+    description: Balemoh API reference for discovery, pinned services, icons, hosts, telemetry, and federation.
+    canonicalBase: https://balemoh.araihu.com/openapi
+    socialImage: https://balemoh.araihu.com/site/assets/social-v1.png
+    socialImageAlt: Balemoh service discovery and federation API reference
+catalogs:
+  - id: balemoh
+    mount: /catalogs/balemoh
+    title: Balemoh API
+    readme: >-
+      Start with Services to review Staging, save display settings, and pin live
+      apps. Use Dashboard for homepage widgets, Hosts for CPU and memory history,
+      Federation for agent reports, and Icons for uploaded images.
+      The documented server is your local development API; replace its origin
+      with your private instance. Federation requires a credential registered
+      for the request's exact source kind and ID. Other endpoints rely on your
+      network or reverse-proxy access boundary. Check each response's media type;
+      errors can be JSON or plain text. Examples use synthetic data.
+      Source of truth is
+      [api/openapi.yaml](https://github.com/araihu/balemoh/blob/main/api/openapi.yaml).
+      [Follow the integration guide](https://balemoh.araihu.com/reference/api-integration/)
+      for a complete create-and-pin request sequence.
+    defaultDocument: openapi
+    profile: strict-v1
+    seo:
+      description: Operations and schemas from the Balemoh OpenAPI specification, rendered by Manja.
+      canonicalBase: https://balemoh.araihu.com/openapi/catalogs/balemoh
+      socialImage: https://balemoh.araihu.com/site/assets/social-v1.png
+      socialImageAlt: Balemoh service discovery and federation API reference
+    source:
+      kind: files
+      root: ../api
+      include: [openapi.yaml]

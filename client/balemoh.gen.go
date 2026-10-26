@@ -162,268 +162,456 @@ func (e ChangeServiceLifecycleJSONBodyAction) Valid() bool {
 	}
 }
 
-// DashboardSnapshot defines model for DashboardSnapshot.
+// DashboardSnapshot Homepage widgets from the registered providers. A provider may fail independently; inspect unavailable even when the HTTP status is 200.
 type DashboardSnapshot struct {
-	Items       []DashboardWidget `json:"items"`
-	Unavailable []string          `json:"unavailable"`
+	// Items Selected widgets in provider order.
+	Items []DashboardWidget `json:"items"`
+
+	// Unavailable Source kinds whose providers failed while building this snapshot; an empty list means all providers responded.
+	Unavailable []string `json:"unavailable"`
 }
 
-// DashboardWidget defines model for DashboardWidget.
+// DashboardWidget A selected homepage item. sourceKind and sourceId identify the selection; kind chooses the rendering model. Service data contains ServiceCandidate fields, while host-metrics data contains latest host readings without samples or workloads. Consumers must tolerate unfamiliar kinds and per-item errors.
 type DashboardWidget struct {
-	Data         map[string]interface{} `json:"data"`
-	Error        string                 `json:"error"`
-	Id           string                 `json:"id"`
-	Kind         string                 `json:"kind"`
-	Presentation string                 `json:"presentation"`
-	SourceId     string                 `json:"sourceId"`
-	SourceKind   string                 `json:"sourceKind"`
-	Title        string                 `json:"title"`
+	// Data Kind-specific payload; empty when no payload can be rendered.
+	Data map[string]interface{} `json:"data"`
+
+	// Error Readable per-widget failure, or an empty string on success.
+	Error string `json:"error"`
+
+	// Id Widget identity, formed as sourceKind-sourceId.
+	Id string `json:"id"`
+
+	// Kind Rendering kind such as service-links or host-metrics.
+	Kind string `json:"kind"`
+
+	// Presentation Presentation hint; the current providers use card.
+	Presentation string `json:"presentation"`
+
+	// SourceId Catalog service ID or host ID used by the selection endpoint.
+	SourceId string `json:"sourceId"`
+
+	// SourceKind Selection provider, currently service or host.
+	SourceKind string `json:"sourceKind"`
+
+	// Title Display title for this widget.
+	Title string `json:"title"`
 }
 
-// DiscoverySyncResponse defines model for DiscoverySyncResponse.
+// DiscoverySyncResponse Counts acknowledged for the synchronization/import operation. candidates counts observations processed, not services added to the homepage.
 type DiscoverySyncResponse struct {
+	// Candidates Number of raw candidate observations acknowledged, before homepage selection.
 	Candidates int32 `json:"candidates"`
-	Sources    int32 `json:"sources"`
+
+	// Sources Number of source snapshots acknowledged by this operation.
+	Sources int32 `json:"sources"`
 }
 
-// ErrorResponse defines model for ErrorResponse.
+// ErrorResponse Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
 type ErrorResponse struct {
-	Code    string `json:"code"`
+	// Code Machine-readable reason such as unavailable, not_found, conflict, or invalid_snapshot.
+	Code string `json:"code"`
+
+	// Message Human-readable explanation. Branch on code or HTTP status rather than matching this text.
 	Message string `json:"message"`
 }
 
-// FederatedCandidate defines model for FederatedCandidate.
+// FederatedCandidate One raw observation in a complete source snapshot. The ID is SHA-256 of the concatenation of five length-prefixed UTF-8 strings: source.kind, source.id, resource.kind, resource.namespace or empty, and resource.name. Each trimmed string is encoded as its byte length in decimal, then a colon, then its bytes. Prefer the agent implementation over constructing IDs by hand. Do not include gateway pin or edit state.
 type FederatedCandidate struct {
-	Description string            `json:"description"`
-	DisplayName string            `json:"displayName"`
-	Endpoints   []ServiceEndpoint `json:"endpoints"`
-	Id          string            `json:"id"`
-	Images      []string          `json:"images"`
-	Metadata    map[string]string `json:"metadata"`
-	ObservedAt  time.Time         `json:"observedAt"`
-	Resource    ResourceRef       `json:"resource"`
-	Source      SourceRef         `json:"source"`
+	// Description Description emitted by the source adapter.
+	Description string `json:"description"`
+
+	// DisplayName Discovered name before gateway-owned display overrides.
+	DisplayName string `json:"displayName"`
+
+	// Endpoints Observed addresses and port evidence to import.
+	Endpoints []ServiceEndpoint `json:"endpoints"`
+
+	// Id Deterministic SHA-256 of the length-prefixed source and resource identity described on this schema.
+	Id string `json:"id"`
+
+	// Images Container image references reported by discovery.
+	Images []string `json:"images"`
+
+	// Metadata String metadata emitted by this source adapter.
+	Metadata map[string]string `json:"metadata"`
+
+	// ObservedAt UTC time this resource was observed by the source.
+	ObservedAt time.Time `json:"observedAt"`
+
+	// Resource Resource identity inside a source. Namespace is normally absent or empty for container resources and set for namespaced Kubernetes resources.
+	Resource ResourceRef `json:"resource"`
+
+	// Source Stable discovery or telemetry source identity. container and kubernetes are agent source kinds. manual/local is reserved for user-created services and cannot be imported through discovery federation.
+	Source SourceRef `json:"source"`
 }
 
-// FederationSnapshot defines model for FederationSnapshot.
+// FederationSnapshot A complete discovery snapshot for one source. Absent observations become missing after an accepted newer snapshot; edits and pins remain gateway-owned. The empty candidates array is meaningful and must not be used for a failed scan.
 type FederationSnapshot struct {
+	// Candidates Complete observed candidate set for the source. Empty marks prior observations missing.
 	Candidates []FederatedCandidate `json:"candidates"`
-	ObservedAt time.Time            `json:"observedAt"`
-	Source     SourceRef            `json:"source"`
+
+	// ObservedAt UTC observation watermark. Older or repeated snapshot times do not replace newer state.
+	ObservedAt time.Time `json:"observedAt"`
+
+	// Source Stable discovery or telemetry source identity. container and kubernetes are agent source kinds. manual/local is reserved for user-created services and cannot be imported through discovery federation.
+	Source SourceRef `json:"source"`
 }
 
-// HealthResponse defines model for HealthResponse.
+// HealthResponse The readiness check succeeded, including the configured storage check. It does not describe discovered application health.
 type HealthResponse struct {
+	// Status ok means the API readiness checks passed.
 	Status HealthResponseStatus `json:"status"`
 }
 
-// HealthResponseStatus defines model for HealthResponse.Status.
+// HealthResponseStatus ok means the API readiness checks passed.
 type HealthResponseStatus string
 
 // Host defines model for Host.
 type Host struct {
-	// Architecture CPU architecture reported by the host. Absent for older agents, unknown hosts, and cluster aggregates.
-	Architecture       *string        `json:"architecture,omitempty"`
-	CpuPercent         *float64       `json:"cpuPercent"`
-	Id                 string         `json:"id"`
-	InventoryAvailable bool           `json:"inventoryAvailable"`
-	Kind               HostKind       `json:"kind"`
-	MemoryTotalBytes   *int64         `json:"memoryTotalBytes"`
-	MemoryUsedBytes    *int64         `json:"memoryUsedBytes"`
-	Name               string         `json:"name"`
-	Node               string         `json:"node"`
-	ObservedAt         *time.Time     `json:"observedAt"`
-	ParentId           string         `json:"parentId"`
-	Ready              string         `json:"ready"`
-	ReceivedAt         *time.Time     `json:"receivedAt"`
-	Source             SourceRef      `json:"source"`
-	Status             HostStatus     `json:"status"`
-	Workloads          []HostWorkload `json:"workloads"`
+	// Architecture Host CPU architecture such as amd64 or arm64. Optional for older agents and unknown hosts; omit on cluster aggregates.
+	Architecture *string `json:"architecture,omitempty"`
+
+	// CpuPercent Host CPU usage as a percentage from 0 to 100; null when unavailable.
+	CpuPercent *float64 `json:"cpuPercent"`
+
+	// Id Opaque stable host identity. Use the value returned by the host API.
+	Id string `json:"id"`
+
+	// InventoryAvailable True when the workload list is complete and available. False is different from an available empty list and can indicate truncation.
+	InventoryAvailable bool `json:"inventoryAvailable"`
+
+	// Kind Host category: docker, cluster, node, or unknown.
+	Kind HostKind `json:"kind"`
+
+	// MemoryTotalBytes Total host memory in bytes; positive when available.
+	MemoryTotalBytes *int64 `json:"memoryTotalBytes"`
+
+	// MemoryUsedBytes Used host memory in bytes; null when unavailable.
+	MemoryUsedBytes *int64 `json:"memoryUsedBytes"`
+
+	// Name Source ID for a root or node name for a Kubernetes child.
+	Name string `json:"name"`
+
+	// Node Empty for the source root; Kubernetes node name for a child observation.
+	Node string `json:"node"`
+
+	// ObservedAt Last accepted collection time, or null before any report.
+	ObservedAt *time.Time `json:"observedAt"`
+
+	// ParentId Empty for roots; cluster host ID for child nodes.
+	ParentId string `json:"parentId"`
+
+	// Ready Kubernetes node readiness: True, False, Unknown, or empty when not applicable.
+	Ready string `json:"ready"`
+
+	// ReceivedAt Gateway receipt time of the latest accepted report, or null before a report.
+	ReceivedAt *time.Time `json:"receivedAt"`
+
+	// Source Stable discovery or telemetry source identity. container and kubernetes are agent source kinds. manual/local is reserved for user-created services and cannot be imported through discovery federation.
+	Source SourceRef `json:"source"`
+
+	// Status fresh means observation and receipt are at most three minutes old with complete metrics; partial means a recent report lacks metrics; stale means either timestamp is older; unavailable means no report has arrived.
+	Status HostStatus `json:"status"`
+
+	// Workloads Reported workload inventory, limited to 1000 entries for this host.
+	Workloads []HostWorkload `json:"workloads"`
 }
 
-// HostKind defines model for Host.Kind.
+// HostKind Host category: docker, cluster, node, or unknown.
 type HostKind string
 
-// HostStatus defines model for Host.Status.
+// HostStatus fresh means observation and receipt are at most three minutes old with complete metrics; partial means a recent report lacks metrics; stale means either timestamp is older; unavailable means no report has arrived.
 type HostStatus string
 
-// HostDetail defines model for HostDetail.
+// HostDetail The requested host, its direct child nodes, and minute-aligned CPU and memory samples. The example shows an excerpt; actual 1h and 24h responses contain 60 and 1440 sample slots.
 type HostDetail struct {
-	Children []Host          `json:"children"`
-	Host     Host            `json:"host"`
-	Range    HostDetailRange `json:"range"`
-	Samples  []HostSample    `json:"samples"`
+	// Children Direct child hosts, usually Kubernetes nodes; empty for a Docker host.
+	Children []Host `json:"children"`
+
+	// Host A registered source root or observed child node with its latest report and derived reporting status. Registration can exist before measurements arrive. Reporting status is independent of Kubernetes readiness.
+	Host Host `json:"host"`
+
+	// Range History window applied by the server: 1h or 24h.
+	Range HostDetailRange `json:"range"`
+
+	// Samples Chronological minute slots. Missing minutes retain null metrics. The example is abbreviated.
+	Samples []HostSample `json:"samples"`
 }
 
-// HostDetailRange defines model for HostDetail.Range.
+// HostDetailRange History window applied by the server: 1h or 24h.
 type HostDetailRange string
 
-// HostMetrics defines model for HostMetrics.
+// HostMetrics Basic host measurements. Null means unavailable, not zero. CPU is a percentage of total CPU capacity. Memory values are bytes and must be present as a valid pair.
 type HostMetrics struct {
-	CpuPercent       *float64 `json:"cpuPercent"`
-	MemoryTotalBytes *int64   `json:"memoryTotalBytes"`
-	MemoryUsedBytes  *int64   `json:"memoryUsedBytes"`
+	// CpuPercent Host CPU usage as a percentage from 0 to 100; null when unavailable.
+	CpuPercent *float64 `json:"cpuPercent"`
+
+	// MemoryTotalBytes Total host memory in bytes; positive when available.
+	MemoryTotalBytes *int64 `json:"memoryTotalBytes"`
+
+	// MemoryUsedBytes Used host memory in bytes; null when unavailable.
+	MemoryUsedBytes *int64 `json:"memoryUsedBytes"`
 }
 
 // HostObservation defines model for HostObservation.
 type HostObservation struct {
-	// Architecture CPU architecture reported by the host. Absent for older agents, unknown hosts, and cluster aggregates.
-	Architecture       *string        `json:"architecture,omitempty"`
-	CpuPercent         *float64       `json:"cpuPercent"`
-	InventoryAvailable bool           `json:"inventoryAvailable"`
-	MemoryTotalBytes   *int64         `json:"memoryTotalBytes"`
-	MemoryUsedBytes    *int64         `json:"memoryUsedBytes"`
-	Node               string         `json:"node"`
-	Ready              string         `json:"ready"`
-	Workloads          []HostWorkload `json:"workloads"`
+	// Architecture Host CPU architecture such as amd64 or arm64. Optional for older agents and unknown hosts; omit on cluster aggregates.
+	Architecture *string `json:"architecture,omitempty"`
+
+	// CpuPercent Host CPU usage as a percentage from 0 to 100; null when unavailable.
+	CpuPercent *float64 `json:"cpuPercent"`
+
+	// InventoryAvailable True when the workload list is complete and available. False is different from an available empty list and can indicate truncation.
+	InventoryAvailable bool `json:"inventoryAvailable"`
+
+	// MemoryTotalBytes Total host memory in bytes; positive when available.
+	MemoryTotalBytes *int64 `json:"memoryTotalBytes"`
+
+	// MemoryUsedBytes Used host memory in bytes; null when unavailable.
+	MemoryUsedBytes *int64 `json:"memoryUsedBytes"`
+
+	// Node Empty for the source root; Kubernetes node name for a child observation.
+	Node string `json:"node"`
+
+	// Ready Kubernetes node readiness: True, False, Unknown, or empty when not applicable.
+	Ready string `json:"ready"`
+
+	// Workloads Reported workload inventory, limited to 1000 entries for this host.
+	Workloads []HostWorkload `json:"workloads"`
 }
 
 // HostSample defines model for HostSample.
 type HostSample struct {
-	At               time.Time `json:"at"`
-	CpuPercent       *float64  `json:"cpuPercent"`
-	MemoryTotalBytes *int64    `json:"memoryTotalBytes"`
-	MemoryUsedBytes  *int64    `json:"memoryUsedBytes"`
+	// At UTC timestamp at the start of this sample minute.
+	At time.Time `json:"at"`
+
+	// CpuPercent Host CPU usage as a percentage from 0 to 100; null when unavailable.
+	CpuPercent *float64 `json:"cpuPercent"`
+
+	// MemoryTotalBytes Total host memory in bytes; positive when available.
+	MemoryTotalBytes *int64 `json:"memoryTotalBytes"`
+
+	// MemoryUsedBytes Used host memory in bytes; null when unavailable.
+	MemoryUsedBytes *int64 `json:"memoryUsedBytes"`
 }
 
-// HostWorkload defines model for HostWorkload.
+// HostWorkload A reported container or pod with runtime state. Docker does not collect restart counts, so its restart field is zero; Kubernetes pod reports include namespace and restarts.
 type HostWorkload struct {
-	Images    *[]string `json:"images,omitempty"`
-	Name      string    `json:"name"`
-	Namespace string    `json:"namespace"`
-	Node      *string   `json:"node,omitempty"`
+	// Images Container image references reported for this workload. Omitted when unavailable.
+	Images *[]string `json:"images,omitempty"`
+
+	// Name Reported container or pod name.
+	Name string `json:"name"`
+
+	// Namespace Kubernetes pod namespace, or an empty string for Docker.
+	Namespace string `json:"namespace"`
+
+	// Node Kubernetes node hosting the pod. Omitted when unknown or not reported by the runtime.
+	Node *string `json:"node,omitempty"`
 
 	// Ready Pod Ready condition. Absent when unknown, from older agents, or for Docker containers. Does not verify HTTP reachability.
 	Ready *bool `json:"ready,omitempty"`
 
 	// Reason Current pod or container waiting/termination reason, never a previous termination reason.
-	Reason   *string `json:"reason,omitempty"`
-	Restarts int     `json:"restarts"`
-	State    string  `json:"state"`
+	Reason *string `json:"reason,omitempty"`
+
+	// Restarts Reported Kubernetes pod restart count; Docker reports zero because restart counts are not collected.
+	Restarts int `json:"restarts"`
+
+	// State Runtime state such as running for Docker or Running for a pod.
+	State string `json:"state"`
 }
 
-// IconUpload defines model for IconUpload.
+// IconUpload Shared create/update payload for uploaded images. Creation requires nonempty Base64 data. Updates require the current digest; omitting data retains the existing image. Supported images are limited to 2 MiB and 4096 pixels.
 type IconUpload struct {
-	// Data Base64 image bytes. Omit to keep existing image.
+	// Data Base64 image bytes. Required for creation; omitted or empty retains existing bytes on update.
 	Data *[]byte `json:"data,omitempty"`
 
-	// Digest Existing image revision required for updates.
+	// Digest Current uploaded icon revision, required for updates and ignored for creation.
 	Digest *string `json:"digest,omitempty"`
-	Name   string  `json:"name"`
-	Tags   string  `json:"tags"`
+
+	// Name Nonblank icon name, at most 200 Unicode code points.
+	Name string `json:"name"`
+
+	// Tags Icon search tags, at most 1000 Unicode code points.
+	Tags string `json:"tags"`
 }
 
-// ManualServiceCreate defines model for ManualServiceCreate.
+// ManualServiceCreate Idempotent creation input for an application outside automated discovery. The generated catalog identity does not depend on the supplied name or URL. New records are live and unpinned.
 type ManualServiceCreate struct {
-	// Address Absolute HTTP(S) address without credentials
-	Address     string  `json:"address"`
-	Description string  `json:"description"`
-	DisplayName string  `json:"displayName"`
-	Icon        *string `json:"icon,omitempty"`
+	// Address Required absolute HTTP(S) address without embedded credentials.
+	Address string `json:"address"`
 
-	// RequestId Random client-generated key reused on retries. Replays never overwrite later edits.
+	// Description Initial service description; send an empty string when unused.
+	Description string `json:"description"`
+
+	// DisplayName Initial nonblank service name, up to 200 Unicode code points.
+	DisplayName string `json:"displayName"`
+
+	// Icon Optional bundled or uploaded reference such as selfhst:grafana or upload:EXAMPLE.
+	Icon *string `json:"icon,omitempty"`
+
+	// RequestId Client-generated 16-byte random key encoded as 32 hexadecimal characters. Reuse it for retries; replays never overwrite edits.
 	RequestId string `json:"requestId"`
 }
 
-// ResourceObservation defines model for ResourceObservation.
+// ResourceObservation The resource, endpoints, and images retained behind one member of a grouped service. It is evidence, not an independently selected homepage card.
 type ResourceObservation struct {
+	// Endpoints Endpoint evidence for this grouped resource.
 	Endpoints []ServiceEndpoint `json:"endpoints"`
-	Images    []string          `json:"images"`
-	Resource  ResourceRef       `json:"resource"`
+
+	// Images Container image references observed for this resource; not URLs of service icons. Null is returned when no image references are stored.
+	Images []string `json:"images"`
+
+	// Resource Resource identity inside a source. Namespace is normally absent or empty for container resources and set for namespaced Kubernetes resources.
+	Resource ResourceRef `json:"resource"`
 }
 
-// ResourceRef defines model for ResourceRef.
+// ResourceRef Resource identity inside a source. Namespace is normally absent or empty for container resources and set for namespaced Kubernetes resources.
 type ResourceRef struct {
-	Kind      string  `json:"kind"`
-	Name      string  `json:"name"`
+	// Kind Observed resource type, for example container, Service, or HTTPRoute.
+	Kind string `json:"kind"`
+
+	// Name Stable source resource name used in discovery identity.
+	Name string `json:"name"`
+
+	// Namespace Namespace within the source, if the resource is namespaced.
 	Namespace *string `json:"namespace,omitempty"`
 }
 
-// ServiceCandidate defines model for ServiceCandidate.
+// ServiceCandidate A grouped catalog entry combining observed resources with gateway-owned display settings, visibility, and pin state. Only entries with pinned=true and status=live appear on the homepage.
 type ServiceCandidate struct {
-	// Address Local homepage address override; empty uses discovery
-	Address     *string           `json:"address,omitempty"`
-	Description string            `json:"description"`
-	DisplayName string            `json:"displayName"`
-	Endpoints   []ServiceEndpoint `json:"endpoints"`
+	// Address Local homepage address override; an empty string falls back to discovered endpoints.
+	Address *string `json:"address,omitempty"`
 
-	// Icon Local icon reference; empty uses discovery.
+	// Description Effective service description shown by homepage cards and search.
+	Description string `json:"description"`
+
+	// DisplayName Effective service name after applying any local override.
+	DisplayName string `json:"displayName"`
+
+	// Endpoints Grouped discovery addresses and port evidence, before a local address override.
+	Endpoints []ServiceEndpoint `json:"endpoints"`
+
+	// Icon Effective local icon reference; an empty string uses the discovery default.
 	Icon *string `json:"icon,omitempty"`
-	Id   string  `json:"id"`
 
-	// Images Container images observed for the candidate, when available.
-	Images   []string          `json:"images"`
+	// Id Stable group identity returned by Staging; use this ID for edits, pins, and lifecycle actions.
+	Id string `json:"id"`
+
+	// Images Discovered container image names, not uploaded icon bytes. Null is returned when no image references are stored.
+	Images []string `json:"images"`
+
+	// Metadata Adapter-provided string evidence. Keys are source-specific and should not be treated as a universal contract.
 	Metadata map[string]string `json:"metadata"`
 
-	// Missing Absent from the latest successful source snapshot, including when hidden.
-	Missing    bool        `json:"missing"`
-	ObservedAt time.Time   `json:"observedAt"`
-	Pinned     bool        `json:"pinned"`
-	PinnedAt   *time.Time  `json:"pinnedAt"`
-	Resource   ResourceRef `json:"resource"`
+	// Missing True when absent from the latest successful complete source snapshot, including a hidden missing entry.
+	Missing bool `json:"missing"`
 
-	// Resources Resource evidence grouped under this Service; pin identity remains the Service ID.
+	// ObservedAt Latest catalog observation timestamp in UTC.
+	ObservedAt time.Time `json:"observedAt"`
+
+	// Pinned Saved homepage selection. Hidden or missing services remain excluded even if this is true.
+	Pinned bool `json:"pinned"`
+
+	// PinnedAt UTC time when the pin was recorded, or null when unpinned.
+	PinnedAt *time.Time `json:"pinnedAt"`
+
+	// Resource Resource identity inside a source. Namespace is normally absent or empty for container resources and set for namespaced Kubernetes resources.
+	Resource ResourceRef `json:"resource"`
+
+	// Resources Member observations grouped behind this service; pin identity remains the top-level service ID.
 	Resources *[]ResourceObservation `json:"resources,omitempty"`
-	Source    SourceRef              `json:"source"`
 
-	// Status Hidden takes precedence over missing until the user shows the service again.
+	// Source Stable discovery or telemetry source identity. container and kubernetes are agent source kinds. manual/local is reserved for user-created services and cannot be imported through discovery federation.
+	Source SourceRef `json:"source"`
+
+	// Status Effective lifecycle state. hidden takes precedence over missing until the service is shown again.
 	Status ServiceCandidateStatus `json:"status"`
 }
 
-// ServiceCandidateStatus Hidden takes precedence over missing until the user shows the service again.
+// ServiceCandidateStatus Effective lifecycle state. hidden takes precedence over missing until the service is shown again.
 type ServiceCandidateStatus string
 
-// ServiceEdit defines model for ServiceEdit.
+// ServiceEdit Local name, description, address, and icon overrides. Discovery refreshes preserve these fields. Empty address restores discovery except for manual services, which require a usable HTTP(S) address.
 type ServiceEdit struct {
-	// Address Absolute HTTP(S) homepage address; empty uses discovery
-	Address     string `json:"address"`
+	// Address Homepage address override without credentials. Empty restores discovery for discovered entries; not valid for manual entries.
+	Address string `json:"address"`
+
+	// Description Saved service description; required but may be empty.
 	Description string `json:"description"`
+
+	// DisplayName Saved nonblank display name, up to 200 Unicode code points.
 	DisplayName string `json:"displayName"`
 
-	// Icon Icon reference. Empty resets to discovery; omitted preserves selection.
+	// Icon Omit to preserve the icon choice, use an empty string to reset, or select a bundled/uploaded reference.
 	Icon *string `json:"icon,omitempty"`
 }
 
-// ServiceEndpoint defines model for ServiceEndpoint.
+// ServiceEndpoint An observed endpoint and its discovery evidence. A published port alone is not proof of an HTTP address. An empty URL retains port evidence; a scheme-relative HTTPRoute URL can begin with //.
 type ServiceEndpoint struct {
+	// Name Observed endpoint or listener label.
 	Name string `json:"name"`
 
-	// Port Zero when no port was observed.
-	Port     int32  `json:"port"`
+	// Port Observed port, or zero when no port was observed.
+	Port int32 `json:"port"`
+
+	// Protocol Observed protocol such as HTTPS or TCP; not a guarantee that the application speaks HTTP.
 	Protocol string `json:"protocol"`
 
-	// Provenance Adapter evidence for the endpoint observation.
+	// Provenance Adapter evidence that produced this endpoint, such as a route or published port.
 	Provenance string `json:"provenance"`
 
-	// Url Empty when discovery has no exact hostname or route; HTTPRoute observations may be scheme-relative.
+	// Url Discovered absolute or scheme-relative URL; empty if no exact address is known. Not a health-check result.
 	Url string `json:"url"`
 }
 
-// ServiceListResponse defines model for ServiceListResponse.
+// ServiceListResponse Catalog service groups for the requested view. Staging includes every lifecycle state; the homepage endpoint restricts the list to pinned live groups.
 type ServiceListResponse struct {
+	// Services Service groups included by this endpoint; empty when the requested view has no entries.
 	Services []ServiceCandidate `json:"services"`
 }
 
-// SourceRef defines model for SourceRef.
+// SourceRef Stable discovery or telemetry source identity. container and kubernetes are agent source kinds. manual/local is reserved for user-created services and cannot be imported through discovery federation.
 type SourceRef struct {
-	Id   string `json:"id"`
+	// Id Stable source identifier such as atlas. It must match the gateway registration for federation.
+	Id string `json:"id"`
+
+	// Kind Source kind, usually container or kubernetes. manual is reserved for local user-created services.
 	Kind string `json:"kind"`
 }
 
-// TelemetryBatch defines model for TelemetryBatch.
+// TelemetryBatch A source-bound report collected at observedAt. Requires a root observation, unique node names, at most 128 hosts, and at most 1000 workloads per host. One source retains no more than 128 hosts. Telemetry times must be within the last 24 hours and at most 30 seconds ahead of the gateway clock.
 type TelemetryBatch struct {
-	Hosts      []HostObservation `json:"hosts"`
-	ObservedAt time.Time         `json:"observedAt"`
-	Source     SourceRef         `json:"source"`
+	// Hosts Root and optional child observations. Always include node=""; container sources contain exactly one host.
+	Hosts []HostObservation `json:"hosts"`
+
+	// ObservedAt UTC collection time shared by every host in this batch.
+	ObservedAt time.Time `json:"observedAt"`
+
+	// Source Stable discovery or telemetry source identity. container and kubernetes are agent source kinds. manual/local is reserved for user-created services and cannot be imported through discovery federation.
+	Source SourceRef `json:"source"`
 }
 
-// UploadedIcon defines model for UploadedIcon.
+// UploadedIcon Metadata for a user-uploaded icon. digest is a revision of the trimmed name, tags, and image bytes, not just an image hash. usedBy lists service display names rather than service IDs.
 type UploadedIcon struct {
-	Digest string   `json:"digest"`
-	Id     string   `json:"id"`
-	Mime   string   `json:"mime"`
-	Name   string   `json:"name"`
-	Tags   string   `json:"tags"`
+	// Digest SHA-256 revision over name, a NUL byte, tags, a NUL byte, and image bytes. Supply it for update or delete.
+	Digest string `json:"digest"`
+
+	// Id Assigned upload: reference. Reuse this ID in service icon settings.
+	Id string `json:"id"`
+
+	// Mime Validated image media type, used by the binary download response.
+	Mime string `json:"mime"`
+
+	// Name User-visible uploaded icon name.
+	Name string `json:"name"`
+
+	// Tags User-supplied searchable icon tags.
+	Tags string `json:"tags"`
+
+	// UsedBy Display names of services that currently reference this uploaded icon.
 	UsedBy []string `json:"usedBy"`
 }
 
@@ -432,11 +620,13 @@ type federationBearerContextKey string
 
 // SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
 type SetDashboardSelectionJSONBody struct {
+	// Enabled Whether this source should be selected for the homepage.
 	Enabled bool `json:"enabled"`
 }
 
 // GetHostParams defines parameters for GetHost.
 type GetHostParams struct {
+	// Range History interval. Defaults to 1h and accepts only 1h or 24h; returns one UTC minute slot per minute.
 	Range *GetHostParamsRange `form:"range,omitempty" json:"range,omitempty"`
 }
 
@@ -445,11 +635,13 @@ type GetHostParamsRange string
 
 // DeleteIconParams defines parameters for DeleteIcon.
 type DeleteIconParams struct {
+	// Digest Current icon revision from the uploaded icon list. Deletion fails with 409 if the revision changed or the icon is in use.
 	Digest string `form:"digest" json:"digest"`
 }
 
 // ChangeServiceLifecycleJSONBody defines parameters for ChangeServiceLifecycle.
 type ChangeServiceLifecycleJSONBody struct {
+	// Action hide suppresses a live service, show restores visibility, and purge permanently deletes only missing observations.
 	Action ChangeServiceLifecycleJSONBodyAction `json:"action"`
 }
 
@@ -1854,6 +2046,7 @@ type GetDashboardResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *DashboardSnapshot
+	JSON503      *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1883,6 +2076,7 @@ func (r GetDashboardResponse) ContentType() string {
 type SetDashboardSelectionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON503      *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1979,6 +2173,7 @@ func (r ImportFederationSnapshotResponse) ContentType() string {
 type ImportTelemetryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON503      *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -2040,8 +2235,10 @@ type GetHostsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
+		// Hosts Docker machines and Kubernetes clusters registered at this gateway.
 		Hosts []Host `json:"hosts"`
 	}
+	JSON503 *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -2072,6 +2269,7 @@ type GetHostResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *HostDetail
+	JSON503      *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -2281,6 +2479,7 @@ type CreateManualServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON201      *ServiceCandidate
+	JSON503      *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -2310,6 +2509,8 @@ func (r CreateManualServiceResponse) ContentType() string {
 type EditStagingServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON404      *ErrorResponse
+	JSON503      *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -2339,6 +2540,9 @@ func (r EditStagingServiceResponse) ContentType() string {
 type ChangeServiceLifecycleResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON404      *ErrorResponse
+	JSON409      *ErrorResponse
+	JSON503      *ErrorResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -2402,6 +2606,7 @@ type PinStagingServiceResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *ServiceCandidate
 	JSON404      *ErrorResponse
+	JSON409      *ErrorResponse
 	JSON503      *ErrorResponse
 }
 
@@ -2725,6 +2930,13 @@ func ParseGetDashboardResponse(rsp *http.Response) (*GetDashboardResponse, error
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
 	}
 
 	return response, nil
@@ -2741,6 +2953,16 @@ func ParseSetDashboardSelectionResponse(rsp *http.Response) (*SetDashboardSelect
 	response := &SetDashboardSelectionResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
 	}
 
 	return response, nil
@@ -2860,6 +3082,16 @@ func ParseImportTelemetryResponse(rsp *http.Response) (*ImportTelemetryResponse,
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -2912,12 +3144,20 @@ func ParseGetHostsResponse(rsp *http.Response) (*GetHostsResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
+			// Hosts Docker machines and Kubernetes clusters registered at this gateway.
 			Hosts []Host `json:"hosts"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
 
 	}
 
@@ -2944,6 +3184,13 @@ func ParseGetHostResponse(rsp *http.Response) (*GetHostResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
 
 	}
 
@@ -3114,6 +3361,13 @@ func ParseCreateManualServiceResponse(rsp *http.Response) (*CreateManualServiceR
 		}
 		response.JSON201 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
 	}
 
 	return response, nil
@@ -3132,6 +3386,23 @@ func ParseEditStagingServiceResponse(rsp *http.Response) (*EditStagingServiceRes
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
 	return response, nil
 }
 
@@ -3146,6 +3417,30 @@ func ParseChangeServiceLifecycleResponse(rsp *http.Response) (*ChangeServiceLife
 	response := &ChangeServiceLifecycleResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
 	}
 
 	return response, nil
@@ -3218,6 +3513,13 @@ func ParsePinStagingServiceResponse(rsp *http.Response) (*PinStagingServiceRespo
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest ErrorResponse
