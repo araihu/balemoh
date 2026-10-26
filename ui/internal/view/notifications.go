@@ -3,6 +3,8 @@ package view
 import (
 	"fmt"
 	"github.com/a-h/templ"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"time"
 
 	"github.com/araihu/goshtoso/components/badge"
@@ -10,6 +12,7 @@ import (
 
 type Notification struct {
 	ID, Title, Body, Severity, Source string
+	SourceKind, SourceLabel           string
 	ReceivedAt                        time.Time
 	Read, HasDestination, External    bool
 }
@@ -17,6 +20,8 @@ type Notification struct {
 type NotificationsPage struct {
 	Items                     []Notification
 	UnreadCount               int
+	RetentionDays             int
+	BulkError                 string
 	NextCursor, Before, Error string
 	UnreadOnly                bool
 	ClearConfirmation         bool
@@ -68,4 +73,80 @@ func notificationClearCancelAttrs(dialog bool) templ.Attributes {
 		return nil
 	}
 	return templ.Attributes{"x-on:click.prevent": "$dispatch('modal:close', {id:'clear-notifications'})"}
+}
+
+type NotificationGroup struct {
+	Label string
+	Items []Notification
+}
+
+func notificationGroups(items []Notification, now time.Time) []NotificationGroup {
+	var groups []NotificationGroup
+	today := now.UTC().Truncate(24 * time.Hour)
+	var previous string
+	for _, item := range items {
+		day := item.ReceivedAt.UTC().Truncate(24 * time.Hour)
+		key := day.Format("2006-01-02")
+		if len(groups) == 0 || key != previous {
+			label := day.Format("02 Jan 2006") + " · UTC"
+			if day.Equal(today) {
+				label = "Today · UTC"
+			} else if day.Equal(today.AddDate(0, 0, -1)) {
+				label = "Yesterday · UTC"
+			}
+			groups = append(groups, NotificationGroup{Label: label})
+			previous = key
+		}
+		groups[len(groups)-1].Items = append(groups[len(groups)-1].Items, item)
+	}
+	return groups
+}
+func notificationRetentionLabel(days int) string {
+	if days < 1 {
+		return "Recent notifications"
+	}
+	if days == 1 {
+		return "Notifications are kept for 1 day"
+	}
+	return fmt.Sprintf("Notifications are kept for %d days", days)
+}
+
+func notificationGroupPage(page NotificationsPage, items []Notification) NotificationsPage {
+	page.Items = items
+	return page
+}
+func notificationStatusRole(failed bool) string {
+	if failed {
+		return "alert"
+	}
+	return "status"
+}
+func notificationCompactClass(read bool) string {
+	if read {
+		return "balemoh-notification-tray-row"
+	}
+	return "balemoh-notification-tray-row balemoh-notification-tray-row-unread"
+}
+func notificationSourceSymbol(kind string) icon.Symbol {
+	switch kind {
+	case "plugin":
+		return heroicons.Icon16SolidCube
+	case "external":
+		return heroicons.Icon16SolidArrowDownTray
+	default:
+		return heroicons.Icon16SolidBell
+	}
+}
+func notificationReadTarget(id, returnTo string) string {
+	if returnTo == "tray" || returnTo == "tray-unread" {
+		return "#notification-tray-read-" + id
+	}
+	return "#notification-read-" + id
+}
+
+func notificationCompactSource(item Notification) string {
+	if item.SourceLabel != "" {
+		return item.SourceLabel
+	}
+	return item.Source
 }

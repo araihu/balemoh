@@ -247,7 +247,7 @@ envelope and inbox bounds are enforced before acknowledgement. Busy concurrency
 returns 429 with `Retry-After: 1`; inbox capacity returns 429 with a distinct
 non-retryable capacity reason, without implying that waiting frees storage. The initial
 inbox holds at most 10,000 rows; capacity returns 429 rather than silently
-discarding unread messages. This milestone has no automatic retention deletion.
+discarding unread messages. Automatic retention expires read and unread messages as described below.
 HTTP/callback bounds apply independently of browser traffic.
 
 SQLite migration is additive. Backup/restore includes the inbox and read state.
@@ -315,3 +315,62 @@ class is sent to plugin children or included in browser HTML.
 Plugin API deployment connections use `capabilityGrants` separately from query
 `grants`. For example, `"capabilityGrants": ["notifications.publish/v1"]` authorizes
 only that backend connection. The BFF requires no publication grant.
+
+
+## Jira-inspired notification tray and retention
+
+The tray uses Goshtoso Popover, Toggle, Dropdown, Button, Link, Icon and Badge.
+Its compact rows show a source icon, title/destination, receipt age, short preview,
+severity and unread dot. Date groups use receipt dates and explicitly label UTC,
+matching the existing UTC observation display. Today/Yesterday labels are based
+on UTC calendar boundaries. The full inbox retains complete message bodies.
+No Direct/Following tabs or actor identities are invented for producers that do
+not expose those concepts.
+
+Header, filter and action menu stay mounted while only the scrollable list
+morphs. The unread filter is retained while closing/reopening the tray. The
+notification count remains the global retained unread count. Full-inbox links
+carry the chosen unread filter. The action menu offers Mark all as read and
+Refresh. Clear all remains a separate full-inbox action with confirmation.
+Tray and full-inbox controls have different stable IDs even for the same message.
+
+`PUT /api/v1/notifications/read` requires operator authorization. One atomic
+UPDATE marks all retained unread rows read across sources/pages, without deleting
+content or rewriting existing read timestamps. Publications committed after that
+UPDATE remain unread. BFF POST is protected against cross-origin requests and
+uses `queue last` for coalescing. Pending actions disable their trigger. Native
+full-inbox forms retain POST/Redirect/Get. Ambiguous failures are announced without
+automatically retrying a mutation.
+
+`BALEMOH_NOTIFICATION_RETENTION_DAYS` is a typed integer, default30 for unset or
+empty values, range1 through3650. Each day is24h from `receivedAt`; expiration
+uses UTC epoch-second precision with the cutoff rounded down to the second.
+Read and unread messages expire alike. List/count/get/read-state operations hide
+expired messages immediately. A core-owned worker physically deletes them at
+startup and hourly, with a5s deadline per sweep, cancellation and shutdown join.
+HTTP and plugin publication share the same configured service. Publication
+atomically reclaims expired identities or full inbox capacity before acceptance.
+No migration or plugin SDK contract change is required.
+
+Physical expiry deletes deduplication identities too. A later producer retry is a
+new acceptance with a new receipt timestamp. The10,000-row cap still rejects new
+messages if retained rows fill capacity. Increasing retention cannot restore
+rows already pruned; restoring a database requires separate recovery review.
+The UI displays the server's actual retention period rather than assuming30 days.
+
+Surface brief: operator scanning incoming events; compact operations list inside
+the existing shell; title and unread state first, source/time second, preview and
+severity third. Existing Balemoh tokens and typography remain authoritative.
+No new animation, font, synthetic avatars or color palette is introduced.
+
+| State/action | Expected effect | Preserved state and focus |
+|---|---|---|
+| Toggle unread filter | GET-only filtered tray; global count retained | open tray, checkbox focus, list scroll and shell/SSE |
+| No unread messages | explicit No unread notifications | filter remains on; no false storage failure |
+| Open action menu / cancel | zero writes | parent tray stays open; keyboard focus returns |
+| Mark all as read | one atomic update across pages | messages retained; later publication remains unread |
+| Repeated submits behind refresh | one coalesced mutation | no repeated mark of later publications |
+| Read-state storage/transport failure | visible unconfirmed state; no automatic retry | tray/filter remain mounted; no false success |
+| Expired unread/read rows | excluded from list/count/get, then pruned | retained messages and read timestamps unchanged |
+| Retention boundary/configuration | cutoff included; older rows expired; invalid config rejected | configured period reported by API/UI |
+| Clear all | separate confirmed permanent DELETE | no alert acknowledgement/silence at producer |

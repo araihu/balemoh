@@ -221,3 +221,28 @@ func TestPluginEnvironmentPair(t *testing.T) {
 		t.Fatal("paired plugin environment rejected", err)
 	}
 }
+
+func TestNotificationRetentionConfiguration(t *testing.T) {
+	for _, test := range []struct {
+		name, value string
+		want        int
+		bad         bool
+	}{
+		{name: "default", want: 30}, {name: "short", value: "7", want: 7}, {name: "max", value: "3650", want: 3650},
+		{name: "empty", value: "", want: 30}, {name: "zero", value: "0", bad: true}, {name: "negative", value: "-1", bad: true}, {name: "too large", value: "3651", bad: true}, {name: "malformed", value: "30d", bad: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			env := map[string]string{}
+			if test.name != "default" {
+				env["BALEMOH_NOTIFICATION_RETENTION_DAYS"] = test.value
+			}
+			got, err := ParseEnvironment(env)
+			if (err != nil) != test.bad {
+				t.Fatalf("parse %q: %v", test.value, err)
+			}
+			if !test.bad && got.NotificationRetentionDays != test.want {
+				t.Fatalf("days=%d", got.NotificationRetentionDays)
+			}
+		})
+	}
+}

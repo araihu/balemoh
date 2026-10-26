@@ -11,17 +11,20 @@ import (
 // existing identity before capacity checks and keep publish identity and
 // capacity decisions in one transaction.
 type Store interface {
-	Publish(context.Context, Source, Message, []byte, time.Time) (Receipt, error)
+	Publish(context.Context, Source, Message, []byte, time.Time, time.Time) (Receipt, error)
 	List(context.Context, ListOptions) (Page, error)
 	Get(context.Context, string) (Notification, error)
 	MarkRead(context.Context, string, time.Time) error
 	ClearAll(context.Context) error
+	MarkAllRead(context.Context, time.Time, time.Time) error
+	PruneExpired(context.Context, time.Time) (int64, error)
 }
 
 // Service owns notification validation and the core application contract.
 type Service struct {
-	store Store
-	now   func() time.Time
+	store         Store
+	now           func() time.Time
+	retentionDays int
 }
 
 func NewService(store Store) *Service {
@@ -32,7 +35,36 @@ func NewServiceWithClock(store Store, now func() time.Time) *Service {
 	if now == nil {
 		now = time.Now
 	}
-	return &Service{store: store, now: now}
+	return &Service{store: store, now: now, retentionDays: DefaultRetentionDays}
+}
+
+// NewServiceWithRetention configures one policy shared by HTTP, plugins and cleanup.
+func NewServiceWithRetention(store Store, days int, now func() time.Time) (*Service, error) {
+	if days < 1 || days > MaxRetentionDays {
+		return nil, ErrInvalid
+	}
+	s := NewServiceWithClock(store, now)
+	s.retentionDays = days
+	return s, nil
+}
+
+func (s *Service) cutoff() time.Time {
+	return s.now().UTC().Truncate(time.Second).Add(-time.Duration(s.retentionDays) * 24 * time.Hour)
+}
+
+// PruneExpired permanently removes expired read and unread rows and identities.
+func (s *Service) PruneExpired(ctx context.Context) (int64, error) {
+	if s == nil || s.store == nil {
+		return 0, ErrUnavailable
+	}
+	return s.store.PruneExpired(ctx, s.cutoff())
+}
+
+func (s *Service) MarkAllRead(ctx context.Context) error {
+	if s == nil || s.store == nil {
+		return ErrUnavailable
+	}
+	return s.store.MarkAllRead(ctx, s.now().UTC(), s.cutoff())
 }
 
 // Publish durably accepts one message or returns an identity/capacity error.
@@ -64,7 +96,7 @@ func (s *Service) Publish(ctx context.Context, source Source, message Message) (
 	if err != nil {
 		return Receipt{}, ErrUnavailable
 	}
-	return s.store.Publish(ctx, source, message, canonical, now)
+	return s.store.Publish(ctx, source, message, canonical, now, s.cutoff())
 }
 
 func validateDestinationScope(source Source, destination Destination) error {
@@ -87,7 +119,10 @@ func (s *Service) List(ctx context.Context, options ListOptions) (Page, error) {
 	if options.Limit < 1 || options.Limit > MaxPageSize {
 		return Page{}, ErrInvalid
 	}
-	return s.store.List(ctx, options)
+	options.Since = s.cutoff()
+	page, err := s.store.List(ctx, options)
+	page.RetentionDays = s.retentionDays
+	return page, err
 }
 
 func (s *Service) Get(ctx context.Context, id string) (Notification, error) {
@@ -97,7 +132,11 @@ func (s *Service) Get(ctx context.Context, id string) (Notification, error) {
 	if strings.TrimSpace(id) == "" || len(id) > 128 {
 		return Notification{}, ErrNotFound
 	}
-	return s.store.Get(ctx, strings.TrimSpace(id))
+	item, err := s.store.Get(ctx, strings.TrimSpace(id))
+	if err == nil && item.ReceivedAt.Unix() < s.cutoff().Unix() {
+		return Notification{}, ErrNotFound
+	}
+	return item, err
 }
 
 func (s *Service) MarkRead(ctx context.Context, id string) error {
@@ -106,6 +145,9 @@ func (s *Service) MarkRead(ctx context.Context, id string) error {
 	}
 	if strings.TrimSpace(id) == "" || len(id) > 128 {
 		return ErrNotFound
+	}
+	if _, err := s.Get(ctx, id); err != nil {
+		return err
 	}
 	return s.store.MarkRead(ctx, strings.TrimSpace(id), s.now().UTC())
 }

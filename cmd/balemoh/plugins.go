@@ -11,6 +11,7 @@ import (
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
 	"github.com/araihu/balemoh/internal/application/catalog"
 	"github.com/araihu/balemoh/internal/application/dashboard"
+	"github.com/araihu/balemoh/internal/application/notifications"
 	"github.com/araihu/balemoh/internal/application/plugins"
 	"github.com/araihu/balemoh/internal/config"
 )
@@ -26,13 +27,13 @@ func pluginDeployment(options config.Options) (*pluginadapter.Deployment, string
 	deployment, err := pluginadapter.Load(options.PluginConfig)
 	return deployment, token, err
 }
-func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployment *pluginadapter.Deployment, token string, catalogService *catalog.Service) (func(), error) {
+func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployment *pluginadapter.Deployment, token string, catalogService *catalog.Service, notificationService *notifications.Service) (func(), error) {
 	store := sqlite.NewPluginStore(db)
 	records, err := store.Reconcile(ctx, deployment.Provisions())
 	if err != nil {
 		return nil, errors.New("cannot reconcile plugin connections")
 	}
-	runtime := pluginadapter.NewRuntime(ctx, deployment, records, newNotificationsService(db))
+	runtime := pluginadapter.NewRuntime(ctx, deployment, records, notificationService)
 	if deployment != nil {
 		server.Handler = httpadapter.MountPlugins(server.Handler, plugins.New(store, runtime), token, dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: sqlite.NewTelemetryStore(db), Selections: sqlite.NewDashboardSelections(db)})
 	}

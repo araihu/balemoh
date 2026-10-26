@@ -495,6 +495,7 @@ type NotificationDestinationKind string
 type NotificationPage struct {
 	NextCursor    *string        `json:"nextCursor,omitempty"`
 	Notifications []Notification `json:"notifications"`
+	RetentionDays int32          `json:"retentionDays"`
 	UnreadCount   int32          `json:"unreadCount"`
 }
 
@@ -951,6 +952,9 @@ type ClientInterface interface {
 
 	PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// MarkAllNotificationsRead request
+	MarkAllNotificationsRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetNotification request
 	GetNotification(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1258,6 +1262,18 @@ func (c *Client) PublishNotificationWithBody(ctx context.Context, contentType st
 
 func (c *Client) PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPublishNotificationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MarkAllNotificationsRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMarkAllNotificationsReadRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -2149,6 +2165,33 @@ func NewPublishNotificationRequestWithBody(server string, contentType string, bo
 	return req, nil
 }
 
+// NewMarkAllNotificationsReadRequest generates requests for MarkAllNotificationsRead
+func NewMarkAllNotificationsReadRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/read")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetNotificationRequest generates requests for GetNotification
 func NewGetNotificationRequest(server string, notificationId string) (*http.Request, error) {
 	var err error
@@ -2802,6 +2845,9 @@ type ClientWithResponsesInterface interface {
 
 	PublishNotificationWithResponse(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error)
 
+	// MarkAllNotificationsReadWithResponse request
+	MarkAllNotificationsReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*MarkAllNotificationsReadResponse, error)
+
 	// GetNotificationWithResponse request
 	GetNotificationWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*GetNotificationResponse, error)
 
@@ -3335,6 +3381,35 @@ func (r PublishNotificationResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r PublishNotificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type MarkAllNotificationsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r MarkAllNotificationsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MarkAllNotificationsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MarkAllNotificationsReadResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3959,6 +4034,15 @@ func (c *ClientWithResponses) PublishNotificationWithResponse(ctx context.Contex
 	return ParsePublishNotificationResponse(rsp)
 }
 
+// MarkAllNotificationsReadWithResponse request returning *MarkAllNotificationsReadResponse
+func (c *ClientWithResponses) MarkAllNotificationsReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*MarkAllNotificationsReadResponse, error) {
+	rsp, err := c.MarkAllNotificationsRead(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMarkAllNotificationsReadResponse(rsp)
+}
+
 // GetNotificationWithResponse request returning *GetNotificationResponse
 func (c *ClientWithResponses) GetNotificationWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*GetNotificationResponse, error) {
 	rsp, err := c.GetNotification(ctx, notificationId, reqEditors...)
@@ -4551,6 +4635,22 @@ func ParsePublishNotificationResponse(rsp *http.Response) (*PublishNotificationR
 		}
 		response.JSON201 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseMarkAllNotificationsReadResponse parses an HTTP response from a MarkAllNotificationsReadWithResponse call
+func ParseMarkAllNotificationsReadResponse(rsp *http.Response) (*MarkAllNotificationsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MarkAllNotificationsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

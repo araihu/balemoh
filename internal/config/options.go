@@ -13,11 +13,13 @@ import (
 
 // Options contains Balemoh's runtime environment configuration.
 type Options struct {
+	// NotificationRetentionDays permanently expires read and unread notifications after this many 24-hour days from receipt. Range 1 to 3650; cleanup runs at startup and hourly, and reads immediately exclude expired messages.
+	NotificationRetentionDays int `env:"BALEMOH_NOTIFICATION_RETENTION_DAYS" envDefault:"30"`
 	// PluginConfig enables trusted local plugin installations and source connections from a JSON deployment file. Empty disables plugins.
 	PluginConfig string `env:"BALEMOH_PLUGIN_CONFIG"`
 	// PluginServiceTokenFile contains the private BFF service credential used only by new plugin API routes.
 	PluginServiceTokenFile string `env:"BALEMOH_PLUGIN_SERVICE_TOKEN_FILE"`
-	// NotificationOperatorTokenFile contains the private operator credential used only by notification list and read routes. The trimmed token file value must be at least 32 bytes.
+	// NotificationOperatorTokenFile contains the private operator credential used by notification inbox, read-state and clear routes. The trimmed token file value must be at least 32 bytes.
 	NotificationOperatorTokenFile string `env:"BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE"`
 	// NotificationPublishersFile points to a bounded JSON object mapping external notification source IDs to token-file paths. Each trimmed token file value must be at least 32 bytes. Empty disables external publication.
 	NotificationPublishersFile string `env:"BALEMOH_NOTIFICATION_PUBLISHERS_FILE"`
@@ -76,6 +78,9 @@ func ParseEnvironment(environment map[string]string) (Options, error) {
 
 // Validate checks that required configuration values contain non-whitespace content.
 func (o Options) Validate() error {
+	if o.NotificationRetentionDays < 1 || o.NotificationRetentionDays > 3650 {
+		return fmt.Errorf("notification retention days must be between 1 and 3650")
+	}
 	if (strings.TrimSpace(o.PluginConfig) == "") != (strings.TrimSpace(o.PluginServiceTokenFile) == "") {
 		return fmt.Errorf("plugin configuration and service credential file must be set together")
 	}

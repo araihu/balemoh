@@ -95,7 +95,7 @@ func TestUnconfiguredWidgetPinIsStableAcrossTabsAndReplays(t *testing.T) {
 	id := defaultWidgetID("example.fixture", "00000000-0000-4000-8000-000000000001", "summary")
 	path := widgetManagementURL("example.fixture", "00000000-0000-4000-8000-000000000001") + "/summary/selection"
 	list := widgetRequest(h, "GET", "/plugins/widgets", nil)
-	if strings.Count(list.Body.String(), "<table ") != 1 || strings.Count(list.Body.String(), `type="checkbox"`) != 1 || !strings.Contains(list.Body.String(), `id="plugin-selection-action-`+id+`"`) || strings.Contains(list.Body.String(), `data-table-row-link`) {
+	if strings.Count(list.Body.String(), "<table ") != 1 || widgetSelectionCheckboxCount(list.Body.String()) != 1 || !strings.Contains(list.Body.String(), `id="plugin-selection-action-`+id+`"`) || strings.Contains(list.Body.String(), `data-table-row-link`) {
 		t.Fatal("unconfigured widget not represented once with native checkbox/link")
 	}
 	noop := pinRequest(h, path, url.Values{"selection_form": {"plugin-widget"}, "selection_context": {"widgets"}}, true)
@@ -124,7 +124,7 @@ func TestUnconfiguredWidgetPinIsStableAcrossTabsAndReplays(t *testing.T) {
 	}
 	f.mu.Unlock()
 	fresh := widgetRequest(h, "GET", "/plugins/widgets", nil)
-	if strings.Count(fresh.Body.String(), `type="checkbox"`) != 1 || !strings.Contains(fresh.Body.String(), `href="`+widgetEditURL(id)+`"`) {
+	if widgetSelectionCheckboxCount(fresh.Body.String()) != 1 || !strings.Contains(fresh.Body.String(), `href="`+widgetEditURL(id)+`"`) {
 		t.Fatal("saved widget duplicated available type")
 	}
 	values.Del("enabled")
@@ -192,4 +192,17 @@ func TestWidgetEditorCheckboxSynchronizesOnlyItsWriteMetadata(t *testing.T) {
 	if stale.Code != 200 || strings.Contains(stale.Body.String(), `id="plugin-options-revision-`) {
 		t.Fatal("stale options revision was advanced")
 	}
+}
+
+// The shared header also has an unread filter; count only the widget table.
+func widgetSelectionCheckboxCount(markup string) int {
+	start := strings.Index(markup, "<table ")
+	if start < 0 {
+		return 0
+	}
+	end := strings.Index(markup[start:], "</table>")
+	if end < 0 {
+		return 0
+	}
+	return strings.Count(markup[start:start+end], `type="checkbox"`)
 }

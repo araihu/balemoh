@@ -65,3 +65,22 @@ func TestClearConfirmationCoalescesQueuedSubmissions(t *testing.T) {
 		t.Fatal("native confirmation must retain normal POST/cancel navigation")
 	}
 }
+
+func TestNotificationGroupingUsesReceiptDayAndUniqueTrayTargets(t *testing.T) {
+	now := time.Date(2026, 10, 26, 1, 0, 0, 0, time.UTC)
+	items := []Notification{{ID: "today", ReceivedAt: now}, {ID: "yesterday", ReceivedAt: now.Add(-2 * time.Hour)}, {ID: "older", ReceivedAt: now.Add(-3 * 24 * time.Hour)}}
+	groups := notificationGroups(items, now)
+	if len(groups) != 3 || groups[0].Label != "Today · UTC" || groups[1].Label != "Yesterday · UTC" || groups[2].Label != "23 Oct 2026 · UTC" {
+		t.Fatalf("groups=%#v", groups)
+	}
+	if notificationReadTarget("n", "tray") == notificationReadTarget("n", "/notifications") {
+		t.Fatal("tray and page read controls share IDs")
+	}
+	var b bytes.Buffer
+	if err := NotificationList(NotificationsPage{UnreadOnly: true, RetentionDays: 7}, true).Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), "No unread notifications.") || !strings.Contains(b.String(), "7 days") {
+		t.Fatal("empty unread state/retention missing")
+	}
+}

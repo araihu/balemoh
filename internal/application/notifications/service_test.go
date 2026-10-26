@@ -14,7 +14,7 @@ type recordingStore struct {
 	message      Message
 }
 
-func (s *recordingStore) Publish(_ context.Context, _ Source, message Message, canonical []byte, _ time.Time) (Receipt, error) {
+func (s *recordingStore) Publish(_ context.Context, _ Source, message Message, canonical []byte, _ time.Time, _ time.Time) (Receipt, error) {
 	s.publishCalls++
 	s.canonical = append([]byte(nil), canonical...)
 	s.message = message
@@ -28,6 +28,9 @@ func (s *recordingStore) Get(context.Context, string) (Notification, error) {
 func (s *recordingStore) MarkRead(context.Context, string, time.Time) error { return nil }
 
 func (s *recordingStore) ClearAll(context.Context) error { return nil }
+
+func (s *recordingStore) MarkAllRead(context.Context, time.Time, time.Time) error { return nil }
+func (s *recordingStore) PruneExpired(context.Context, time.Time) (int64, error)  { return 0, nil }
 
 func TestServicePublishNormalizesAndCanonicalizes(t *testing.T) {
 	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)

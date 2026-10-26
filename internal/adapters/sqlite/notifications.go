@@ -22,7 +22,7 @@ func NewNotificationStore(db *sql.DB) notifications.Store {
 	return &NotificationStore{db: db, queries: sqlc.New(db)}
 }
 
-func (s *NotificationStore) Publish(ctx context.Context, source notifications.Source, message notifications.Message, canonical []byte, receivedAt time.Time) (notifications.Receipt, error) {
+func (s *NotificationStore) Publish(ctx context.Context, source notifications.Source, message notifications.Message, canonical []byte, receivedAt, cutoff time.Time) (notifications.Receipt, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return notifications.Receipt{}, fmt.Errorf("begin notification publish: %w", err)
@@ -35,17 +35,24 @@ func (s *NotificationStore) Publish(ctx context.Context, source notifications.So
 	})
 	switch {
 	case err == nil:
-		if existing.PayloadJson != string(canonical) {
-			return notifications.Receipt{}, notifications.ErrConflict
-		}
 		createdAt, parseErr := time.Parse(time.RFC3339Nano, existing.ReceivedAt)
 		if parseErr != nil {
 			return notifications.Receipt{}, fmt.Errorf("decode notification receipt time: %w", parseErr)
 		}
-		if err := tx.Commit(); err != nil {
-			return notifications.Receipt{}, fmt.Errorf("commit notification replay: %w", err)
+		if createdAt.Unix() >= cutoff.Unix() {
+			if existing.PayloadJson != string(canonical) {
+				return notifications.Receipt{}, notifications.ErrConflict
+			}
+			if err := tx.Commit(); err != nil {
+				return notifications.Receipt{}, fmt.Errorf("commit notification replay: %w", err)
+			}
+			return notifications.Receipt{ID: existing.ID, CreatedAt: createdAt, Accepted: false}, nil
 		}
-		return notifications.Receipt{ID: existing.ID, CreatedAt: createdAt, Accepted: false}, nil
+		// An expired identity is outside the retained inbox. Reclaim it in the
+		// same transaction before accepting a new receipt for that event.
+		if _, err := queries.PruneExpiredNotifications(ctx, cutoff.Unix()); err != nil {
+			return notifications.Receipt{}, fmt.Errorf("expire notification identity: %w", err)
+		}
 	case !errors.Is(err, sql.ErrNoRows):
 		return notifications.Receipt{}, fmt.Errorf("read notification identity: %w", err)
 	}
@@ -55,7 +62,13 @@ func (s *NotificationStore) Publish(ctx context.Context, source notifications.So
 		return notifications.Receipt{}, fmt.Errorf("count notifications: %w", err)
 	}
 	if count >= notifications.MaxInboxSize {
-		return notifications.Receipt{}, notifications.ErrCapacity
+		removed, err := queries.PruneExpiredNotifications(ctx, cutoff.Unix())
+		if err != nil {
+			return notifications.Receipt{}, fmt.Errorf("reclaim expired inbox capacity: %w", err)
+		}
+		if count-removed >= notifications.MaxInboxSize {
+			return notifications.Receipt{}, notifications.ErrCapacity
+		}
 	}
 
 	messageDestination, err := json.Marshal(message.Destination.Normalize())
@@ -115,12 +128,12 @@ func (s *NotificationStore) List(ctx context.Context, options notifications.List
 		before = sequence
 	}
 	rows, err := queries.ListNotifications(ctx, sqlc.ListNotificationsParams{
-		Column1: before, Sequence: sequence, Column3: boolInt(options.UnreadOnly), Limit: int64(limit + 1),
+		BeforeSequence: before, UnreadOnly: boolInt(options.UnreadOnly), PageLimit: int64(limit + 1), SinceEpoch: options.Since.Unix(),
 	})
 	if err != nil {
 		return notifications.Page{}, fmt.Errorf("list notifications: %w", err)
 	}
-	unread, err := queries.CountUnreadNotifications(ctx)
+	unread, err := queries.CountUnreadNotifications(ctx, options.Since.Unix())
 	if err != nil {
 		return notifications.Page{}, fmt.Errorf("count unread notifications: %w", err)
 	}
@@ -181,6 +194,13 @@ func (s *NotificationStore) ClearAll(ctx context.Context) error {
 		return fmt.Errorf("clear notifications: %w", err)
 	}
 	return nil
+}
+
+func (s *NotificationStore) MarkAllRead(ctx context.Context, readAt, since time.Time) error {
+	return s.queries.MarkAllNotificationsRead(ctx, sqlc.MarkAllNotificationsReadParams{ReadAt: sql.NullString{String: readAt.UTC().Format(time.RFC3339Nano), Valid: true}, SinceEpoch: since.Unix()})
+}
+func (s *NotificationStore) PruneExpired(ctx context.Context, since time.Time) (int64, error) {
+	return s.queries.PruneExpiredNotifications(ctx, since.Unix())
 }
 
 func notificationFromRow(row sqlc.Notification) (notifications.Notification, error) {

@@ -2,12 +2,15 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
+	"time"
 
 	httpadapter "github.com/araihu/balemoh/internal/adapters/http"
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
@@ -21,18 +24,17 @@ const (
 	minNotificationCredentialBytes     = 32
 )
 
-// newNotificationsService is the startup seam used by core and future plugin
-// callback wiring. It has no dependency on installed plugins.
-func newNotificationsService(db *sql.DB) *notifications.Service {
-	return notifications.NewService(sqlite.NewNotificationStore(db))
-}
-
 func configureNotifications(options config.Options, db *sql.DB) (*notifications.Service, httpadapter.NotificationAuth, error) {
 	auth, err := loadNotificationAuth(options)
 	if err != nil {
 		return nil, httpadapter.NotificationAuth{}, err
 	}
-	return newNotificationsService(db), auth, nil
+	days := options.NotificationRetentionDays
+	if days == 0 {
+		days = notifications.DefaultRetentionDays
+	}
+	service, err := notifications.NewServiceWithRetention(sqlite.NewNotificationStore(db), days, time.Now)
+	return service, auth, err
 }
 
 func loadNotificationAuth(options config.Options) (httpadapter.NotificationAuth, error) {
@@ -157,4 +159,38 @@ func readNotificationFile(path string, maxBytes int, kind string) ([]byte, error
 		return nil, fmt.Errorf("notification %s file exceeds %d bytes", kind, maxBytes)
 	}
 	return contents, nil
+}
+
+// startNotificationRetention owns its worker and joins it before database close.
+func startNotificationRetention(ctx context.Context, service *notifications.Service) func() {
+	workerCtx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() { defer close(done); runNotificationRetention(workerCtx, service, time.Hour) }()
+	return func() { cancel(); <-done }
+}
+func runNotificationRetention(ctx context.Context, service *notifications.Service, interval time.Duration) {
+	sweep := func() {
+		if ctx.Err() != nil {
+			return
+		}
+		work, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		removed, err := service.PruneExpired(work)
+		if err != nil && ctx.Err() == nil {
+			log.Printf("notification retention cleanup failed: %v", err)
+		} else if removed > 0 {
+			log.Printf("notification retention cleanup complete: removed=%d", removed)
+		}
+	}
+	sweep()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			sweep()
+		}
+	}
 }

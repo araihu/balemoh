@@ -295,7 +295,7 @@ body {
 .balemoh-notification-trigger { position: relative; }
 .balemoh-notification-count { position: absolute; top: -.1rem; right: -.35rem; min-width: 1.1rem; padding: .05rem .22rem; border-radius: 1rem; background: var(--color-primary); color: var(--color-on-primary); font-size: .65rem; line-height: 1rem; font-weight: 700; }
 .balemoh-notification-count-warning { background: var(--color-warning); color: var(--color-on-warning); }
-.balemoh-notification-popover .balemoh-notification-panel { width: min(25rem, calc(100vw - 2rem)); max-height: calc(100dvh - 5rem); overflow: auto; z-index: 60; }
+.balemoh-notification-popover .balemoh-notification-panel { width: min(36rem, calc(100vw - 2rem)); max-height: calc(100dvh - 5rem); overflow: visible; display: flex; flex-direction: column; z-index: 60; }
 .balemoh-notification-heading, .balemoh-notification-footer { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1rem; }
 .balemoh-notification-heading h2 { margin: 0; font-size: 1rem; font-weight: 600; }
 .balemoh-notification-list { list-style: none; margin: 0; padding: 0; }
@@ -311,4 +311,34 @@ body {
 /* Keep the tray inside narrow viewports even beside another header action. */
 @media (max-width: 480px) {
  .balemoh-notification-popover .balemoh-notification-panel { position: fixed; top: 4rem; left: 1rem; right: 1rem; width: auto; margin-top: 0; }
+}
+
+/* Notification tray composes Goshtoso controls; only its app-owned rows scroll. */
+.balemoh-notification-heading { gap: .6rem; padding: 1rem 1.25rem; flex-wrap: wrap; flex: none; }
+.balemoh-notification-heading h2 { font-size: 1.1rem; margin-right: auto; }
+.balemoh-notification-filter { margin: 0; font-size: .75rem; }
+.balemoh-notification-filter label { gap: .4rem; }
+#notification-tray { overflow-y: auto; overscroll-behavior: contain; max-height: min(65dvh, 36rem); min-height: 5rem; }
+.balemoh-notification-footer { flex: none; border-top: 1px solid var(--balemoh-border); padding: .8rem 1.25rem; font-size: .8rem; }
+.balemoh-notification-group-heading { font-size: .72rem; font-weight: 600; color: var(--balemoh-muted); margin: 0; padding: .7rem 1.25rem .35rem; }
+.balemoh-notification-tray-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 2rem; gap: .75rem; padding: .9rem 1.25rem; overflow-wrap: anywhere; }
+.balemoh-notification-tray-row-unread { background: color-mix(in srgb, var(--color-primary) 6%, transparent); }
+.balemoh-notification-source-icon { width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--balemoh-border); border-radius: 50%; color: var(--balemoh-muted); }
+.balemoh-notification-source-icon svg { width: 1rem; height: 1rem; }
+.balemoh-notification-row-title { font-size: .875rem; line-height: 1.4; }
+.balemoh-notification-row-title a { color: inherit; font-weight: 600; }
+.balemoh-notification-row-meta { display: flex; flex-wrap: wrap; gap: .25rem .65rem; font-size: .72rem; color: var(--balemoh-muted); margin: .2rem 0; }
+.balemoh-notification-preview { margin: .3rem 0 .5rem; font-size: .8rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.balemoh-notification-row-state { display: flex; flex-direction: column; align-items: center; gap: .6rem; padding-top: .35rem; }
+.balemoh-notification-unread-dot { display: block; width: .45rem; height: .45rem; border-radius: 50%; background: var(--color-primary); }
+.balemoh-notification-row-state button { padding: .35rem; }
+.balemoh-notification-row-state [role=status] { font-size: .65rem; color: var(--balemoh-muted); }
+.balemoh-notification-retention { text-align: center; color: var(--balemoh-muted); font-size: .72rem; padding: 1.25rem; }
+.balemoh-notification-retention p { margin: .2rem 0; }
+.balemoh-notification-status { padding: .4rem 1.25rem; margin: 0; font-size: .8rem; }
+@media (max-width: 480px) {
+ .balemoh-notification-filter { order: 4; width: 100%; display: flex; justify-content: flex-end; }
+ .balemoh-notification-heading { padding: .75rem 1rem; }
+ .balemoh-notification-tray-row { padding: .85rem 1rem; gap: .5rem; }
+ #notification-tray { max-height: 60dvh; }
 }

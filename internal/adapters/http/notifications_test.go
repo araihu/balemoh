@@ -278,3 +278,32 @@ func TestClearNotificationsRequiresOperatorAndRemovesInbox(t *testing.T) {
 		t.Fatalf("inbox=%#v, %v", page, err)
 	}
 }
+
+func TestMarkAllNotificationsReadAuthorization(t *testing.T) {
+	h, svc, cleanup := notificationHTTPHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+	_, err := svc.Publish(ctx, notifications.Source{Kind: notifications.SourceCore, ID: "test"}, notifications.Message{EventID: "bulk", Title: "keep", Severity: notifications.SeverityInfo, OccurredAt: time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, token := range []string{"", "publisher-secret", "operator-secret", "operator-secret"} {
+		r := httptest.NewRequest("PUT", "/api/v1/notifications/read", nil)
+		r.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		want := 401
+		unread := 1
+		if token == "operator-secret" {
+			want = 204
+			unread = 0
+		}
+		if w.Code != want {
+			t.Fatalf("status=%d", w.Code)
+		}
+		page, err := svc.List(ctx, notifications.ListOptions{})
+		if err != nil || len(page.Notifications) != 1 || page.UnreadCount != unread {
+			t.Fatalf("bulk effects=%#v, %v", page, err)
+		}
+	}
+}

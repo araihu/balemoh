@@ -30,6 +30,9 @@
     const trigger = document.getElementById('notification-trigger');
     const summary = document.getElementById('notification-summary');
     const tray = document.getElementById('notification-tray');
+    const unreadFilter = document.getElementById('notification-only-unread');
+    const returnPage = document.getElementById('notification-return-page');
+    if (returnPage && global.location.pathname === '/notifications') returnPage.value = global.location.pathname + global.location.search;
     if (!trigger || !summary || !tray || !global.htmx) return;
     function syncLabel() {
       const state = summary.querySelector('[data-notification-available]');
@@ -67,11 +70,15 @@
       };
       document.addEventListener('htmx:finally:request', completed);
       try {
-        await global.htmx.ajax('GET', (open ? '/notifications/tray' : '/notifications/summary') + (global.location.pathname === '/notifications' ? '?inbox=true' : ''), {
+        const query = new URLSearchParams();
+        if (global.location.pathname === '/notifications') query.set('inbox','true');
+        if (open && unreadFilter?.checked) query.set('unread','true');
+        if (open) tray.setAttribute('aria-busy','true');
+        await global.htmx.ajax('GET', (open ? '/notifications/tray' : '/notifications/summary') + (query.size ? '?' + query.toString() : ''), {
           source: target, target, swap: 'innerMorph',
         });
       } catch (_) { success = false; }
-      finally { document.removeEventListener('htmx:finally:request', completed); }
+      finally { document.removeEventListener('htmx:finally:request', completed); if (open) tray.setAttribute('aria-busy','false'); }
       if (!success) unavailable(target);
       syncLabel();
       return success;
@@ -87,6 +94,12 @@
     const visibilityChanged = () => scheduler.visibilityChanged();
     document.addEventListener('visibilitychange', visibilityChanged);
     document.getElementById('notification-refresh')?.addEventListener('click', () => scheduler.refresh());
+    global.addEventListener('notifications:refresh', () => scheduler.refresh());
+    unreadFilter?.addEventListener('change', () => {
+      const path = unreadFilter.checked ? '/notifications?unread=true' : '/notifications';
+      document.querySelectorAll('[data-notification-inbox-link]').forEach(link => link.setAttribute('href',path));
+      scheduler.refresh();
+    });
     document.addEventListener('htmx:after:settle', () => {
       syncLabel();
       const cleared = document.querySelector('[data-notifications-cleared]');
@@ -101,11 +114,37 @@
     });
     const readFocus = new WeakMap();
     const clearRequests = new WeakSet();
+    const bulkRequests = new WeakMap();
+    let bulkPending = false;
+    function bulkControls(disabled) {
+      document.querySelectorAll('#notification-mark-all, form[action="/notifications/read-all"] button[type="submit"]').forEach(button => {
+        button.disabled = disabled;
+        button.setAttribute('aria-disabled', String(disabled));
+      });
+    }
+    function admitBulk(event) {
+      const source = event.type === 'submit'
+        ? event.target.closest('form[action="/notifications/read-all"]')
+        : event.target.closest('#notification-mark-all');
+      if (!source) return;
+      if (bulkPending) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+      bulkPending = true;
+      const status = document.querySelector(event.type === 'submit' ? '#notification-page-read-status' : '#notification-read-all-status');
+      if (status) { status.textContent = 'Marking read…'; status.setAttribute('role','status'); }
+      // Run HTMX admission first, then lock controls even while its request waits
+      // behind a refresh. Request-time hx-disable starts too late for that queue.
+      queueMicrotask(() => bulkControls(true));
+    }
+    document.addEventListener('click', admitBulk, true);
+    document.addEventListener('submit', admitBulk, true);
     // HTMX may replace ctx.sourceElement with the swap target after removing
     // the form. Keep focus state on the request context, which stays stable.
     document.addEventListener('htmx:config:request', event => {
       const ctx = event.detail?.ctx;
       const form = ctx?.sourceElement?.closest?.('form[action^="/notifications/"]');
+      if (ctx?.sourceElement?.id === 'notification-mark-all' || form?.getAttribute('action') === '/notifications/read-all') {
+        bulkRequests.set(ctx, {target:form ? '#notification-page-read-status' : '#notification-read-all-status',tray:!form});
+      }
       if (form?.getAttribute('action') === '/notifications/clear') clearRequests.add(ctx);
       if (form?.contains(document.activeElement)) {
         readFocus.set(ctx, {previous: document.activeElement, target: form.getAttribute('hx-target')});
@@ -113,6 +152,30 @@
     });
     document.addEventListener('htmx:finally:request', event => {
       const ctx = event.detail?.ctx;
+      const bulk = ctx && bulkRequests.get(ctx);
+      if (bulk) {
+        bulkRequests.delete(ctx);
+        bulkPending = false;
+        bulkControls(false);
+        const status = ctx.response?.status;
+        if (!status) {
+          const target = document.querySelector(bulk.target);
+          if (target) {
+            target.textContent = 'Read state not confirmed. Refresh before trying again.';
+            target.setAttribute('role','alert');
+          }
+        }
+        if (status >= 200 && status < 300) scheduler.refresh();
+        if (document.activeElement === document.body) {
+          const target = document.querySelector(!status || status >= 400 ? bulk.target : bulk.tray ? '#notification-actions-trigger' : '#notification-inbox');
+          // HTMX reenables hx-disable targets after its finally event. Wait one
+          // frame so the menu trigger can accept focus, without overriding a
+          // focus move made while the response was settling.
+          requestAnimationFrame(() => {
+            if (target && document.activeElement === document.body && (!bulk.tray || trigger.getAttribute('aria-expanded') === 'true')) target.focus({preventScroll:true});
+          });
+        }
+      }
       if (ctx && clearRequests.has(ctx)) {
         clearRequests.delete(ctx);
         if (!ctx.response?.status) {

@@ -21,6 +21,7 @@ type NotificationCatalog interface {
 	Notification(context.Context, string) (NotificationRecord, error)
 	MarkNotificationRead(context.Context, string) error
 	ClearNotifications(context.Context) error
+	MarkAllNotificationsRead(context.Context) error
 }
 type NotificationRecord struct {
 	Item   view.Notification
@@ -68,7 +69,7 @@ func (s *server) notificationSummary(w http.ResponseWriter, r *http.Request) {
 	renderNotificationFragment(w, r, status, component)
 }
 func (s *server) notificationTray(w http.ResponseWriter, r *http.Request) {
-	page, status := s.notificationList(r, 5)
+	page, status := s.notificationList(r, 20)
 	component := templ.Join(view.NotificationList(page, true), view.NotificationSummaryOOB(page.UnreadCount, status == 200))
 	if r.URL.Query().Get("inbox") == "true" {
 		component = templ.Join(component, view.NotificationPageCount(page.UnreadCount, status == 200, true))
@@ -122,24 +123,36 @@ func (s *server) notificationRead(w http.ResponseWriter, r *http.Request) {
 	}
 	// An acknowledged write owns read state; a subsequent count failure is independent.
 	listRequest := r.Clone(r.Context())
-	if returnTo != "tray" {
+	if returnTo != "tray" && returnTo != "tray-unread" {
 		u, _ := url.Parse(returnTo)
 		listURL := *r.URL
 		listURL.RawQuery = u.RawQuery
 		listRequest.URL = &listURL
 	}
+	if returnTo == "tray-unread" {
+		u := *listRequest.URL
+		u.RawQuery = "unread=true"
+		listRequest.URL = &u
+	}
 	limit := 1
 	if listRequest.URL.Query().Get("unread") == "true" {
 		limit = 50
 	}
+	if returnTo == "tray" || returnTo == "tray-unread" {
+		limit = 20
+	}
 	page, status := s.notificationList(listRequest, limit)
 	content := templ.Component(view.NotificationReadControl(id, true, "", returnTo))
+	if limit == 20 && status == 200 {
+		w.Header().Set("HX-Retarget", "#notification-tray")
+		content = view.NotificationList(page, true)
+	}
 	if limit == 50 && status == 200 {
 		w.Header().Set("HX-Retarget", "#notification-page-list")
 		content = view.NotificationList(page, false)
 	}
 	component := templ.Join(content, view.NotificationSummaryOOB(page.UnreadCount, status == 200))
-	if returnTo != "tray" {
+	if returnTo != "tray" && returnTo != "tray-unread" {
 		component = templ.Join(component, view.NotificationPageCount(page.UnreadCount, status == 200, true))
 	}
 	renderNotificationFragment(w, r, 200, component)
@@ -186,8 +199,86 @@ func (s *server) notificationClear(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, view.PageData{Title: "Clear notifications", Description: "Confirm permanent deletion of the notification inbox.", Path: "/notifications", NotificationsPage: &page}, status)
 }
 
+// Bulk read state is independent of clearing messages and source alert state.
+func (s *server) notificationReadAll(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 2048)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid notification action.", 400)
+		return
+	}
+	returnTo := notificationReturnTo(r.PostForm.Get("returnTo"))
+	tray := returnTo == "tray" || returnTo == "tray-unread"
+	listRequest := r.Clone(r.Context())
+	u := *r.URL
+	if tray {
+		u.RawQuery = ""
+		if r.PostForm.Get("unread") == "true" || returnTo == "tray-unread" {
+			u.RawQuery = "unread=true"
+		}
+	} else {
+		target, _ := url.Parse(returnTo)
+		u.RawQuery = target.RawQuery
+	}
+	listRequest.URL = &u
+	client, ok := s.catalog.(NotificationCatalog)
+	ctx, cancel := context.WithTimeout(r.Context(), min(s.timeout, 3*time.Second))
+	defer cancel()
+	var err error
+	if !ok {
+		err = errors.New("notification client unavailable")
+	} else {
+		err = client.MarkAllNotificationsRead(ctx)
+	}
+	if r.Header.Get("HX-Request-Type") != "partial" {
+		if err == nil {
+			redirect(w, r, notificationRedirect(returnTo))
+			return
+		}
+		page, status := s.notificationList(listRequest, 50)
+		page.BulkError = "Read state not confirmed. Refresh before trying again."
+		if status == 200 {
+			status = 503
+		}
+		s.render(w, r, view.PageData{Title: "Notifications", Description: "Notification read state could not be confirmed.", Path: "/notifications", NotificationsPage: &page}, status)
+		return
+	}
+	if err != nil {
+		if tray {
+			w.Header().Set("HX-Retarget", "#notification-read-all-status")
+			renderNotificationFragment(w, r, 503, view.NotificationReadAllStatus("Read state not confirmed. Refresh before trying again.", true, false))
+		} else {
+			w.Header().Set("HX-Retarget", "#notification-page-read-status")
+			renderNotificationFragment(w, r, 503, view.NotificationReadAllStatus("Read state not confirmed. Refresh before trying again.", true, false))
+		}
+		return
+	}
+	limit := 50
+	if tray {
+		limit = 20
+	}
+	page, status := s.notificationList(listRequest, limit)
+	var component templ.Component
+	if tray {
+		w.Header().Set("HX-Retarget", "#notification-tray")
+		component = templ.Join(view.NotificationList(page, true), view.NotificationReadAllStatus("Notifications marked read.", false, true))
+		if saved := r.PostForm.Get("returnPage"); strings.HasPrefix(saved, "/notifications") {
+			pageRequest := r.Clone(r.Context())
+			pageURL := *r.URL
+			target, _ := url.Parse(notificationReturnTo(saved))
+			pageURL.RawQuery = target.RawQuery
+			pageRequest.URL = &pageURL
+			inbox, _ := s.notificationList(pageRequest, 50)
+			component = templ.Join(component, view.NotificationInboxOOB(inbox))
+		}
+	} else {
+		w.Header().Set("HX-Retarget", "#notification-inbox")
+		component = view.NotificationInbox(page, false)
+	}
+	renderNotificationFragment(w, r, 200, templ.Join(component, view.NotificationSummaryOOB(page.UnreadCount, status == 200)))
+}
+
 func notificationReturnTo(value string) string {
-	if value == "tray" {
+	if value == "tray" || value == "tray-unread" {
 		return value
 	}
 	u, err := url.Parse(value)
@@ -206,6 +297,9 @@ func notificationReturnTo(value string) string {
 	return u.String()
 }
 func notificationRedirect(value string) string {
+	if value == "tray-unread" {
+		return "/notifications?unread=true"
+	}
 	if value == "tray" {
 		return "/notifications"
 	}

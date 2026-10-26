@@ -19,13 +19,14 @@ RETURNING sequence, id, source_kind, source_id, connection_id, event_id, severit
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
        title, body, occurred_at, received_at, destination_json, payload_json, read_at
 FROM notifications
-WHERE (? IS NULL OR sequence < ?)
-  AND (? = 0 OR read_at IS NULL)
+WHERE (sqlc.narg(before_sequence) IS NULL OR sequence < sqlc.narg(before_sequence))
+  AND (CAST(sqlc.arg(unread_only) AS INTEGER) = 0 OR read_at IS NULL)
+  AND unixepoch(received_at) >= CAST(sqlc.arg(since_epoch) AS INTEGER)
 ORDER BY sequence DESC
-LIMIT ?;
+LIMIT sqlc.arg(page_limit);
 
 -- name: CountUnreadNotifications :one
-SELECT COUNT(*) FROM notifications WHERE read_at IS NULL;
+SELECT COUNT(*) FROM notifications WHERE read_at IS NULL AND unixepoch(received_at) >= CAST(sqlc.arg(since_epoch) AS INTEGER);
 
 -- name: GetNotificationByID :one
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
@@ -40,3 +41,10 @@ WHERE id = ?;
 
 -- name: ClearNotifications :exec
 DELETE FROM notifications;
+
+-- name: MarkAllNotificationsRead :exec
+UPDATE notifications SET read_at = sqlc.arg(read_at)
+WHERE read_at IS NULL AND unixepoch(received_at) >= CAST(sqlc.arg(since_epoch) AS INTEGER);
+
+-- name: PruneExpiredNotifications :execrows
+DELETE FROM notifications WHERE unixepoch(received_at) < CAST(sqlc.arg(since_epoch) AS INTEGER);

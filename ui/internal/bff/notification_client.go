@@ -33,7 +33,7 @@ func (c *APIClient) Notifications(ctx context.Context, before string, unread boo
 	if response.StatusCode() != http.StatusOK || response.JSON200 == nil {
 		return view.NotificationsPage{}, &upstreamError{operation: "notifications", status: response.StatusCode()}
 	}
-	page := view.NotificationsPage{UnreadCount: int(response.JSON200.UnreadCount), NextCursor: notificationString(response.JSON200.NextCursor)}
+	page := view.NotificationsPage{UnreadCount: int(response.JSON200.UnreadCount), RetentionDays: int(response.JSON200.RetentionDays), NextCursor: notificationString(response.JSON200.NextCursor)}
 	for _, item := range response.JSON200.Notifications {
 		page.Items = append(page.Items, notificationView(item))
 	}
@@ -93,12 +93,27 @@ func (c *APIClient) ClearNotifications(ctx context.Context) error {
 	return nil
 }
 
+func (c *APIClient) MarkAllNotificationsRead(ctx context.Context) error {
+	auth, err := c.notificationAuthority()
+	if err != nil {
+		return err
+	}
+	response, err := c.client.MarkAllNotificationsReadWithResponse(ctx, auth)
+	if err != nil {
+		return &upstreamError{operation: "mark all notifications read", cause: err}
+	}
+	if response.StatusCode() != http.StatusNoContent {
+		return &upstreamError{operation: "mark all notifications read", status: response.StatusCode()}
+	}
+	return nil
+}
+
 func notificationView(item api.Notification) view.Notification {
 	source := string(item.Source.Kind) + " · " + item.Source.Id
 	if item.Source.ConnectionId != nil {
 		source += " · " + *item.Source.ConnectionId
 	}
-	return view.Notification{ID: item.Id.String(), Title: item.Title, Body: item.Body, Severity: string(item.Severity), Source: source, ReceivedAt: item.ReceivedAt, Read: item.ReadAt != nil, HasDestination: item.Destination != nil, External: item.Destination != nil && string(item.Destination.Kind) == "external"}
+	return view.Notification{SourceKind: string(item.Source.Kind), SourceLabel: item.Source.Id, ID: item.Id.String(), Title: item.Title, Body: item.Body, Severity: string(item.Severity), Source: source, ReceivedAt: item.ReceivedAt, Read: item.ReadAt != nil, HasDestination: item.Destination != nil, External: item.Destination != nil && string(item.Destination.Kind) == "external"}
 }
 func notificationString(value *string) string {
 	if value == nil {

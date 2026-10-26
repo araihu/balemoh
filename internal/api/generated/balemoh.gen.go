@@ -493,6 +493,7 @@ type NotificationDestinationKind string
 type NotificationPage struct {
 	NextCursor    *string        `json:"nextCursor,omitempty"`
 	Notifications []Notification `json:"notifications"`
+	RetentionDays int32          `json:"retentionDays"`
 	UnreadCount   int32          `json:"unreadCount"`
 }
 
@@ -866,6 +867,9 @@ type ServerInterface interface {
 
 	// (POST /api/v1/notifications)
 	PublishNotification(w http.ResponseWriter, r *http.Request)
+
+	// (PUT /api/v1/notifications/read)
+	MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/v1/notifications/{notificationId})
 	GetNotification(w http.ResponseWriter, r *http.Request, notificationId string)
@@ -1310,6 +1314,26 @@ func (siw *ServerInterfaceWrapper) PublishNotification(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PublishNotification(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkAllNotificationsRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkAllNotificationsRead(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1867,6 +1891,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notifications", wrapper.ClearNotifications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications", wrapper.GetNotifications)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notifications", wrapper.PublishNotification)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/notifications/read", wrapper.MarkAllNotificationsRead)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications/{notificationId}", wrapper.GetNotification)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugin-widgets", wrapper.GetPluginWidgets)

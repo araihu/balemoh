@@ -274,3 +274,156 @@ func TestClearNotificationsIncludesReadUnreadAndAllPages(t *testing.T) {
 		t.Fatal("old cursor aliased new messages", err)
 	}
 }
+
+func TestNotificationRetentionAndBulkRead(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, t.TempDir()+"/inbox.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	svc, err := notifications.NewServiceWithRetention(NewNotificationStore(db), 30, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	publish := func(id string) notifications.Receipt {
+		t.Helper()
+		r, e := svc.Publish(ctx, notifications.Source{Kind: notifications.SourceCore, ID: "test"}, testMessage(id, id, now))
+		if e != nil {
+			t.Fatal(e)
+		}
+		return r
+	}
+	oldRead := publish("old-read")
+	if err := svc.MarkRead(ctx, oldRead.ID); err != nil {
+		t.Fatal(err)
+	}
+	oldUnread := publish("old-unread")
+	now = now.Add(24 * time.Hour)
+	boundary := publish("boundary")
+	now = now.Add(30 * 24 * time.Hour)
+	// Expired rows are hidden immediately, before the asynchronous physical sweep.
+	page, err := svc.List(ctx, notifications.ListOptions{})
+	if err != nil || len(page.Notifications) != 1 || page.Notifications[0].ID != boundary.ID || page.UnreadCount != 1 || page.RetentionDays != 30 {
+		t.Fatalf("retained page=%#v, %v", page, err)
+	}
+	for _, id := range []string{oldRead.ID, oldUnread.ID} {
+		if _, err := svc.Get(ctx, id); !errors.Is(err, notifications.ErrNotFound) {
+			t.Fatalf("expired get=%v", err)
+		}
+		if err := svc.MarkRead(ctx, id); !errors.Is(err, notifications.ErrNotFound) {
+			t.Fatal("expired read accepted", err)
+		}
+	}
+	var total int
+	if err := db.QueryRow("SELECT count(*) FROM notifications").Scan(&total); err != nil || total != 3 {
+		t.Fatal("setup physically purged before sweep", total, err)
+	}
+	removed, err := svc.PruneExpired(ctx)
+	if err != nil || removed != 2 {
+		t.Fatalf("prune=%d, %v", removed, err)
+	}
+	if n, err := svc.PruneExpired(ctx); err != nil || n != 0 {
+		t.Fatal("repeat prune", n, err)
+	}
+	kept := publish("current-read")
+	if err := svc.MarkAllRead(ctx); err != nil {
+		t.Fatal(err)
+	}
+	item, err := svc.Get(ctx, kept.ID)
+	if err != nil || item.ReadAt == nil {
+		t.Fatal("bulk read did not persist", err)
+	}
+	stamp := *item.ReadAt
+	now = now.Add(time.Second)
+	if err := svc.MarkAllRead(ctx); err != nil {
+		t.Fatal(err)
+	}
+	item, err = svc.Get(ctx, kept.ID)
+	if err != nil || !item.ReadAt.Equal(stamp) {
+		t.Fatal("bulk read rewrote existing timestamp", err)
+	}
+	fresh := publish("after-bulk")
+	page, err = svc.List(ctx, notifications.ListOptions{UnreadOnly: true})
+	if err != nil || len(page.Notifications) != 1 || page.Notifications[0].ID != fresh.ID || page.UnreadCount != 1 {
+		t.Fatalf("post-bulk publication lost unread state: %#v, %v", page, err)
+	}
+	// An expired identity is accepted anew, rather than returning an invisible receipt.
+	replay := publish("old-unread")
+	if !replay.Accepted || replay.ID == oldUnread.ID {
+		t.Fatal("expired identity replay was not renewed")
+	}
+}
+
+func TestMarkAllNotificationsReadSpansPagesAndPreservesContent(t *testing.T) {
+	svc, cleanup := openNotificationService(t)
+	defer cleanup()
+	ctx := context.Background()
+	now := time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)
+	for i := range 60 {
+		if _, err := svc.Publish(ctx, notifications.Source{Kind: notifications.SourceCore, ID: "many"}, testMessage(fmt.Sprint(i), "body unchanged", now)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := svc.MarkAllRead(ctx); err != nil {
+		t.Fatal(err)
+	}
+	page, err := svc.List(ctx, notifications.ListOptions{})
+	if err != nil || len(page.Notifications) != 50 || page.NextBefore == 0 || page.UnreadCount != 0 {
+		t.Fatalf("bulk page=%#v, %v", page, err)
+	}
+	for _, item := range page.Notifications {
+		if item.ReadAt == nil || item.Title != "body unchanged" {
+			t.Fatal("content changed or unread")
+		}
+	}
+	page, err = svc.List(ctx, notifications.ListOptions{Before: page.NextBefore})
+	if err != nil || len(page.Notifications) != 10 {
+		t.Fatal("older page lost", err)
+	}
+	for _, item := range page.Notifications {
+		if item.ReadAt == nil {
+			t.Fatal("older page not read")
+		}
+	}
+}
+
+func TestExpiredCapacityIsReclaimedAtomically(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, t.TempDir()+"/capacity.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	svc, err := notifications.NewServiceWithRetention(NewNotificationStore(db), 30, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.Publish(ctx, notifications.Source{Kind: notifications.SourceCore, ID: "capacity"}, testMessage("first", "first", now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<9999)
+ INSERT INTO notifications(id,source_kind,source_id,connection_id,event_id,severity,title,body,occurred_at,received_at,destination_json,payload_json)
+ SELECT 'fixture-'||x,source_kind,source_id,connection_id,'event-'||x,severity,title,body,occurred_at,received_at,destination_json,payload_json FROM notifications,n WHERE event_id='first'`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(31 * 24 * time.Hour)
+	r, err := svc.Publish(ctx, notifications.Source{Kind: notifications.SourceCore, ID: "capacity"}, testMessage("new", "new", now))
+	if err != nil || !r.Accepted {
+		t.Fatalf("expired capacity remained full: %#v %v", r, err)
+	}
+	var count int
+	if err := db.QueryRow("SELECT count(*) FROM notifications").Scan(&count); err != nil || count != 1 {
+		t.Fatalf("physical rows=%d, %v", count, err)
+	}
+}

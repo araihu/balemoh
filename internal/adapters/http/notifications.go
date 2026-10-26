@@ -40,7 +40,7 @@ func (h Handler) GetNotifications(w http.ResponseWriter, r *http.Request, params
 		writeNotificationError(w, err)
 		return
 	}
-	response := generated.NotificationPage{Notifications: make([]generated.Notification, 0, len(page.Notifications)), UnreadCount: int32(page.UnreadCount)}
+	response := generated.NotificationPage{Notifications: make([]generated.Notification, 0, len(page.Notifications)), UnreadCount: int32(page.UnreadCount), RetentionDays: int32(page.RetentionDays)}
 	for _, notification := range page.Notifications {
 		response.Notifications = append(response.Notifications, notificationResponse(notification))
 	}
@@ -49,6 +49,22 @@ func (h Handler) GetNotifications(w http.ResponseWriter, r *http.Request, params
 		response.NextCursor = &cursor
 	}
 	writeJSON(w, http.StatusOK, response)
+}
+
+func (h Handler) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+	setNotificationRequestID(w)
+	if !h.notificationOperatorAuth(w, r) {
+		return
+	}
+	if h.notifications == nil {
+		writeNotificationUnavailable(w)
+		return
+	}
+	if err := h.notifications.MarkAllRead(r.Context()); err != nil {
+		writeNotificationError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h Handler) ClearNotifications(w http.ResponseWriter, r *http.Request) {

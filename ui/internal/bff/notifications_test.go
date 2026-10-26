@@ -18,11 +18,11 @@ import (
 
 type notificationFixture struct {
 	fakeCatalog
-	calls, reads, clears atomic.Int32
-	blocked              bool
-	failure              error
-	page                 view.NotificationsPage
-	record               NotificationRecord
+	calls, reads, clears, bulkReads atomic.Int32
+	blocked                         bool
+	failure                         error
+	page                            view.NotificationsPage
+	record                          NotificationRecord
 }
 
 func (f *notificationFixture) Notifications(ctx context.Context, _ string, _ bool, _ int) (view.NotificationsPage, error) {
@@ -42,6 +42,10 @@ func (f *notificationFixture) MarkNotificationRead(context.Context, string) erro
 }
 func (f *notificationFixture) ClearNotifications(context.Context) error {
 	f.clears.Add(1)
+	return f.failure
+}
+func (f *notificationFixture) MarkAllNotificationsRead(context.Context) error {
+	f.bulkReads.Add(1)
 	return f.failure
 }
 func TestNotificationClientCannotBlockBaseShell(t *testing.T) {
@@ -116,7 +120,7 @@ func TestNotificationReadProtectionAndAcknowledgement(t *testing.T) {
 		t.Fatal("failed read action claims success")
 	}
 	f.failure = nil
-	if w := post(""); w.Code != 200 || !strings.Contains(w.Body.String(), ">Read</span>") || strings.Contains(w.Body.String(), "<html") {
+	if w := post(""); w.Code != 200 || w.Header().Get("HX-Retarget") != "#notification-tray" || strings.Contains(w.Body.String(), "<html") {
 		t.Fatal("acknowledged read action not scoped")
 	}
 	_ = http.StatusOK
@@ -168,5 +172,40 @@ func TestNotificationClearConfirmationProtectionAndResult(t *testing.T) {
 	}
 	if f.clears.Load() != 3 {
 		t.Fatalf("clear effect count %d", f.clears.Load())
+	}
+}
+
+func TestBulkNotificationReadIsSeparateProtectedAndScoped(t *testing.T) {
+	f := &notificationFixture{page: view.NotificationsPage{RetentionDays: 7, UnreadCount: 1, Items: []view.Notification{{ID: "new", Title: "After read", ReceivedAt: time.Now()}}}}
+	h, _ := New(f, time.Second)
+	post := func(origin, body string, partial bool) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("POST", "/notifications/read-all", strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if origin != "" {
+			r.Header.Set("Origin", origin)
+		}
+		if partial {
+			r.Header.Set("HX-Request-Type", "partial")
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	if w := post("https://bad.example", "returnTo=tray", true); w.Code != 403 || f.bulkReads.Load() != 0 {
+		t.Fatal("cross-origin bulk read accepted")
+	}
+	w := post("", "returnTo=tray&unread=true&returnPage=%2Fnotifications%3Funread%3Dtrue", true)
+	if w.Code != 200 || w.Header().Get("HX-Retarget") != "#notification-tray" || !strings.Contains(w.Body.String(), "After read") || !strings.Contains(w.Body.String(), "7 days") || !strings.Contains(w.Body.String(), `id="notification-inbox"`) || f.bulkReads.Load() != 1 || f.clears.Load() != 0 {
+		t.Fatalf("bulk scope/effects %d %s", w.Code, w.Body.String())
+	}
+	f.failure = errors.New("timeout")
+	w = post("", "returnTo=tray", true)
+	if w.Code != 503 || !strings.Contains(w.Body.String(), "Read state not confirmed") || strings.Contains(w.Body.String(), "No notifications.") {
+		t.Fatal("bulk failure claims success")
+	}
+	f.failure = nil
+	w = post("", "returnTo=%2Fnotifications%3Funread%3Dtrue", false)
+	if w.Code != 303 || w.Header().Get("Location") != "/notifications?unread=true" {
+		t.Fatal("missing native bulk PRG")
 	}
 }

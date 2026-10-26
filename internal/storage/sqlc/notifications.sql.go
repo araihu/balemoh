@@ -31,11 +31,11 @@ func (q *Queries) CountNotifications(ctx context.Context) (int64, error) {
 }
 
 const countUnreadNotifications = `-- name: CountUnreadNotifications :one
-SELECT COUNT(*) FROM notifications WHERE read_at IS NULL
+SELECT COUNT(*) FROM notifications WHERE read_at IS NULL AND unixepoch(received_at) >= CAST(?1 AS INTEGER)
 `
 
-func (q *Queries) CountUnreadNotifications(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countUnreadNotifications)
+func (q *Queries) CountUnreadNotifications(ctx context.Context, sinceEpoch int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUnreadNotifications, sinceEpoch)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -174,25 +174,26 @@ const listNotifications = `-- name: ListNotifications :many
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
        title, body, occurred_at, received_at, destination_json, payload_json, read_at
 FROM notifications
-WHERE (? IS NULL OR sequence < ?)
-  AND (? = 0 OR read_at IS NULL)
+WHERE (?1 IS NULL OR sequence < ?1)
+  AND (CAST(?2 AS INTEGER) = 0 OR read_at IS NULL)
+  AND unixepoch(received_at) >= CAST(?3 AS INTEGER)
 ORDER BY sequence DESC
-LIMIT ?
+LIMIT ?4
 `
 
 type ListNotificationsParams struct {
-	Column1  interface{} `json:"column_1"`
-	Sequence int64       `json:"sequence"`
-	Column3  interface{} `json:"column_3"`
-	Limit    int64       `json:"limit"`
+	BeforeSequence interface{} `json:"before_sequence"`
+	UnreadOnly     int64       `json:"unread_only"`
+	SinceEpoch     int64       `json:"since_epoch"`
+	PageLimit      int64       `json:"page_limit"`
 }
 
 func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]Notification, error) {
 	rows, err := q.db.QueryContext(ctx, listNotifications,
-		arg.Column1,
-		arg.Sequence,
-		arg.Column3,
-		arg.Limit,
+		arg.BeforeSequence,
+		arg.UnreadOnly,
+		arg.SinceEpoch,
+		arg.PageLimit,
 	)
 	if err != nil {
 		return nil, err
@@ -230,6 +231,21 @@ func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsPa
 	return items, nil
 }
 
+const markAllNotificationsRead = `-- name: MarkAllNotificationsRead :exec
+UPDATE notifications SET read_at = ?1
+WHERE read_at IS NULL AND unixepoch(received_at) >= CAST(?2 AS INTEGER)
+`
+
+type MarkAllNotificationsReadParams struct {
+	ReadAt     sql.NullString `json:"read_at"`
+	SinceEpoch int64          `json:"since_epoch"`
+}
+
+func (q *Queries) MarkAllNotificationsRead(ctx context.Context, arg MarkAllNotificationsReadParams) error {
+	_, err := q.db.ExecContext(ctx, markAllNotificationsRead, arg.ReadAt, arg.SinceEpoch)
+	return err
+}
+
 const markNotificationRead = `-- name: MarkNotificationRead :exec
 UPDATE notifications
 SET read_at = COALESCE(read_at, ?)
@@ -244,4 +260,16 @@ type MarkNotificationReadParams struct {
 func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) error {
 	_, err := q.db.ExecContext(ctx, markNotificationRead, arg.ReadAt, arg.ID)
 	return err
+}
+
+const pruneExpiredNotifications = `-- name: PruneExpiredNotifications :execrows
+DELETE FROM notifications WHERE unixepoch(received_at) < CAST(?1 AS INTEGER)
+`
+
+func (q *Queries) PruneExpiredNotifications(ctx context.Context, sinceEpoch int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, pruneExpiredNotifications, sinceEpoch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

@@ -289,7 +289,7 @@ func TestHostsIndexSelectionSnapshot(t *testing.T) {
 			for _, a := range n.Attr {
 				attrs[a.Key] = a.Val
 			}
-			if n.Data == "input" && attrs["type"] == "checkbox" {
+			if n.Data == "input" && attrs["type"] == "checkbox" && strings.HasPrefix(attrs["id"], "host-selection-action-") {
 				found++
 				_, checked := attrs["checked"]
 				_, disabled := attrs["disabled"]

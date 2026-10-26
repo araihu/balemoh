@@ -14,16 +14,18 @@ import (
 )
 
 const (
-	MaxEventIDBytes    = 128
-	MaxTitleCharacters = 200
-	MaxBodyCharacters  = 4000
-	MaxSourceIDBytes   = 256
-	MaxRouteBytes      = 512
-	MaxPageBytes       = 256
-	MaxParameterBytes  = 512
-	MaxEnvelopeBytes   = 16 << 10
-	MaxInboxSize       = 10000
-	MaxPageSize        = 50
+	MaxEventIDBytes      = 128
+	MaxTitleCharacters   = 200
+	MaxBodyCharacters    = 4000
+	MaxSourceIDBytes     = 256
+	MaxRouteBytes        = 512
+	MaxPageBytes         = 256
+	MaxParameterBytes    = 512
+	MaxEnvelopeBytes     = 16 << 10
+	MaxInboxSize         = 10000
+	MaxPageSize          = 50
+	DefaultRetentionDays = 30
+	MaxRetentionDays     = 3650
 )
 
 var (
@@ -110,12 +112,14 @@ type ListOptions struct {
 	Before     uint64
 	UnreadOnly bool
 	Limit      int
+	Since      time.Time
 }
 
 // Page contains one database snapshot of rows and unread count.
 type Page struct {
 	Notifications []Notification `json:"notifications"`
 	UnreadCount   int            `json:"unreadCount"`
+	RetentionDays int            `json:"retentionDays"`
 	NextBefore    uint64         `json:"-"`
 }
 
