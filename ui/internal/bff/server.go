@@ -52,6 +52,15 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 	}
 	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /notifications", server.notificationPage)
+	mux.HandleFunc("GET /notifications/summary", server.notificationSummary)
+	mux.HandleFunc("GET /notifications/tray", server.notificationTray)
+	mux.HandleFunc("GET /notifications/{notificationID}/open", server.notificationOpen)
+	mux.Handle("POST /notifications/{notificationID}/read", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationRead)))
+	mux.HandleFunc("GET /ui/notifications.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.NotificationsJS())
+	})
 	if registry != nil {
 		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/pages/{pluginPath...}", server.pluginPage)
 		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/page-content/{pluginPath...}", server.pluginPageContent)

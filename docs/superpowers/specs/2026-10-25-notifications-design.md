@@ -1,8 +1,7 @@
 # Unified notifications
 
-Status: proposed implementation contract. The notification service, routes,
-SDK callbacks and bell described here are not implemented yet. The separate
-color-mode header control has a local implementation.
+Status: implemented through N4. Independent review and homelab rollout are
+tracked in N5 of the implementation plan.
 
 Milestone: trusted, single-instance pre-v0.1.0 Balemoh. A shared inbox accepts
 notifications from core services, installed plugins and authenticated external
@@ -84,11 +83,12 @@ delivery rules and user subscriptions are outside this initial delivery.
 
 ## API and access
 
-The following routes are proposed, not existing endpoints:
+The private instance API exposes:
 
 | Method and route | Behavior |
 | --- | --- |
 | `GET /api/v1/notifications` | Cursor page, optional unread filter, exact unread total |
+| `GET /api/v1/notifications/{id}` | Historical message and typed destination, with operator authority |
 | `POST /api/v1/notifications` | Authenticated external publication; source bound to credential |
 | `PUT /api/v1/notifications/{id}/read` | Idempotently mark one notification read |
 
@@ -116,7 +116,7 @@ publisher credential into an operator credential.
 
 An unknown notification returns 404. Invalid content returns 400, missing or
 invalid publication credentials 401, source/grant violations 403, identity
-conflicts 409 and capacity/rate limits 429. Unavailable storage returns 503.
+conflicts 409 and capacity/concurrency limits 429. Unavailable storage returns 503.
 Responses contain safe messages and request IDs, never raw database errors,
 producer credentials or arbitrary upstream response bodies.
 
@@ -249,3 +249,20 @@ prove collection still completes; remove/stop all plugins while refreshing the
 inbox and prove notifications remain readable and acknowledgeable.
 Production verification must not insert synthetic notifications or
 modify real pins/options. Use an isolated database and source fixtures for writes.
+
+## Operational configuration
+
+The API reads its private operator token from
+`BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE`. The BFF reads the same token from
+`BALEMOH_UI_NOTIFICATION_OPERATOR_TOKEN_FILE` and attaches it only to notification
+API requests. Missing UI credentials leave the shell available and notification
+fragments unavailable. Token files require at least 32 bytes.
+
+External ingress is disabled unless `BALEMOH_NOTIFICATION_PUBLISHERS_FILE` points
+to a JSON object mapping external source IDs to private token-file paths. Tokens
+must be distinct from each other and from the operator token. Neither credential
+class is sent to plugin children or included in browser HTML.
+
+Plugin API deployment connections use `capabilityGrants` separately from query
+`grants`. For example, `"capabilityGrants": ["notifications.publish/v1"]` authorizes
+only that backend connection. The BFF requires no publication grant.

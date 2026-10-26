@@ -1,6 +1,6 @@
 # Unified notifications implementation
 
-Status: proposed. No notification milestone below is implemented yet.
+Status: N1–N4 implemented. N5 independent reviews and homelab rollout in progress.
 Contract: [unified notifications](../specs/2026-10-25-notifications-design.md).
 Release stage: trusted single-instance pre-v0.1.0.
 

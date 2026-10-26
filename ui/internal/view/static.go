@@ -47,3 +47,8 @@ func BrandAssets() fs.FS {
 var pluginRuntimeJS []byte
 
 func PluginRuntimeJS() []byte { return pluginRuntimeJS }
+
+//go:embed static/notifications.js
+var notificationsJS []byte
+
+func NotificationsJS() []byte { return notificationsJS }

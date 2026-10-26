@@ -9,6 +9,7 @@ import (
 // HeaderActions uses the shell's first-paint state and preference key. Storage
 // may be unavailable; the visible theme must still change for this document.
 templ HeaderActions(allowPreferences bool) {
+	@NotificationBell()
 	if allowPreferences {
 	@button.Button(
 		button.WithID("balemoh-color-mode"),

@@ -4,6 +4,7 @@
 
 Options configures the Balemoh server-rendered UI BFF.
 
+ - `BALEMOH_UI_NOTIFICATION_OPERATOR_TOKEN_FILE` - NotificationOperatorTokenFile contains the private notification inbox credential. Empty leaves notification fragments unavailable without blocking base pages.
  - `BALEMOH_UI_THEME` (default: `goshtoso`) - Theme selects the shared visual profile theme, goshtoso or minimal.
  - `BALEMOH_UI_COLOR_SCHEME` (default: `system`) - ColorScheme selects system, light or dark. Explicit themes or modes override stored browser preferences.
  - `BALEMOH_UI_PLUGIN_CONFIG` - PluginConfig enables data-backed trusted plugins from a local JSON file. It cannot be combined with synthetic preview configuration.

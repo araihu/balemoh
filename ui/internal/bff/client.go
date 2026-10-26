@@ -26,8 +26,13 @@ type Catalog interface {
 // interface. It intentionally returns safe operation errors rather than raw
 // upstream response bodies.
 type APIClient struct {
-	client *api.ClientWithResponses
+	client            *api.ClientWithResponses
+	notificationToken string
 }
+
+// SetNotificationCredential is startup-only. It never changes the authority of
+// catalog, federation or plugin requests.
+func (c *APIClient) SetNotificationCredential(token string) { c.notificationToken = token }
 
 func NewAPIClient(baseURL string, httpClient *http.Client) (*APIClient, error) {
 	options := make([]api.ClientOption, 0, 1)

@@ -291,3 +291,24 @@ body {
 .balemoh-widget-editor { max-width: 48rem; }
 .balemoh-widget-form-fields { display: grid; gap: 1.25rem; }
 .balemoh-widget-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--balemoh-border); }
+
+.balemoh-notification-trigger { position: relative; }
+.balemoh-notification-count { position: absolute; top: -.1rem; right: -.35rem; min-width: 1.1rem; padding: .05rem .22rem; border-radius: 1rem; background: var(--color-primary); color: var(--color-on-primary); font-size: .65rem; line-height: 1rem; font-weight: 700; }
+.balemoh-notification-count-warning { background: var(--color-warning); color: var(--color-on-warning); }
+.balemoh-notification-popover .balemoh-notification-panel { width: min(25rem, calc(100vw - 2rem)); max-height: calc(100dvh - 5rem); overflow: auto; z-index: 60; }
+.balemoh-notification-heading, .balemoh-notification-footer { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1rem; }
+.balemoh-notification-heading h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+.balemoh-notification-list { list-style: none; margin: 0; padding: 0; }
+.balemoh-notification-item { padding: 1rem; border-top: 1px solid var(--balemoh-border); overflow-wrap: anywhere; }
+.balemoh-notification-item h3 { margin: .6rem 0 .35rem; font-size: .95rem; font-weight: 600; }
+.balemoh-notification-meta, .balemoh-notification-actions, .balemoh-notification-page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.balemoh-notification-meta time, .balemoh-notification-source { color: var(--balemoh-muted); font-size: .75rem; }
+.balemoh-notification-body { white-space: pre-wrap; font-size: .875rem; margin: .35rem 0; }
+.balemoh-notification-source { margin: .5rem 0; }
+.balemoh-notification-actions { font-size: .8rem; }
+.balemoh-notification-message { padding: 1rem; }
+
+/* Keep the tray inside narrow viewports even beside another header action. */
+@media (max-width: 480px) {
+ .balemoh-notification-popover .balemoh-notification-panel { position: fixed; top: 4rem; left: 1rem; right: 1rem; width: auto; margin-top: 0; }
+}

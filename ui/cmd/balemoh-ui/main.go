@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/araihu/balemoh/plugin-sdk/credential"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
 	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
 	"github.com/araihu/balemoh/ui/iconpacks/selfhst"
@@ -43,6 +44,13 @@ func run(ctx context.Context) error {
 	apiClient, err := bff.NewAPIClient(options.APIBaseURL, &http.Client{Timeout: options.RequestTimeout})
 	if err != nil {
 		return err
+	}
+	if options.NotificationOperatorTokenFile != "" {
+		token, err := credential.ReadBearerFile(options.NotificationOperatorTokenFile)
+		if err != nil || len(token) < 32 {
+			return errors.New("invalid notification operator credential file")
+		}
+		apiClient.SetNotificationCredential(token)
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

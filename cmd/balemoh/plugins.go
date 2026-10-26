@@ -32,7 +32,7 @@ func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployme
 	if err != nil {
 		return nil, errors.New("cannot reconcile plugin connections")
 	}
-	runtime := pluginadapter.NewRuntime(ctx, deployment, records)
+	runtime := pluginadapter.NewRuntime(ctx, deployment, records, newNotificationsService(db))
 	if deployment != nil {
 		server.Handler = httpadapter.MountPlugins(server.Handler, plugins.New(store, runtime), token, dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: sqlite.NewTelemetryStore(db), Selections: sqlite.NewDashboardSelections(db)})
 	}

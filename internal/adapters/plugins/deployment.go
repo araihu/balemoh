@@ -31,18 +31,20 @@ type Installation struct {
 	Connections    []Connection `json:"connections"`
 }
 type Connection struct {
-	Key     string            `json:"key"`
-	Name    string            `json:"name"`
-	Config  json.RawMessage   `json:"config"`
-	Secrets map[string]string `json:"secrets"`
-	Grants  []string          `json:"grants"`
+	Key              string            `json:"key"`
+	Name             string            `json:"name"`
+	Config           json.RawMessage   `json:"config"`
+	Secrets          map[string]string `json:"secrets"`
+	Grants           []string          `json:"grants"`
+	CapabilityGrants []string          `json:"capabilityGrants,omitempty"`
 }
 type preparedConnection struct {
-	key     string
-	config  json.RawMessage
-	secrets map[string]string
-	grants  []string
-	record  app.Provision
+	key              string
+	config           json.RawMessage
+	secrets          map[string]string
+	grants           []string
+	capabilityGrants []string
+	record           app.Provision
 }
 type preparedInstallation struct {
 	pkg         *manifest.Package
@@ -164,15 +166,23 @@ func prepareConnection(p *manifest.Package, digest string, c Connection, resolve
 			return invalid()
 		}
 	}
+	capabilityGrants := append([]string{}, c.CapabilityGrants...)
+	sort.Strings(capabilityGrants)
+	for i, capability := range capabilityGrants {
+		if capability != notificationPublishCapability || !p.Manifest.Declares(capability) || i > 0 && capabilityGrants[i-1] == capability {
+			return invalid()
+		}
+	}
 	raw, _ := json.Marshal(struct {
-		Config        json.RawMessage
-		Secrets       map[string]string
-		Grants        []string
-		PackageDigest string
-	}{config, secrets, grants, digest})
+		Config           json.RawMessage
+		Secrets          map[string]string
+		Grants           []string
+		CapabilityGrants []string `json:",omitempty"`
+		PackageDigest    string
+	}{config, secrets, grants, capabilityGrants, digest})
 	hash := sha256.Sum256(raw)
 	record := app.Provision{PluginID: p.Manifest.ID, Key: c.Key, Name: c.Name, Digest: hex.EncodeToString(hash[:]), ManifestDigest: p.Digest, Version: p.Manifest.Version}
-	return preparedConnection{c.Key, config, secrets, grants, record}, nil
+	return preparedConnection{key: c.Key, config: config, secrets: secrets, grants: grants, capabilityGrants: capabilityGrants, record: record}, nil
 }
 
 // Problems contains public identifiers and fixed errors only, never paths, URLs,

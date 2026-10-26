@@ -9,6 +9,7 @@ import (
 	app "github.com/araihu/balemoh/internal/application/plugins"
 	"github.com/araihu/balemoh/plugin-sdk/backend"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
+	"github.com/araihu/balemoh/plugin-sdk/notifications"
 	pluginruntime "github.com/araihu/balemoh/plugin-sdk/runtime"
 )
 
@@ -24,18 +25,22 @@ type runtimePlugin struct {
 	connections map[string]*runtimeConnection
 }
 type Runtime struct {
-	mu       sync.RWMutex
-	ctx      context.Context
-	cancel   context.CancelFunc
-	plugins  map[string]*runtimePlugin
-	wg       sync.WaitGroup
-	once     sync.Once
-	problems []app.InstallationProblem
+	mu            sync.RWMutex
+	ctx           context.Context
+	cancel        context.CancelFunc
+	plugins       map[string]*runtimePlugin
+	wg            sync.WaitGroup
+	once          sync.Once
+	problems      []app.InstallationProblem
+	notifications NotificationPublisher
 }
 
-func NewRuntime(ctx context.Context, d *Deployment, records []app.Connection) *Runtime {
+func NewRuntime(ctx context.Context, d *Deployment, records []app.Connection, notificationPublishers ...NotificationPublisher) *Runtime {
 	ctx, cancel := context.WithCancel(ctx)
 	r := &Runtime{ctx: ctx, cancel: cancel, plugins: map[string]*runtimePlugin{}, problems: d.Problems()}
+	if len(notificationPublishers) > 0 {
+		r.notifications = notificationPublishers[0]
+	}
 	if d == nil {
 		return r
 	}
@@ -49,7 +54,7 @@ func NewRuntime(ctx context.Context, d *Deployment, records []app.Connection) *R
 			}
 		}
 		r.plugins[p.pkg.Manifest.ID] = item
-		if len(p.pkg.Manifest.Queries) > 0 && len(item.connections) > 0 {
+		if (len(p.pkg.Manifest.Queries) > 0 || p.pkg.Manifest.Declares(notificationPublishCapability)) && len(item.connections) > 0 {
 			r.wg.Add(1)
 			go r.run(item)
 		}
@@ -95,16 +100,32 @@ func (r *Runtime) session(ctx context.Context, p *runtimePlugin, child *pluginru
 			_ = child.CloseConnection(ctx, id)
 		}
 	}()
+	publishers := map[string]*connectionPublisher{}
+	defer func() {
+		for _, publisher := range publishers {
+			publisher.revoke()
+		}
+	}()
 	for id, c := range p.connections {
+		if c.config.canPublishNotifications() && r.notifications != nil {
+			publishers[id] = newConnectionPublisher(ctx, r.notifications, p.pkg, id)
+		}
 		attempted := time.Now().UTC()
 		r.mu.Lock()
 		c.status.LastConfigureAttemptAt = &attempted
 		r.mu.Unlock()
-		state, err := child.Configure(ctx, backend.Config{ConnectionID: id, Revision: c.record.Revision, Config: c.config.config, Secrets: c.config.secrets})
+		var publisherInterface notifications.Publisher
+		if publishers[id] != nil {
+			publisherInterface = publishers[id]
+		}
+		state, err := child.Configure(ctx, backend.Config{ConnectionID: id, Revision: c.record.Revision, Config: c.config.config, Secrets: c.config.secrets, Notifications: publisherInterface})
 		if err == nil && (state.ConnectionID != id || state.AppliedRevision != c.record.Revision) {
 			err = backend.Fail("invalid_response")
 		}
 		if err != nil {
+			if publishers[id] != nil {
+				publishers[id].revoke()
+			}
 			// A rejected replacement may still have an older valid observation.
 			previous, previousErr := child.Status(ctx, id)
 			r.mu.Lock()

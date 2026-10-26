@@ -19,7 +19,7 @@ func ConsolePage(data PageData) templ.Component {
 		data.ColorScheme = "system"
 	}
 	persistPreferences := data.Theme == "goshtoso" && data.ColorScheme == "system"
-	runtimeScripts := []string{"/ui/plugin-runtime.js"}
+	runtimeScripts := []string{"/ui/plugin-runtime.js", "/ui/notifications.js"}
 	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, assets.HTMXExtSSEURL, "/ui/host-live.js")
 	}

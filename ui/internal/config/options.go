@@ -13,6 +13,8 @@ import (
 
 // Options configures the Balemoh server-rendered UI BFF.
 type Options struct {
+	// NotificationOperatorTokenFile contains the private notification inbox credential. Empty leaves notification fragments unavailable without blocking base pages.
+	NotificationOperatorTokenFile string `env:"BALEMOH_UI_NOTIFICATION_OPERATOR_TOKEN_FILE"`
 	// Theme selects the shared visual profile theme, goshtoso or minimal.
 	Theme string `env:"BALEMOH_UI_THEME" envDefault:"goshtoso"`
 	// ColorScheme selects system, light or dark. Explicit themes or modes override stored browser preferences.
