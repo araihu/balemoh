@@ -35,3 +35,72 @@ test('rejections back off and initial hidden state never invokes the client',asy
  h.setHidden(false);await new Promise(resolve=>setImmediate(resolve));
  assert.equal(calls,1);assert.equal(h.delay(),30000);h.scheduler.stop();
 });
+
+const fs = require('node:fs');
+const vm = require('node:vm');
+const runtime = fs.readFileSync(require.resolve('../notifications.js'), 'utf8');
+const preferenceKey = 'balemoh.notifications.unreadOnly';
+function browserHarness(storage) {
+ const events = new Map(), requests = [], links = [{}, {}];
+ let observe;
+ function element() {
+  const attrs = new Map(), listeners = new Map();
+  return {checked:false, addEventListener:(name,fn)=>listeners.set(name,fn),
+   setAttribute:(name,value)=>attrs.set(name,value), getAttribute:name=>attrs.get(name),
+   querySelector:()=>null, change(){listeners.get('change')?.();}};
+ }
+ const trigger=element(), summary=element(), tray=element(), filter=element();
+ summary.querySelector=()=>({dataset:{notificationAvailable:'true',notificationCount:'0'}});
+ const inboxLinks=links.map(attrs=>({setAttribute:(name,value)=>{attrs[name]=value;}}));
+ const elements={'notification-trigger':trigger,'notification-summary':summary,'notification-tray':tray,'notification-only-unread':filter};
+ const document={readyState:'complete',hidden:false,
+  getElementById:id=>elements[id], querySelector:()=>null,
+  querySelectorAll:selector=>selector==='[data-notification-inbox-link]'?inboxLinks:[],
+  addEventListener(name,fn){if(!events.has(name))events.set(name,new Set());events.get(name).add(fn);},
+  removeEventListener:(name,fn)=>events.get(name)?.delete(fn)};
+ const context={document,location:{pathname:'/',search:''},URLSearchParams,
+  setTimeout:()=>1,clearTimeout:()=>{},addEventListener:()=>{},
+  MutationObserver:class {constructor(fn){observe=fn;}observe(){}disconnect(){}},
+  htmx:{async ajax(method,url,{source}){
+   requests.push({method,url});
+   for(const fn of events.get('htmx:finally:request')||[])fn({detail:{ctx:{sourceElement:source,response:{status:200}}}});
+  }}};
+ Object.defineProperty(context,'localStorage',{get:()=>typeof storage==='function'?storage():storage});
+ vm.runInNewContext(runtime,context);
+ const settle=()=>new Promise(resolve=>setImmediate(resolve));
+ return {filter,links,requests,async open(){trigger.setAttribute('aria-expanded','true');observe();await settle();},
+  async change(checked){filter.checked=checked;filter.change();await settle();}};
+}
+function memoryStorage(value) {
+ const values=new Map(value===undefined?[]:[[preferenceKey,value]]);
+ return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};
+}
+test('popover remembers both filter values across page loads and restores inbox links',async()=>{
+ const storage=memoryStorage();
+ const first=browserHarness(storage);await first.open();
+ assert.equal(first.filter.checked,false);assert.equal(first.requests.at(-1).url,'/notifications/tray');
+ await first.change(true);assert.equal(storage.getItem(preferenceKey),'true');
+ const restored=browserHarness(storage);
+ assert.equal(restored.filter.checked,true);
+ assert.ok(restored.links.every(link=>link.href==='/notifications?unread=true'));
+ await restored.open();assert.equal(restored.requests.at(-1).url,'/notifications/tray?unread=true');
+ await restored.change(false);assert.equal(storage.getItem(preferenceKey),'false');
+ assert.ok(restored.links.every(link=>link.href==='/notifications'));
+ const disabled=browserHarness(storage);await disabled.open();
+ assert.equal(disabled.filter.checked,false);assert.equal(disabled.requests.at(-1).url,'/notifications/tray');
+ assert.ok(first.requests.concat(restored.requests,disabled.requests).every(request=>request.method==='GET'));
+});
+test('invalid stored filter defaults off and blocked storage never disables filtering',async()=>{
+ const invalid=browserHarness(memoryStorage('invalid'));assert.equal(invalid.filter.checked,false);
+ const blocked=()=>{throw Error('storage unavailable');};
+ for(const storage of [blocked,{getItem:blocked,setItem:blocked},{getItem:()=> 'true',setItem:blocked}]){
+  const browser=browserHarness(storage);await browser.open();
+  await browser.change(true);
+  assert.equal(browser.filter.checked,true);
+  assert.equal(browser.requests.at(-1).url,'/notifications/tray?unread=true');
+  assert.ok(browser.links.every(link=>link.href==='/notifications?unread=true'));
+  await browser.change(false);
+  assert.equal(browser.requests.at(-1).url,'/notifications/tray');
+  assert.ok(browser.links.every(link=>link.href==='/notifications'));
+ }
+});

@@ -31,6 +31,8 @@
     const summary = document.getElementById('notification-summary');
     const tray = document.getElementById('notification-tray');
     const unreadFilter = document.getElementById('notification-only-unread');
+    const unreadPreferenceKey = 'balemoh.notifications.unreadOnly';
+    try { if (unreadFilter) unreadFilter.checked = global.localStorage.getItem(unreadPreferenceKey) === 'true'; } catch (_) {}
     const returnPage = document.getElementById('notification-return-page');
     if (returnPage && global.location.pathname === '/notifications') returnPage.value = global.location.pathname + global.location.search;
     if (!trigger || !summary || !tray || !global.htmx) return;
@@ -95,9 +97,14 @@
     document.addEventListener('visibilitychange', visibilityChanged);
     document.getElementById('notification-refresh')?.addEventListener('click', () => scheduler.refresh());
     global.addEventListener('notifications:refresh', () => scheduler.refresh());
-    unreadFilter?.addEventListener('change', () => {
-      const path = unreadFilter.checked ? '/notifications?unread=true' : '/notifications';
+    function syncUnreadLinks() {
+      const path = unreadFilter?.checked ? '/notifications?unread=true' : '/notifications';
       document.querySelectorAll('[data-notification-inbox-link]').forEach(link => link.setAttribute('href',path));
+    }
+    syncUnreadLinks();
+    unreadFilter?.addEventListener('change', () => {
+      try { global.localStorage.setItem(unreadPreferenceKey, String(unreadFilter.checked)); } catch (_) {}
+      syncUnreadLinks();
       scheduler.refresh();
     });
     document.addEventListener('htmx:after:settle', () => {
