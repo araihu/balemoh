@@ -13,10 +13,12 @@ func TestLoadNotificationAuthStrictlySeparatesCredentialFiles(t *testing.T) {
 	operatorPath := filepath.Join(directory, "operator.token")
 	publisherPath := filepath.Join(directory, "publisher.token")
 	publishersPath := filepath.Join(directory, "publishers.json")
-	if err := os.WriteFile(operatorPath, []byte("operator-value\n"), 0o600); err != nil {
+	operatorToken := "operator-token-value-123456789012345"
+	publisherToken := "publisher-token-value-123456789012345"
+	if err := os.WriteFile(operatorPath, []byte(operatorToken+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(publisherPath, []byte("publisher-value\n"), 0o600); err != nil {
+	if err := os.WriteFile(publisherPath, []byte(publisherToken+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(publishersPath, []byte(`{"monitor":"`+publisherPath+`"}`), 0o600); err != nil {
@@ -26,7 +28,7 @@ func TestLoadNotificationAuthStrictlySeparatesCredentialFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if auth.OperatorToken != "operator-value" || auth.Publishers["monitor"] != "publisher-value" {
+	if auth.OperatorToken != operatorToken || auth.Publishers["monitor"] != publisherToken {
 		t.Fatalf("notification auth = %#v", auth)
 	}
 }
@@ -45,10 +47,11 @@ func TestLoadNotificationAuthRejectsMalformedAndCrossClassCredentials(t *testing
 	directory := t.TempDir()
 	operatorPath := filepath.Join(directory, "operator.token")
 	publisherPath := filepath.Join(directory, "publisher.token")
-	if err := os.WriteFile(operatorPath, []byte("same-value"), 0o600); err != nil {
+	sameToken := "same-token-value-123456789012345"
+	if err := os.WriteFile(operatorPath, []byte(sameToken), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(publisherPath, []byte("same-value"), 0o600); err != nil {
+	if err := os.WriteFile(publisherPath, []byte(sameToken), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	for _, contents := range []string{`[]`, `{"monitor":""}`, `{"monitor":"` + filepath.Join(directory, "missing") + `"}`, `{"monitor":"` + publisherPath + `"}`, `{"monitor":"` + publisherPath + `","monitor":"` + publisherPath + `"}`} {
@@ -60,5 +63,28 @@ func TestLoadNotificationAuthRejectsMalformedAndCrossClassCredentials(t *testing
 		if err == nil {
 			t.Fatalf("loadNotificationAuth(%q) succeeded", contents)
 		}
+	}
+}
+
+func TestLoadNotificationAuthRejectsShortCredential(t *testing.T) {
+	directory := t.TempDir()
+	operatorPath := filepath.Join(directory, "operator.token")
+	if err := os.WriteFile(operatorPath, []byte("short"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadNotificationAuth(config.Options{NotificationOperatorTokenFile: operatorPath}); err == nil {
+		t.Fatal("loadNotificationAuth accepted a short operator credential")
+	}
+
+	publisherPath := filepath.Join(directory, "publisher.token")
+	if err := os.WriteFile(publisherPath, []byte("short"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	publishersPath := filepath.Join(directory, "publishers.json")
+	if err := os.WriteFile(publishersPath, []byte(`{"monitor":"`+publisherPath+`"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadNotificationAuth(config.Options{NotificationPublishersFile: publishersPath}); err == nil {
+		t.Fatal("loadNotificationAuth accepted a short publisher credential")
 	}
 }

@@ -49,6 +49,92 @@ func TestServicePublishNormalizesAndCanonicalizes(t *testing.T) {
 	}
 }
 
+func TestServicePublishRequiresTitleAndEnforcesCoreBounds(t *testing.T) {
+	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)
+	source := Source{Kind: SourceCore, ID: "core"}
+	for _, title := range []string{"", " \t\n "} {
+		store := &recordingStore{}
+		service := NewServiceWithClock(store, func() time.Time { return now })
+		message := Message{EventID: "title", Severity: SeverityInfo, Title: title, OccurredAt: now}
+		if _, err := service.Publish(context.Background(), source, message); !errors.Is(err, ErrInvalid) {
+			t.Errorf("title %q error = %v, want ErrInvalid", title, err)
+		}
+		if store.publishCalls != 0 {
+			t.Errorf("title %q reached store", title)
+		}
+	}
+
+	store := &recordingStore{}
+	service := NewServiceWithClock(store, func() time.Time { return now })
+	oversizedMultibyte := Message{
+		EventID: "multibyte", Severity: SeverityInfo, Title: "title", Body: strings.Repeat("\u2028", 3000), OccurredAt: now,
+	}
+	if _, err := service.Publish(context.Background(), source, oversizedMultibyte); !errors.Is(err, ErrTooLarge) {
+		t.Fatalf("multibyte envelope error = %v, want ErrTooLarge", err)
+	}
+
+	oversizedQueryEntry := Message{
+		EventID: "query-entry", Severity: SeverityInfo, Title: "title", OccurredAt: now,
+		Destination: Destination{Kind: SourceCore, Route: "/notifications", Query: map[string][]string{"key": {strings.Repeat("x", MaxParameterBytes+1)}}},
+	}
+	if _, err := service.Publish(context.Background(), source, oversizedQueryEntry); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("oversized query entry error = %v, want ErrInvalid", err)
+	}
+
+	queryValues := make([]string, 0, 40)
+	for i := 0; i < 40; i++ {
+		queryValues = append(queryValues, strings.Repeat("x", MaxParameterBytes))
+	}
+	oversizedQueryEnvelope := Message{
+		EventID: "query-envelope", Severity: SeverityInfo, Title: "title", OccurredAt: now,
+		Destination: Destination{Kind: SourcePlugin, PluginID: "plugin", ConnectionID: "550e8400-e29b-41d4-a716-446655440000", Page: "page", Query: map[string][]string{"q": queryValues}},
+	}
+	pluginSource := Source{Kind: SourcePlugin, ID: "plugin", ConnectionID: "550e8400-e29b-41d4-a716-446655440000"}
+	if _, err := service.Publish(context.Background(), pluginSource, oversizedQueryEnvelope); !errors.Is(err, ErrTooLarge) {
+		t.Fatalf("oversized query envelope error = %v, want ErrTooLarge", err)
+	}
+}
+
+func TestServicePublishScopesPluginDestinationToSource(t *testing.T) {
+	now := time.Date(2026, time.October, 25, 12, 0, 0, 0, time.UTC)
+	source := Source{Kind: SourcePlugin, ID: "alertmanager", ConnectionID: "550e8400-e29b-41d4-a716-446655440000"}
+	destination := Destination{Kind: SourcePlugin, PluginID: source.ID, ConnectionID: source.ConnectionID, Page: "alerts"}
+	base := Message{EventID: "plugin-destination", Severity: SeverityWarning, Title: "alert", OccurredAt: now, Destination: destination}
+
+	store := &recordingStore{}
+	service := NewServiceWithClock(store, func() time.Time { return now })
+	if _, err := service.Publish(context.Background(), source, base); err != nil {
+		t.Fatalf("matching plugin destination rejected: %v", err)
+	}
+
+	for _, test := range []struct {
+		name   string
+		source Source
+		mutate func(*Message)
+	}{
+		{name: "external source", source: Source{Kind: SourceExternal, ID: "monitor"}},
+		{name: "core source", source: Source{Kind: SourceCore, ID: "core"}},
+		{name: "different plugin", source: source, mutate: func(m *Message) { m.Destination.PluginID = "other-plugin" }},
+		{name: "different connection", source: source, mutate: func(m *Message) {
+			m.Destination.ConnectionID = "550e8400-e29b-41d4-a716-446655440001"
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			message := base
+			if test.mutate != nil {
+				test.mutate(&message)
+			}
+			before := store.publishCalls
+			if _, err := service.Publish(context.Background(), test.source, message); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("Publish() error = %v, want ErrInvalid", err)
+			}
+			if store.publishCalls != before {
+				t.Fatal("forged plugin destination reached store")
+			}
+		})
+	}
+}
+
 func TestSourceValidationSeparatesConnectionIdentity(t *testing.T) {
 	validPlugin := Source{Kind: SourcePlugin, ID: "alertmanager", ConnectionID: "550e8400-e29b-41d4-a716-446655440000"}
 	if err := validPlugin.Validate(); err != nil {
@@ -84,6 +170,15 @@ func TestMessageValidationRejectsUnsafeValuesAndHostileURLs(t *testing.T) {
 		{name: "invalid port URL", mutate: func(m *Message) {
 			m.Destination = Destination{Kind: SourceExternal, URL: "https://example.test:99999/path"}
 		}},
+		{name: "unknown core route", mutate: func(m *Message) {
+			m.Destination = Destination{Kind: SourceCore, Route: "/api/v1/notifications"}
+		}},
+		{name: "core route params", mutate: func(m *Message) {
+			m.Destination = Destination{Kind: SourceCore, Route: "/notifications", Params: map[string]string{"id": "1"}}
+		}},
+		{name: "core route query", mutate: func(m *Message) {
+			m.Destination = Destination{Kind: SourceCore, Route: "/notifications", Query: map[string][]string{"id": {"1"}}}
+		}},
 		{name: "plugin route missing UUID", mutate: func(m *Message) {
 			m.Destination = Destination{Kind: SourcePlugin, PluginID: "p", ConnectionID: "not-a-uuid", Page: "page"}
 		}},
@@ -102,14 +197,14 @@ func TestMessageValidationRejectsUnsafeValuesAndHostileURLs(t *testing.T) {
 func TestCanonicalPayloadSortsMaps(t *testing.T) {
 	now := time.Unix(100, 0).UTC()
 	message := Message{EventID: "event", Severity: SeveritySuccess, Title: "title", OccurredAt: now, Destination: Destination{
-		Kind: SourceCore, Route: "/notifications", Params: map[string]string{"z": "last", "a": "first"}, Query: map[string][]string{"q": {"one", "two"}},
+		Kind: SourcePlugin, PluginID: "plugin", ConnectionID: "550e8400-e29b-41d4-a716-446655440000", Page: "page", Params: map[string]string{"z": "last", "a": "first"}, Query: map[string][]string{"q": {"one", "two"}},
 	}}
 	first, err := CanonicalPayload(Source{Kind: SourceCore, ID: "service"}, message)
 	if err != nil {
 		t.Fatal(err)
 	}
 	second, err := CanonicalPayload(Source{Kind: SourceCore, ID: "service"}, Message{EventID: "event", Severity: SeveritySuccess, Title: "title", OccurredAt: now, Destination: Destination{
-		Kind: SourceCore, Route: "/notifications", Params: map[string]string{"a": "first", "z": "last"}, Query: map[string][]string{"q": {"one", "two"}},
+		Kind: SourcePlugin, PluginID: "plugin", ConnectionID: "550e8400-e29b-41d4-a716-446655440000", Page: "page", Params: map[string]string{"a": "first", "z": "last"}, Query: map[string][]string{"q": {"one", "two"}},
 	}})
 	if err != nil {
 		t.Fatal(err)

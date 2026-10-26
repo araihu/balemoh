@@ -6,8 +6,8 @@ Options contains Balemoh's runtime environment configuration.
 
  - `BALEMOH_PLUGIN_CONFIG` - PluginConfig enables trusted local plugin installations and source connections from a JSON deployment file. Empty disables plugins.
  - `BALEMOH_PLUGIN_SERVICE_TOKEN_FILE` - PluginServiceTokenFile contains the private BFF service credential used only by new plugin API routes.
- - `BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE` - NotificationOperatorTokenFile contains the private operator credential used only by notification list and read routes.
- - `BALEMOH_NOTIFICATION_PUBLISHERS_FILE` - NotificationPublishersFile points to a bounded JSON object mapping external notification source IDs to token-file paths. Empty disables external publication.
+ - `BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE` - NotificationOperatorTokenFile contains the private operator credential used only by notification list and read routes. The trimmed token file value must be at least 32 bytes.
+ - `BALEMOH_NOTIFICATION_PUBLISHERS_FILE` - NotificationPublishersFile points to a bounded JSON object mapping external notification source IDs to token-file paths. Each trimmed token file value must be at least 32 bytes. Empty disables external publication.
  - `BALEMOH_TELEMETRY_ENABLED` (default: `false`) - TelemetryEnabled collects host CPU, memory and workload inventory every minute, independently of discovery.
  - `BALEMOH_HOST_PROC_PATH` (default: `/host/proc`) - HostProcPath is a read-only mount of the Docker host proc filesystem. Never use the agent container proc filesystem.
  - `BALEMOH_HTTP_ADDR` (default: `:8080`) - HTTPAddr is the address used by the HTTP server.

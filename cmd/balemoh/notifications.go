@@ -18,6 +18,7 @@ import (
 const (
 	maxNotificationCredentialFileBytes = 4 << 10
 	maxNotificationPublishersFileBytes = 16 << 10
+	minNotificationCredentialBytes     = 32
 )
 
 // newNotificationsService is the startup seam used by core and future plugin
@@ -132,6 +133,9 @@ func readNotificationTokenFile(path, kind string) (string, error) {
 	token := strings.TrimSpace(string(contents))
 	if token == "" || strings.ContainsAny(token, " \t\r\n") || strings.ContainsRune(token, '\x00') {
 		return "", fmt.Errorf("read notification %s credential: token must be one non-empty value", kind)
+	}
+	if len(token) < minNotificationCredentialBytes {
+		return "", fmt.Errorf("read notification %s credential: token must contain at least %d bytes", kind, minNotificationCredentialBytes)
 	}
 	return token, nil
 }

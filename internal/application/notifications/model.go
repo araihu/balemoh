@@ -21,6 +21,7 @@ const (
 	MaxRouteBytes      = 512
 	MaxPageBytes       = 256
 	MaxParameterBytes  = 512
+	MaxEnvelopeBytes   = 16 << 10
 	MaxInboxSize       = 10000
 	MaxPageSize        = 50
 )
@@ -31,6 +32,7 @@ var (
 	ErrCapacity    = errors.New("notification inbox capacity reached")
 	ErrNotFound    = errors.New("notification not found")
 	ErrUnavailable = errors.New("notification storage unavailable")
+	ErrTooLarge    = errors.New("notification envelope exceeds limit")
 )
 
 // Source identifies the producer of a notification. ConnectionID is required
@@ -174,7 +176,7 @@ func (m Message) Validate(now time.Time) error {
 	if !validSeverity(m.Severity) {
 		return fmt.Errorf("%w: severity must be info, success, warning, or critical", ErrInvalid)
 	}
-	if err := validateText(m.Title, "title", 0, true); err != nil {
+	if err := validateText(m.Title, "title", 0, false); err != nil {
 		return err
 	}
 	if utf8.RuneCountInString(m.Title) > MaxTitleCharacters {
@@ -221,7 +223,10 @@ func (d Destination) Validate() error {
 		if err := validateText(d.Route, "core destination route", MaxRouteBytes, false); err != nil {
 			return err
 		}
-		if d.PluginID != "" || d.ConnectionID != "" || d.Page != "" || d.URL != "" {
+		if _, ok := coreDestinationRoutes[d.Route]; !ok {
+			return fmt.Errorf("%w: core destination route is not host-owned", ErrInvalid)
+		}
+		if d.PluginID != "" || d.ConnectionID != "" || d.Page != "" || d.URL != "" || len(d.Params) > 0 || len(d.Query) > 0 {
 			return fmt.Errorf("%w: core destination has plugin or URL fields", ErrInvalid)
 		}
 	case SourcePlugin:
@@ -256,6 +261,13 @@ func (d Destination) Validate() error {
 		}
 	}
 	return nil
+}
+
+var coreDestinationRoutes = map[string]struct{}{
+	"/":              {},
+	"/hosts":         {},
+	"/staging":       {},
+	"/notifications": {},
 }
 
 func validSeverity(severity Severity) bool {

@@ -97,7 +97,7 @@ func (h Handler) PublishNotification(w http.ResponseWriter, r *http.Request) {
 	slot := h.notificationSlots[sourceID]
 	if slot == nil {
 		w.Header().Set("Retry-After", "1")
-		writeJSON(w, http.StatusTooManyRequests, generated.ErrorResponse{Code: "publisher_busy", Message: "notification publisher is busy"})
+		writeJSON(w, http.StatusTooManyRequests, generated.ErrorResponse{Code: "resource_exhausted", Message: "notification publisher is busy"})
 		return
 	}
 	select {
@@ -105,7 +105,7 @@ func (h Handler) PublishNotification(w http.ResponseWriter, r *http.Request) {
 		defer func() { <-slot }()
 	default:
 		w.Header().Set("Retry-After", "1")
-		writeJSON(w, http.StatusTooManyRequests, generated.ErrorResponse{Code: "publisher_busy", Message: "notification publisher is busy"})
+		writeJSON(w, http.StatusTooManyRequests, generated.ErrorResponse{Code: "resource_exhausted", Message: "notification publisher is busy"})
 		return
 	}
 
@@ -382,10 +382,12 @@ func writeNotificationError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, notifications.ErrInvalid):
 		writeJSON(w, http.StatusBadRequest, generated.ErrorResponse{Code: "invalid_notification", Message: "invalid notification"})
+	case errors.Is(err, notifications.ErrTooLarge):
+		writeJSON(w, http.StatusRequestEntityTooLarge, generated.ErrorResponse{Code: "payload_too_large", Message: "notification exceeds the maximum size"})
 	case errors.Is(err, notifications.ErrConflict):
 		writeJSON(w, http.StatusConflict, generated.ErrorResponse{Code: "identity_conflict", Message: "notification event identity conflicts with existing content"})
 	case errors.Is(err, notifications.ErrCapacity):
-		writeJSON(w, http.StatusTooManyRequests, generated.ErrorResponse{Code: "capacity", Message: "notification inbox capacity reached"})
+		writeJSON(w, http.StatusTooManyRequests, generated.ErrorResponse{Code: "capacity_exceeded", Message: "notification inbox capacity reached"})
 	case errors.Is(err, notifications.ErrNotFound):
 		writeJSON(w, http.StatusNotFound, generated.ErrorResponse{Code: "not_found", Message: "notification not found"})
 	default:

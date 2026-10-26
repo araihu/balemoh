@@ -152,6 +152,75 @@ func TestNotificationHTTPRejectsInvalidURLAndOversizedBodyWithoutFetching(t *tes
 	}
 }
 
+func TestNotificationHTTPUsesDistinctCapacityError(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		err        error
+		status     int
+		code       string
+		retryAfter string
+	}{
+		{name: "capacity", err: notifications.ErrCapacity, status: http.StatusTooManyRequests, code: "capacity_exceeded"},
+		{name: "envelope", err: notifications.ErrTooLarge, status: http.StatusRequestEntityTooLarge, code: "payload_too_large"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			writeNotificationError(recorder, test.err)
+			if recorder.Code != test.status {
+				t.Fatalf("status = %d, want %d; body = %s", recorder.Code, test.status, recorder.Body.String())
+			}
+			var response generated.ErrorResponse
+			if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+				t.Fatal(err)
+			}
+			if response.Code != test.code {
+				t.Fatalf("error code = %q, want %q", response.Code, test.code)
+			}
+			if got := recorder.Header().Get("Retry-After"); got != test.retryAfter {
+				t.Fatalf("Retry-After = %q, want %q", got, test.retryAfter)
+			}
+		})
+	}
+}
+
+func TestNotificationHTTPBusyUsesResourceExhausted(t *testing.T) {
+	db, err := sqlite.Open(context.Background(), t.TempDir()+"/balemoh.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := sqlite.RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+	service := notifications.NewService(sqlite.NewNotificationStore(db))
+	base := NewHandler(nil, nil).WithNotifications(service, NotificationAuth{
+		OperatorToken: "operator-secret",
+		Publishers:    map[string]string{"monitor": "publisher-secret"},
+	})
+	for i := 0; i < cap(base.notificationSlots["monitor"]); i++ {
+		base.notificationSlots["monitor"] <- struct{}{}
+	}
+	handler := generated.HandlerFromMux(base, http.NewServeMux())
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/notifications", strings.NewReader(validNotificationJSON()))
+	request.Header.Set("Authorization", "Bearer publisher-secret")
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429; body = %s", recorder.Code, recorder.Body.String())
+	}
+	if got := recorder.Header().Get("Retry-After"); got != "1" {
+		t.Fatalf("Retry-After = %q, want 1", got)
+	}
+	var response generated.ErrorResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != "resource_exhausted" {
+		t.Fatalf("error code = %q, want resource_exhausted", response.Code)
+	}
+}
+
 func TestNotificationCursorRoundTripAndValidation(t *testing.T) {
 	for _, sequence := range []uint64{1, 99, 1 << 32} {
 		cursor := encodeNotificationCursor(sequence)

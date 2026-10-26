@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -48,11 +49,27 @@ func (s *Service) Publish(ctx context.Context, source Source, message Message) (
 	if err := message.Validate(now); err != nil {
 		return Receipt{}, err
 	}
+	if err := validateDestinationScope(source, message.Destination); err != nil {
+		return Receipt{}, err
+	}
 	canonical, err := CanonicalPayload(source, message)
 	if err != nil {
 		return Receipt{}, ErrUnavailable
 	}
+	if len(canonical) > MaxEnvelopeBytes {
+		return Receipt{}, ErrTooLarge
+	}
 	return s.store.Publish(ctx, source, message, canonical, now)
+}
+
+func validateDestinationScope(source Source, destination Destination) error {
+	if destination.Kind != SourcePlugin {
+		return nil
+	}
+	if source.Kind != SourcePlugin || destination.PluginID != source.ID || destination.ConnectionID != source.ConnectionID {
+		return fmt.Errorf("%w: plugin destination must match publishing source", ErrInvalid)
+	}
+	return nil
 }
 
 func (s *Service) List(ctx context.Context, options ListOptions) (Page, error) {
