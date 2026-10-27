@@ -348,7 +348,8 @@ body {
 .balemoh-notification-heading h2 { font-size: 1.1rem; margin-right: auto; }
 .balemoh-notification-filter { margin: 0; font-size: .75rem; }
 .balemoh-notification-filter label { gap: .4rem; }
-#notification-tray { overflow-y: auto; overscroll-behavior: contain; max-height: min(65dvh, 36rem); min-height: 5rem; }
+/* Contain absolutely positioned accessibility text within the scrollable tray. */
+#notification-tray { position: relative; overflow-y: auto; overscroll-behavior: contain; max-height: min(65dvh, 36rem); min-height: 5rem; }
 .balemoh-notification-footer { flex: none; border-top: 1px solid var(--balemoh-border); padding: .8rem 1.25rem; font-size: .8rem; }
 .balemoh-notification-group-heading { font-size: .72rem; font-weight: 600; color: var(--balemoh-muted); margin: 0; padding: .7rem 1.25rem .35rem; }
 .balemoh-notification-tray-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 2rem; gap: .75rem; padding: .9rem 1.25rem; overflow-wrap: anywhere; }
