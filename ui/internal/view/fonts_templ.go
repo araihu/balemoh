@@ -149,7 +149,7 @@ func FontsContent(d ThemesPage) templ.Component {
 					var templ_7745c5c3_Var6 templ.SafeURL
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fontDeleteURL(font.ID)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/internal/view/fonts.templ`, Line: 35, Col: 71}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fonts.templ`, Line: 35, Col: 71}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -162,7 +162,7 @@ func FontsContent(d ThemesPage) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(font.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/internal/view/fonts.templ`, Line: 36, Col: 20}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fonts.templ`, Line: 36, Col: 20}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -175,7 +175,7 @@ func FontsContent(d ThemesPage) templ.Component {
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(font.Weight)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/internal/view/fonts.templ`, Line: 36, Col: 39}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fonts.templ`, Line: 36, Col: 39}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -188,7 +188,7 @@ func FontsContent(d ThemesPage) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(font.Style)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/internal/view/fonts.templ`, Line: 36, Col: 57}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fonts.templ`, Line: 36, Col: 57}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -212,7 +212,7 @@ func FontsContent(d ThemesPage) templ.Component {
 						var templ_7745c5c3_Var10 string
 						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(font.UsedBy, ", "))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/internal/view/fonts.templ`, Line: 41, Col: 50}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fonts.templ`, Line: 41, Col: 50}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 						if templ_7745c5c3_Err != nil {
@@ -230,7 +230,7 @@ func FontsContent(d ThemesPage) templ.Component {
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(font.Revision)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/internal/view/fonts.templ`, Line: 43, Col: 72}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fonts.templ`, Line: 43, Col: 72}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 					if templ_7745c5c3_Err != nil {

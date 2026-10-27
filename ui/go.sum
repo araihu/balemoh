@@ -13,10 +13,8 @@ github.com/andybalholm/brotli v1.2.6 h1:ftYnfj6usCp+UGV5kSJ3+chpMQgU+gJf/AxsUQ52
 github.com/andybalholm/brotli v1.2.6/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
-github.com/araihu/goshtoso v0.4.5 h1:m51DT/5IPrVIQMJKaC3rCzDIJi96av8lfgoY5j8Ftis=
-github.com/araihu/goshtoso v0.4.5/go.mod h1:VOFlurhQzPs/EQJwu/GmTPexN0DiHATgwrqQp5KdG8k=
-github.com/araihu/goshtoso-app-shells v0.1.9-0.20260910224508-5b2222e54637 h1:Ur4NL5uoB0gIRtL72hXMKHwop/K76m1fkPzYTEeqNjw=
-github.com/araihu/goshtoso-app-shells v0.1.9-0.20260910224508-5b2222e54637/go.mod h1:vme6qwadyuneFflKQsnvIWYp8D/oFhJSux0YOxPMvhg=
+github.com/araihu/goshtoso v0.4.6-0.20261027193254-8149a4e80090 h1:kA4yU5AvCt/7LHwPBKfljchU2aeJMm2UGCfyD3IPNos=
+github.com/araihu/goshtoso v0.4.6-0.20261027193254-8149a4e80090/go.mod h1:oAzK8trqAkBWSqWkbac+cGhP1prkkj9IgZ1HYTORvGA=
 github.com/araihu/goshtoso-app-shells v0.1.9-0.20261027184700-9420d58a27d9 h1:npvhy8XAqdvxQkSVL7MR3j0pENWrdJQ+LoeY2czVF7A=
 github.com/araihu/goshtoso-app-shells v0.1.9-0.20261027184700-9420d58a27d9/go.mod h1:49lyfabmlJnpf2gUttpcGd2qN+kD1ETLtaX3L9XyUjc=
 github.com/araihu/goshtoso-charts v0.0.4 h1:YVSvU99OE5El25GuRinbsPAuUwjycbmgSDjfXXBy7hM=

@@ -3,6 +3,7 @@ package view
 import (
 	"bytes"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -62,6 +63,15 @@ func TestThemeSelectionAndEditorAreSeparateSurfaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	html := output.String()
+
+	assertRequiresJavaScript := func(marker string) {
+		t.Helper()
+		button := regexp.MustCompile(`<button[^>]*` + marker + `[^>]*>`).FindString(html)
+		if button == "" || !strings.Contains(button, " disabled") || !strings.Contains(html, "<noscript>") || !strings.Contains(html, `tabindex="-1"`) {
+			t.Fatal("theme saving must start disabled with no-script explanation and focusable feedback", marker)
+		}
+	}
+	assertRequiresJavaScript("data-theme-apply-button")
 	for _, forbidden := range []string{"data-theme-editor=", "data-presentation-upload", "data-presentation-name", "Reset draft", "Manage custom themes"} {
 		if strings.Contains(html, forbidden) {
 			t.Fatal("editor control on theme selection", forbidden)
@@ -72,6 +82,7 @@ func TestThemeSelectionAndEditorAreSeparateSurfaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	html = output.String()
+	assertRequiresJavaScript("data-presentation-save")
 	for _, wanted := range []string{"Create theme", "Base theme", "data-theme-editor=", "Back to Themes"} {
 		if !strings.Contains(html, wanted) {
 			t.Fatal("editor missing", wanted)

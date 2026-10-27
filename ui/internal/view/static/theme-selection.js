@@ -31,6 +31,7 @@
       if (event.origin === location.origin && event.source === frame.contentWindow && message?.type === 'goshtoso:theme-ready' && message.version === 1 && message.instanceId === frame.id) preview();
     });
     preview();
+    apply.disabled = false;
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const item = current();
@@ -51,6 +52,7 @@
       } catch (error) {
         feedback.textContent = confirmed ? (error?.message || 'The theme could not be applied.') : 'Outcome unknown. Retry the same selection or reload saved settings.';
         root.querySelector('[data-theme-selection-reload]').hidden = false;
+        feedback.focus();
         apply.disabled = false;
       }
     });

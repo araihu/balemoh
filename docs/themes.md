@@ -16,6 +16,8 @@ a Delete action beside the editor title, with confirmation. Create and copy draf
 have no Delete action. Failed deletions preserve the draft; successful deletion
 returns to Themes. The separate management list has been removed.
 
+Theme editing and applying require JavaScript. Without it, Save and Apply remain disabled and show an explanation. Failed saves focus the status summary while preserving the draft and retry command.
+
 Every preset comes from Goshtoso. Editing a preset creates an independent named
 snapshot. A custom theme retains its saved literal colors, typography references,
 and radius when presets change. Duplicating a saved theme copies those values;
@@ -98,10 +100,12 @@ migration deliberately removes theme data and is not a routine rollback step.
 
 ## Development integration
 
-The implementation spans dedicated Goshtoso and App Shells worktrees. An ignored
-local `go.work` resolves those sources while they remain unpublished. This proves
-local source integration, not a standalone published-module build. Publishing,
-dependency pinning, push, merge, tags, and homelab rollout remain separate stages.
+Root, client and UI pin the same immutable Goshtoso commit, with an immutable
+App Shells System-mode fix. Standalone generation, tests and vet run with
+`GOWORK=off`; the ignored development workspace is optional. Dependency PRs are
+[Goshtoso #352](https://github.com/araihu/goshtoso/pull/352) and
+[App Shells #56](https://github.com/araihu/goshtoso-app-shells/pull/56).
+Merge, tags and homelab rollout remain separate stages.
 
 The OpenAPI document describes the API commands and error envelope. The UI uses
 the generated SDK, including a separate 30-second font-upload client. Normal

@@ -26,6 +26,7 @@ templ ThemesContent(d ThemesPage) {
 		@alert.Alert(alert.Config{Title: "Themes unavailable", Description: d.Error, Tone: alert.ToneWarning})
 	} else {
 		<section data-theme-selection={ d.bootstrap() } class="space-y-6">
+			<noscript><p role="alert">Applying themes requires JavaScript. Saved appearance remains unchanged.</p></noscript>
 			<form data-theme-apply class="space-y-4">
 				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<div class="space-y-4">
@@ -44,11 +45,11 @@ templ ThemesContent(d ThemesPage) {
 					</div>
 					@themeplayground.ThemePlayground(themeplayground.Config{ID: "presentation-theme-preview", Src: "/presentation/preview", Title: "Balemoh interface preview", RootClass: "balemoh-theme-preview-frame"})
 				</div>
-				<p data-theme-selection-feedback role="status" aria-live="polite"></p>
+				<p data-theme-selection-feedback role="status" aria-live="polite" tabindex="-1"></p>
 				@link.Link(d.themesURL(), link.WithAttrs(templ.Attributes{"data-theme-selection-reload": "", "hidden": true})) {
 					Reload saved settings
 				}
-				@button.Button(button.WithType("submit"), button.WithAttrs(templ.Attributes{"data-theme-apply-button": ""}), button.WithLoadingText("Applying…")) {
+				@button.Button(button.WithType("submit"), button.Disabled(), button.WithAttrs(templ.Attributes{"data-theme-apply-button": ""}), button.WithLoadingText("Applying…")) {
 					Apply theme
 				}
 			</form>
@@ -72,6 +73,7 @@ templ ThemeEditorContent(d ThemesPage) {
 	@link.Link(d.themesURL()) {
 		Back to Themes
 	}
+	<noscript><p role="alert">Theme editing and saving require JavaScript. Saved appearance remains unchanged.</p></noscript>
 	@ThemeEditorForm(d)
 }
 
@@ -129,10 +131,10 @@ templ ThemeEditorForm(d ThemesPage) {
 						@form.Section(form.SectionConfig{ID: "theme-appearance-section", Title: "Appearance", Columns: "1"}) {
 							@themeeditor.ThemeEditor(d.editor())
 						}
-						@button.Button(button.WithType("submit"), button.WithAttrs(templ.Attributes{"data-presentation-save": ""}), button.WithLoadingText("Saving…")) {
+						@button.Button(button.WithType("submit"), button.Disabled(), button.WithAttrs(templ.Attributes{"data-presentation-save": ""}), button.WithLoadingText("Saving…")) {
 							Save and apply globally
 						}
-						<p data-presentation-feedback role="status" aria-live="polite"></p>
+						<p data-presentation-feedback role="status" aria-live="polite" tabindex="-1"></p>
 						<div data-presentation-conflict hidden>
 							<a href="/presentation/conflict" target="_blank" rel="noopener" data-presentation-inspect>View saved version in a new tab</a>
 							@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"data-presentation-reload": ""})) {

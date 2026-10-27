@@ -148,6 +148,7 @@
       syncPreview();
     });
     syncPreview();
+    save.disabled = !valid || brandBlocked();
     name.addEventListener("input", () => {
       customized = true;
       dirtyState();
@@ -175,6 +176,7 @@
         location.reload();
       } catch (error) {
         feedbackError(feedback, error);
+        feedback.focus();
         if (error.code === "conflict" || error.code === "unavailable") conflict(error);
         save.disabled = !valid || brandBlocked();
       }

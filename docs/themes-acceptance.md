@@ -32,14 +32,13 @@ user records and other worktrees were preserved.
 
 ## Coverage limits
 
-- Integration uses an ignored local `go.work`. Published-dependency verification
-  remains pending until separately authorized upstream publication and pinning.
-- `golangci-lint` v2.12.2 cannot decode Go 1.27 export data, including after a
-  same-version rebuild with Go 1.27. This is a blocked tool check, not a pass.
+- Root/client/UI now use the same immutable Goshtoso pseudo-version and an
+  immutable App Shells pseudo-version. The standalone generation/test/vet gate
+  passed with `GOWORK=off`; the local workspace is optional.
 - The in-app browser logged an unassigned MutationObserver error during document
   load. The focused Chromium site suite reported no page errors; attribution in
   the embedded browser remains unresolved.
-- Full repository-wide E2E, every ledger row as a rendered Balemoh browser flow,
+- Full Balemoh browser E2E, every ledger row as a rendered Balemoh browser flow,
   every preset as a pixel matrix, automated accessibility scanning, blocked browser
   storage in the integrated Balemoh page, real-browser transport loss and broad race
   stress were not run. Server/runtime coverage above does not replace these.
@@ -390,3 +389,26 @@ hidden actions, custom image visibility, independent keyboard/pointer resets,
 tooltip closure, hidden-default error recovery, width containment and zero global
 writes. Receipts: data/custom-branding-x-unit.log and
 data/custom-branding-x-browser.log. Screenshot: data/custom-branding-x-hidden.png.
+
+## PR closure review, 2026-10-27
+
+- Rebased on current main. Appearance migrations are 13-15, after the incoming
+  plugin and notifications migrations. SQLite and HTTP tests passed.
+- Plugin metadata and standalone native plugin documents use the saved global
+  appearance, including custom CSS.
+- Regenerated SQLC models and UI templates. A second complete generation with
+  the documented pinned tools produced no drift across all four modules.
+- JavaScript is required for theme editing/applying. SSR disables Save/Apply
+  and provides a visible noscript explanation. Chromium with JavaScript disabled
+  confirmed Save disabled and Enter sent zero mutation requests.
+- Chromium checks for 400, 409 and 503 confirmed focus on the stable error
+  summary, unchanged draft name and identical command on retry. Node regression
+  tests cover the same cases. Receipt: `data/pr-browser-focus.json`.
+- The local SQLite development database was backed up and reconciled with the
+  incoming main migrations. Its schema matched a fresh schema-15 database and
+  every existing table's row count and data hash remained unchanged. Both local
+  services passed health checks; UI binds to 127.0.0.1.
+- The full Goshtoso browser suite passed. Its later template regeneration uses
+  the CI-pinned templ 0.3.1020; independent review covers that generated delta.
+- Goshtoso library and site lint passed with the current CI-pinned
+  golangci-lint v2.15.0. The older local v2.12.2 was replaced for this check.

@@ -10,7 +10,7 @@ class Element {
  async fire(type,extra={}){const event={type,target:this,preventDefault(){this.defaultPrevented=true;},...extra};await Promise.all((this.listeners.get(type)||[]).map(fn=>fn(event)));}
  dispatchEvent(event){for(const fn of this.listeners.get(event.type)||[])fn({...event,target:this});return true;}
  hasAttribute(name){return this.attributes?.includes(name)||false;}
- focus(){}
+ focus(){this.focused=true;}
  setAttribute(name,value){this[name]=value;}
  removeAttribute(name){delete this[name];}
  querySelector(selector){return this.children?.[selector]||null;}
@@ -33,8 +33,8 @@ function setup(status=200,withBrand=false,uploadGate=Promise.resolve(),custom=fa
  const events=[],requests=[],loads=[],history=[],assigned=[];let reloads=0,uuid=0;
  const originalDispatch=window.dispatchEvent.bind(window);window.dispatchEvent=event=>{events.push(event);if(event.type==='modal:close')dialog.dispatchEvent({type:'close'});return originalDispatch(event);};editor.addEventListener('themeeditor:load',event=>loads.push(event.detail));
  const context={document,window,JSON,URL,URLSearchParams,FormData:class {append(){}},matchMedia:()=>({matches:false}),Event:class{constructor(type){this.type=type;}},CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail;}},crypto:{randomUUID:()=>`0000000${++uuid}-0000-4000-8000-000000000000`},location:{href:'http://localhost/presentation#themes',origin:'http://localhost',pathname:'/presentation',search:'',reload(){reloads++;},assign(value){assigned.push(value);}},history:{replaceState(...args){history.push(args);}},fetch:async(url,options)=>{if(url==='/presentation/brand/upload'){requests.push({url});await uploadGate;return {ok:status===200,json:async()=>status===200?{id:requests.length===2?'upload:NEWICON':'upload:NEWLOGO'}:{code:'invalid_request',message:'Image rejected'}};}
- requests.push({url,body:options.body instanceof URLSearchParams?Object.fromEntries(options.body):JSON.parse(options.body)});if(status===0&&requests.length===1)throw Error("transport lost");const actual=status===0?200:status;return {ok:actual===200,status:actual,json:async()=>actual===200?{redirect:'/presentation#themes'}:{code:'conflict',message:'Saved state changed',conflict:{kind:'settings',currentRevision:'8'}}};}};
- runInNewContext(source,context);loads.length=0;return {deleteAction,deleteFeedback,window,brand,base,save,selection,name,mode,editor,form,dialog,accept,cancel,feedback,events,requests,loads,history,assigned,reloads:()=>reloads};
+ requests.push({url,body:options.body instanceof URLSearchParams?Object.fromEntries(options.body):JSON.parse(options.body)});if(status===0&&requests.length===1)throw Error("transport lost");const actual=status===0?200:status;return {ok:actual===200,status:actual,json:async()=>actual===200?{redirect:'/presentation#themes'}:{code:actual===409?'conflict':actual===503?'unavailable':'invalid_request',message:'Saved state changed',conflict:{kind:'settings',currentRevision:'8'}}};}};
+ save.disabled=true;runInNewContext(source,context);assert.equal(save.disabled,false);loads.length=0;return {deleteAction,deleteFeedback,window,brand,base,save,selection,name,mode,editor,form,dialog,accept,cancel,feedback,events,requests,loads,history,assigned,reloads:()=>reloads};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 test('switching themes waits for the Goshtoso dialog; Cancel and Escape keep the draft',async()=>{const s=setup();s.name.value='My draft';await s.name.fire('input');s.selection.value='builtin:arctic';let switching=s.selection.fire('change');await tick();assert.equal(s.events.at(-1).type,'modal:open');assert.equal(s.loads.length,0);await s.cancel.fire('click');await switching;assert.equal(s.selection.value,'builtin:goshtoso');assert.equal(s.name.value,'My draft');s.selection.value='builtin:arctic';switching=s.selection.fire('change');await tick();await s.dialog.fire('close');await switching;assert.equal(s.selection.value,'builtin:goshtoso');assert.equal(s.loads.length,0);});
@@ -137,4 +137,10 @@ test('discarding a failed replacement preserves the previous custom image and it
  const s=setup(200,true);s.brand.file.files=[{size:20,name:'logo.png'}];await s.brand.file.fire('change');const previous=s.brand.logo.src;
  s.brand.file.files=[{size:2097153,name:'huge.png'}];await s.brand.file.fire('change');assert.equal(s.save.disabled,true);
  await s.brand.dismiss.fire('click');assert.equal(s.brand.logo.src,previous);assert.equal(s.brand.resetControl.hidden,false);assert.equal(s.save.disabled,false);
+});
+
+for(const status of [400,409,503])test(`failed save ${status} focuses error and preserves exact draft/retry`,async()=>{
+ const s=setup(status);s.name.value='Keep this draft';await s.name.fire('input');await s.form.fire('submit');
+ assert.equal(s.feedback.focused,true);assert.equal(s.name.value,'Keep this draft');assert.equal(s.reloads(),0);
+ await s.form.fire('submit');assert.deepEqual(s.requests[0].body,s.requests[1].body);
 });

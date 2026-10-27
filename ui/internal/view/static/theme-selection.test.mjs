@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 class Element {
  constructor(value=''){this.value=value;this.dataset={};this.listeners=new Map();this.hidden=false;this.disabled=false;}
+ focus(){this.focused=true;}
  addEventListener(type,fn){this.listeners.set(type,[...this.listeners.get(type)||[],fn]);}
  async fire(type,extra={}){for(const fn of this.listeners.get(type)||[])await fn({preventDefault(){},target:this,...extra});}
  querySelector(selector){return this.children[selector];}
@@ -18,7 +19,9 @@ function setup(status=200){
  root.children={'[data-theme-apply]':form,'[data-presentation-selection]':selection,'[data-presentation-mode]':mode,'[data-theme-selection-feedback]':feedback,'[data-theme-apply-button]':apply,'[data-theme-edit]':edit,'[data-theme-create]':create,'[data-theme-create] a':createLink,'[data-theme-selection-reload]':reload};
  document.readyState='complete';document.querySelector=()=>root;document.getElementById=()=>frame;
  let reloads=0,uuid=0;const requests=[],history=[],assigned=[];
+ apply.disabled=true;
  runInNewContext(source,{document,window,JSON,URL,matchMedia:()=>system,crypto:{randomUUID:()=>`command-${++uuid}`},location:{origin:'http://localhost',reload(){reloads++;},assign(url){assigned.push(url);}},history:{replaceState(...args){history.push(args);}},fetch:async(url,options)=>{requests.push({url,body:JSON.parse(options.body)});if(status===0&&requests.length===1)throw Error('Transport lost');return {ok:status===200||status===0,json:async()=>({code:'conflict',message:'Saved settings changed'})};}});
+ assert.equal(apply.disabled,false);
  return {brandMessages,form,selection,mode,frame,window,system,feedback,apply,edit,editLink,create,createLink,reload,root,messages,requests,history,assigned,reloads:()=>reloads};
 }
 test('browsing saved themes and modes only previews; editor links carry selected theme and recovery',async()=>{
@@ -48,3 +51,5 @@ test('secondary Create opens an independent copy of the currently selected custo
  const s=setup();s.selection.value='theme:one';await s.selection.fire('change');await s.root.fire('theme-create');
  const url=new URL(s.assigned[0],'http://localhost');assert.equal(url.pathname,'/presentation/themes/editor');assert.equal(url.searchParams.get('themeID'),'theme:one');assert.equal(url.searchParams.get('new'),'1');assert.equal(url.searchParams.get('appearance'),'recovery');assert.equal(s.requests.length,0);
 });
+
+test('apply failures focus stable feedback and retain selection',async()=>{const s=setup(409);s.selection.value='theme:one';await s.form.fire('submit');assert.equal(s.feedback.focused,true);assert.equal(s.selection.value,'theme:one');assert.equal(s.reloads(),0);});

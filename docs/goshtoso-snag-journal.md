@@ -402,3 +402,17 @@
 - Include the companion App Shells System-mode fix in its own dependency PR.
 - Review and validate immutable dependency pins outside the local go.work before
   declaring the Balemoh PR ready. No merge, tag or deployment is authorized.
+
+## PR review follow-up, 2026-10-27
+
+- Resolved upstream in Goshtoso #352: editing a preset could overwrite unrelated
+  derived colors, browser provenance limits differed from Go, and the catalog
+  digest was stale after go fix. Regression checks cover every preset, UTF-8
+  boundaries and generator drift.
+- Public component demos now follow the site's documentation pattern. Shared
+  browser helpers live in support files; docs navigation waits for the lazy
+  preview table before leaving.
+- The authoritative Goshtoso CI templ pin is 0.3.1020 even though go.mod uses
+  runtime 0.3.1070. Regenerated with the CI pin. Balemoh uses its own go-tool pin.
+- User confirmed no additional friction at the closing checkpoint and authorized
+  the companion App Shells PR. No repeated checkpoint was needed.
