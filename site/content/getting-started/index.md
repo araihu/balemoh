@@ -7,7 +7,7 @@ language: en
 # Get started
 
 Start with the API and UI on loopback. Connect a discovery source after both
-processes are running. Go 1.27 or newer is required to build this checkout.
+processes are running. Go 1.27.3 or newer is required to build this checkout.
 
 ## Run from source
 
