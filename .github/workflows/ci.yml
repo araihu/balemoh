@@ -36,6 +36,9 @@ jobs:
       - name: Check all plugin modules and generated consumers
         run: bash hack/check-plugin-modules.sh
 
+      - name: Check SDK smoke failure cleanup
+        run: bash hack/check-published-plugin-sdk-cleanup.sh
+
       - name: Build
         env:
           CGO_ENABLED: "0"
