@@ -56,7 +56,7 @@ the three portable smoke assertions in `78c4029`, identity
 - [Independent consumer CI](https://github.com/araihu/balemoh-plugin-alertmanager/actions/runs/40190684037)
   passed pinned-host SDK/consumer integration, generated drift checks and consumer
   race suites. `BALEMOH_SDK_REF` is explicitly pinned to `033af1892b4c46cd901bf44468fe44a655b0da41`.
-- Source remains in [draft PR 42](https://github.com/araihu/balemoh/pull/42).
+- Source integration is tracked in [PR 42](https://github.com/araihu/balemoh/pull/42).
   No SDK tag or source release has been published. Source merge and stable SDK
   distribution remain separate actions.
 
