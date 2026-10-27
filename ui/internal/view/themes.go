@@ -57,7 +57,7 @@ type ThemesPage struct {
 }
 
 func (d ThemesPage) editor() themeeditor.Config {
-	return themeeditor.Config{ID: "presentation-theme-editor", Initial: d.Initial, Fonts: d.Fonts, PreviewID: "presentation-theme-preview", InitialPreviewMode: "light", InputName: "definition"}
+	return themeeditor.Config{ID: "presentation-theme-editor", Initial: d.Initial, Fonts: d.Fonts, PreviewID: "presentation-theme-preview", ContrastID: "presentation-theme-contrast", InitialPreviewMode: "light", InputName: "definition"}
 }
 func (d ThemesPage) options() []selectfield.Option {
 	config := d.editor()

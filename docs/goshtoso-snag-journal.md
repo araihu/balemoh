@@ -416,3 +416,14 @@
   runtime 0.3.1070. Regenerated with the CI pin. Balemoh uses its own go-tool pin.
 - User confirmed no additional friction at the closing checkpoint and authorized
   the companion App Shells PR. No repeated checkpoint was needed.
+
+## Detached contrast advisory, 2026-10-27
+
+- Need: move contrast results out of the theme form into the preview column.
+- Inspected `themeeditor.Config`, `contrastAdvisory` and the editor runtime. The
+  panel was private and its updates queried only the editor root.
+- Upstream composition: public `ContrastAdvisory(id)` plus `Config.ContrastID`
+  selects an external target. Inline placement remains the default. Balemoh
+  renders the same component under its preview, without copying cards or math.
+- Runtime layout checks also caught an unclosed app-owned 480px media query.
+  Closing it restores desktop appearance styles, including the sticky preview.

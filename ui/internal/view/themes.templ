@@ -146,6 +146,7 @@ templ ThemeEditorForm(d ThemesPage) {
 				<section aria-labelledby="theme-preview-heading" class="balemoh-theme-preview-column min-w-0 space-y-4">
 					<h2 id="theme-preview-heading">Preview</h2>
 					@themeplayground.ThemePlayground(themeplayground.Config{ID: "presentation-theme-preview", Src: "/presentation/preview", Title: "Balemoh interface preview", RootClass: "balemoh-theme-preview-frame"})
+					@themeeditor.ContrastAdvisory("presentation-theme-contrast")
 				</section>
 			</div>
 			@modal.Dialog(modal.DialogConfig{ID: "presentation-confirm", Title: "Confirm change", Content: PresentationConfirmation()})

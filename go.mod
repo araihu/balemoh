@@ -6,7 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.2.6
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
-	github.com/araihu/goshtoso v0.4.6-0.20261027193254-8149a4e80090
+	github.com/araihu/goshtoso v0.4.6-0.20261027195056-cea8387a3c88
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0

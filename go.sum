@@ -18,8 +18,8 @@ github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYW
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
-github.com/araihu/goshtoso v0.4.6-0.20261027193254-8149a4e80090 h1:kA4yU5AvCt/7LHwPBKfljchU2aeJMm2UGCfyD3IPNos=
-github.com/araihu/goshtoso v0.4.6-0.20261027193254-8149a4e80090/go.mod h1:oAzK8trqAkBWSqWkbac+cGhP1prkkj9IgZ1HYTORvGA=
+github.com/araihu/goshtoso v0.4.6-0.20261027195056-cea8387a3c88 h1:j0/h2Ch1E4NAq8OD66bNld/ntHImYpvBelznVMUDWVM=
+github.com/araihu/goshtoso v0.4.6-0.20261027195056-cea8387a3c88/go.mod h1:oAzK8trqAkBWSqWkbac+cGhP1prkkj9IgZ1HYTORvGA=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
 github.com/bufbuild/protocompile v0.14.1 h1:iA73zAf/fyljNjQKwYzUHD6AD4R8KMasmwa/FBatYVw=

@@ -394,6 +394,8 @@ body {
  .balemoh-notification-center-heading h1 { font-size: 1.125rem; }
  .balemoh-notification-center-heading .balemoh-header-icon { width: 2rem; height: 2rem; }
  .balemoh-notification-center-heading .balemoh-notification-filter { grid-column: 1 / -1; grid-row: 2; }
+}
+
 .balemoh-mode-group { border: 0; padding: 0; margin: 0; min-width: 0; }
 .balemoh-mode-group > legend { margin-bottom: .375rem; font-size: .875rem; }
 .balemoh-mode-option { min-height: 2.75rem; min-width: 5.5rem; }
@@ -424,7 +426,7 @@ body {
 @media (min-width: 1024px) {
   .balemoh-theme-preview-column { position: sticky; top: 1.5rem; align-self: start; }
   .balemoh-theme-preview-column .balemoh-theme-preview-frame {
-    height: min(44rem, calc(100dvh - 10rem));
+    height: clamp(12rem, calc(100dvh - 28rem), 36rem);
     min-height: 0;
   }
 }

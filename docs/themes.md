@@ -39,7 +39,7 @@ swatches save as literal values.
 The editor uses Goshtoso Select and Combobox controls. Font options render in their
 own typeface. Theme options show primary/secondary/surface swatches and their
 title face, including the selected label. The sun/moon inspection button changes
-only the isolated preview; global System/Light/Dark uses an icon-based Goshtoso RadioBar and remains a saved preference.
+only the isolated preview. Color contrast is read-only feedback below the preview, outside the editor form; global System/Light/Dark uses an icon-based Goshtoso RadioBar and remains a saved preference.
 Google previews use private font-family aliases, so opening a font
 picker does not change the surrounding application's typography. Google assets
 load on demand. Uploaded files remain local assets.

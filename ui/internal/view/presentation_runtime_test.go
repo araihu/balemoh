@@ -82,6 +82,12 @@ func TestThemeSelectionAndEditorAreSeparateSurfaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	html = output.String()
+	contrastAt := strings.Index(html, `id="presentation-theme-contrast"`)
+	formEnd := strings.Index(html, "</form>")
+	if contrastAt < formEnd || formEnd < 0 || strings.Count(html, "data-theme-contrast-pair") != 3 {
+		t.Fatal("contrast advisory must render once outside the editor form")
+	}
+
 	assertRequiresJavaScript("data-presentation-save")
 	for _, wanted := range []string{"Create theme", "Base theme", "data-theme-editor=", "Back to Themes"} {
 		if !strings.Contains(html, wanted) {
