@@ -56,6 +56,12 @@ and [implementation plan](../docs/superpowers/plans/2026-10-25-plugin-system-imp
 The first external consumer is `araihu/balemoh-plugin-alertmanager`, with a read-only Alertmanager API v2 backend and current/detail pages, filtering, pagination, summary and active-list widgets. Generic process conformance fixtures live under
 `runtime/testdata`, and are never installed as a product plugin.
 
+The `balemoh.goshtoso/v1alpha2` author baseline remains Goshtoso v0.4.4;
+the host serves the compatible v0.4.5 runtime, including nested-popover focus
+fixes. Consumers compile their components against the scaffold baseline and use
+the host's shared assets. This patch split does not waive manifest/capability
+validation or the requirement to pin a compatible host/SDK commit.
+
 ## Backend and data contracts
 
 `Configure` receives a host-issued connection ID, positive decimal configuration

@@ -50,12 +50,17 @@ it listens on `:8081` by default. `/` shows pinned services and `/staging`
 provides the discovery review flow. Pin, unpin, and sync actions use native
 HTML forms with POST/Redirect/GET, so the initial BFF does not require HTMX.
 
-Trusted plugin UI previews are opt-in through `BALEMOH_UI_PLUGIN_PREVIEW_CONFIG`.
-The independent [plugin SDK](plugin-sdk/README.md) supplies manifest validation,
-gRPC transport and templ rendering. The separate `balemoh-plugin-alertmanager`
-repository implements a read-only Alertmanager API v2 backend and minimal
-current/summary views. Persistent placement controls remain P3. Plugin discovery
-and child startup run asynchronously, independently of core listener readiness.
+Trusted application plugins use `BALEMOH_PLUGIN_CONFIG` in the API and
+`BALEMOH_UI_PLUGIN_CONFIG` in the BFF. The independent [plugin SDK](plugin-sdk/README.md)
+supplies manifest validation, gRPC transport, templ rendering and author tooling.
+`/plugins/widgets` lists widget contributions and retained configuration; home
+pinning, options and enabled state persist independently of source availability.
+The separate `balemoh-plugin-alertmanager` repository implements a read-only
+Alertmanager API v2 backend, current/detail pages, filters and home widgets.
+Plugin discovery, child startup and contribution rendering run asynchronously,
+independently of core listener readiness. Optional fixture previews still use
+`BALEMOH_UI_PLUGIN_PREVIEW_CONFIG`; see [plugin operations](docs/plugins/operations.md)
+for installation, credentials and trusted-code boundaries.
 
 Defaults:
 

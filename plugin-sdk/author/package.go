@@ -55,7 +55,7 @@ func Package(ctx context.Context, source, output, modfile string, targets []stri
 		return nil, err
 	}
 	defer os.RemoveAll(temp)
-	backend := len(m.Queries) > 0
+	backend := hasBackend(m)
 	m.Targets = map[string]manifest.Target{}
 	for _, target := range targets {
 		parts := strings.Split(target, "/")
@@ -220,7 +220,7 @@ func Check(ctx context.Context, dir string) error {
 	if err = child.CheckHealth(ctx); err != nil {
 		return err
 	}
-	if len(p.Manifest.Queries) > 0 {
+	if hasBackend(p.Manifest) {
 		b, e := pluginruntime.OpenBackend(ctx, p)
 		if e != nil {
 			return e
@@ -229,4 +229,8 @@ func Check(ctx context.Context, dir string) error {
 		return b.CheckHealth(ctx)
 	}
 	return nil
+}
+
+func hasBackend(m manifest.Manifest) bool {
+	return len(m.Queries) > 0 || m.Declares("notifications.publish/v1")
 }
