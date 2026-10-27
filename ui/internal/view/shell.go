@@ -12,9 +12,16 @@ import (
 )
 
 func ConsolePage(data PageData) templ.Component {
-	var runtimeScripts []string
+	if data.Theme == "" {
+		data.Theme = "goshtoso"
+	}
+	if data.ColorScheme == "" {
+		data.ColorScheme = "system"
+	}
+	persistPreferences := data.Theme == "goshtoso" && data.ColorScheme == "system"
+	runtimeScripts := []string{"/ui/plugin-runtime.js", "/ui/notifications.js"}
 	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
-		runtimeScripts = []string{assets.HTMXExtSSEURL, "/ui/host-live.js"}
+		runtimeScripts = append(runtimeScripts, assets.HTMXExtSSEURL, "/ui/host-live.js")
 	}
 	if data.Dashboard != nil && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, "/ui/dashboard-layout.js")
@@ -32,7 +39,7 @@ func ConsolePage(data PageData) templ.Component {
 				Drawer:        true,
 				IconOnlyMenu:  true,
 				DisableSearch: true,
-				Items: []sidebar.Item{
+				Items: append([]sidebar.Item{
 					{ID: "nav-home", Label: "Home", Href: "/", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHome, Decorative: true})},
 					{ID: "nav-staging", Label: "Staging", Href: "/staging", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidQueueList, Decorative: true})},
 					{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
@@ -45,18 +52,19 @@ func ConsolePage(data PageData) templ.Component {
 							{ID: "nav-presentation", Label: "Presentation", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
 						},
 					},
-				},
+				}, data.PluginNavigation...),
 			},
 			Appearance: consoleshell.AppearanceConfig{
-				DefaultTheme:       "goshtoso",
-				InitialColorScheme: consoleshell.ColorSchemeSystem,
-				PersistPreferences: true,
+				DefaultTheme:       data.Theme,
+				InitialColorScheme: consoleshell.ColorScheme(data.ColorScheme),
+				PersistPreferences: persistPreferences,
 				ThemeStylesheets:   []string{"/ui/balemoh.css"},
 			},
-			Interactions: consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
-			MainID:       "main-content",
-			ContentID:    "balemoh-content",
-			Footer:       AttributionLinks(),
+			Interactions:  consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
+			HeaderActions: HeaderActions(persistPreferences),
+			MainID:        "main-content",
+			ContentID:     "balemoh-content",
+			Footer:        AttributionLinks(),
 		},
 		consoleshell.Page{
 			Title:         data.Title,

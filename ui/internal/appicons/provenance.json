@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "tool": "goshtoso-iconpack",
-  "release": "iconpack-81498d40a7c2",
-  "catalogSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+  "release": "iconpack-6cf82d8efb13",
+  "catalogSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
   "sourceKind": "muamba-snapshot",
   "archiveSha256": "",
-  "sourceConfigSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
-  "sourceLockSha256": "019acd6f81439649939cf5d5b045cd86ac76d75b68e7909f11d603990054dcd9",
+  "sourceConfigSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
+  "sourceLockSha256": "49f9d653218debbceee083c2fafce3113be7d7c89981f46a3fef48f837ea7e7a",
   "sources": [
     {
       "namespace": "custom",
@@ -14,7 +14,7 @@
       "spritePath": "",
       "spriteSha256": "",
       "manifestPath": ".iconpack.yaml",
-      "manifestSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+      "manifestSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
       "provenancePath": "",
       "provenanceSha256": "",
       "licensePath": "docker/LICENSE",
@@ -26,7 +26,7 @@
       "spritePath": "",
       "spriteSha256": "",
       "manifestPath": ".iconpack.yaml",
-      "manifestSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+      "manifestSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
       "provenancePath": "",
       "provenanceSha256": "",
       "licensePath": "heroicons/LICENSE",
@@ -38,11 +38,23 @@
       "spritePath": "",
       "spriteSha256": "",
       "manifestPath": ".iconpack.yaml",
-      "manifestSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+      "manifestSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
       "provenancePath": "",
       "provenanceSha256": "",
       "licensePath": "kubernetes/LICENSE",
       "licenseSha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664"
+    },
+    {
+      "namespace": "custom",
+      "product": "lucide",
+      "spritePath": "",
+      "spriteSha256": "",
+      "manifestPath": ".iconpack.yaml",
+      "manifestSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
+      "provenancePath": "",
+      "provenanceSha256": "",
+      "licensePath": "lucide/LICENSE",
+      "licenseSha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
     }
   ],
   "assets": [
@@ -66,6 +78,13 @@
       "license": "MIT",
       "path": "kubernetes/kubernetes.svg",
       "sha256": "8253c15339196bd566a300530323df4af91f781458e511b6446b57dcef387e85"
+    },
+    {
+      "canonicalName": "lucide-check-check",
+      "source": "https://raw.githubusercontent.com/lucide-icons/lucide/03f11e2d6adc319ea21e9a1d5820a99cd3767257/icons/check-check.svg:check-check.svg",
+      "license": "ISC",
+      "path": "lucide/check-check.svg",
+      "sha256": "2b08c34edf3177ef80d523ad4ec3ebbd9efb92c581a48b6765044464e7e373f9"
     }
   ]
 }

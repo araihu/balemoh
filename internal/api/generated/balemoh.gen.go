@@ -13,10 +13,14 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
-	FederationBearerScopes federationBearerContextKey = "FederationBearer.Scopes"
+	FederationBearerScopes      federationBearerContextKey      = "FederationBearer.Scopes"
+	NotificationOperatorScopes  notificationOperatorContextKey  = "NotificationOperator.Scopes"
+	NotificationPublisherScopes notificationPublisherContextKey = "NotificationPublisher.Scopes"
+	PluginServiceScopes         pluginServiceContextKey         = "PluginService.Scopes"
 )
 
 // Defines values for HealthResponseStatus.
@@ -60,22 +64,22 @@ func (e HostKind) Valid() bool {
 
 // Defines values for HostStatus.
 const (
-	Fresh       HostStatus = "fresh"
-	Partial     HostStatus = "partial"
-	Stale       HostStatus = "stale"
-	Unavailable HostStatus = "unavailable"
+	HostStatusFresh       HostStatus = "fresh"
+	HostStatusPartial     HostStatus = "partial"
+	HostStatusStale       HostStatus = "stale"
+	HostStatusUnavailable HostStatus = "unavailable"
 )
 
 // Valid indicates whether the value is a known member of the HostStatus enum.
 func (e HostStatus) Valid() bool {
 	switch e {
-	case Fresh:
+	case HostStatusFresh:
 		return true
-	case Partial:
+	case HostStatusPartial:
 		return true
-	case Stale:
+	case HostStatusStale:
 		return true
-	case Unavailable:
+	case HostStatusUnavailable:
 		return true
 	default:
 		return false
@@ -94,6 +98,144 @@ func (e HostDetailRange) Valid() bool {
 	case HostDetailRangeN1h:
 		return true
 	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSeverity.
+const (
+	NotificationSeverityCritical NotificationSeverity = "critical"
+	NotificationSeverityInfo     NotificationSeverity = "info"
+	NotificationSeveritySuccess  NotificationSeverity = "success"
+	NotificationSeverityWarning  NotificationSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSeverity enum.
+func (e NotificationSeverity) Valid() bool {
+	switch e {
+	case NotificationSeverityCritical:
+		return true
+	case NotificationSeverityInfo:
+		return true
+	case NotificationSeveritySuccess:
+		return true
+	case NotificationSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationDestinationKind.
+const (
+	NotificationDestinationKindCore     NotificationDestinationKind = "core"
+	NotificationDestinationKindExternal NotificationDestinationKind = "external"
+	NotificationDestinationKindPlugin   NotificationDestinationKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationDestinationKind enum.
+func (e NotificationDestinationKind) Valid() bool {
+	switch e {
+	case NotificationDestinationKindCore:
+		return true
+	case NotificationDestinationKindExternal:
+		return true
+	case NotificationDestinationKindPlugin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPublishRequestSeverity.
+const (
+	NotificationPublishRequestSeverityCritical NotificationPublishRequestSeverity = "critical"
+	NotificationPublishRequestSeverityInfo     NotificationPublishRequestSeverity = "info"
+	NotificationPublishRequestSeveritySuccess  NotificationPublishRequestSeverity = "success"
+	NotificationPublishRequestSeverityWarning  NotificationPublishRequestSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationPublishRequestSeverity enum.
+func (e NotificationPublishRequestSeverity) Valid() bool {
+	switch e {
+	case NotificationPublishRequestSeverityCritical:
+		return true
+	case NotificationPublishRequestSeverityInfo:
+		return true
+	case NotificationPublishRequestSeveritySuccess:
+		return true
+	case NotificationPublishRequestSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSourceKind.
+const (
+	NotificationSourceKindCore     NotificationSourceKind = "core"
+	NotificationSourceKindExternal NotificationSourceKind = "external"
+	NotificationSourceKindPlugin   NotificationSourceKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSourceKind enum.
+func (e NotificationSourceKind) Valid() bool {
+	switch e {
+	case NotificationSourceKindCore:
+		return true
+	case NotificationSourceKindExternal:
+		return true
+	case NotificationSourceKindPlugin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginConnectionState.
+const (
+	PluginConnectionStateFresh       PluginConnectionState = "fresh"
+	PluginConnectionStatePartial     PluginConnectionState = "partial"
+	PluginConnectionStateStale       PluginConnectionState = "stale"
+	PluginConnectionStateUnavailable PluginConnectionState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginConnectionState enum.
+func (e PluginConnectionState) Valid() bool {
+	switch e {
+	case PluginConnectionStateFresh:
+		return true
+	case PluginConnectionStatePartial:
+		return true
+	case PluginConnectionStateStale:
+		return true
+	case PluginConnectionStateUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginQueryResultState.
+const (
+	Fresh       PluginQueryResultState = "fresh"
+	Partial     PluginQueryResultState = "partial"
+	Stale       PluginQueryResultState = "stale"
+	Unavailable PluginQueryResultState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginQueryResultState enum.
+func (e PluginQueryResultState) Valid() bool {
+	switch e {
+	case Fresh:
+		return true
+	case Partial:
+		return true
+	case Stale:
+		return true
+	case Unavailable:
 		return true
 	default:
 		return false
@@ -454,6 +596,181 @@ type ManualServiceCreate struct {
 	RequestId string `json:"requestId"`
 }
 
+// Notification Retained message with immutable producer content, server receipt time and independent read state.
+type Notification struct {
+	Body        string                   `json:"body"`
+	Destination *NotificationDestination `json:"destination,omitempty"`
+	EventId     string                   `json:"eventId"`
+	Id          openapi_types.UUID       `json:"id"`
+	OccurredAt  time.Time                `json:"occurredAt"`
+	ReadAt      *time.Time               `json:"readAt"`
+	ReceivedAt  time.Time                `json:"receivedAt"`
+	Severity    NotificationSeverity     `json:"severity"`
+
+	// Source Producer identity assigned by the authenticated publisher or installed plugin connection.
+	Source NotificationSource `json:"source"`
+	Title  string             `json:"title"`
+}
+
+// NotificationSeverity defines model for Notification.Severity.
+type NotificationSeverity string
+
+// NotificationDestination Optional navigation target. The kind selects a core route, a connection-scoped plugin page or an external URL.
+type NotificationDestination struct {
+	ConnectionId *string                     `json:"connectionId,omitempty"`
+	Kind         NotificationDestinationKind `json:"kind"`
+	Page         *string                     `json:"page,omitempty"`
+	Params       *map[string]string          `json:"params,omitempty"`
+	PluginId     *string                     `json:"pluginId,omitempty"`
+	Query        *map[string][]string        `json:"query,omitempty"`
+	Route        *string                     `json:"route,omitempty"`
+	Url          *string                     `json:"url,omitempty"`
+}
+
+// NotificationDestinationKind defines model for NotificationDestination.Kind.
+type NotificationDestinationKind string
+
+// NotificationPage Cursor-based retained inbox page, global unread count and effective retention in days.
+type NotificationPage struct {
+	NextCursor    *string        `json:"nextCursor,omitempty"`
+	Notifications []Notification `json:"notifications"`
+	RetentionDays int32          `json:"retentionDays"`
+	UnreadCount   int32          `json:"unreadCount"`
+}
+
+// NotificationPublishRequest External publisher message. The credential determines source identity; eventId deduplicates within that source.
+type NotificationPublishRequest struct {
+	Body        *string                            `json:"body,omitempty"`
+	Destination *NotificationDestination           `json:"destination,omitempty"`
+	EventId     string                             `json:"eventId"`
+	OccurredAt  time.Time                          `json:"occurredAt"`
+	Severity    NotificationPublishRequestSeverity `json:"severity"`
+	Title       string                             `json:"title"`
+}
+
+// NotificationPublishRequestSeverity defines model for NotificationPublishRequest.Severity.
+type NotificationPublishRequestSeverity string
+
+// NotificationReceipt Durable notification identity and original creation time. accepted is false for an identical event replay.
+type NotificationReceipt struct {
+	Accepted  bool               `json:"accepted"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
+// NotificationSource Producer identity assigned by the authenticated publisher or installed plugin connection.
+type NotificationSource struct {
+	ConnectionId *string                `json:"connectionId,omitempty"`
+	Id           string                 `json:"id"`
+	Kind         NotificationSourceKind `json:"kind"`
+}
+
+// NotificationSourceKind defines model for NotificationSource.Kind.
+type NotificationSourceKind string
+
+// PluginCatalog Installed plugin descriptors and safe installation failures, without executable paths or credentials.
+type PluginCatalog struct {
+	Plugins  []PluginDescriptor          `json:"plugins"`
+	Problems []PluginInstallationProblem `json:"problems"`
+}
+
+// PluginConnection Connection identity, applied configuration revision, collection state and available query identifiers.
+type PluginConnection struct {
+	AppliedRevision *string `json:"appliedRevision"`
+
+	// ConfigurationError Safe error code and message, with a retryability hint and no source credentials.
+	ConfigurationError     *PluginFailure `json:"configurationError,omitempty"`
+	Enabled                bool           `json:"enabled"`
+	Id                     string         `json:"id"`
+	Key                    string         `json:"key"`
+	LastAttemptAt          *time.Time     `json:"lastAttemptAt"`
+	LastConfigureAttemptAt *time.Time     `json:"lastConfigureAttemptAt"`
+	LastSuccessAt          *time.Time     `json:"lastSuccessAt"`
+	Name                   string         `json:"name"`
+	ObservationRevision    *string        `json:"observationRevision"`
+	ObservedAt             *time.Time     `json:"observedAt"`
+	Queries                []string       `json:"queries"`
+	Ready                  bool           `json:"ready"`
+	Revision               string         `json:"revision"`
+
+	// SourceError Safe error code and message, with a retryability hint and no source credentials.
+	SourceError *PluginFailure        `json:"sourceError,omitempty"`
+	State       PluginConnectionState `json:"state"`
+}
+
+// PluginConnectionState defines model for PluginConnection.State.
+type PluginConnectionState string
+
+// PluginDescriptor Installed plugin version, verified manifest digest and configured connection descriptors.
+type PluginDescriptor struct {
+	Connections    []PluginConnection `json:"connections"`
+	Id             string             `json:"id"`
+	ManifestDigest string             `json:"manifestDigest"`
+	Version        string             `json:"version"`
+}
+
+// PluginFailure Safe error code and message, with a retryability hint and no source credentials.
+type PluginFailure struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+// PluginInstallationProblem Installation identity and safe failure details when a configured package cannot become available.
+type PluginInstallationProblem struct {
+	ConnectionKey *string `json:"connectionKey,omitempty"`
+
+	// Error Safe error code and message, with a retryability hint and no source credentials.
+	Error          PluginFailure `json:"error"`
+	InstallationId string        `json:"installationId"`
+	PluginId       *string       `json:"pluginId,omitempty"`
+}
+
+// PluginPlacement Retained widget configuration with its optimistic concurrency revision and persistence timestamps.
+type PluginPlacement struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PlacementId    string                 `json:"placementId"`
+	PluginId       string                 `json:"pluginId"`
+	Revision       string                 `json:"revision"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
+}
+
+// PluginPlacementBody Selected plugin connection, widget contribution, saved options and enabled state.
+type PluginPlacementBody struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PluginId       string                 `json:"pluginId"`
+}
+
+// PluginQueryResult Cached query data with collection freshness, observation identity and source failure metadata.
+type PluginQueryResult struct {
+	Data                map[string]interface{} `json:"data"`
+	LastSuccessAt       *time.Time             `json:"lastSuccessAt"`
+	ObservationRevision string                 `json:"observationRevision"`
+	ObservedAt          *time.Time             `json:"observedAt"`
+
+	// SourceError Safe error code and message, with a retryability hint and no source credentials.
+	SourceError *PluginFailure         `json:"sourceError,omitempty"`
+	State       PluginQueryResultState `json:"state"`
+}
+
+// PluginQueryResultState defines model for PluginQueryResult.State.
+type PluginQueryResultState string
+
+// PluginWidgetDefinition Installed widget contribution and its JSON Schema for user-configurable options.
+type PluginWidgetDefinition struct {
+	ContributionId string                 `json:"contributionId"`
+	OptionsSchema  map[string]interface{} `json:"optionsSchema"`
+	PluginId       string                 `json:"pluginId"`
+	Title          string                 `json:"title"`
+}
+
 // ResourceObservation The resource, endpoints, and images retained behind one member of a grouped service. It is evidence, not an independently selected homepage card.
 type ResourceObservation struct {
 	// Endpoints Endpoint evidence for this grouped resource.
@@ -616,6 +933,15 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// notificationOperatorContextKey is the context key for NotificationOperator security scheme
+type notificationOperatorContextKey string
+
+// notificationPublisherContextKey is the context key for NotificationPublisher security scheme
+type notificationPublisherContextKey string
+
+// pluginServiceContextKey is the context key for PluginService security scheme
+type pluginServiceContextKey string
+
 // SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
 type SetDashboardSelectionJSONBody struct {
 	// Enabled Whether this source should be selected for the homepage.
@@ -635,6 +961,35 @@ type GetHostParamsRange string
 type DeleteIconParams struct {
 	// Digest Current icon revision from the uploaded icon list. Deletion fails with 409 if the revision changed or the icon is in use.
 	Digest string `form:"digest" json:"digest"`
+}
+
+// GetNotificationsParams defines parameters for GetNotifications.
+type GetNotificationsParams struct {
+	// Before Opaque nextCursor from the previous response; omit it for the newest page.
+	Before *string `form:"before,omitempty" json:"before,omitempty"`
+
+	// Unread Return only unread messages when true. The unread total remains global.
+	Unread *bool `form:"unread,omitempty" json:"unread,omitempty"`
+
+	// Limit Maximum number of messages in this page, from 1 through 50.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// DeletePluginWidgetParams defines parameters for DeletePluginWidget.
+type DeletePluginWidgetParams struct {
+	// IfMatch Current quoted placement revision from ETag. Required to delete this placement.
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// PutPluginWidgetParams defines parameters for PutPluginWidget.
+type PutPluginWidgetParams struct {
+	// IfMatch Current quoted placement revision from ETag. Required when updating this placement.
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// QueryPluginJSONBody defines parameters for QueryPlugin.
+type QueryPluginJSONBody struct {
+	Input map[string]interface{} `json:"input"`
 }
 
 // ChangeServiceLifecycleJSONBody defines parameters for ChangeServiceLifecycle.
@@ -660,6 +1015,15 @@ type UploadIconJSONRequestBody = IconUpload
 
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
+
+// PublishNotificationJSONRequestBody defines body for PublishNotification for application/json ContentType.
+type PublishNotificationJSONRequestBody = NotificationPublishRequest
+
+// PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
+type PutPluginWidgetJSONRequestBody = PluginPlacementBody
+
+// QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
+type QueryPluginJSONRequestBody QueryPluginJSONBody
 
 // CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
 type CreateManualServiceJSONRequestBody = ManualServiceCreate
@@ -711,6 +1075,39 @@ type ServerInterface interface {
 	// Download an uploaded icon image
 	// (GET /api/v1/icons/{iconID}/image)
 	GetIconImage(w http.ResponseWriter, r *http.Request, iconID string)
+	// Clear all notifications
+	// (DELETE /api/v1/notifications)
+	ClearNotifications(w http.ResponseWriter, r *http.Request)
+	// List retained notifications
+	// (GET /api/v1/notifications)
+	GetNotifications(w http.ResponseWriter, r *http.Request, params GetNotificationsParams)
+	// Publish an external notification
+	// (POST /api/v1/notifications)
+	PublishNotification(w http.ResponseWriter, r *http.Request)
+	// Mark all notifications read
+	// (PUT /api/v1/notifications/read)
+	MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request)
+	// Read a notification
+	// (GET /api/v1/notifications/{notificationId})
+	GetNotification(w http.ResponseWriter, r *http.Request, notificationId string)
+	// Mark a notification read
+	// (PUT /api/v1/notifications/{notificationId}/read)
+	MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId string)
+	// List widget definitions and placements
+	// (GET /api/v1/plugin-widgets)
+	GetPluginWidgets(w http.ResponseWriter, r *http.Request)
+	// Remove a widget placement
+	// (DELETE /api/v1/plugin-widgets/{placementId})
+	DeletePluginWidget(w http.ResponseWriter, r *http.Request, placementId openapi_types.UUID, params DeletePluginWidgetParams)
+	// Save a widget placement
+	// (PUT /api/v1/plugin-widgets/{placementId})
+	PutPluginWidget(w http.ResponseWriter, r *http.Request, placementId openapi_types.UUID, params PutPluginWidgetParams)
+	// List installed plugins
+	// (GET /api/v1/plugins)
+	GetPlugins(w http.ResponseWriter, r *http.Request)
+	// Query a plugin observation
+	// (POST /api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId})
+	QueryPlugin(w http.ResponseWriter, r *http.Request, pluginId string, connectionId string, queryId string)
 	// List services for review
 	// (GET /api/v1/staging/services)
 	GetStagingServices(w http.ResponseWriter, r *http.Request)
@@ -1038,6 +1435,397 @@ func (siw *ServerInterfaceWrapper) GetIconImage(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ClearNotifications operation middleware
+func (siw *ServerInterfaceWrapper) ClearNotifications(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearNotifications(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNotifications operation middleware
+func (siw *ServerInterfaceWrapper) GetNotifications(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetNotificationsParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unread" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unread", r.URL.Query(), &params.Unread, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unread"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unread", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotifications(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PublishNotification operation middleware
+func (siw *ServerInterfaceWrapper) PublishNotification(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationPublisherScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PublishNotification(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkAllNotificationsRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkAllNotificationsRead(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNotification operation middleware
+func (siw *ServerInterfaceWrapper) GetNotification(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "notificationId" -------------
+	var notificationId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "notificationId", r.PathValue("notificationId"), &notificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "notificationId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotification(w, r, notificationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkNotificationRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "notificationId" -------------
+	var notificationId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "notificationId", r.PathValue("notificationId"), &notificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "notificationId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkNotificationRead(w, r, notificationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPluginWidgets operation middleware
+func (siw *ServerInterfaceWrapper) GetPluginWidgets(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPluginWidgets(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePluginWidget operation middleware
+func (siw *ServerInterfaceWrapper) DeletePluginWidget(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "placementId" -------------
+	var placementId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "placementId", r.PathValue("placementId"), &placementId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "placementId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeletePluginWidgetParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = &IfMatch
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePluginWidget(w, r, placementId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutPluginWidget operation middleware
+func (siw *ServerInterfaceWrapper) PutPluginWidget(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "placementId" -------------
+	var placementId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "placementId", r.PathValue("placementId"), &placementId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "placementId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PutPluginWidgetParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = &IfMatch
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutPluginWidget(w, r, placementId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPlugins operation middleware
+func (siw *ServerInterfaceWrapper) GetPlugins(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPlugins(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// QueryPlugin operation middleware
+func (siw *ServerInterfaceWrapper) QueryPlugin(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "pluginId" -------------
+	var pluginId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pluginId", r.PathValue("pluginId"), &pluginId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pluginId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connectionId" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connectionId", r.PathValue("connectionId"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connectionId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "queryId" -------------
+	var queryId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "queryId", r.PathValue("queryId"), &queryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "queryId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.QueryPlugin(w, r, pluginId, connectionId, queryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetStagingServices operation middleware
 func (siw *ServerInterfaceWrapper) GetStagingServices(w http.ResponseWriter, r *http.Request) {
 
@@ -1317,6 +2105,17 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.DeleteIcon)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/icons/{iconID}", wrapper.UpdateIcon)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{iconID}/image", wrapper.GetIconImage)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notifications", wrapper.ClearNotifications)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications", wrapper.GetNotifications)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notifications", wrapper.PublishNotification)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/notifications/read", wrapper.MarkAllNotificationsRead)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications/{notificationId}", wrapper.GetNotification)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugin-widgets", wrapper.GetPluginWidgets)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.DeletePluginWidget)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.PutPluginWidget)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugins", wrapper.GetPlugins)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId}", wrapper.QueryPlugin)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services", wrapper.CreateManualService)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}", wrapper.EditStagingService)

@@ -38,6 +38,49 @@ type DiscoverySourceSnapshot struct {
 	ObservedAt string `json:"observed_at"`
 }
 
+type Notification struct {
+	Sequence        int64          `json:"sequence"`
+	ID              string         `json:"id"`
+	SourceKind      string         `json:"source_kind"`
+	SourceID        string         `json:"source_id"`
+	ConnectionID    string         `json:"connection_id"`
+	EventID         string         `json:"event_id"`
+	Severity        string         `json:"severity"`
+	Title           string         `json:"title"`
+	Body            string         `json:"body"`
+	OccurredAt      string         `json:"occurred_at"`
+	ReceivedAt      string         `json:"received_at"`
+	DestinationJson string         `json:"destination_json"`
+	PayloadJson     string         `json:"payload_json"`
+	ReadAt          sql.NullString `json:"read_at"`
+}
+
+type PluginConnection struct {
+	ID             string `json:"id"`
+	PluginID       string `json:"plugin_id"`
+	DeploymentKey  string `json:"deployment_key"`
+	Name           string `json:"name"`
+	Revision       int64  `json:"revision"`
+	ConfigDigest   string `json:"config_digest"`
+	ManifestDigest string `json:"manifest_digest"`
+	PluginVersion  string `json:"plugin_version"`
+	Enabled        int64  `json:"enabled"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+}
+
+type PluginPlacement struct {
+	ID             string `json:"id"`
+	PluginID       string `json:"plugin_id"`
+	ConnectionID   string `json:"connection_id"`
+	ContributionID string `json:"contribution_id"`
+	Options        string `json:"options"`
+	Enabled        int64  `json:"enabled"`
+	Revision       int64  `json:"revision"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+}
+
 type ServiceEdit struct {
 	ServiceID   string `json:"service_id"`
 	DisplayName string `json:"display_name"`

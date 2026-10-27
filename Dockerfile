@@ -5,6 +5,7 @@ ARG TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./
 COPY client/go.mod client/go.sum ./client/
+COPY plugin-sdk/go.mod plugin-sdk/go.sum ./plugin-sdk/
 COPY ui/go.mod ui/go.sum ./ui/
 RUN go mod download && cd ui && GOWORK=off go mod download
 COPY . .

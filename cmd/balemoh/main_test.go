@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/catalog"
+	"github.com/araihu/balemoh/internal/application/notifications"
 	"github.com/araihu/balemoh/internal/config"
 )
 
@@ -133,5 +135,28 @@ func TestRunDiscoverySyncDoesNothingWhenDisabled(t *testing.T) {
 	case <-service.calls:
 		t.Fatal("runDiscoverySync() called service with disabled interval")
 	default:
+	}
+}
+
+func TestConstructServerUsesConfiguredNotificationRetention(t *testing.T) {
+	for _, days := range []int{0, 7, 30} {
+		t.Run(fmt.Sprint(days), func(t *testing.T) {
+			_, db, _, service, err := constructServerWithCatalog(context.Background(), config.Options{HTTPAddr: "127.0.0.1:0", DatabasePath: t.TempDir() + "/balemoh.db", NotificationRetentionDays: days}, sqlite.RunMigrations)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			page, err := service.List(context.Background(), notifications.ListOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := days
+			if want == 0 {
+				want = notifications.DefaultRetentionDays
+			}
+			if page.RetentionDays != want {
+				t.Fatalf("retention = %d, want %d", page.RetentionDays, want)
+			}
+		})
 	}
 }

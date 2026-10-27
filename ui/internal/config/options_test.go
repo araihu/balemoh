@@ -6,6 +6,17 @@ import (
 	"time"
 )
 
+func TestPluginPreviewsAreOptIn(t *testing.T) {
+	o, err := ParseEnvironment(map[string]string{})
+	if err != nil || o.PluginPreviewConfig != "" {
+		t.Fatalf("previews enabled by default: %v", err)
+	}
+	o, err = ParseEnvironment(map[string]string{"BALEMOH_UI_PLUGIN_PREVIEW_CONFIG": "/tmp/preview.json"})
+	if err != nil || o.PluginPreviewConfig != "/tmp/preview.json" {
+		t.Fatalf("preview config missing: %v", err)
+	}
+}
+
 func TestParseEnvironmentUsesOperationalDefaults(t *testing.T) {
 	t.Parallel()
 
@@ -76,5 +87,29 @@ func TestParseEnvironmentRejectsUnsafeOrInvalidValues(t *testing.T) {
 				t.Fatalf("ParseEnvironment() error = %v, want substring %q", err, tc.want)
 			}
 		})
+	}
+}
+
+func TestPluginConfigurationRequiresCredentialAndExcludesPreview(t *testing.T) {
+	for _, env := range []map[string]string{{"BALEMOH_UI_PLUGIN_CONFIG": "plugins.json"}, {"BALEMOH_UI_PLUGIN_SERVICE_TOKEN_FILE": "token"}, {"BALEMOH_UI_PLUGIN_CONFIG": "plugins.json", "BALEMOH_UI_PLUGIN_SERVICE_TOKEN_FILE": "token", "BALEMOH_UI_PLUGIN_PREVIEW_CONFIG": "preview.json"}} {
+		if _, err := ParseEnvironment(env); err == nil {
+			t.Fatal("invalid plugin environment accepted")
+		}
+	}
+	got, err := ParseEnvironment(map[string]string{"BALEMOH_UI_PLUGIN_CONFIG": "plugins.json", "BALEMOH_UI_PLUGIN_SERVICE_TOKEN_FILE": "token"})
+	if err != nil || got.PluginConfig == "" {
+		t.Fatal("valid data plugin environment rejected", err)
+	}
+}
+
+func TestAppearanceEnvironment(t *testing.T) {
+	for _, tt := range []struct {
+		theme, mode string
+		valid       bool
+	}{{"goshtoso", "system", true}, {"minimal", "light", true}, {"minimal", "dark", true}, {"unknown", "light", false}, {"goshtoso", "unknown", false}, {"", "light", true}} {
+		options, err := ParseEnvironment(map[string]string{"BALEMOH_UI_THEME": tt.theme, "BALEMOH_UI_COLOR_SCHEME": tt.mode})
+		if (err == nil) != tt.valid {
+			t.Fatalf("appearance %q/%q: %+v %v", tt.theme, tt.mode, options, err)
+		}
 	}
 }

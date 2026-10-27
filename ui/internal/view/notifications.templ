@@ -1,0 +1,318 @@
+package view
+
+import (
+	"fmt"
+	"github.com/araihu/balemoh/ui/internal/appicons"
+	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/checkbox"
+	"github.com/araihu/goshtoso/components/dropdown"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
+	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/modal"
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/panel"
+	"github.com/araihu/goshtoso/components/popover"
+	"github.com/araihu/goshtoso/components/toggle"
+	"net/url"
+	"time"
+)
+
+templ NotificationBell() {
+	@popover.Popover(popover.Config{ID: "balemoh-notifications", Trigger: NotificationTrigger(), Content: NotificationTray(), Placement: popover.PlacementBottomEnd, Role: "dialog", Label: "Notifications", TrapFocus: true, RootClass: "balemoh-notification-popover", PanelClass: "balemoh-notification-panel"})
+	<noscript>
+		@link.Link("/notifications") {
+			Notifications
+		}
+	</noscript>
+}
+
+templ NotificationTrigger() {
+	@button.Button(button.WithID("notification-trigger"), button.WithAppearance(button.AppearancePlain), button.WithRootClass("balemoh-header-icon balemoh-notification-trigger"), button.WithAttrs(templ.Attributes{"aria-label": "Notifications, loading", "title": "Notifications", "data-notification-trigger": true, "x-cloak": true})) {
+		@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidBell, Decorative: true})
+		<span id="notification-summary" aria-hidden="true" data-notification-summary hx-sync="#balemoh-notifications:queue all" hx-request="timeout:4s"><span class="balemoh-notification-count" data-notification-loading>…</span></span>
+	}
+}
+
+templ NotificationSummary(count int, available bool) {
+	<span data-notification-available={ fmt.Sprint(available) } data-notification-count={ fmt.Sprint(count) }>
+		if !available {
+			<span class="balemoh-notification-count balemoh-notification-count-warning">!</span>
+		} else if count > 0 {
+			<span class="balemoh-notification-count">{ notificationCount(count) }</span>
+		}
+	</span>
+}
+
+templ NotificationSummaryOOB(count int, available bool) {
+	<span id="notification-summary" hx-swap-oob="innerMorph">@NotificationSummary(count, available)</span>
+}
+
+templ NotificationPageCount(count int, available, oob bool) {
+	<span
+		id="notification-page-count"
+		if oob {
+			hx-swap-oob="innerMorph"
+		}
+	>
+		if available {
+			{ fmt.Sprintf("%d unread",count) }
+		} else {
+			Unavailable
+		}
+	</span>
+}
+
+templ NotificationTray() {
+	<div class="balemoh-notification-heading">
+		<h2>Notifications</h2>
+		<form id="notification-filter" class="balemoh-notification-filter">
+			@toggle.Toggle(toggle.Config{ID: "notification-only-unread", Name: "unread", Value: "true", Label: "Unread only"})
+			<input id="notification-return-page" type="hidden" name="returnPage" value=""/>
+		</form>
+		@link.Link("/notifications", link.WithRootClass("balemoh-header-icon"), link.WithAttrs(templ.Attributes{"aria-label": "Open notification center", "title": "Open notification center", "data-notification-inbox-link": true})) {
+			@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowTopRightOnSquare, Decorative: true})
+		}
+		<div hx-sync:inherited="#balemoh-notifications:queue last" hx-request:inherited="timeout:4s" hx-disable:inherited="#notification-mark-all, #notification-actions-trigger" hx-include:inherited="#notification-filter">
+			@dropdown.Dropdown(dropdown.Config{ID: "notification-actions", Label: "Notification actions", Trigger: NotificationActionsTrigger(), MenuAlign: dropdown.AlignEnd, Sections: []dropdown.Section{{Items: []dropdown.Item{
+				{ID: "notification-mark-all", Label: "Mark all as read", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconLucideCheckCheck, Decorative: true}), HTMX: &dropdown.HTMXConfig{Post: "/notifications/read-all", Target: "#notification-read-all-status", Swap: "innerMorph", Vals: `{"returnTo":"tray"}`}},
+				{Label: "Refresh notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true}), OnClick: "window.dispatchEvent(new CustomEvent('notifications:refresh'))"},
+			}}}})
+		</div>
+	</div>
+	<div id="notification-read-all-status" tabindex="-1" aria-live="polite"></div>
+	<div id="notification-tray" data-notification-tray tabindex="-1" hx-sync="#balemoh-notifications:queue all" hx-request="timeout:4s" aria-live="polite"><p class="balemoh-muted balemoh-notification-message">Loading notifications…</p></div>
+	<div class="balemoh-notification-footer">@link.Link("/notifications", link.WithAttrs(templ.Attributes{"data-notification-inbox-link": true})) {
+	View all notifications
+}</div>
+}
+
+templ NotificationActionsTrigger() {
+	@button.Button(button.WithID("notification-actions-trigger"), button.WithAppearance(button.AppearancePlain), button.WithRootClass("balemoh-header-icon"), button.WithAttrs(templ.Attributes{"aria-label": "Notification actions", "title": "Notification actions"})) {
+		@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidEllipsisVertical, Decorative: true})
+	}
+}
+
+templ NotificationReadAllStatus(message string, failed, oob bool) {
+	if oob {
+		<div id="notification-read-all-status" hx-swap-oob="innerMorph">@NotificationReadAllStatus(message, failed, false)</div>
+	} else if message!="" {
+		<p class="balemoh-notification-status" role={ notificationStatusRole(failed) }>{ message }</p>
+	}
+}
+
+templ NotificationMarkAllForm(returnTo string) {
+	<form method="post" action="/notifications/read-all" hx-post="/notifications/read-all" hx-target="#notification-page-read-status" hx-swap="innerMorph" hx-sync="#balemoh-notifications:queue last" hx-request="timeout:4s" hx-disable="find button[type='submit']">
+		<input type="hidden" name="returnTo" value={ returnTo }/>
+		@button.Button(button.WithType("submit"), button.WithAppearance(button.AppearancePlain), button.WithLoadingText("Marking read…"), button.WithRootClass("balemoh-header-icon"), button.WithAttrs(templ.Attributes{"aria-label": "Mark all as read", "title": "Mark all as read"})) {
+			@appicons.Icon(appicons.Config{Symbol: appicons.IconLucideCheckCheck, Decorative: true})
+		}
+	</form>
+}
+
+templ NotificationInboxOOB(page NotificationsPage) {
+	<div id="notification-inbox" hx-swap-oob="innerMorph">@NotificationInbox(page, false)</div>
+}
+
+templ NotificationRefresh() {
+	@button.Button(button.WithID("notification-refresh"), button.WithAppearance(button.AppearancePlain), button.WithRootClass("balemoh-header-icon"), button.WithAttrs(templ.Attributes{"data-notification-refresh": true, "aria-label": "Refresh notifications", "title": "Refresh notifications"})) {
+		@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true})
+	}
+}
+
+templ NotificationList(page NotificationsPage, tray bool) {
+	if page.Error!="" {
+		<p role="status" class="balemoh-notification-message">{ page.Error }</p>
+	} else if len(page.Items)==0 {
+		<p class="balemoh-muted balemoh-notification-message">
+			if page.UnreadOnly {
+				No unread notifications.
+			} else {
+				No notifications.
+			}
+		</p>
+	} else {
+		for _,group:=range notificationGroups(page.Items,time.Now()) {
+			<section class="balemoh-notification-group" aria-label={ group.Label }>
+				if tray {
+					<h3 class="balemoh-notification-group-heading">{ group.Label }</h3>
+				} else {
+					<h2 class="balemoh-notification-group-heading">{ group.Label }</h2>
+				}
+				<ul class="balemoh-notification-list">
+					for _,item:=range group.Items {
+						@NotificationItem(item, page, tray)
+					}
+				</ul>
+			</section>
+		}
+	}
+	if page.Error=="" {
+		<div class="balemoh-notification-retention">
+			<p>{ notificationRetentionLabel(page.RetentionDays) }</p>
+			if page.NextCursor!="" && tray {
+				<p>More notifications in the full inbox.</p>
+			}
+		</div>
+	}
+}
+
+templ NotificationItem(item Notification, page NotificationsPage, tray bool) {
+	<li id={ notificationItemID(item.ID, tray) } class="balemoh-notification-tray-row">
+		@NotificationProducerIcon(item)
+		<div class="balemoh-notification-row-content">
+			<div class="balemoh-notification-row-title">
+				if item.HasDestination {
+					if item.External {
+						@link.Link("/notifications/"+item.ID+"/open", link.WithTarget("_blank"), link.WithRel("noopener noreferrer")) {
+							{ item.Title } <span class="sr-only">in a new tab</span>
+						}
+					} else {
+						@link.Link("/notifications/" + item.ID + "/open") {
+							{ item.Title }
+						}
+					}
+				} else {
+					<strong>{ item.Title }</strong>
+				}
+			</div>
+			<div class="balemoh-notification-row-meta"><span>{ notificationCompactSource(item) }</span><time datetime={ item.ReceivedAt.UTC().Format(time.RFC3339Nano) } title={ item.ReceivedAt.UTC().Format(time.RFC1123) }>{ notificationAge(item.ReceivedAt) }</time></div>
+			if item.Body!="" {
+				if tray {
+					<p class="balemoh-notification-preview">{ item.Body }</p>
+				} else {
+					<p class="balemoh-notification-body">{ item.Body }</p>
+				}
+			}
+			@badge.Badge(badge.Config{Label: item.Severity, Tone: notificationTone(item.Severity), Appearance: badge.AppearanceSoft, Size: badge.SizeSM})
+		</div>
+		<div class="balemoh-notification-row-state" id={ notificationReadTarget(item.ID, notificationReturnPath(page, tray))[1:] } tabindex="-1">@NotificationReadControl(item.ID, item.Read, "", notificationReturnPath(page, tray))</div>
+	</li>
+}
+
+func notificationReturnPath(page NotificationsPage, tray bool) string {
+	if tray {
+		if page.UnreadOnly {
+			return "tray-unread"
+		}
+		return "tray"
+	}
+	query := url.Values{}
+	if page.Before != "" {
+		query.Set("before", page.Before)
+	}
+	if page.UnreadOnly {
+		query.Set("unread", "true")
+	}
+	if len(query) > 0 {
+		return "/notifications?" + query.Encode()
+	}
+	return "/notifications"
+}
+
+templ NotificationReadControl(id string, read bool, failure, returnTo string) {
+	if read {
+		<span class="sr-only" role="status">Read</span>
+	} else {
+  <span class="balemoh-notification-unread-dot"><span class="sr-only">Unread</span></span>
+		<form method="post" action={ templ.SafeURL("/notifications/" + id + "/read") } hx-post={ "/notifications/" + id + "/read" } hx-target={ notificationReadTarget(id, returnTo) } hx-include="#notification-filter" hx-swap="innerMorph" hx-sync="#balemoh-notifications:queue all" hx-request="timeout:4s" hx-disable="find button[type='submit']">
+			<input type="hidden" name="returnTo" value={ returnTo }/>
+			@button.Button(button.WithAppearance(button.AppearancePlain), button.WithType("submit")) {
+				@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCheck, Label: "Mark read"})
+			}
+		</form>
+		if failure!="" {
+			<p role="alert">{ failure }</p>
+		}
+	}
+}
+
+templ NotificationsContent(page NotificationsPage) {
+	if page.ClearConfirmation {
+		@pageheader.PageHeader(pageheader.Config{Title: "Clear all notifications?", HideSeparator: true})
+		<div id="notification-clear-form">@NotificationClearForm(page.ClearError, false)</div>
+	} else {
+		<div id="notification-center" class="balemoh-notification-center" x-data="{}" x-on:notifications-cleared.window="$dispatch('modal:close', {id:'clear-notifications'})">
+			@panel.Panel(panel.Config{Header: NotificationCenterHeading(page), BodyClass: "balemoh-notification-center-body"}) {
+				<div id="notification-page-read-status" tabindex="-1">@NotificationReadAllStatus(page.BulkError, true, false)</div>
+				<div id="notification-inbox" tabindex="-1">@NotificationInbox(page, false)</div>
+			}
+			@modal.Dialog(modal.DialogConfig{ID: "clear-notifications", Title: "Clear all notifications?", Content: NotificationClearDialog()})
+		</div>
+	}
+}
+
+templ NotificationCenterHeading(page NotificationsPage) {
+	<div class="balemoh-notification-center-heading">
+		<h1>Notifications</h1>
+		<form id="notification-page-filter" class="balemoh-notification-filter" method="get" action="/notifications" hx-get="/notifications" hx-target="#notification-center" hx-select="#notification-center" hx-swap="outerMorph" hx-trigger="change" hx-push-url="true" hx-sync="#balemoh-notifications:queue last" hx-request="timeout:4s">
+			@toggle.Toggle(toggle.Config{ID: "notification-page-only-unread", Name: "unread", Value: "true", Label: "Unread only", Checked: page.UnreadOnly})
+			<noscript>@button.Button(button.WithType("submit")) {
+	Apply filter
+}</noscript>
+		</form>
+		<div class="balemoh-notification-center-actions">
+			@NotificationMarkAllForm(notificationReturnPath(page, false))
+			@link.Link(notificationReturnPath(page, false), link.WithRootClass("balemoh-header-icon"), link.WithAttrs(templ.Attributes{"aria-label": "Refresh notifications", "title": "Refresh notifications", "data-notification-page-refresh":true,"hx-get": notificationReturnPath(page, false), "hx-target": "#notification-center", "hx-select": "#notification-center", "hx-swap": "outerMorph", "hx-sync": "#balemoh-notifications:queue last", "hx-request": "timeout:4s"})) {
+				@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true})
+			}
+			@button.Button(button.WithID("notification-clear-trigger"), button.WithRootClass("balemoh-header-icon balemoh-notification-clear-action"), button.WithAppearance(button.AppearancePlain), button.WithTone(button.ToneDanger), button.WithAttrs(templ.Attributes{"x-on:click": "$dispatch('modal:open', {id:'clear-notifications'})", "aria-label": "Clear all notifications", "title": "Clear all notifications", "aria-haspopup": "dialog", "aria-controls": "clear-notifications", "x-cloak": true})) {
+				@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidTrash, Decorative: true})
+			}
+			<noscript>@link.Link("/notifications/clear") {
+	Clear all
+}</noscript>
+		</div>
+	</div>
+}
+
+templ NotificationClearDialog() {
+	<div id="notification-clear-form">@NotificationClearForm("", true)</div>
+}
+
+templ NotificationClearForm(failure string, dialog bool) {
+	<p>Permanently delete all notifications, read and unread, across every page? Alerts at their source are unchanged.</p>
+	<form method="post" action="/notifications/clear" { notificationClearAttrs(dialog)... }>
+		@checkbox.Checkbox(checkbox.Config{ID: "notification-clear-confirm", Name: "confirm", Value: "true", Label: "Delete all notifications permanently", InputAttrs: templ.Attributes{"required": true}})
+		<p role="alert" tabindex="-1" data-notification-clear-error hidden?={ failure=="" }>{ failure }</p>
+		<div class="balemoh-notification-actions">
+			@button.Button(button.WithType("submit"), button.WithTone(button.ToneDanger), button.WithLoadingText("Clearing…")) {
+				Clear all notifications
+			}
+			@link.Link("/notifications", link.WithAttrs(notificationClearCancelAttrs(dialog))) {
+				Cancel
+			}
+		</div>
+	</form>
+}
+
+templ NotificationInbox(page NotificationsPage, cleared bool) {
+	if cleared {
+		<span hidden data-notifications-cleared></span>
+	}
+	<div class="balemoh-notification-page-toolbar">@NotificationPageCount(page.UnreadCount, page.Error == "", false)</div>
+	<div id="notification-page-list" tabindex="-1">@NotificationList(page, false)</div>
+	if page.NextCursor!="" {
+		@link.Link("/notifications?before=" + url.QueryEscape(page.NextCursor) + notificationUnreadQuery(page.UnreadOnly)) {
+			Older notifications
+		}
+	}
+}
+
+func notificationUnreadQuery(unread bool) string {
+	if unread {
+		return "&unread=true"
+	}
+	return ""
+}
+
+templ NotificationProducerIcon(item Notification) {
+	<span class="balemoh-notification-source-icon">
+ if item.ProducerIconURL!="" {
+  <img src={item.ProducerIconURL} alt="" width="24" height="24" decoding="async"/>
+ } else {
+  @icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: notificationIconSymbol(item), Decorative: true})
+ }
+ </span>
+}

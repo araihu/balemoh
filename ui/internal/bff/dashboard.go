@@ -96,13 +96,13 @@ func (s *server) homepage(w http.ResponseWriter, r *http.Request) {
 	data := view.PageData{Title: "Homepage", Description: "Pinned services and host metrics across your homelab.", Active: "nav-home", Notice: noticeText(r.URL.Query().Get("notice"))}
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
-	catalog, ok := s.catalog.(DashboardCatalog)
+	_, ok := s.catalog.(DashboardCatalog)
 	if !ok {
 		data.Error = "Unable to load dashboard. Refresh to retry."
 		s.render(w, r, data, 503)
 		return
 	}
-	snapshot, err := catalog.Dashboard(ctx)
+	snapshot, err := s.dashboardSnapshot(ctx)
 	if err != nil {
 		data.Error = "Unable to load dashboard. Refresh to retry."
 		s.render(w, r, data, 503)
@@ -117,11 +117,11 @@ func (s *server) hostSelection(ctx context.Context, id string) (bool, error) {
 	return selected[id], err
 }
 func (s *server) hostSelections(ctx context.Context) (map[string]bool, error) {
-	catalog, ok := s.catalog.(DashboardCatalog)
+	_, ok := s.catalog.(DashboardCatalog)
 	if !ok {
 		return nil, errors.New("dashboard unavailable")
 	}
-	snapshot, err := catalog.Dashboard(ctx)
+	snapshot, err := s.dashboardSnapshot(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -232,14 +232,14 @@ func (s *server) refreshWidget(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		_ = view.WidgetRefreshFeedback(message).Render(r.Context(), w)
 	}
-	catalog, ok := s.catalog.(DashboardCatalog)
+	_, ok := s.catalog.(DashboardCatalog)
 	if !ok {
 		failure(503, "Refresh failed. Try again.")
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
-	snapshot, err := catalog.Dashboard(ctx)
+	snapshot, err := s.dashboardSnapshot(ctx)
 	if err != nil {
 		failure(503, "Refresh failed. Try again.")
 		return

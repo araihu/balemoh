@@ -12,7 +12,9 @@ import (
 	"time"
 
 	api "github.com/araihu/balemoh/client"
+	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
 	uiassets "github.com/araihu/balemoh/ui"
+	"github.com/araihu/balemoh/ui/internal/plugins"
 	"github.com/araihu/balemoh/ui/internal/view"
 	shellassets "github.com/araihu/goshtoso-app-shells/consoleshell/assets"
 	chartassets "github.com/araihu/goshtoso-charts/assets"
@@ -32,6 +34,11 @@ func New(catalog Catalog, requestTimeout time.Duration) (http.Handler, error) {
 
 // NewWithIconHandler serves a runtime icon library alongside the UI.
 func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons http.Handler) (http.Handler, error) {
+	return NewWithPlugins(catalog, requestTimeout, icons, nil)
+}
+
+// NewWithPlugins enables explicitly configured trusted development previews.
+func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Handler, registry *plugins.Registry) (http.Handler, error) {
 	if catalog == nil {
 		return nil, errors.New("catalog client is required")
 	}
@@ -39,9 +46,40 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 		return nil, errors.New("request timeout must be positive")
 	}
 
-	server := &server{catalog: catalog, timeout: requestTimeout, widgets: widgetRenderers()}
+	server := &server{catalog: catalog, timeout: requestTimeout, widgets: widgetRenderers(), plugins: registry}
+	if registry != nil {
+		server.widgets["plugin-widget/plugin-ui"] = server.pluginRenderer
+	}
 	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /notifications", server.notificationPage)
+	mux.Handle("POST /notifications/read-all", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationReadAll)))
+	mux.HandleFunc("GET /notifications/clear", server.notificationClearPage)
+	mux.Handle("POST /notifications/clear", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationClear)))
+	mux.HandleFunc("GET /notifications/summary", server.notificationSummary)
+	mux.HandleFunc("GET /notifications/tray", server.notificationTray)
+	mux.HandleFunc("GET /notifications/{notificationID}/open", server.notificationOpen)
+	mux.Handle("POST /notifications/{notificationID}/read", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationRead)))
+	mux.HandleFunc("GET /ui/notifications.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.NotificationsJS())
+	})
+	if registry != nil {
+		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/pages/{pluginPath...}", server.pluginPage)
+		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/page-content/{pluginPath...}", server.pluginPageContent)
+		mux.HandleFunc("GET /plugin-widgets/{placementID}", server.pluginWidgetContent)
+		mux.HandleFunc("GET /plugins/", server.pluginAsset)
+		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/fragments/{contributionID}/{region}", server.pluginFragment)
+		mux.HandleFunc("GET /plugins/widgets", server.pluginWidgetsIndex)
+		mux.HandleFunc("GET /plugin-widgets/{placementID}/edit", server.pluginWidgetEdit)
+		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}/new", server.pluginWidgetNew)
+		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/widgets", server.pluginWidgets)
+		protection := http.NewCrossOriginProtection()
+		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/pages/{pluginPath...}", protection.Handler(http.HandlerFunc(server.pluginPagePost)))
+		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}/selection", protection.Handler(http.HandlerFunc(server.pluginWidgetSelection)))
+		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}", protection.Handler(http.HandlerFunc(server.pluginPlacementWrite)))
+		mux.Handle("POST /plugin-widgets/{placementID}/{action}", protection.Handler(http.HandlerFunc(server.pluginPlacementWrite)))
+	}
 	mux.Handle("GET /assets/", assets.Handler())
 	mux.Handle("GET "+chartassets.Prefix, chartassets.Handler())
 	mux.Handle("GET /consoleshell/assets/", shellassets.Handler())
@@ -81,6 +119,10 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 	mux.HandleFunc("GET /dashboard/widgets/{sourceKind}/{sourceID}", server.refreshWidget)
 	mux.HandleFunc("GET /hosts/{hostID}", server.host)
 	mux.HandleFunc("GET /hosts/{hostID}/events", server.hostEvents)
+	mux.HandleFunc("GET /ui/plugin-runtime.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript")
+		_, _ = w.Write(view.PluginRuntimeJS())
+	})
 	mux.HandleFunc("GET /ui/dashboard-layout.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		_, _ = w.Write(view.DashboardLayoutJS())
@@ -101,6 +143,7 @@ func NewWithIconHandler(catalog Catalog, requestTimeout time.Duration, icons htt
 }
 
 type server struct {
+	plugins *plugins.Registry
 	widgets map[string]WidgetRenderer
 	icons   IconCatalog
 	catalog Catalog
@@ -274,6 +317,13 @@ func (s *server) serveCSS(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageData, status int) {
+	display := pluginui.Display(r.Context())
+	data.Theme = display.Theme
+	data.ColorScheme = display.ColorScheme
+	if s.plugins != nil {
+		data.PluginNavigation = s.pluginNavigation()
+		data.PluginWarning = s.plugins.Problems() > 0
+	}
 	var body bytes.Buffer
 	component := view.ConsolePage(data)
 	if data.HostDetail != nil {

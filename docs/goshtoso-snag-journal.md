@@ -79,6 +79,16 @@
 
 - Full-grid SSE morphs remove client-owned row spans and the masonry class, temporarily collapsing the grid and clamping the shell scroll position. Send widget-level OOB morphs for value changes. Reconcile sections only on connection or membership/order/source changes, and preserve masonry attributes with HTMX 4's `htmx_before_morph_attr` extension hook. Re-measure after settlement as well as resize. Use layout-pixel heights rather than transformed visual bounds. Restore refresh focus with `preventScroll`, without stealing focus from another control.
 
+## Alert filters and combobox keyboard focus, 2026-10-25
+
+- Combobox v0.3.3 and v0.4.2 rendered enabled options without a focusable tabindex. Arrow navigation could not move focus to those options. [Upstream PR 343](https://github.com/araihu/goshtoso/pull/343) fixes option focus, disabled-option skipping, clear in client/server modes and delayed callbacks that could steal focus. The Alertmanager plugin uses the native component. Visual profile v1alpha2 pins Goshtoso v0.4.3 across host assets and scaffold; deploy matching plugin packages with that host.
+- A plugin fragment must not put native fallback inputs inside `noscript`: browser fragment parsing can create hidden successful controls even with JavaScript enabled. Render native inputs only for the host's `__native=1` iframe request. Keep the normal form stable and swap only results so search drafts, focus and open menus survive filtering.
+
+## Alert filter counts and Escape cancellation
+
+- Alert facets need supporting option counts that stay outside the closed selection label. Goshtoso's public `Option.Trailing` slot in [PR344](https://github.com/araihu/goshtoso/pull/344) covers this without copying option markup or changing selection values.
+- The full combobox suite exposed a pending keyboard open that could run after Escape and reopen the menu. Cancel deferred open/focus work on Escape while preserving focus ownership. The host must serve the v0.4.4 runtime together with plugins using the trailing slot; update the scaffold's patch baseline as well.
+
 ## Host applications, 2026-10-25
 
 - Compose Toolbar, TextInput, Select, Badge, Table, Link and existing console components. Accordion v0.3.3 only accepts a plain Title plus leading Icon; it cannot express a rich application summary with separate readiness/location information. Use app-owned semantic native details/summary for these domain disclosures, with stable IDs and keyboard behavior. No component-internal CSS overrides.

@@ -28,23 +28,28 @@ func TestParseEnvironmentUsesDefaults(t *testing.T) {
 	if got.FederationGatewayURL != "" || got.FederationToken != "" || got.FederationAllowInsecureHTTP || len(got.FederationAllowedSources) != 0 || len(got.FederationSourceTokens) != 0 {
 		t.Fatalf("federation options = %#v, want disabled by default", got)
 	}
+	if got.NotificationOperatorTokenFile != "" || got.NotificationPublishersFile != "" {
+		t.Fatalf("notification credential files = %#v, want disabled by default", got)
+	}
 }
 
 func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	got, err := ParseEnvironment(map[string]string{
-		"BALEMOH_HTTP_ADDR":                  "127.0.0.1:9090",
-		"BALEMOH_DATABASE_PATH":              "/tmp/balemoh.db",
-		"BALEMOH_DISCOVERY_SYNC_INTERVAL":    "45s",
-		"BALEMOH_KUBERNETES_ENABLED":         "true",
-		"BALEMOH_KUBERNETES_SOURCE_ID":       "kind-balemoh",
-		"BALEMOH_KUBERNETES_NAMESPACE":       "balemoh-dev",
-		"BALEMOH_CONTAINER_ENABLED":          "true",
-		"BALEMOH_CONTAINER_SOURCE_ID":        "docker-desktop",
-		"BALEMOH_CONTAINER_HOST":             "unix:///Users/test/.docker/run/docker.sock",
-		"BALEMOH_FEDERATION_GATEWAY_URL":     "https://gateway.example.test/balemoh",
-		"BALEMOH_FEDERATION_TOKEN":           "agent-secret",
-		"BALEMOH_FEDERATION_ALLOWED_SOURCES": "kubernetes/cluster-1,container/docker-local",
-		"BALEMOH_FEDERATION_SOURCE_TOKENS":   "kubernetes/cluster-1=kubernetes-secret,container/docker-local=container-secret",
+		"BALEMOH_HTTP_ADDR":                        "127.0.0.1:9090",
+		"BALEMOH_DATABASE_PATH":                    "/tmp/balemoh.db",
+		"BALEMOH_DISCOVERY_SYNC_INTERVAL":          "45s",
+		"BALEMOH_KUBERNETES_ENABLED":               "true",
+		"BALEMOH_KUBERNETES_SOURCE_ID":             "kind-balemoh",
+		"BALEMOH_KUBERNETES_NAMESPACE":             "balemoh-dev",
+		"BALEMOH_CONTAINER_ENABLED":                "true",
+		"BALEMOH_CONTAINER_SOURCE_ID":              "docker-desktop",
+		"BALEMOH_CONTAINER_HOST":                   "unix:///Users/test/.docker/run/docker.sock",
+		"BALEMOH_FEDERATION_GATEWAY_URL":           "https://gateway.example.test/balemoh",
+		"BALEMOH_FEDERATION_TOKEN":                 "agent-secret",
+		"BALEMOH_FEDERATION_ALLOWED_SOURCES":       "kubernetes/cluster-1,container/docker-local",
+		"BALEMOH_FEDERATION_SOURCE_TOKENS":         "kubernetes/cluster-1=kubernetes-secret,container/docker-local=container-secret",
+		"BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE": "/private/notification-operator-token",
+		"BALEMOH_NOTIFICATION_PUBLISHERS_FILE":     "/private/notification-publishers.json",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -70,6 +75,9 @@ func TestParseEnvironmentUsesExplicitOverrides(t *testing.T) {
 	if len(got.FederationAllowedSources) != 2 || got.FederationAllowedSources[1] != "container/docker-local" || len(got.FederationSourceTokens) != 2 {
 		t.Fatalf("federation gateway options = %#v", got)
 	}
+	if got.NotificationOperatorTokenFile != "/private/notification-operator-token" || got.NotificationPublishersFile != "/private/notification-publishers.json" {
+		t.Fatalf("notification options = %#v", got)
+	}
 }
 
 func TestParseEnvironmentRejectsWhitespaceOnlyValues(t *testing.T) {
@@ -79,6 +87,8 @@ func TestParseEnvironmentRejectsWhitespaceOnlyValues(t *testing.T) {
 	}{
 		{name: "http address", env: map[string]string{"BALEMOH_HTTP_ADDR": "   "}},
 		{name: "database path", env: map[string]string{"BALEMOH_DATABASE_PATH": "\t\n"}},
+		{name: "notification operator token path", env: map[string]string{"BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE": "   "}},
+		{name: "notification publishers path", env: map[string]string{"BALEMOH_NOTIFICATION_PUBLISHERS_FILE": "\t\n"}},
 	}
 
 	for _, tt := range tests {
@@ -197,5 +207,42 @@ func TestTelemetryEnvironmentContract(t *testing.T) {
 		if err == nil && options.HostProcPath != "/host/proc" {
 			t.Fatal("incorrect proc mount default")
 		}
+	}
+}
+
+func TestPluginEnvironmentPair(t *testing.T) {
+	for _, env := range []map[string]string{{"BALEMOH_PLUGIN_CONFIG": "/private/plugins.json"}, {"BALEMOH_PLUGIN_SERVICE_TOKEN_FILE": "/private/token"}, {"BALEMOH_PLUGIN_CONFIG": " ", "BALEMOH_PLUGIN_SERVICE_TOKEN_FILE": "/private/token"}} {
+		if _, err := ParseEnvironment(env); err == nil {
+			t.Fatal("incomplete plugin environment accepted")
+		}
+	}
+	got, err := ParseEnvironment(map[string]string{"BALEMOH_PLUGIN_CONFIG": "/private/plugins.json", "BALEMOH_PLUGIN_SERVICE_TOKEN_FILE": "/private/token"})
+	if err != nil || got.PluginConfig == "" {
+		t.Fatal("paired plugin environment rejected", err)
+	}
+}
+
+func TestNotificationRetentionConfiguration(t *testing.T) {
+	for _, test := range []struct {
+		name, value string
+		want        int
+		bad         bool
+	}{
+		{name: "default", want: 30}, {name: "short", value: "7", want: 7}, {name: "max", value: "3650", want: 3650},
+		{name: "empty", value: "", want: 30}, {name: "zero", value: "0", bad: true}, {name: "negative", value: "-1", bad: true}, {name: "too large", value: "3651", bad: true}, {name: "malformed", value: "30d", bad: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			env := map[string]string{}
+			if test.name != "default" {
+				env["BALEMOH_NOTIFICATION_RETENTION_DAYS"] = test.value
+			}
+			got, err := ParseEnvironment(env)
+			if (err != nil) != test.bad {
+				t.Fatalf("parse %q: %v", test.value, err)
+			}
+			if !test.bad && got.NotificationRetentionDays != test.want {
+				t.Fatalf("days=%d", got.NotificationRetentionDays)
+			}
+		})
 	}
 }

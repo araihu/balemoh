@@ -57,6 +57,10 @@ templ UnavailableWidget(title string) {
 	@card.Card(card.Config{Title: title, Description: "This widget is unavailable in this version."})
 }
 
+templ PluginUnavailable() {
+	@card.Card(card.Config{Title: "Plugin unavailable", Description: "Restart the preview to retry."})
+}
+
 templ HostWidget(host Host, message string) {
 	@panel.Panel(panel.Config{Appearance: panel.AppearanceSubtle, RootClass: "balemoh-service-card balemoh-host-widget", RootAttrs: templ.Attributes{"role": "article", "aria-labelledby": "widget-host-title-" + host.ID}, BodyClass: "balemoh-host-widget-body", Body: HostWidgetBody(host, message)})
 }

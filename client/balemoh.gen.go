@@ -15,10 +15,14 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
-	FederationBearerScopes federationBearerContextKey = "FederationBearer.Scopes"
+	FederationBearerScopes      federationBearerContextKey      = "FederationBearer.Scopes"
+	NotificationOperatorScopes  notificationOperatorContextKey  = "NotificationOperator.Scopes"
+	NotificationPublisherScopes notificationPublisherContextKey = "NotificationPublisher.Scopes"
+	PluginServiceScopes         pluginServiceContextKey         = "PluginService.Scopes"
 )
 
 // Defines values for HealthResponseStatus.
@@ -62,22 +66,22 @@ func (e HostKind) Valid() bool {
 
 // Defines values for HostStatus.
 const (
-	Fresh       HostStatus = "fresh"
-	Partial     HostStatus = "partial"
-	Stale       HostStatus = "stale"
-	Unavailable HostStatus = "unavailable"
+	HostStatusFresh       HostStatus = "fresh"
+	HostStatusPartial     HostStatus = "partial"
+	HostStatusStale       HostStatus = "stale"
+	HostStatusUnavailable HostStatus = "unavailable"
 )
 
 // Valid indicates whether the value is a known member of the HostStatus enum.
 func (e HostStatus) Valid() bool {
 	switch e {
-	case Fresh:
+	case HostStatusFresh:
 		return true
-	case Partial:
+	case HostStatusPartial:
 		return true
-	case Stale:
+	case HostStatusStale:
 		return true
-	case Unavailable:
+	case HostStatusUnavailable:
 		return true
 	default:
 		return false
@@ -96,6 +100,144 @@ func (e HostDetailRange) Valid() bool {
 	case HostDetailRangeN1h:
 		return true
 	case HostDetailRangeN24h:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSeverity.
+const (
+	NotificationSeverityCritical NotificationSeverity = "critical"
+	NotificationSeverityInfo     NotificationSeverity = "info"
+	NotificationSeveritySuccess  NotificationSeverity = "success"
+	NotificationSeverityWarning  NotificationSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSeverity enum.
+func (e NotificationSeverity) Valid() bool {
+	switch e {
+	case NotificationSeverityCritical:
+		return true
+	case NotificationSeverityInfo:
+		return true
+	case NotificationSeveritySuccess:
+		return true
+	case NotificationSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationDestinationKind.
+const (
+	NotificationDestinationKindCore     NotificationDestinationKind = "core"
+	NotificationDestinationKindExternal NotificationDestinationKind = "external"
+	NotificationDestinationKindPlugin   NotificationDestinationKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationDestinationKind enum.
+func (e NotificationDestinationKind) Valid() bool {
+	switch e {
+	case NotificationDestinationKindCore:
+		return true
+	case NotificationDestinationKindExternal:
+		return true
+	case NotificationDestinationKindPlugin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPublishRequestSeverity.
+const (
+	NotificationPublishRequestSeverityCritical NotificationPublishRequestSeverity = "critical"
+	NotificationPublishRequestSeverityInfo     NotificationPublishRequestSeverity = "info"
+	NotificationPublishRequestSeveritySuccess  NotificationPublishRequestSeverity = "success"
+	NotificationPublishRequestSeverityWarning  NotificationPublishRequestSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationPublishRequestSeverity enum.
+func (e NotificationPublishRequestSeverity) Valid() bool {
+	switch e {
+	case NotificationPublishRequestSeverityCritical:
+		return true
+	case NotificationPublishRequestSeverityInfo:
+		return true
+	case NotificationPublishRequestSeveritySuccess:
+		return true
+	case NotificationPublishRequestSeverityWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSourceKind.
+const (
+	NotificationSourceKindCore     NotificationSourceKind = "core"
+	NotificationSourceKindExternal NotificationSourceKind = "external"
+	NotificationSourceKindPlugin   NotificationSourceKind = "plugin"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSourceKind enum.
+func (e NotificationSourceKind) Valid() bool {
+	switch e {
+	case NotificationSourceKindCore:
+		return true
+	case NotificationSourceKindExternal:
+		return true
+	case NotificationSourceKindPlugin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginConnectionState.
+const (
+	PluginConnectionStateFresh       PluginConnectionState = "fresh"
+	PluginConnectionStatePartial     PluginConnectionState = "partial"
+	PluginConnectionStateStale       PluginConnectionState = "stale"
+	PluginConnectionStateUnavailable PluginConnectionState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginConnectionState enum.
+func (e PluginConnectionState) Valid() bool {
+	switch e {
+	case PluginConnectionStateFresh:
+		return true
+	case PluginConnectionStatePartial:
+		return true
+	case PluginConnectionStateStale:
+		return true
+	case PluginConnectionStateUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginQueryResultState.
+const (
+	Fresh       PluginQueryResultState = "fresh"
+	Partial     PluginQueryResultState = "partial"
+	Stale       PluginQueryResultState = "stale"
+	Unavailable PluginQueryResultState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the PluginQueryResultState enum.
+func (e PluginQueryResultState) Valid() bool {
+	switch e {
+	case Fresh:
+		return true
+	case Partial:
+		return true
+	case Stale:
+		return true
+	case Unavailable:
 		return true
 	default:
 		return false
@@ -456,6 +598,181 @@ type ManualServiceCreate struct {
 	RequestId string `json:"requestId"`
 }
 
+// Notification Retained message with immutable producer content, server receipt time and independent read state.
+type Notification struct {
+	Body        string                   `json:"body"`
+	Destination *NotificationDestination `json:"destination,omitempty"`
+	EventId     string                   `json:"eventId"`
+	Id          openapi_types.UUID       `json:"id"`
+	OccurredAt  time.Time                `json:"occurredAt"`
+	ReadAt      *time.Time               `json:"readAt"`
+	ReceivedAt  time.Time                `json:"receivedAt"`
+	Severity    NotificationSeverity     `json:"severity"`
+
+	// Source Producer identity assigned by the authenticated publisher or installed plugin connection.
+	Source NotificationSource `json:"source"`
+	Title  string             `json:"title"`
+}
+
+// NotificationSeverity defines model for Notification.Severity.
+type NotificationSeverity string
+
+// NotificationDestination Optional navigation target. The kind selects a core route, a connection-scoped plugin page or an external URL.
+type NotificationDestination struct {
+	ConnectionId *string                     `json:"connectionId,omitempty"`
+	Kind         NotificationDestinationKind `json:"kind"`
+	Page         *string                     `json:"page,omitempty"`
+	Params       *map[string]string          `json:"params,omitempty"`
+	PluginId     *string                     `json:"pluginId,omitempty"`
+	Query        *map[string][]string        `json:"query,omitempty"`
+	Route        *string                     `json:"route,omitempty"`
+	Url          *string                     `json:"url,omitempty"`
+}
+
+// NotificationDestinationKind defines model for NotificationDestination.Kind.
+type NotificationDestinationKind string
+
+// NotificationPage Cursor-based retained inbox page, global unread count and effective retention in days.
+type NotificationPage struct {
+	NextCursor    *string        `json:"nextCursor,omitempty"`
+	Notifications []Notification `json:"notifications"`
+	RetentionDays int32          `json:"retentionDays"`
+	UnreadCount   int32          `json:"unreadCount"`
+}
+
+// NotificationPublishRequest External publisher message. The credential determines source identity; eventId deduplicates within that source.
+type NotificationPublishRequest struct {
+	Body        *string                            `json:"body,omitempty"`
+	Destination *NotificationDestination           `json:"destination,omitempty"`
+	EventId     string                             `json:"eventId"`
+	OccurredAt  time.Time                          `json:"occurredAt"`
+	Severity    NotificationPublishRequestSeverity `json:"severity"`
+	Title       string                             `json:"title"`
+}
+
+// NotificationPublishRequestSeverity defines model for NotificationPublishRequest.Severity.
+type NotificationPublishRequestSeverity string
+
+// NotificationReceipt Durable notification identity and original creation time. accepted is false for an identical event replay.
+type NotificationReceipt struct {
+	Accepted  bool               `json:"accepted"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
+// NotificationSource Producer identity assigned by the authenticated publisher or installed plugin connection.
+type NotificationSource struct {
+	ConnectionId *string                `json:"connectionId,omitempty"`
+	Id           string                 `json:"id"`
+	Kind         NotificationSourceKind `json:"kind"`
+}
+
+// NotificationSourceKind defines model for NotificationSource.Kind.
+type NotificationSourceKind string
+
+// PluginCatalog Installed plugin descriptors and safe installation failures, without executable paths or credentials.
+type PluginCatalog struct {
+	Plugins  []PluginDescriptor          `json:"plugins"`
+	Problems []PluginInstallationProblem `json:"problems"`
+}
+
+// PluginConnection Connection identity, applied configuration revision, collection state and available query identifiers.
+type PluginConnection struct {
+	AppliedRevision *string `json:"appliedRevision"`
+
+	// ConfigurationError Safe error code and message, with a retryability hint and no source credentials.
+	ConfigurationError     *PluginFailure `json:"configurationError,omitempty"`
+	Enabled                bool           `json:"enabled"`
+	Id                     string         `json:"id"`
+	Key                    string         `json:"key"`
+	LastAttemptAt          *time.Time     `json:"lastAttemptAt"`
+	LastConfigureAttemptAt *time.Time     `json:"lastConfigureAttemptAt"`
+	LastSuccessAt          *time.Time     `json:"lastSuccessAt"`
+	Name                   string         `json:"name"`
+	ObservationRevision    *string        `json:"observationRevision"`
+	ObservedAt             *time.Time     `json:"observedAt"`
+	Queries                []string       `json:"queries"`
+	Ready                  bool           `json:"ready"`
+	Revision               string         `json:"revision"`
+
+	// SourceError Safe error code and message, with a retryability hint and no source credentials.
+	SourceError *PluginFailure        `json:"sourceError,omitempty"`
+	State       PluginConnectionState `json:"state"`
+}
+
+// PluginConnectionState defines model for PluginConnection.State.
+type PluginConnectionState string
+
+// PluginDescriptor Installed plugin version, verified manifest digest and configured connection descriptors.
+type PluginDescriptor struct {
+	Connections    []PluginConnection `json:"connections"`
+	Id             string             `json:"id"`
+	ManifestDigest string             `json:"manifestDigest"`
+	Version        string             `json:"version"`
+}
+
+// PluginFailure Safe error code and message, with a retryability hint and no source credentials.
+type PluginFailure struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+// PluginInstallationProblem Installation identity and safe failure details when a configured package cannot become available.
+type PluginInstallationProblem struct {
+	ConnectionKey *string `json:"connectionKey,omitempty"`
+
+	// Error Safe error code and message, with a retryability hint and no source credentials.
+	Error          PluginFailure `json:"error"`
+	InstallationId string        `json:"installationId"`
+	PluginId       *string       `json:"pluginId,omitempty"`
+}
+
+// PluginPlacement Retained widget configuration with its optimistic concurrency revision and persistence timestamps.
+type PluginPlacement struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PlacementId    string                 `json:"placementId"`
+	PluginId       string                 `json:"pluginId"`
+	Revision       string                 `json:"revision"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
+}
+
+// PluginPlacementBody Selected plugin connection, widget contribution, saved options and enabled state.
+type PluginPlacementBody struct {
+	ConnectionId   string                 `json:"connectionId"`
+	ContributionId string                 `json:"contributionId"`
+	Enabled        bool                   `json:"enabled"`
+	Options        map[string]interface{} `json:"options"`
+	PluginId       string                 `json:"pluginId"`
+}
+
+// PluginQueryResult Cached query data with collection freshness, observation identity and source failure metadata.
+type PluginQueryResult struct {
+	Data                map[string]interface{} `json:"data"`
+	LastSuccessAt       *time.Time             `json:"lastSuccessAt"`
+	ObservationRevision string                 `json:"observationRevision"`
+	ObservedAt          *time.Time             `json:"observedAt"`
+
+	// SourceError Safe error code and message, with a retryability hint and no source credentials.
+	SourceError *PluginFailure         `json:"sourceError,omitempty"`
+	State       PluginQueryResultState `json:"state"`
+}
+
+// PluginQueryResultState defines model for PluginQueryResult.State.
+type PluginQueryResultState string
+
+// PluginWidgetDefinition Installed widget contribution and its JSON Schema for user-configurable options.
+type PluginWidgetDefinition struct {
+	ContributionId string                 `json:"contributionId"`
+	OptionsSchema  map[string]interface{} `json:"optionsSchema"`
+	PluginId       string                 `json:"pluginId"`
+	Title          string                 `json:"title"`
+}
+
 // ResourceObservation The resource, endpoints, and images retained behind one member of a grouped service. It is evidence, not an independently selected homepage card.
 type ResourceObservation struct {
 	// Endpoints Endpoint evidence for this grouped resource.
@@ -618,6 +935,15 @@ type UploadedIcon struct {
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
+// notificationOperatorContextKey is the context key for NotificationOperator security scheme
+type notificationOperatorContextKey string
+
+// notificationPublisherContextKey is the context key for NotificationPublisher security scheme
+type notificationPublisherContextKey string
+
+// pluginServiceContextKey is the context key for PluginService security scheme
+type pluginServiceContextKey string
+
 // SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
 type SetDashboardSelectionJSONBody struct {
 	// Enabled Whether this source should be selected for the homepage.
@@ -637,6 +963,35 @@ type GetHostParamsRange string
 type DeleteIconParams struct {
 	// Digest Current icon revision from the uploaded icon list. Deletion fails with 409 if the revision changed or the icon is in use.
 	Digest string `form:"digest" json:"digest"`
+}
+
+// GetNotificationsParams defines parameters for GetNotifications.
+type GetNotificationsParams struct {
+	// Before Opaque nextCursor from the previous response; omit it for the newest page.
+	Before *string `form:"before,omitempty" json:"before,omitempty"`
+
+	// Unread Return only unread messages when true. The unread total remains global.
+	Unread *bool `form:"unread,omitempty" json:"unread,omitempty"`
+
+	// Limit Maximum number of messages in this page, from 1 through 50.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// DeletePluginWidgetParams defines parameters for DeletePluginWidget.
+type DeletePluginWidgetParams struct {
+	// IfMatch Current quoted placement revision from ETag. Required to delete this placement.
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// PutPluginWidgetParams defines parameters for PutPluginWidget.
+type PutPluginWidgetParams struct {
+	// IfMatch Current quoted placement revision from ETag. Required when updating this placement.
+	IfMatch *string `json:"If-Match,omitempty"`
+}
+
+// QueryPluginJSONBody defines parameters for QueryPlugin.
+type QueryPluginJSONBody struct {
+	Input map[string]interface{} `json:"input"`
 }
 
 // ChangeServiceLifecycleJSONBody defines parameters for ChangeServiceLifecycle.
@@ -662,6 +1017,15 @@ type UploadIconJSONRequestBody = IconUpload
 
 // UpdateIconJSONRequestBody defines body for UpdateIcon for application/json ContentType.
 type UpdateIconJSONRequestBody = IconUpload
+
+// PublishNotificationJSONRequestBody defines body for PublishNotification for application/json ContentType.
+type PublishNotificationJSONRequestBody = NotificationPublishRequest
+
+// PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
+type PutPluginWidgetJSONRequestBody = PluginPlacementBody
+
+// QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
+type QueryPluginJSONRequestBody QueryPluginJSONBody
 
 // CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
 type CreateManualServiceJSONRequestBody = ManualServiceCreate
@@ -793,6 +1157,45 @@ type ClientInterface interface {
 
 	// GetIconImage request
 	GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ClearNotifications request
+	ClearNotifications(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotifications request
+	GetNotifications(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PublishNotificationWithBody request with any body
+	PublishNotificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MarkAllNotificationsRead request
+	MarkAllNotificationsRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotification request
+	GetNotification(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MarkNotificationRead request
+	MarkNotificationRead(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPluginWidgets request
+	GetPluginWidgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeletePluginWidget request
+	DeletePluginWidget(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutPluginWidgetWithBody request with any body
+	PutPluginWidgetWithBody(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutPluginWidget(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPlugins request
+	GetPlugins(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// QueryPluginWithBody request with any body
+	QueryPluginWithBody(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	QueryPlugin(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetStagingServices request
 	GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1028,6 +1431,174 @@ func (c *Client) UpdateIcon(ctx context.Context, iconID string, body UpdateIconJ
 
 func (c *Client) GetIconImage(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetIconImageRequest(c.Server, iconID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ClearNotifications(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewClearNotificationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetNotifications(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotificationsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PublishNotificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPublishNotificationRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPublishNotificationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MarkAllNotificationsRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMarkAllNotificationsReadRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetNotification(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotificationRequest(c.Server, notificationId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MarkNotificationRead(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMarkNotificationReadRequest(c.Server, notificationId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetPluginWidgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPluginWidgetsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeletePluginWidget(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeletePluginWidgetRequest(c.Server, placementId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutPluginWidgetWithBody(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutPluginWidgetRequestWithBody(c.Server, placementId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutPluginWidget(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutPluginWidgetRequest(c.Server, placementId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetPlugins(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPluginsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) QueryPluginWithBody(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQueryPluginRequestWithBody(c.Server, pluginId, connectionId, queryId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) QueryPlugin(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQueryPluginRequest(c.Server, pluginId, connectionId, queryId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1666,6 +2237,472 @@ func NewGetIconImageRequest(server string, iconID string) (*http.Request, error)
 	return req, nil
 }
 
+// NewClearNotificationsRequest generates requests for ClearNotifications
+func NewClearNotificationsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetNotificationsRequest generates requests for GetNotifications
+func NewGetNotificationsRequest(server string, params *GetNotificationsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Before != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "before", *params.Before, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Unread != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "unread", *params.Unread, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPublishNotificationRequest calls the generic PublishNotification builder with application/json body
+func NewPublishNotificationRequest(server string, body PublishNotificationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPublishNotificationRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPublishNotificationRequestWithBody generates requests for PublishNotification with any type of body
+func NewPublishNotificationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewMarkAllNotificationsReadRequest generates requests for MarkAllNotificationsRead
+func NewMarkAllNotificationsReadRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/read")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetNotificationRequest generates requests for GetNotification
+func NewGetNotificationRequest(server string, notificationId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notificationId", notificationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewMarkNotificationReadRequest generates requests for MarkNotificationRead
+func NewMarkNotificationReadRequest(server string, notificationId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notificationId", notificationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/%s/read", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetPluginWidgetsRequest generates requests for GetPluginWidgets
+func NewGetPluginWidgetsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugin-widgets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeletePluginWidgetRequest generates requests for DeletePluginWidget
+func NewDeletePluginWidgetRequest(server string, placementId openapi_types.UUID, params *DeletePluginWidgetParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "placementId", placementId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugin-widgets/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+
+		if params.IfMatch != nil {
+			var headerParam0 string
+
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", *params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Match", headerParam0)
+		}
+
+	}
+
+	return req, nil
+}
+
+// NewPutPluginWidgetRequest calls the generic PutPluginWidget builder with application/json body
+func NewPutPluginWidgetRequest(server string, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutPluginWidgetRequestWithBody(server, placementId, params, "application/json", bodyReader)
+}
+
+// NewPutPluginWidgetRequestWithBody generates requests for PutPluginWidget with any type of body
+func NewPutPluginWidgetRequestWithBody(server string, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "placementId", placementId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugin-widgets/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		if params.IfMatch != nil {
+			var headerParam0 string
+
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", *params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Match", headerParam0)
+		}
+
+	}
+
+	return req, nil
+}
+
+// NewGetPluginsRequest generates requests for GetPlugins
+func NewGetPluginsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugins")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewQueryPluginRequest calls the generic QueryPlugin builder with application/json body
+func NewQueryPluginRequest(server string, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewQueryPluginRequestWithBody(server, pluginId, connectionId, queryId, "application/json", bodyReader)
+}
+
+// NewQueryPluginRequestWithBody generates requests for QueryPlugin with any type of body
+func NewQueryPluginRequestWithBody(server string, pluginId string, connectionId string, queryId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pluginId", pluginId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "connectionId", connectionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "queryId", queryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugins/%s/connections/%s/queries/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetStagingServicesRequest generates requests for GetStagingServices
 func NewGetStagingServicesRequest(server string) (*http.Request, error) {
 	var err error
@@ -2013,6 +3050,45 @@ type ClientWithResponsesInterface interface {
 
 	// GetIconImageWithResponse request
 	GetIconImageWithResponse(ctx context.Context, iconID string, reqEditors ...RequestEditorFn) (*GetIconImageResponse, error)
+
+	// ClearNotificationsWithResponse request
+	ClearNotificationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearNotificationsResponse, error)
+
+	// GetNotificationsWithResponse request
+	GetNotificationsWithResponse(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*GetNotificationsResponse, error)
+
+	// PublishNotificationWithBodyWithResponse request with any body
+	PublishNotificationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error)
+
+	PublishNotificationWithResponse(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error)
+
+	// MarkAllNotificationsReadWithResponse request
+	MarkAllNotificationsReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*MarkAllNotificationsReadResponse, error)
+
+	// GetNotificationWithResponse request
+	GetNotificationWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*GetNotificationResponse, error)
+
+	// MarkNotificationReadWithResponse request
+	MarkNotificationReadWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*MarkNotificationReadResponse, error)
+
+	// GetPluginWidgetsWithResponse request
+	GetPluginWidgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginWidgetsResponse, error)
+
+	// DeletePluginWidgetWithResponse request
+	DeletePluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*DeletePluginWidgetResponse, error)
+
+	// PutPluginWidgetWithBodyWithResponse request with any body
+	PutPluginWidgetWithBodyWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error)
+
+	PutPluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error)
+
+	// GetPluginsWithResponse request
+	GetPluginsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginsResponse, error)
+
+	// QueryPluginWithBodyWithResponse request with any body
+	QueryPluginWithBodyWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error)
+
+	QueryPluginWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error)
 
 	// GetStagingServicesWithResponse request
 	GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error)
@@ -2444,6 +3520,337 @@ func (r GetIconImageResponse) ContentType() string {
 	return ""
 }
 
+type ClearNotificationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ClearNotificationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ClearNotificationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ClearNotificationsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetNotificationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *NotificationPage
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotificationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotificationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetNotificationsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PublishNotificationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *NotificationReceipt
+	JSON201      *NotificationReceipt
+}
+
+// Status returns HTTPResponse.Status
+func (r PublishNotificationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PublishNotificationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PublishNotificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type MarkAllNotificationsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r MarkAllNotificationsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MarkAllNotificationsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MarkAllNotificationsReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetNotificationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Notification
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotificationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotificationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetNotificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type MarkNotificationReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r MarkNotificationReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MarkNotificationReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MarkNotificationReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetPluginWidgetsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Definitions []PluginWidgetDefinition `json:"definitions"`
+		Placements  []PluginPlacement        `json:"placements"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPluginWidgetsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPluginWidgetsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPluginWidgetsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeletePluginWidgetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeletePluginWidgetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeletePluginWidgetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeletePluginWidgetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutPluginWidgetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PluginPlacement
+	JSON201      *PluginPlacement
+}
+
+// Status returns HTTPResponse.Status
+func (r PutPluginWidgetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutPluginWidgetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutPluginWidgetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetPluginsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PluginCatalog
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPluginsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPluginsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPluginsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type QueryPluginResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PluginQueryResult
+}
+
+// Status returns HTTPResponse.Status
+func (r QueryPluginResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r QueryPluginResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r QueryPluginResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetStagingServicesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2820,6 +4227,129 @@ func (c *ClientWithResponses) GetIconImageWithResponse(ctx context.Context, icon
 		return nil, err
 	}
 	return ParseGetIconImageResponse(rsp)
+}
+
+// ClearNotificationsWithResponse request returning *ClearNotificationsResponse
+func (c *ClientWithResponses) ClearNotificationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearNotificationsResponse, error) {
+	rsp, err := c.ClearNotifications(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseClearNotificationsResponse(rsp)
+}
+
+// GetNotificationsWithResponse request returning *GetNotificationsResponse
+func (c *ClientWithResponses) GetNotificationsWithResponse(ctx context.Context, params *GetNotificationsParams, reqEditors ...RequestEditorFn) (*GetNotificationsResponse, error) {
+	rsp, err := c.GetNotifications(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotificationsResponse(rsp)
+}
+
+// PublishNotificationWithBodyWithResponse request with arbitrary body returning *PublishNotificationResponse
+func (c *ClientWithResponses) PublishNotificationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error) {
+	rsp, err := c.PublishNotificationWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePublishNotificationResponse(rsp)
+}
+
+func (c *ClientWithResponses) PublishNotificationWithResponse(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error) {
+	rsp, err := c.PublishNotification(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePublishNotificationResponse(rsp)
+}
+
+// MarkAllNotificationsReadWithResponse request returning *MarkAllNotificationsReadResponse
+func (c *ClientWithResponses) MarkAllNotificationsReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*MarkAllNotificationsReadResponse, error) {
+	rsp, err := c.MarkAllNotificationsRead(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMarkAllNotificationsReadResponse(rsp)
+}
+
+// GetNotificationWithResponse request returning *GetNotificationResponse
+func (c *ClientWithResponses) GetNotificationWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*GetNotificationResponse, error) {
+	rsp, err := c.GetNotification(ctx, notificationId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotificationResponse(rsp)
+}
+
+// MarkNotificationReadWithResponse request returning *MarkNotificationReadResponse
+func (c *ClientWithResponses) MarkNotificationReadWithResponse(ctx context.Context, notificationId string, reqEditors ...RequestEditorFn) (*MarkNotificationReadResponse, error) {
+	rsp, err := c.MarkNotificationRead(ctx, notificationId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMarkNotificationReadResponse(rsp)
+}
+
+// GetPluginWidgetsWithResponse request returning *GetPluginWidgetsResponse
+func (c *ClientWithResponses) GetPluginWidgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginWidgetsResponse, error) {
+	rsp, err := c.GetPluginWidgets(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPluginWidgetsResponse(rsp)
+}
+
+// DeletePluginWidgetWithResponse request returning *DeletePluginWidgetResponse
+func (c *ClientWithResponses) DeletePluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *DeletePluginWidgetParams, reqEditors ...RequestEditorFn) (*DeletePluginWidgetResponse, error) {
+	rsp, err := c.DeletePluginWidget(ctx, placementId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeletePluginWidgetResponse(rsp)
+}
+
+// PutPluginWidgetWithBodyWithResponse request with arbitrary body returning *PutPluginWidgetResponse
+func (c *ClientWithResponses) PutPluginWidgetWithBodyWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error) {
+	rsp, err := c.PutPluginWidgetWithBody(ctx, placementId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutPluginWidgetResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutPluginWidgetWithResponse(ctx context.Context, placementId openapi_types.UUID, params *PutPluginWidgetParams, body PutPluginWidgetJSONRequestBody, reqEditors ...RequestEditorFn) (*PutPluginWidgetResponse, error) {
+	rsp, err := c.PutPluginWidget(ctx, placementId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutPluginWidgetResponse(rsp)
+}
+
+// GetPluginsWithResponse request returning *GetPluginsResponse
+func (c *ClientWithResponses) GetPluginsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginsResponse, error) {
+	rsp, err := c.GetPlugins(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPluginsResponse(rsp)
+}
+
+// QueryPluginWithBodyWithResponse request with arbitrary body returning *QueryPluginResponse
+func (c *ClientWithResponses) QueryPluginWithBodyWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error) {
+	rsp, err := c.QueryPluginWithBody(ctx, pluginId, connectionId, queryId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQueryPluginResponse(rsp)
+}
+
+func (c *ClientWithResponses) QueryPluginWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error) {
+	rsp, err := c.QueryPlugin(ctx, pluginId, connectionId, queryId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQueryPluginResponse(rsp)
 }
 
 // GetStagingServicesWithResponse request returning *GetStagingServicesResponse
@@ -3302,6 +4832,269 @@ func ParseGetIconImageResponse(rsp *http.Response) (*GetIconImageResponse, error
 	response := &GetIconImageResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseClearNotificationsResponse parses an HTTP response from a ClearNotificationsWithResponse call
+func ParseClearNotificationsResponse(rsp *http.Response) (*ClearNotificationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ClearNotificationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetNotificationsResponse parses an HTTP response from a GetNotificationsWithResponse call
+func ParseGetNotificationsResponse(rsp *http.Response) (*GetNotificationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotificationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePublishNotificationResponse parses an HTTP response from a PublishNotificationWithResponse call
+func ParsePublishNotificationResponse(rsp *http.Response) (*PublishNotificationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PublishNotificationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationReceipt
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest NotificationReceipt
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMarkAllNotificationsReadResponse parses an HTTP response from a MarkAllNotificationsReadWithResponse call
+func ParseMarkAllNotificationsReadResponse(rsp *http.Response) (*MarkAllNotificationsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MarkAllNotificationsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetNotificationResponse parses an HTTP response from a GetNotificationWithResponse call
+func ParseGetNotificationResponse(rsp *http.Response) (*GetNotificationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotificationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Notification
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMarkNotificationReadResponse parses an HTTP response from a MarkNotificationReadWithResponse call
+func ParseMarkNotificationReadResponse(rsp *http.Response) (*MarkNotificationReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MarkNotificationReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetPluginWidgetsResponse parses an HTTP response from a GetPluginWidgetsWithResponse call
+func ParseGetPluginWidgetsResponse(rsp *http.Response) (*GetPluginWidgetsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPluginWidgetsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Definitions []PluginWidgetDefinition `json:"definitions"`
+			Placements  []PluginPlacement        `json:"placements"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeletePluginWidgetResponse parses an HTTP response from a DeletePluginWidgetWithResponse call
+func ParseDeletePluginWidgetResponse(rsp *http.Response) (*DeletePluginWidgetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeletePluginWidgetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePutPluginWidgetResponse parses an HTTP response from a PutPluginWidgetWithResponse call
+func ParsePutPluginWidgetResponse(rsp *http.Response) (*PutPluginWidgetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutPluginWidgetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PluginPlacement
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest PluginPlacement
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPluginsResponse parses an HTTP response from a GetPluginsWithResponse call
+func ParseGetPluginsResponse(rsp *http.Response) (*GetPluginsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPluginsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PluginCatalog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseQueryPluginResponse parses an HTTP response from a QueryPluginWithResponse call
+func ParseQueryPluginResponse(rsp *http.Response) (*QueryPluginResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &QueryPluginResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PluginQueryResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil

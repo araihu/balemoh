@@ -1,0 +1,33 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
+)
+
+// HeaderActions uses the shell's first-paint state and preference key. Storage
+// may be unavailable; the visible theme must still change for this document.
+templ HeaderActions(allowPreferences bool) {
+	@NotificationBell()
+	if allowPreferences {
+	@button.Button(
+		button.WithID("balemoh-color-mode"),
+		button.WithAppearance(button.AppearancePlain),
+		button.WithRootClass("balemoh-header-icon"),
+		button.WithAlpine(&button.AlpineConfig{
+			Data: `{ dark: document.documentElement.classList.contains('dark'), toggle() { this.dark = !this.dark; document.documentElement.classList.toggle('dark', this.dark); try { localStorage.setItem('goshtoso-dark', String(this.dark)); } catch (_) {} } }`,
+			OnClick: "toggle()",
+		}),
+		button.WithAttrs(templ.Attributes{
+			"x-cloak": true,
+			"aria-label": "Switch to dark mode",
+			"x-bind:aria-label": "dark ? 'Switch to light mode' : 'Switch to dark mode'",
+			"x-bind:title": "dark ? 'Switch to light mode' : 'Switch to dark mode'",
+		}),
+	) {
+		<span x-show="!dark">@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidMoon, Decorative: true})</span>
+		<span x-show="dark" x-cloak>@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidSun, Decorative: true})</span>
+	}
+	}
+}

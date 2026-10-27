@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "tool": "goshtoso-iconpack",
-  "release": "iconpack-81498d40a7c2",
+  "release": "iconpack-6cf82d8efb13",
   "identityRevision": 1,
   "catalogSchemaVersion": 1,
-  "catalogSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
+  "catalogSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
   "releaseJsonSha256": "",
   "checksumsSha256": "",
   "sourceKind": "muamba-snapshot",
   "archiveSha256": "",
-  "sourceConfigSha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9",
-  "sourceLockSha256": "019acd6f81439649939cf5d5b045cd86ac76d75b68e7909f11d603990054dcd9",
+  "sourceConfigSha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f",
+  "sourceLockSha256": "49f9d653218debbceee083c2fafce3113be7d7c89981f46a3fef48f837ea7e7a",
   "package": "appicons",
   "constPrefix": "Icon",
   "spriteUrl": "/ui/icons/sprite.svg",
@@ -45,6 +45,16 @@
       "colorBehavior": "currentColor",
       "sha256": "8253c15339196bd566a300530323df4af91f781458e511b6446b57dcef387e85",
       "goIdentifier": "IconKubernetesKubernetes"
+    },
+    {
+      "canonicalName": "lucide-check-check",
+      "namespace": "custom",
+      "product": "lucide",
+      "path": "lucide/check-check.svg",
+      "spriteSymbol": "lucide-check-check",
+      "colorBehavior": "currentColor",
+      "sha256": "2b08c34edf3177ef80d523ad4ec3ebbd9efb92c581a48b6765044464e7e373f9",
+      "goIdentifier": "IconLucideCheckCheck"
     }
   ],
   "files": [
@@ -67,40 +77,46 @@
       "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664"
     },
     {
+      "path": "LICENSES/lucide-LICENSE.txt",
+      "mode": "0644",
+      "bytes": 3208,
+      "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+    },
+    {
       "path": "NOTICE",
       "mode": "0644",
-      "bytes": 474,
-      "sha256": "db9a842b862bfec27090b83eb6cb73b4025dc2440c2010fd2a94e5a313a12dd8"
+      "bytes": 620,
+      "sha256": "5727da549cff8cbf63236566b64189fd73ebc6234e8f115ae04a15eb95dd06d0"
     },
     {
       "path": "PROVENANCE/.iconpack.yaml",
       "mode": "0644",
-      "bytes": 1077,
-      "sha256": "81498d40a7c202ec6ba85fa5eb0dc72b4471c7b80dbc6f198fe3452b2c937eb9"
+      "bytes": 1420,
+      "sha256": "6cf82d8efb1340fe7673c1841bfac09e2bb2770e1a93cebec6cc62570b52c09f"
     },
     {
       "path": "icons.json",
       "mode": "0644",
-      "bytes": 6216,
-      "sha256": "4ae5ce27da2426c645a702ecb7e8a3f1bc79a876b5d8e78b091461a9f45faca1"
+      "bytes": 6466,
+      "sha256": "484b1c4aa3db28a23a027303527c5876a5c6426449f7a810392809d9b1b6a332"
     },
     {
       "path": "icons_gen.go",
       "mode": "0644",
-      "bytes": 1842,
-      "sha256": "c0dee34b48fe9f18ad297c7b0f524208d8f0177a89530f2947294536ec76d759"
+      "bytes": 2133,
+      "sha256": "5b050e35d8a3a9e2aac7e2d89b1566d9cbf4038b38c3c0f8f6ca879baf837afa"
     },
     {
       "path": "provenance.json",
       "mode": "0644",
-      "bytes": 2867,
-      "sha256": "ebf0a70a13a4e3ed60b14b0fec2fd1e73bc9659ba40b1464128ad107295455a3"
+      "bytes": 3662,
+      "sha256": "3ab72c2161e210cbfa50538b829fb6c538135a1362d306b75adbeaad40be2f4a"
     },
     {
       "path": "sprite.svg",
       "mode": "0644",
-      "bytes": 6126,
-      "sha256": "b9043ea76dd100d4341170d21e5776908c837180858728528b9e7552e62ae1f8"
+      "bytes": 6434,
+      "sha256": "2dde1e0a57b617067149f1697586e4b746650dd1ef4a427b9285b584e544a02a"
     }
   ]
 }

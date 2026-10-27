@@ -35,7 +35,7 @@ Configuration is documented in
 - `BALEMOH_UI_API_BASE_URL` defaults to `http://127.0.0.1:8080`.
 - request and shutdown timeouts default to `5s`.
 
-The UI pins Goshtoso v0.3.0 with HTMX 4.0.0 and Alpine.js 3.17.2. Runtime
+The UI pins Goshtoso v0.4.5 with HTMX 4.0.0 and Alpine.js 3.17.2. Runtime
 assets are served locally through Goshtoso and the compatible App Shells module.
 Navigation and service editing use native links and POST/Redirect/GET. Pin
 checkboxes, icon search, details, and uploads use HTMX fragments identified by
@@ -56,3 +56,36 @@ list inside a responsive Goshtoso console shell, with this information order:
 The visual direction is restrained and operational: semantic Goshtoso states,
 neutral panels and dividers, no metric-card gallery, and reduced motion. Empty,
 success, and upstream-error states are rendered explicitly.
+
+## Notification producer icons
+
+A plugin may declare a producer logo with manifest `icon`, referencing a bundled
+`image/png` asset of kind `image`. The logo takes priority in the bell and center,
+including saved notifications and messages without a destination. The BFF matches
+only authenticated source plugin/connection metadata. URLs are minted through the
+existing content-addressed local asset route; no remote image URLs or plugin calls
+are involved. PNG dimensions are bounded to 2048px and MIME/header checked at load.
+
+Without a logo, the destination navigation's bundled Heroicon remains the fallback.
+Detail pages inherit the first valid navigation icon in manifest order. Unknown
+symbols keep the source-kind fallback. `document` assets use `text/plain` for
+bundling licenses and attribution alongside the icon in immutable plugin packages.
+The new optional manifest field requires a host with this SDK version; deploy the
+host and plugin pins together while the unpublished manifest remains alpha.
+
+## Notification center presentation
+
+The inbox and bell share notification rows, producer icons, unread indicators,
+source/time metadata and read controls. The center keeps full message text in a
+58rem reading column. Its Goshtoso panel, toggle and icon actions use the existing
+semantic tokens. App CSS only owns reading width, row layout and control spacing.
+
+| State/action | Result | Preserved context | Writes |
+|---|---|---|---|
+| Filter or refresh | Replace the center only | URL, filter, keyboard focus; shell and bell remain | None |
+| Filter/refresh failure | Show retry feedback and unavailable state | Current route and focused control | None |
+| Mark read | Update the row or filtered list | Filter and cursor; focus goes to the response target | Existing idempotent read endpoint |
+| Mark all read | Update inbox/count and announce completion | Filter and cursor; focus stays in inbox | Existing atomic read-all endpoint |
+| Clear action | Open separate confirmation; Escape restores trigger focus | Inbox unchanged until confirmed | None before confirmation |
+
+Clear confirmation and native POST fallbacks retain the existing contracts.

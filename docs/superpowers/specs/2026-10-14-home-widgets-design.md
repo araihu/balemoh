@@ -2,6 +2,10 @@
 
 Status: implementation contract. First delivery: pinned host metrics alongside existing service shortcuts.
 
+The proposed [application plugin contract](2026-10-25-plugin-system-design.md) extends
+rendering through a private UI/BFF runtime. It preserves this specification's
+data-only dashboard API and existing service/host selection ownership.
+
 ## Boundaries
 
 The homepage renders dashboard items, not a service list. A source provider owns selection and resolution of its data. A widget kind identifies a content contract. A presentation identifies a renderer. `card` is the default presentation, not the domain object or a required wrapper. Registered renderers return `templ.Component` and may render a chart, list, panel or other component directly.

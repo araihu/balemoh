@@ -25,17 +25,16 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Verify generated files
+      - name: Install pinned protocol generators
         run: |
-          go generate ./...
-          (cd client && GOWORK=off go generate ./...)
-          (cd ui && GOWORK=off go generate ./...)
-          git diff --exit-code
+          curl -fsSLo /tmp/protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v33.0/protoc-33.0-linux-x86_64.zip
+          unzip -q /tmp/protoc.zip -d /tmp/protoc
+          echo /tmp/protoc/bin >> "$GITHUB_PATH"
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.1
 
-      - name: Test
-        env:
-          CGO_ENABLED: "0"
-        run: go test ./...
+      - name: Check all plugin modules and generated consumers
+        run: bash hack/check-plugin-modules.sh
 
       - name: Build
         env:
@@ -44,24 +43,16 @@ jobs:
           go build -o /tmp/balemoh ./cmd/balemoh
           (cd ui && GOWORK=off go build -o /tmp/balemoh-ui ./cmd/balemoh-ui)
 
-      - name: Vet
-        run: |
-          go vet ./...
-          (cd client && GOWORK=off go vet ./...)
-          (cd ui && GOWORK=off go vet ./...)
+      - name: Notification refresh scheduling
+        run: node --test ui/internal/view/static/tests/notifications.test.cjs
 
       - name: Race test
         run: |
           go test -race ./...
           (cd client && GOWORK=off go test -race ./...)
           (cd ui && GOWORK=off go test -race ./...)
+          (cd plugin-sdk && GOWORK=off go test -race ./...)
 
-      - name: Test nested modules
-        env:
-          CGO_ENABLED: "0"
-        run: |
-          (cd client && GOWORK=off go test ./...)
-          (cd ui && GOWORK=off go test ./...)
 
   image-smoke:
     name: API and UI image smoke test

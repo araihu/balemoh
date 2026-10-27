@@ -18,3 +18,26 @@ func TestSidebarRendersNavigationIcons(t *testing.T) {
 		}
 	}
 }
+
+func TestColorModeControlHonorsAppearanceOverrides(t *testing.T) {
+	for _, tt := range []struct {
+		name, theme, mode string
+		wantControl       bool
+	}{
+		{name: "default", wantControl: true},
+		{name: "system", theme: "goshtoso", mode: "system", wantControl: true},
+		{name: "forced light", theme: "goshtoso", mode: "light"},
+		{name: "forced dark", theme: "goshtoso", mode: "dark"},
+		{name: "forced theme", theme: "minimal", mode: "system"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var body bytes.Buffer
+			if err := ConsolePage(PageData{Title: "Home", Description: "Homepage services", Theme: tt.theme, ColorScheme: tt.mode}).Render(context.Background(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if got := strings.Contains(body.String(), `id="balemoh-color-mode"`); got != tt.wantControl {
+				t.Fatalf("theme control present = %v, want %v", got, tt.wantControl)
+			}
+		})
+	}
+}

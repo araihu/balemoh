@@ -50,6 +50,18 @@ it listens on `:8081` by default. `/` shows pinned services and `/staging`
 provides the discovery review flow. Pin, unpin, and sync actions use native
 HTML forms with POST/Redirect/GET, so the initial BFF does not require HTMX.
 
+Trusted application plugins use `BALEMOH_PLUGIN_CONFIG` in the API and
+`BALEMOH_UI_PLUGIN_CONFIG` in the BFF. The independent [plugin SDK](plugin-sdk/README.md)
+supplies manifest validation, gRPC transport, templ rendering and author tooling.
+`/plugins/widgets` lists widget contributions and retained configuration; home
+pinning, options and enabled state persist independently of source availability.
+The separate `balemoh-plugin-alertmanager` repository implements a read-only
+Alertmanager API v2 backend, current/detail pages, filters and home widgets.
+Plugin discovery, child startup and contribution rendering run asynchronously,
+independently of core listener readiness. Optional fixture previews still use
+`BALEMOH_UI_PLUGIN_PREVIEW_CONFIG`; see [plugin operations](docs/plugins/operations.md)
+for installation, credentials and trusted-code boundaries.
+
 Defaults:
 
 - `BALEMOH_HTTP_ADDR=:8080`
@@ -236,6 +248,19 @@ and [Kubernetes/DevSpace plan](docs/superpowers/plans/2026-08-17-balemoh-kuberne
 for the adapter sequence and scope boundaries.
 
 See [Icon library](docs/icons.md) for catalog vendoring, uploads, and storage requirements.
+
+See the [application plugin specification](docs/superpowers/specs/2026-10-25-plugin-system-design.md)
+for the SDK, manifest, runtime, scaffold plan and first Alertmanager plugin.
+P2 implements the backend/data path with private service authentication and
+scoped BFF callbacks. Enable it explicitly through `BALEMOH_PLUGIN_CONFIG` and
+`BALEMOH_PLUGIN_SERVICE_TOKEN_FILE` in API, and the corresponding
+`BALEMOH_UI_PLUGIN_CONFIG`/`BALEMOH_UI_PLUGIN_SERVICE_TOKEN_FILE` in BFF.
+Deployment JSON and package pins are documented in the separate
+`balemoh-plugin-alertmanager` consumer README. Defaults leave plugins disabled;
+source failures affect only isolated plugin content. Individual package/pin or
+connection errors are published in the private `/api/v1/plugins` catalog
+`problems` array while core routes and valid installations continue. A malformed
+top-level deployment document or invalid global service credential fails startup.
 
 ## Production image
 
