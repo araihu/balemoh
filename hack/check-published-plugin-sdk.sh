@@ -3,7 +3,7 @@ set -euo pipefail
 version=${1:?usage: check-published-plugin-sdk.sh VERSION}
 [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || exit 2
 work=$(mktemp -d /tmp/balemoh-sdk-release.XXXXXX)
-trap 'rm -rf "$work"' EXIT
+trap 'GOMODCACHE="$work/modules" go clean -modcache; rm -rf "$work"' EXIT
 mkdir -p "$work/bin" "$work/tmp"
 export GOWORK=off GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org
 export GOPRIVATE= GONOPROXY= GONOSUMDB=
