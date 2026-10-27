@@ -1,0 +1,129 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/alert"
+	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/checkbox"
+	"github.com/araihu/goshtoso/components/dropdown"
+	"github.com/araihu/goshtoso/components/modal"
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/panel"
+	"github.com/araihu/goshtoso/components/radio"
+	selectfield "github.com/araihu/goshtoso/components/select"
+	"github.com/araihu/goshtoso/components/tabs"
+	"github.com/araihu/goshtoso/components/textinput"
+	"github.com/araihu/goshtoso/components/toggle"
+)
+
+templ ThemePreviewContent() {
+	<main class="balemoh-content balemoh-theme-preview" data-theme-preview hx-disable x-data="{feedback: ''}">
+		@SiteLogo("")
+		@pageheader.PageHeader(pageheader.Config{Title: "Your workspace", TitleClass: "font-title", Description: "Interactive theme preview. Sample data only; changes stay here.", HideSeparator: true})
+		@panel.Panel(panel.Config{Density: panel.DensityCompact, BodyClass: "space-y-4"}) {
+			<h2 class="font-title text-lg font-semibold">Actions and menus</h2>
+			<div class="flex flex-wrap items-center gap-2">
+				@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"x-on:click": "feedback = 'Service added in this preview.'"})) {
+					Add service
+				}
+				@button.Button(button.WithType("button"), button.WithTone(button.ToneSecondary), button.WithAttrs(templ.Attributes{"x-on:click": "feedback = 'Discovery refreshed in this preview.'"})) {
+					Refresh
+				}
+				@button.Button(button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithAttrs(templ.Attributes{"x-on:click": "$dispatch('modal:open', {id: 'preview-dialog'})"})) {
+					Open dialog
+				}
+				@button.Button(button.WithType("button"), button.WithTone(button.ToneDanger), button.WithAttrs(templ.Attributes{"x-on:click": "feedback = 'Sample service removed in this preview.'"})) {
+					Remove
+				}
+				@button.Button(button.WithType("button"), button.Disabled()) {
+					Unavailable
+				}
+				@dropdown.Dropdown(dropdown.Config{ID: "preview-actions", Label: "More actions", Sections: []dropdown.Section{
+					{Items: []dropdown.Item{
+						{Label: "View details", Caption: "Inspect a sample service", OnClick: "feedback = 'Sample service details selected.'"},
+						{Label: "Duplicate service", OnClick: "feedback = 'Sample service duplicated.'"},
+						{Label: "Move to group", Disabled: true, Tooltip: "No other groups in this preview"},
+					}},
+					{Items: []dropdown.Item{{Label: "Remove service", Danger: true, OnClick: "feedback = 'Sample service removed in this preview.'"}}},
+				}})
+			</div>
+			<div class="flex flex-wrap gap-2" aria-label="Service statuses">
+				@badge.Badge(badge.Config{Label: "Primary", Tone: badge.TonePrimary})
+				@badge.Badge(badge.Config{Label: "Secondary", Tone: badge.ToneSecondary})
+				@badge.Badge(badge.Config{Label: "Healthy", Tone: badge.ToneSuccess, Appearance: badge.AppearanceSoft})
+				@badge.Badge(badge.Config{Label: "Pending", Tone: badge.ToneWarning, Appearance: badge.AppearanceSoft})
+				@badge.Badge(badge.Config{Label: "Offline", Tone: badge.ToneDanger, Appearance: badge.AppearanceSoft})
+			</div>
+			<p class="balemoh-preview-feedback" role="status" aria-live="polite" x-text="feedback"></p>
+		}
+		@tabs.Tabs(tabs.Config{ID: "preview-workspace", DefaultTab: "overview", Tabs: []tabs.Tab{
+			{ID: "overview", Label: "Overview", Content: ThemePreviewOverview()},
+			{ID: "settings", Label: "Settings", Content: ThemePreviewSettings()},
+			{ID: "activity", Label: "Activity", Badge: "4", Content: ThemePreviewActivity()},
+		}})
+		@modal.Dialog(modal.DialogConfig{ID: "preview-dialog", Title: "Service details", Content: ThemePreviewDialog()})
+	</main>
+	@ProductFooter()
+}
+
+templ ThemePreviewOverview() {
+	<div class="space-y-4">
+		<p class="balemoh-muted">Service and host cards use the same components as your dashboard.</p>
+		@DashboardGrid(themePreviewDashboard())
+	</div>
+}
+
+templ ThemePreviewSettings() {
+	@panel.Panel(panel.Config{Density: panel.DensityCompact, BodyClass: "space-y-4"}) {
+		<h2 class="font-title text-lg font-semibold">Service settings</h2>
+		<form class="space-y-4" autocomplete="off">
+			@textinput.TextInput(textinput.Config{ID: "preview-service-name", Label: "Service name", Value: "Jellyfin", HelperText: "Shown on the dashboard."})
+			@selectfield.Select(selectfield.Config{ID: "preview-service-group", Label: "Group", Options: []selectfield.Option{
+				{Value: "media", Label: "Media", Selected: true}, {Value: "monitoring", Label: "Monitoring"}, {Value: "infra", Label: "Infrastructure"},
+			}})
+			@textinput.TextInput(textinput.Config{ID: "preview-service-url", Label: "Service URL", Value: "jellyfin", State: textinput.StateError, HelperText: "Enter a full URL, such as https://jellyfin.example.test."})
+			@textinput.TextInput(textinput.Config{ID: "preview-service-discovered", Label: "Discovered by", Value: "Docker · nas-01", Disabled: true})
+			<div class="flex flex-wrap gap-4">
+				@checkbox.Checkbox(checkbox.Config{ID: "preview-pin", Label: "Pin to dashboard", Checked: true})
+				@toggle.Toggle(toggle.Config{ID: "preview-notifications", Label: "Notifications", Checked: true})
+			</div>
+			<fieldset class="space-y-2">
+				<legend>Card size</legend>
+				@radio.RadioBar() {
+					@radio.Radio(radio.Config{ID: "preview-size-compact", Name: "previewCardSize", Value: "compact", Label: "Compact", Segmented: true})
+					@radio.Radio(radio.Config{ID: "preview-size-comfortable", Name: "previewCardSize", Value: "comfortable", Label: "Comfortable", Segmented: true, Checked: true})
+				}
+			</fieldset>
+			<div class="flex flex-wrap gap-2">
+				@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"x-on:click": "feedback = 'Sample settings saved only in this preview.'"})) {
+					Save changes
+				}
+			</div>
+		</form>
+	}
+}
+
+templ ThemePreviewActivity() {
+	<div class="space-y-4">
+		<h2 class="font-title text-lg font-semibold">Activity and feedback</h2>
+		@alert.Alert(alert.Config{Title: "Discovery complete", Description: "Two services and one host are ready to review.", Tone: alert.ToneSuccess})
+		@alert.Alert(alert.Config{Title: "Scheduled refresh", Description: "Host metrics refresh every 30 seconds.", Tone: alert.ToneInfo})
+		@alert.Alert(alert.Config{Title: "Host needs attention", Description: "nas-01 has not reported fresh metrics.", Tone: alert.ToneWarning})
+		@alert.Alert(alert.Config{Title: "Connection failed", Description: "The sample service could not be reached. Check its address and try again.", Tone: alert.ToneDanger})
+	</div>
+}
+
+templ ThemePreviewDialog() {
+	<div class="space-y-4">
+		<p>Inspect dialog surfaces, backdrop, text and actions with the selected theme.</p>
+		@textinput.TextInput(textinput.Config{ID: "preview-dialog-name", Label: "Display name", Value: "Jellyfin"})
+		<div class="flex flex-wrap justify-end gap-2">
+			@button.Button(button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithAttrs(templ.Attributes{"x-on:click": "$dispatch('modal:close', {id: 'preview-dialog'})"})) {
+				Cancel
+			}
+			@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"x-on:click": "feedback = 'Dialog confirmed only in this preview.'; $dispatch('modal:close', {id: 'preview-dialog'})"})) {
+				Confirm
+			}
+		</div>
+	</div>
+}

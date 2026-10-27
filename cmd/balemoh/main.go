@@ -118,6 +118,7 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 	}
 	handler = handler.WithNotifications(notificationService, notificationAuth)
 	handler = handler.WithIcons(sqlite.NewIconStore(db))
+	handler = handler.WithPresentation(sqlite.NewPresentationStore(db))
 	telemetryStore := sqlite.NewTelemetryStore(db)
 	sources := []telemetry.Source{}
 	for source := range sourceTokens {
@@ -135,7 +136,7 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 	}
 	handler = handler.WithTelemetry(telemetryStore)
 	handler = handler.WithDashboard(dashboard.New(dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: telemetryStore, Selections: sqlite.NewDashboardSelections(db)}))
-	httpHandler := generated.HandlerFromMux(handler, http.NewServeMux())
+	httpHandler := generated.HandlerWithOptions(handler, generated.StdHTTPServerOptions{BaseRouter: http.NewServeMux(), ErrorHandlerFunc: httpadapter.RequestError})
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, notificationService, nil
 }
 

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	themes "github.com/araihu/goshtoso/themes"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -242,6 +243,96 @@ func (e PluginQueryResultState) Valid() bool {
 	}
 }
 
+// Defines values for PresentationConflictKind.
+const (
+	Catalog  PresentationConflictKind = "catalog"
+	Command  PresentationConflictKind = "command"
+	Font     PresentationConflictKind = "font"
+	Settings PresentationConflictKind = "settings"
+	Theme    PresentationConflictKind = "theme"
+)
+
+// Valid indicates whether the value is a known member of the PresentationConflictKind enum.
+func (e PresentationConflictKind) Valid() bool {
+	switch e {
+	case Catalog:
+		return true
+	case Command:
+		return true
+	case Font:
+		return true
+	case Settings:
+		return true
+	case Theme:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PresentationSaveColorMode.
+const (
+	PresentationSaveColorModeDark   PresentationSaveColorMode = "dark"
+	PresentationSaveColorModeLight  PresentationSaveColorMode = "light"
+	PresentationSaveColorModeSystem PresentationSaveColorMode = "system"
+)
+
+// Valid indicates whether the value is a known member of the PresentationSaveColorMode enum.
+func (e PresentationSaveColorMode) Valid() bool {
+	switch e {
+	case PresentationSaveColorModeDark:
+		return true
+	case PresentationSaveColorModeLight:
+		return true
+	case PresentationSaveColorModeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PresentationSelectionKind.
+const (
+	Builtin   PresentationSelectionKind = "builtin"
+	Custom    PresentationSelectionKind = "custom"
+	NewCustom PresentationSelectionKind = "newCustom"
+)
+
+// Valid indicates whether the value is a known member of the PresentationSelectionKind enum.
+func (e PresentationSelectionKind) Valid() bool {
+	switch e {
+	case Builtin:
+		return true
+	case Custom:
+		return true
+	case NewCustom:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PresentationSettingsColorMode.
+const (
+	PresentationSettingsColorModeDark   PresentationSettingsColorMode = "dark"
+	PresentationSettingsColorModeLight  PresentationSettingsColorMode = "light"
+	PresentationSettingsColorModeSystem PresentationSettingsColorMode = "system"
+)
+
+// Valid indicates whether the value is a known member of the PresentationSettingsColorMode enum.
+func (e PresentationSettingsColorMode) Valid() bool {
+	switch e {
+	case PresentationSettingsColorModeDark:
+		return true
+	case PresentationSettingsColorModeLight:
+		return true
+	case PresentationSettingsColorModeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ServiceCandidateStatus.
 const (
 	Hidden  ServiceCandidateStatus = "hidden"
@@ -257,6 +348,48 @@ func (e ServiceCandidateStatus) Valid() bool {
 	case Live:
 		return true
 	case Missing:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ThemeColorSpace.
+const (
+	Oklch ThemeColorSpace = "oklch"
+	Srgb  ThemeColorSpace = "srgb"
+)
+
+// Valid indicates whether the value is a known member of the ThemeColorSpace enum.
+func (e ThemeColorSpace) Valid() bool {
+	switch e {
+	case Oklch:
+		return true
+	case Srgb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ThemeFontRefSource.
+const (
+	Bundled ThemeFontRefSource = "bundled"
+	Google  ThemeFontRefSource = "google"
+	System  ThemeFontRefSource = "system"
+	Upload  ThemeFontRefSource = "upload"
+)
+
+// Valid indicates whether the value is a known member of the ThemeFontRefSource enum.
+func (e ThemeFontRefSource) Valid() bool {
+	switch e {
+	case Bundled:
+		return true
+	case Google:
+		return true
+	case System:
+		return true
+	case Upload:
 		return true
 	default:
 		return false
@@ -300,6 +433,31 @@ func (e ChangeServiceLifecycleJSONBodyAction) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// BuiltinTheme One immutable preset supplied by the installed Goshtoso catalog.
+type BuiltinTheme struct {
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition `json:"definition"`
+	Key        string          `json:"key"`
+	Label      string          `json:"label"`
+}
+
+// CustomTheme Named independent snapshot with stable theme:UUID identity and optimistic revision.
+type CustomTheme struct {
+	// BrandIconId Pinned uploaded app icon and favicon.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Pinned uploaded logo for this custom theme, independent of the app icon and favicon.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition `json:"definition"`
+	Id         string          `json:"id"`
+	Name       string          `json:"name"`
+
+	// Revision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	Revision PresentationRevision `json:"revision"`
 }
 
 // DashboardSnapshot Homepage widgets from the registered providers. A provider may fail independently; inspect unavailable even when the HTTP status is 200.
@@ -352,8 +510,13 @@ type ErrorResponse struct {
 	// Code Machine-readable reason such as unavailable, not_found, conflict, or invalid_snapshot.
 	Code string `json:"code"`
 
+	// Conflict Resource and current revision explaining a rejected command. Never silently replace the draft revision.
+	Conflict    *PresentationConflict `json:"conflict,omitempty"`
+	FieldErrors *map[string]string    `json:"fieldErrors,omitempty"`
+
 	// Message Human-readable explanation. Branch on code or HTTP status rather than matching this text.
-	Message string `json:"message"`
+	Message string    `json:"message"`
+	UsedBy  *[]string `json:"usedBy,omitempty"`
 }
 
 // FederatedCandidate One raw observation in a complete source snapshot. The ID is SHA-256 of the concatenation of five length-prefixed UTF-8 strings: source.kind, source.id, resource.kind, resource.namespace or empty, and resource.name. Each trimmed string is encoded as its byte length in decimal, then a colon, then its bytes. Prefer the agent implementation over constructing IDs by hand. Do not include gateway pin or edit state.
@@ -771,6 +934,97 @@ type PluginWidgetDefinition struct {
 	Title          string                 `json:"title"`
 }
 
+// PresentationConflict Resource and current revision explaining a rejected command. Never silently replace the draft revision.
+type PresentationConflict struct {
+	CurrentRevision *string                  `json:"currentRevision,omitempty"`
+	Id              *string                  `json:"id,omitempty"`
+	Kind            PresentationConflictKind `json:"kind"`
+}
+
+// PresentationConflictKind defines model for PresentationConflict.Kind.
+type PresentationConflictKind string
+
+// PresentationReceipt Committed result of a successful Save or its immediate exact replay.
+type PresentationReceipt struct {
+	CommandId openapi_types.UUID   `json:"commandId"`
+	Settings  PresentationSettings `json:"settings"`
+
+	// ThemeRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ThemeRevision *PresentationRevision `json:"themeRevision,omitempty"`
+}
+
+// PresentationRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+type PresentationRevision = string
+
+// PresentationSave Client-identified atomic Save. Preserve command and resource IDs when retrying an unconfirmed response.
+type PresentationSave struct {
+	ColorMode PresentationSaveColorMode `json:"colorMode"`
+	CommandId openapi_types.UUID        `json:"commandId"`
+
+	// ExpectedSettingsRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedSettingsRevision PresentationRevision `json:"expectedSettingsRevision"`
+
+	// Selection Exactly one form: builtin has key and expectedCatalogRevision; custom has id, expectedThemeRevision, optional draft; newCustom has fresh theme:UUID id, name, definition, expectedCatalogRevision. Other form fields are rejected. Read responses contain identity only, and expectedThemeRevision for the active custom theme.
+	Selection PresentationSelection `json:"selection"`
+}
+
+// PresentationSaveColorMode defines model for PresentationSave.ColorMode.
+type PresentationSaveColorMode string
+
+// PresentationSelection Exactly one form: builtin has key and expectedCatalogRevision; custom has id, expectedThemeRevision, optional draft; newCustom has fresh theme:UUID id, name, definition, expectedCatalogRevision. Other form fields are rejected. Read responses contain identity only, and expectedThemeRevision for the active custom theme.
+type PresentationSelection struct {
+	// BrandIconId Uploaded app icon/favicon for newCustom only. Existing custom selections use their saved branding.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Logo image for newCustom only. Empty selects the Balemoh logo; omitting this field retains the legacy shared icon behavior. Existing custom selections use their saved logo.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition *ThemeDefinition `json:"definition,omitempty"`
+
+	// Draft Complete named replacement draft. Applied only by an atomic presentation Save.
+	Draft                   *ThemeDraft `json:"draft,omitempty"`
+	ExpectedCatalogRevision *string     `json:"expectedCatalogRevision,omitempty"`
+
+	// ExpectedThemeRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedThemeRevision *PresentationRevision     `json:"expectedThemeRevision,omitempty"`
+	Id                    *string                   `json:"id,omitempty"`
+	Key                   *string                   `json:"key,omitempty"`
+	Kind                  PresentationSelectionKind `json:"kind"`
+	Name                  *string                   `json:"name,omitempty"`
+}
+
+// PresentationSelectionKind defines model for PresentationSelection.Kind.
+type PresentationSelectionKind string
+
+// PresentationSettings Instance-wide theme identity and color mode with a decimal settings revision.
+type PresentationSettings struct {
+	ColorMode PresentationSettingsColorMode `json:"colorMode"`
+
+	// Revision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	Revision PresentationRevision `json:"revision"`
+
+	// Selection Exactly one form: builtin has key and expectedCatalogRevision; custom has id, expectedThemeRevision, optional draft; newCustom has fresh theme:UUID id, name, definition, expectedCatalogRevision. Other form fields are rejected. Read responses contain identity only, and expectedThemeRevision for the active custom theme.
+	Selection PresentationSelection `json:"selection"`
+}
+
+// PresentationSettingsColorMode defines model for PresentationSettings.ColorMode.
+type PresentationSettingsColorMode string
+
+// PresentationState Authoritative settings and the complete currently selected definition. Storage failure returns 503, never empty defaults.
+type PresentationState struct {
+	// BrandIconId App icon/favicon reference of the active custom theme; omitted for the Balemoh default.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Independent logo reference of the active custom theme; omitted when its original Balemoh logo is selected.
+	BrandLogoId     *string `json:"brandLogoId,omitempty"`
+	CatalogRevision string  `json:"catalogRevision"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition      `json:"definition"`
+	Settings   PresentationSettings `json:"settings"`
+}
+
 // ResourceObservation The resource, endpoints, and images retained behind one member of a grouped service. It is evidence, not an independently selected homepage card.
 type ResourceObservation struct {
 	// Endpoints Endpoint evidence for this grouped resource.
@@ -909,6 +1163,115 @@ type TelemetryBatch struct {
 	Source SourceRef `json:"source"`
 }
 
+// ThemeCatalog Installed preset catalog and saved custom themes. The example shows one preset entry; GET returns every installed preset.
+type ThemeCatalog struct {
+	Builtins        []BuiltinTheme `json:"builtins"`
+	CatalogRevision string         `json:"catalogRevision"`
+	Custom          []CustomTheme  `json:"custom"`
+}
+
+// ThemeColor Finite literal color with three channels and explicit alpha. No CSS expressions or palette aliases.
+type ThemeColor struct {
+	Alpha float32 `json:"alpha"`
+
+	// Channels sRGB channels 0..1; OKLCH L 0..1, C 0..0.5, hue 0..<360. All finite.
+	Channels []float32       `json:"channels"`
+	Space    ThemeColorSpace `json:"space"`
+}
+
+// ThemeColorSpace defines model for ThemeColor.Space.
+type ThemeColorSpace string
+
+// ThemeCopyFrom Copy a saved custom snapshot at an explicit revision. Later source edits do not change the copy.
+type ThemeCopyFrom struct {
+	// ExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedRevision PresentationRevision `json:"expectedRevision"`
+	Id               string               `json:"id"`
+}
+
+// ThemeCreate Supply exactly one of definition or copyFrom. Creates inactive theme. Same ID and creation payload returns 200; changed payload conflicts. Maximum 128 saved themes.
+type ThemeCreate struct {
+	// BrandIconId Image reference for an explicit definition. A copyFrom request inherits the source theme image.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Logo reference for an explicit definition; empty uses the Balemoh logo. Omission retains legacy shared icon behavior. A copyFrom request inherits both source images.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// CopyFrom Copy a saved custom snapshot at an explicit revision. Later source edits do not change the copy.
+	CopyFrom *ThemeCopyFrom `json:"copyFrom,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition *ThemeDefinition `json:"definition,omitempty"`
+	Id         string           `json:"id"`
+	Name       string           `json:"name"`
+}
+
+// ThemeDefinition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+type ThemeDefinition = themes.Definition
+
+// ThemeDraft Complete named replacement draft. Applied only by an atomic presentation Save.
+type ThemeDraft struct {
+	// BrandIconId Uploaded app icon/favicon. Omit to preserve the saved icon; empty restores the Balemoh icon.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Uploaded logo reference. Omit from a replacement draft to preserve the saved logo; empty restores the Balemoh logo.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition `json:"definition"`
+	Name       string          `json:"name"`
+}
+
+// ThemeFontRef Stable font source and identity. Uploaded IDs reference immutable file bytes.
+type ThemeFontRef struct {
+	Id     string             `json:"id"`
+	Source ThemeFontRefSource `json:"source"`
+}
+
+// ThemeFontRefSource defines model for ThemeFontRef.Source.
+type ThemeFontRefSource string
+
+// ThemeProvenance Origin of a materialized snapshot. These fields establish no live preset inheritance.
+type ThemeProvenance struct {
+	CatalogRevision string `json:"catalogRevision"`
+	GoshtosoVersion string `json:"goshtosoVersion"`
+	PresetKey       string `json:"presetKey"`
+}
+
+// ThemeRename Metadata-only name change guarded by the current theme revision. Selection and definition stay unchanged.
+type ThemeRename struct {
+	// ExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedRevision PresentationRevision `json:"expectedRevision"`
+	Name             string               `json:"name"`
+}
+
+// ThemeTypography Independent title and body font choices. Variable fonts use default axis values.
+type ThemeTypography struct {
+	// Body Stable font source and identity. Uploaded IDs reference immutable file bytes.
+	Body ThemeFontRef `json:"body"`
+
+	// Title Stable font source and identity. Uploaded IDs reference immutable file bytes.
+	Title ThemeFontRef `json:"title"`
+}
+
+// UploadedFont Metadata derived from uploaded bytes. Each file is independent, including variable fonts. Lists omit file bytes.
+type UploadedFont struct {
+	ByteLength int    `json:"byteLength"`
+	Digest     string `json:"digest"`
+	Family     string `json:"family"`
+	Format     string `json:"format"`
+	Id         string `json:"id"`
+	Mime       string `json:"mime"`
+	Name       string `json:"name"`
+
+	// Revision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	Revision PresentationRevision `json:"revision"`
+	Style    string               `json:"style"`
+	UsedBy   []string             `json:"usedBy"`
+	Variable bool                 `json:"variable"`
+	Weight   string               `json:"weight"`
+}
+
 // UploadedIcon Metadata for a user-uploaded icon. digest is a revision of the trimmed name, tags, and image bytes, not just an image hash. usedBy lists service display names rather than service IDs.
 type UploadedIcon struct {
 	// Digest SHA-256 revision over name, a NUL byte, tags, a NUL byte, and image bytes. Supply it for update or delete.
@@ -930,6 +1293,33 @@ type UploadedIcon struct {
 	UsedBy []string `json:"usedBy"`
 }
 
+// PresentationExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+type PresentationExpectedRevision = PresentationRevision
+
+// PresentationFontID defines model for PresentationFontID.
+type PresentationFontID = string
+
+// PresentationThemeID defines model for PresentationThemeID.
+type PresentationThemeID = string
+
+// PresentationInvalid Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationInvalid = ErrorResponse
+
+// PresentationMissing Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationMissing = ErrorResponse
+
+// PresentationRejected Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationRejected = ErrorResponse
+
+// PresentationTooLarge Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationTooLarge = ErrorResponse
+
+// PresentationUnavailable Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationUnavailable = ErrorResponse
+
+// PresentationUnsupportedFont Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationUnsupportedFont = ErrorResponse
+
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
@@ -946,6 +1336,19 @@ type pluginServiceContextKey string
 type SetDashboardSelectionJSONBody struct {
 	// Enabled Whether this source should be selected for the homepage.
 	Enabled bool `json:"enabled"`
+}
+
+// UploadFontMultipartBody defines parameters for UploadFont.
+type UploadFontMultipartBody struct {
+	File openapi_types.File `json:"file"`
+	Id   string             `json:"id"`
+	Name string             `json:"name"`
+}
+
+// DeleteFontParams defines parameters for DeleteFont.
+type DeleteFontParams struct {
+	// ExpectedRevision Exact current revision of the item being deleted. A stale value returns 409.
+	ExpectedRevision PresentationExpectedRevision `form:"expectedRevision" json:"expectedRevision"`
 }
 
 // GetHostParams defines parameters for GetHost.
@@ -1001,6 +1404,12 @@ type ChangeServiceLifecycleJSONBody struct {
 // ChangeServiceLifecycleJSONBodyAction defines parameters for ChangeServiceLifecycle.
 type ChangeServiceLifecycleJSONBodyAction string
 
+// DeleteThemeParams defines parameters for DeleteTheme.
+type DeleteThemeParams struct {
+	// ExpectedRevision Exact current revision of the item being deleted. A stale value returns 409.
+	ExpectedRevision PresentationExpectedRevision `form:"expectedRevision" json:"expectedRevision"`
+}
+
 // SetDashboardSelectionJSONRequestBody defines body for SetDashboardSelection for application/json ContentType.
 type SetDashboardSelectionJSONRequestBody SetDashboardSelectionJSONBody
 
@@ -1009,6 +1418,9 @@ type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
 
 // ImportTelemetryJSONRequestBody defines body for ImportTelemetry for application/json ContentType.
 type ImportTelemetryJSONRequestBody = TelemetryBatch
+
+// UploadFontMultipartRequestBody defines body for UploadFont for multipart/form-data ContentType.
+type UploadFontMultipartRequestBody UploadFontMultipartBody
 
 // UploadIconJSONRequestBody defines body for UploadIcon for application/json ContentType.
 type UploadIconJSONRequestBody = IconUpload
@@ -1025,6 +1437,9 @@ type PutPluginWidgetJSONRequestBody = PluginPlacementBody
 // QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
 type QueryPluginJSONRequestBody QueryPluginJSONBody
 
+// SavePresentationJSONRequestBody defines body for SavePresentation for application/json ContentType.
+type SavePresentationJSONRequestBody = PresentationSave
+
 // CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
 type CreateManualServiceJSONRequestBody = ManualServiceCreate
 
@@ -1033,6 +1448,12 @@ type EditStagingServiceJSONRequestBody = ServiceEdit
 
 // ChangeServiceLifecycleJSONRequestBody defines body for ChangeServiceLifecycle for application/json ContentType.
 type ChangeServiceLifecycleJSONRequestBody ChangeServiceLifecycleJSONBody
+
+// CreateThemeJSONRequestBody defines body for CreateTheme for application/json ContentType.
+type CreateThemeJSONRequestBody = ThemeCreate
+
+// RenameThemeJSONRequestBody defines body for RenameTheme for application/json ContentType.
+type RenameThemeJSONRequestBody = ThemeRename
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1051,6 +1472,18 @@ type ServerInterface interface {
 	// Import a host telemetry report
 	// (POST /api/v1/federation/telemetry)
 	ImportTelemetry(w http.ResponseWriter, r *http.Request)
+	// List uploaded font metadata without file bytes
+	// (GET /api/v1/fonts)
+	ListFonts(w http.ResponseWriter, r *http.Request)
+	// Upload a new immutable font reference
+	// (POST /api/v1/fonts)
+	UploadFont(w http.ResponseWriter, r *http.Request)
+	// Delete an uploaded font with no saved references
+	// (DELETE /api/v1/fonts/{fontID})
+	DeleteFont(w http.ResponseWriter, r *http.Request, fontID PresentationFontID, params DeleteFontParams)
+	// Read original immutable font bytes
+	// (GET /api/v1/fonts/{fontID}/file)
+	GetFontFile(w http.ResponseWriter, r *http.Request, fontID PresentationFontID)
 	// List pinned live services
 	// (GET /api/v1/homepage/services)
 	GetHomepageServices(w http.ResponseWriter, r *http.Request)
@@ -1108,6 +1541,12 @@ type ServerInterface interface {
 	// Query a plugin observation
 	// (POST /api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId})
 	QueryPlugin(w http.ResponseWriter, r *http.Request, pluginId string, connectionId string, queryId string)
+	// Read global presentation and active snapshot
+	// (GET /api/v1/presentation)
+	GetPresentation(w http.ResponseWriter, r *http.Request)
+	// Atomically save and activate presentation
+	// (PUT /api/v1/presentation)
+	SavePresentation(w http.ResponseWriter, r *http.Request)
 	// List services for review
 	// (GET /api/v1/staging/services)
 	GetStagingServices(w http.ResponseWriter, r *http.Request)
@@ -1126,6 +1565,21 @@ type ServerInterface interface {
 	// Pin a live service
 	// (POST /api/v1/staging/services/{serviceId}/pin)
 	PinStagingService(w http.ResponseWriter, r *http.Request, serviceId string)
+	// Read every installed preset and custom theme
+	// (GET /api/v1/themes)
+	ListThemes(w http.ResponseWriter, r *http.Request)
+	// Create an inactive independent theme
+	// (POST /api/v1/themes)
+	CreateTheme(w http.ResponseWriter, r *http.Request)
+	// Delete an inactive theme
+	// (DELETE /api/v1/themes/{themeID})
+	DeleteTheme(w http.ResponseWriter, r *http.Request, themeID PresentationThemeID, params DeleteThemeParams)
+	// Read a custom theme
+	// (GET /api/v1/themes/{themeID})
+	GetTheme(w http.ResponseWriter, r *http.Request, themeID PresentationThemeID)
+	// Rename a theme without changing active selection
+	// (PATCH /api/v1/themes/{themeID})
+	RenameTheme(w http.ResponseWriter, r *http.Request, themeID PresentationThemeID)
 	// Check API readiness
 	// (GET /healthz)
 	GetHealthz(w http.ResponseWriter, r *http.Request)
@@ -1234,6 +1688,102 @@ func (siw *ServerInterfaceWrapper) ImportTelemetry(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ImportTelemetry(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFonts operation middleware
+func (siw *ServerInterfaceWrapper) ListFonts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFonts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadFont operation middleware
+func (siw *ServerInterfaceWrapper) UploadFont(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadFont(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteFont operation middleware
+func (siw *ServerInterfaceWrapper) DeleteFont(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "fontID" -------------
+	var fontID PresentationFontID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "fontID", r.PathValue("fontID"), &fontID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fontID", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteFontParams
+
+	// ------------- Required query parameter "expectedRevision" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "expectedRevision", r.URL.Query(), &params.ExpectedRevision, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "expectedRevision"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "expectedRevision", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteFont(w, r, fontID, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFontFile operation middleware
+func (siw *ServerInterfaceWrapper) GetFontFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "fontID" -------------
+	var fontID PresentationFontID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "fontID", r.PathValue("fontID"), &fontID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fontID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFontFile(w, r, fontID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1826,6 +2376,34 @@ func (siw *ServerInterfaceWrapper) QueryPlugin(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// GetPresentation operation middleware
+func (siw *ServerInterfaceWrapper) GetPresentation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPresentation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SavePresentation operation middleware
+func (siw *ServerInterfaceWrapper) SavePresentation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SavePresentation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetStagingServices operation middleware
 func (siw *ServerInterfaceWrapper) GetStagingServices(w http.ResponseWriter, r *http.Request) {
 
@@ -1949,6 +2527,128 @@ func (siw *ServerInterfaceWrapper) PinStagingService(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PinStagingService(w, r, serviceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListThemes operation middleware
+func (siw *ServerInterfaceWrapper) ListThemes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListThemes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTheme operation middleware
+func (siw *ServerInterfaceWrapper) CreateTheme(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTheme(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTheme operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTheme(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "themeID" -------------
+	var themeID PresentationThemeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "themeID", r.PathValue("themeID"), &themeID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "themeID", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteThemeParams
+
+	// ------------- Required query parameter "expectedRevision" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "expectedRevision", r.URL.Query(), &params.ExpectedRevision, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "expectedRevision"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "expectedRevision", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTheme(w, r, themeID, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTheme operation middleware
+func (siw *ServerInterfaceWrapper) GetTheme(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "themeID" -------------
+	var themeID PresentationThemeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "themeID", r.PathValue("themeID"), &themeID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "themeID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTheme(w, r, themeID)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RenameTheme operation middleware
+func (siw *ServerInterfaceWrapper) RenameTheme(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "themeID" -------------
+	var themeID PresentationThemeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "themeID", r.PathValue("themeID"), &themeID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "themeID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RenameTheme(w, r, themeID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2097,6 +2797,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/discovery/sync", wrapper.SyncDiscovery)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/snapshots", wrapper.ImportFederationSnapshot)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/telemetry", wrapper.ImportTelemetry)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fonts", wrapper.ListFonts)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/fonts", wrapper.UploadFont)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/fonts/{fontID}", wrapper.DeleteFont)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fonts/{fontID}/file", wrapper.GetFontFile)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/homepage/services", wrapper.GetHomepageServices)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts", wrapper.GetHosts)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts/{hostId}", wrapper.GetHost)
@@ -2116,12 +2820,19 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.PutPluginWidget)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugins", wrapper.GetPlugins)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId}", wrapper.QueryPlugin)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/presentation", wrapper.GetPresentation)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/presentation", wrapper.SavePresentation)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/staging/services", wrapper.GetStagingServices)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services", wrapper.CreateManualService)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}", wrapper.EditStagingService)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/lifecycle", wrapper.ChangeServiceLifecycle)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.UnpinStagingService)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/staging/services/{serviceId}/pin", wrapper.PinStagingService)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/themes", wrapper.ListThemes)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/themes", wrapper.CreateTheme)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/themes/{themeID}", wrapper.DeleteTheme)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/themes/{themeID}", wrapper.GetTheme)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/themes/{themeID}", wrapper.RenameTheme)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/healthz", wrapper.GetHealthz)
 
 	return m

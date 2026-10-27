@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	api "github.com/araihu/balemoh/client"
 )
@@ -27,6 +28,7 @@ type Catalog interface {
 // upstream response bodies.
 type APIClient struct {
 	client            *api.ClientWithResponses
+	fontClient        *api.ClientWithResponses
 	notificationToken string
 }
 
@@ -43,7 +45,16 @@ func NewAPIClient(baseURL string, httpClient *http.Client) (*APIClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create API client: %w", err)
 	}
-	return &APIClient{client: generated}, nil
+	fontHTTP := &http.Client{Timeout: 30 * time.Second}
+	if httpClient != nil {
+		*fontHTTP = *httpClient
+		fontHTTP.Timeout = 30 * time.Second
+	}
+	fontClient, err := api.NewClientWithResponses(baseURL, api.WithHTTPClient(fontHTTP))
+	if err != nil {
+		return nil, err
+	}
+	return &APIClient{client: generated, fontClient: fontClient}, nil
 }
 
 func (c *APIClient) Homepage(ctx context.Context) ([]api.ServiceCandidate, error) {

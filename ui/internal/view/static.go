@@ -52,3 +52,28 @@ func PluginRuntimeJS() []byte { return pluginRuntimeJS }
 var notificationsJS []byte
 
 func NotificationsJS() []byte { return notificationsJS }
+
+//go:embed static/presentation.js
+var presentationJS []byte
+
+func PresentationJS() []byte { return presentationJS }
+
+//go:embed static/theme-selection.js
+var themeSelectionJS []byte
+
+func ThemeSelectionJS() []byte { return themeSelectionJS }
+
+//go:embed static/appearance.js
+var appearanceJS []byte
+
+func AppearanceJS() []byte { return appearanceJS }
+
+//go:embed static/theme-preview.js
+var themePreviewJS []byte
+
+func ThemePreviewJS() []byte { return themePreviewJS }
+
+//go:embed static/presentation-fonts.js
+var presentationFontsJS []byte
+
+func PresentationFontsJS() []byte { return presentationFontsJS }

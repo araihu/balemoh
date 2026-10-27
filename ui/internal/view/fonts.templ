@@ -1,0 +1,66 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/alert"
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/fileinput"
+	"github.com/araihu/goshtoso/components/form"
+	"github.com/araihu/goshtoso/components/modal"
+	"github.com/araihu/goshtoso/components/textinput"
+	"strings"
+)
+
+templ FontsContent(d ThemesPage) {
+	if !d.Available {
+		@alert.Alert(alert.Config{Title: "Fonts unavailable", Description: d.Error, Tone: alert.ToneWarning})
+	} else {
+		<section data-presentation-fonts class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+			@form.Form(form.Config{ID: "presentation-font-upload", Action: "/presentation/fonts/upload", PreventEnterSubmit: new(false), RootAttrs: templ.Attributes{"data-presentation-upload": "", "enctype": "multipart/form-data"}}) {
+				@form.Section(form.SectionConfig{Title: "Upload font", Columns: "1"}) {
+					<p>Each upload creates an independent reference. Variable fonts use their default axes.</p>
+					<input type="hidden" name="id"/>
+					@form.FieldGroup(form.FieldGroupConfig{ID: "font-name-field", Label: "Name", Required: true, Input: &textinput.Config{ID: "upload-font-name", Name: "name", MaxLength: 200}})
+					@form.FieldGroup(form.FieldGroupConfig{ID: "font-file-field", FileInput: &fileinput.Config{ID: "upload-font-file", Name: "file", Label: "Font file", Required: true, Accept: ".woff2,.woff,.ttf,.otf", HelperText: "WOFF2, WOFF, TTF or OTF, up to 10 MiB.", Appearance: fileinput.AppearanceUpload}})
+					@button.Button(button.WithType("submit")) {
+						Upload font
+					}
+					<p data-management-feedback role="status" aria-live="polite"></p>
+				}
+			}
+			@form.Section(form.SectionConfig{Title: "Uploaded fonts", Columns: "1"}) {
+				if len(d.Uploads)==0 {
+					<p>No uploaded fonts yet.</p>
+				}
+				for _,font:=range d.Uploads {
+					<form method="post" action={ templ.SafeURL(fontDeleteURL(font.ID)) } data-font-delete class="space-y-2">
+						<p>{ font.Name } · { font.Weight } · { font.Style }</p>
+						if font.Variable {
+							<p>Variable font, default axes</p>
+						}
+						if len(font.UsedBy)>0 {
+							<p>Used by { strings.Join(font.UsedBy,", ") }</p>
+						}
+						<input type="hidden" name="expectedRevision" value={ font.Revision }/>
+						@button.Button(button.WithType("submit")) {
+							Delete unreferenced font
+						}
+						<p data-management-feedback role="status" aria-live="polite"></p>
+					</form>
+				}
+			}
+			@modal.Dialog(modal.DialogConfig{ID: "presentation-font-confirm", Title: "Delete font", Content: FontDeletionConfirmation()})
+		</section>
+	}
+}
+
+templ FontDeletionConfirmation() {
+	<p>Delete this font? Fonts used by saved themes cannot be deleted.</p>
+	<div class="flex justify-end gap-2 mt-4">
+		@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"data-font-cancel": "", "autofocus": true})) {
+			Cancel
+		}
+		@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"data-font-confirm": ""})) {
+			Delete font
+		}
+	</div>
+}

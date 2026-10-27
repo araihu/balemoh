@@ -84,7 +84,7 @@ func (s *server) renderIcons(w http.ResponseWriter, r *http.Request, message str
 		_ = view.IconResults(data).Render(r.Context(), w)
 		return
 	}
-	s.render(w, r, view.PageData{Title: "Presentation", Description: "Manage icons and presentation settings.", Path: "/presentation", Active: "nav-presentation", IconPage: &data}, 200)
+	s.render(w, r, view.PageData{Title: "Appearance", Description: "Manage icons, themes and fonts.", Path: "/presentation", Active: "nav-presentation", IconPage: &data}, 200)
 }
 func (s *server) editIcon(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
@@ -230,7 +230,7 @@ func (s *server) deleteIcon(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	if err := s.icons.DeleteIcon(ctx, r.PathValue("iconID"), r.PostForm.Get("digest")); err != nil {
-		s.renderIcons(w, r, "Icon could not be deleted. It may be in use or changed. Refresh, then remove service references in Staging before deleting.")
+		s.renderIcons(w, r, "Icon could not be deleted. It may be in use or changed. Refresh, then remove service and theme references before deleting.")
 		return
 	}
 	redirect(w, r, "/presentation?source=uploads#icons")

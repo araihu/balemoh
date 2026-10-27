@@ -1867,6 +1867,3388 @@ paths:
       summary: Download an uploaded icon image
       description: |-
         Returns raw image bytes with the stored Content-Type, a quoted digest ETag, Cache-Control: no-cache, and X-Content-Type-Options: nosniff. Send that ETag in If-None-Match for a bodyless 304 response. This endpoint serves uploaded IDs only; it does not serve bundled icon references. No JSON envelope is used for successful downloads.
+  /api/v1/presentation:
+    get:
+      operationId: GetPresentation
+      tags:
+      - Presentation
+      summary: Read global presentation and active snapshot
+      responses:
+        '200':
+          description: Current global settings revision and the selected complete snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresentationState'
+              example:
+                settings:
+                  revision: '0'
+                  colorMode: system
+                  selection:
+                    kind: builtin
+                    key: goshtoso
+                catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                definition:
+                  schemaVersion: 1
+                  tokens:
+                    backdrop:
+                      space: srgb
+                      channels:
+                      - 0
+                      - 0
+                      - 0
+                      alpha: 1
+                    backdrop-surface:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    control-outline:
+                      space: srgb
+                      channels:
+                      - 0.47843137254901963
+                      - 0.5294117647058824
+                      - 0.5882352941176471
+                      alpha: 1
+                    control-outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.44313725490196076
+                      - 0.5137254901960784
+                      - 0.592156862745098
+                      alpha: 1
+                    danger:
+                      space: srgb
+                      channels:
+                      - 0.8627450980392157
+                      - 0.14901960784313725
+                      - 0.14901960784313725
+                      alpha: 1
+                    danger-action:
+                      space: srgb
+                      channels:
+                      - 0.5301960784313725
+                      - 0.1349019607843137
+                      - 0.1568627450980392
+                      alpha: 1
+                    danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235295
+                      - 0.4894117647058824
+                      - 0.4894117647058824
+                      alpha: 1
+                    danger-text:
+                      space: srgb
+                      channels:
+                      - 0.15607843137254904
+                      - 0.11901960784313725
+                      - 0.16568627450980394
+                      alpha: 1
+                    danger-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9794117647058823
+                      - 0.8723529411764706
+                      - 0.8723529411764706
+                      alpha: 1
+                    info:
+                      space: srgb
+                      channels:
+                      - 0.058823529411764705
+                      - 0.4627450980392157
+                      - 0.43137254901960786
+                      alpha: 1
+                    info-action:
+                      space: srgb
+                      channels:
+                      - 0.04784313725490196
+                      - 0.32313725490196077
+                      - 0.3262745098039216
+                      alpha: 1
+                    info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.43529411764705883
+                      - 0.6776470588235295
+                      - 0.6588235294117647
+                      alpha: 1
+                    info-text:
+                      space: srgb
+                      channels:
+                      - 0.035490196078431374
+                      - 0.16607843137254902
+                      - 0.2080392156862745
+                      alpha: 1
+                    info-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8588235294117647
+                      - 0.9194117647058824
+                      - 0.9147058823529411
+                      alpha: 1
+                    on-danger:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-info:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.9882352941176471
+                      - 1
+                      alpha: 1
+                    on-info-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-primary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.023529411764705882
+                      - 0.08235294117647059
+                      - 0.11764705882352941
+                      alpha: 1
+                    on-secondary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-success:
+                      space: srgb
+                      channels:
+                      - 0.9411764705882353
+                      - 0.9921568627450981
+                      - 0.9568627450980393
+                      alpha: 1
+                    on-success-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-surface:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    on-surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    on-surface-dark-muted:
+                      space: srgb
+                      channels:
+                      - 0.6511764705882352
+                      - 0.6913725490196078
+                      - 0.7388235294117647
+                      alpha: 1
+                    on-surface-dark-strong:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-surface-muted:
+                      space: srgb
+                      channels:
+                      - 0.3433333333333333
+                      - 0.4
+                      - 0.4666666666666667
+                      alpha: 1
+                    on-surface-strong:
+                      space: srgb
+                      channels:
+                      - 0.03137254901960784
+                      - 0.11372549019607843
+                      - 0.16862745098039217
+                      alpha: 1
+                    on-warning:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.08627450980392157
+                      - 0.023529411764705882
+                      alpha: 1
+                    on-warning-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    outline:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    outline-dark-strong:
+                      space: srgb
+                      channels:
+                      - 0.6274509803921569
+                      - 0.6941176470588235
+                      - 0.7725490196078432
+                      alpha: 1
+                    outline-strong:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    primary:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.4470588235294118
+                      - 0.6392156862745098
+                      alpha: 1
+                    primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.23137254901960785
+                      - 0.807843137254902
+                      - 0.9686274509803922
+                      alpha: 1
+                    secondary:
+                      space: srgb
+                      channels:
+                      - 0.29411764705882354
+                      - 0.49019607843137253
+                      - 0.10980392156862745
+                      alpha: 1
+                    secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.8274509803921568
+                      - 0.8431372549019608
+                      - 0.3568627450980392
+                      alpha: 1
+                    success:
+                      space: srgb
+                      channels:
+                      - 0.01568627450980392
+                      - 0.47058823529411764
+                      - 0.3411764705882353
+                      alpha: 1
+                    success-action:
+                      space: srgb
+                      channels:
+                      - 0.02196078431372549
+                      - 0.32784313725490194
+                      - 0.27215686274509804
+                      alpha: 1
+                    success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.40941176470588236
+                      - 0.6823529411764706
+                      - 0.6047058823529412
+                      alpha: 1
+                    success-text:
+                      space: srgb
+                      channels:
+                      - 0.029019607843137254
+                      - 0.16725490196078432
+                      - 0.19450980392156864
+                      alpha: 1
+                    success-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8523529411764705
+                      - 0.9205882352941176
+                      - 0.9011764705882352
+                      alpha: 1
+                    surface:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    surface-alt:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235294
+                      - 0.9568627450980393
+                      - 0.984313725490196
+                      alpha: 1
+                    surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    surface-dark-alt:
+                      space: srgb
+                      channels:
+                      - 0.14901960784313725
+                      - 0.2196078431372549
+                      - 0.2784313725490196
+                      alpha: 1
+                    warning:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.6196078431372549
+                      - 0.043137254901960784
+                      alpha: 1
+                    warning-action:
+                      space: srgb
+                      channels:
+                      - 0.5890196078431372
+                      - 0.4172549019607843
+                      - 0.09333333333333334
+                      alpha: 1
+                    warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9764705882352941
+                      - 0.7717647058823529
+                      - 0.4258823529411765
+                      alpha: 1
+                    warning-text:
+                      space: srgb
+                      channels:
+                      - 0.17078431372549022
+                      - 0.1896078431372549
+                      - 0.14980392156862746
+                      alpha: 1
+                    warning-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9941176470588236
+                      - 0.9429411764705882
+                      - 0.8564705882352941
+                      alpha: 1
+                  typography:
+                    title:
+                      source: system
+                      id: stack-8a430142f47a470b2f0755a4
+                    body:
+                      source: system
+                      id: stack-58751021b6049b7de349355e
+                  radiusRem: 0.5
+                  provenance:
+                    presetKey: goshtoso
+                    goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                    catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      description: Returns one consistent settings revision and selected snapshot. Empty initialization
+        is Goshtoso/System at revision 0. Storage or unsupported saved-definition errors return 503 without
+        resetting data.
+    put:
+      operationId: SavePresentation
+      tags:
+      - Presentation
+      summary: Atomically save and activate presentation
+      responses:
+        '200':
+          description: Committed global selection and command receipt, or the same receipt on an immediate
+            exact replay.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresentationReceipt'
+              example:
+                commandId: 11111111-1111-4111-8111-111111111111
+                settings:
+                  revision: '1'
+                  colorMode: dark
+                  selection:
+                    kind: builtin
+                    key: goshtoso
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresentationSave'
+            example:
+              commandId: 11111111-1111-4111-8111-111111111111
+              expectedSettingsRevision: '0'
+              colorMode: dark
+              selection:
+                kind: builtin
+                key: goshtoso
+                expectedCatalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        description: Atomic Save command with expected settings and selection revisions.
+      description: Checks settings, theme and catalog revisions, validates references and commits one transaction.
+        Immediate identical command replay returns its receipt. Reusing a command ID with different content
+        conflicts. After another Save, stale commands conflict. Never force or silently rebase.
+  /api/v1/themes:
+    get:
+      operationId: ListThemes
+      tags:
+      - Presentation
+      summary: Read every installed preset and custom theme
+      responses:
+        '200':
+          description: Every installed preset and every independently saved custom snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThemeCatalog'
+              example:
+                catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                builtins:
+                - key: goshtoso
+                  label: Goshtoso
+                  definition:
+                    schemaVersion: 1
+                    tokens:
+                      backdrop:
+                        space: srgb
+                        channels:
+                        - 0
+                        - 0
+                        - 0
+                        alpha: 1
+                      backdrop-surface:
+                        space: srgb
+                        channels:
+                        - 0.07450980392156863
+                        - 0.09803921568627451
+                        - 0.12549019607843137
+                        alpha: 1
+                      control-outline:
+                        space: srgb
+                        channels:
+                        - 0.47843137254901963
+                        - 0.5294117647058824
+                        - 0.5882352941176471
+                        alpha: 1
+                      control-outline-dark:
+                        space: srgb
+                        channels:
+                        - 0.44313725490196076
+                        - 0.5137254901960784
+                        - 0.592156862745098
+                        alpha: 1
+                      danger:
+                        space: srgb
+                        channels:
+                        - 0.8627450980392157
+                        - 0.14901960784313725
+                        - 0.14901960784313725
+                        alpha: 1
+                      danger-action:
+                        space: srgb
+                        channels:
+                        - 0.5301960784313725
+                        - 0.1349019607843137
+                        - 0.1568627450980392
+                        alpha: 1
+                      danger-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.9176470588235295
+                        - 0.4894117647058824
+                        - 0.4894117647058824
+                        alpha: 1
+                      danger-text:
+                        space: srgb
+                        channels:
+                        - 0.15607843137254904
+                        - 0.11901960784313725
+                        - 0.16568627450980394
+                        alpha: 1
+                      danger-text-dark:
+                        space: srgb
+                        channels:
+                        - 0.9794117647058823
+                        - 0.8723529411764706
+                        - 0.8723529411764706
+                        alpha: 1
+                      info:
+                        space: srgb
+                        channels:
+                        - 0.058823529411764705
+                        - 0.4627450980392157
+                        - 0.43137254901960786
+                        alpha: 1
+                      info-action:
+                        space: srgb
+                        channels:
+                        - 0.04784313725490196
+                        - 0.32313725490196077
+                        - 0.3262745098039216
+                        alpha: 1
+                      info-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.43529411764705883
+                        - 0.6776470588235295
+                        - 0.6588235294117647
+                        alpha: 1
+                      info-text:
+                        space: srgb
+                        channels:
+                        - 0.035490196078431374
+                        - 0.16607843137254902
+                        - 0.2080392156862745
+                        alpha: 1
+                      info-text-dark:
+                        space: srgb
+                        channels:
+                        - 0.8588235294117647
+                        - 0.9194117647058824
+                        - 0.9147058823529411
+                        alpha: 1
+                      on-danger:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-danger-action:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-danger-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.07450980392156863
+                        - 0.09803921568627451
+                        - 0.12549019607843137
+                        alpha: 1
+                      on-info:
+                        space: srgb
+                        channels:
+                        - 0.9607843137254902
+                        - 0.9882352941176471
+                        - 1
+                        alpha: 1
+                      on-info-action:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-info-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.07450980392156863
+                        - 0.09803921568627451
+                        - 0.12549019607843137
+                        alpha: 1
+                      on-primary:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-primary-dark:
+                        space: srgb
+                        channels:
+                        - 0.023529411764705882
+                        - 0.08235294117647059
+                        - 0.11764705882352941
+                        alpha: 1
+                      on-secondary:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-secondary-dark:
+                        space: srgb
+                        channels:
+                        - 0.07450980392156863
+                        - 0.09803921568627451
+                        - 0.12549019607843137
+                        alpha: 1
+                      on-success:
+                        space: srgb
+                        channels:
+                        - 0.9411764705882353
+                        - 0.9921568627450981
+                        - 0.9568627450980393
+                        alpha: 1
+                      on-success-action:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-success-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.07450980392156863
+                        - 0.09803921568627451
+                        - 0.12549019607843137
+                        alpha: 1
+                      on-surface:
+                        space: srgb
+                        channels:
+                        - 0.22745098039215686
+                        - 0.29411764705882354
+                        - 0.37254901960784315
+                        alpha: 1
+                      on-surface-dark:
+                        space: srgb
+                        channels:
+                        - 0.7529411764705882
+                        - 0.796078431372549
+                        - 0.8470588235294118
+                        alpha: 1
+                      on-surface-dark-muted:
+                        space: srgb
+                        channels:
+                        - 0.6511764705882352
+                        - 0.6913725490196078
+                        - 0.7388235294117647
+                        alpha: 1
+                      on-surface-dark-strong:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-surface-muted:
+                        space: srgb
+                        channels:
+                        - 0.3433333333333333
+                        - 0.4
+                        - 0.4666666666666667
+                        alpha: 1
+                      on-surface-strong:
+                        space: srgb
+                        channels:
+                        - 0.03137254901960784
+                        - 0.11372549019607843
+                        - 0.16862745098039217
+                        alpha: 1
+                      on-warning:
+                        space: srgb
+                        channels:
+                        - 0.12941176470588237
+                        - 0.08627450980392157
+                        - 0.023529411764705882
+                        alpha: 1
+                      on-warning-action:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      on-warning-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.07450980392156863
+                        - 0.09803921568627451
+                        - 0.12549019607843137
+                        alpha: 1
+                      outline:
+                        space: srgb
+                        channels:
+                        - 0.7529411764705882
+                        - 0.796078431372549
+                        - 0.8470588235294118
+                        alpha: 1
+                      outline-dark:
+                        space: srgb
+                        channels:
+                        - 0.22745098039215686
+                        - 0.29411764705882354
+                        - 0.37254901960784315
+                        alpha: 1
+                      outline-dark-strong:
+                        space: srgb
+                        channels:
+                        - 0.6274509803921569
+                        - 0.6941176470588235
+                        - 0.7725490196078432
+                        alpha: 1
+                      outline-strong:
+                        space: srgb
+                        channels:
+                        - 0.22745098039215686
+                        - 0.29411764705882354
+                        - 0.37254901960784315
+                        alpha: 1
+                      primary:
+                        space: srgb
+                        channels:
+                        - 0.12941176470588237
+                        - 0.4470588235294118
+                        - 0.6392156862745098
+                        alpha: 1
+                      primary-dark:
+                        space: srgb
+                        channels:
+                        - 0.23137254901960785
+                        - 0.807843137254902
+                        - 0.9686274509803922
+                        alpha: 1
+                      secondary:
+                        space: srgb
+                        channels:
+                        - 0.29411764705882354
+                        - 0.49019607843137253
+                        - 0.10980392156862745
+                        alpha: 1
+                      secondary-dark:
+                        space: srgb
+                        channels:
+                        - 0.8274509803921568
+                        - 0.8431372549019608
+                        - 0.3568627450980392
+                        alpha: 1
+                      success:
+                        space: srgb
+                        channels:
+                        - 0.01568627450980392
+                        - 0.47058823529411764
+                        - 0.3411764705882353
+                        alpha: 1
+                      success-action:
+                        space: srgb
+                        channels:
+                        - 0.02196078431372549
+                        - 0.32784313725490194
+                        - 0.27215686274509804
+                        alpha: 1
+                      success-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.40941176470588236
+                        - 0.6823529411764706
+                        - 0.6047058823529412
+                        alpha: 1
+                      success-text:
+                        space: srgb
+                        channels:
+                        - 0.029019607843137254
+                        - 0.16725490196078432
+                        - 0.19450980392156864
+                        alpha: 1
+                      success-text-dark:
+                        space: srgb
+                        channels:
+                        - 0.8523529411764705
+                        - 0.9205882352941176
+                        - 0.9011764705882352
+                        alpha: 1
+                      surface:
+                        space: srgb
+                        channels:
+                        - 1
+                        - 1
+                        - 1
+                        alpha: 1
+                      surface-alt:
+                        space: srgb
+                        channels:
+                        - 0.9176470588235294
+                        - 0.9568627450980393
+                        - 0.984313725490196
+                        alpha: 1
+                      surface-dark:
+                        space: srgb
+                        channels:
+                        - 0.07450980392156863
+                        - 0.09803921568627451
+                        - 0.12549019607843137
+                        alpha: 1
+                      surface-dark-alt:
+                        space: srgb
+                        channels:
+                        - 0.14901960784313725
+                        - 0.2196078431372549
+                        - 0.2784313725490196
+                        alpha: 1
+                      warning:
+                        space: srgb
+                        channels:
+                        - 0.9607843137254902
+                        - 0.6196078431372549
+                        - 0.043137254901960784
+                        alpha: 1
+                      warning-action:
+                        space: srgb
+                        channels:
+                        - 0.5890196078431372
+                        - 0.4172549019607843
+                        - 0.09333333333333334
+                        alpha: 1
+                      warning-action-dark:
+                        space: srgb
+                        channels:
+                        - 0.9764705882352941
+                        - 0.7717647058823529
+                        - 0.4258823529411765
+                        alpha: 1
+                      warning-text:
+                        space: srgb
+                        channels:
+                        - 0.17078431372549022
+                        - 0.1896078431372549
+                        - 0.14980392156862746
+                        alpha: 1
+                      warning-text-dark:
+                        space: srgb
+                        channels:
+                        - 0.9941176470588236
+                        - 0.9429411764705882
+                        - 0.8564705882352941
+                        alpha: 1
+                    typography:
+                      title:
+                        source: system
+                        id: stack-8a430142f47a470b2f0755a4
+                      body:
+                        source: system
+                        id: stack-58751021b6049b7de349355e
+                    radiusRem: 0.5
+                    provenance:
+                      presetKey: goshtoso
+                      goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                      catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                custom: []
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      description: Returns every built-in preset and saved custom snapshot. Catalog revision identifies
+        the installed Goshtoso materialization source; custom snapshots retain their saved literal values
+        across upgrades.
+    post:
+      operationId: CreateTheme
+      tags:
+      - Presentation
+      summary: Create an inactive independent theme
+      responses:
+        '201':
+          description: Inactive theme created at revision 1 under the submitted stable identity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomTheme'
+              example:
+                id: theme:11111111-1111-4111-8111-111111111111
+                name: Ocean
+                revision: '1'
+                definition:
+                  schemaVersion: 1
+                  tokens:
+                    backdrop:
+                      space: srgb
+                      channels:
+                      - 0
+                      - 0
+                      - 0
+                      alpha: 1
+                    backdrop-surface:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    control-outline:
+                      space: srgb
+                      channels:
+                      - 0.47843137254901963
+                      - 0.5294117647058824
+                      - 0.5882352941176471
+                      alpha: 1
+                    control-outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.44313725490196076
+                      - 0.5137254901960784
+                      - 0.592156862745098
+                      alpha: 1
+                    danger:
+                      space: srgb
+                      channels:
+                      - 0.8627450980392157
+                      - 0.14901960784313725
+                      - 0.14901960784313725
+                      alpha: 1
+                    danger-action:
+                      space: srgb
+                      channels:
+                      - 0.5301960784313725
+                      - 0.1349019607843137
+                      - 0.1568627450980392
+                      alpha: 1
+                    danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235295
+                      - 0.4894117647058824
+                      - 0.4894117647058824
+                      alpha: 1
+                    danger-text:
+                      space: srgb
+                      channels:
+                      - 0.15607843137254904
+                      - 0.11901960784313725
+                      - 0.16568627450980394
+                      alpha: 1
+                    danger-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9794117647058823
+                      - 0.8723529411764706
+                      - 0.8723529411764706
+                      alpha: 1
+                    info:
+                      space: srgb
+                      channels:
+                      - 0.058823529411764705
+                      - 0.4627450980392157
+                      - 0.43137254901960786
+                      alpha: 1
+                    info-action:
+                      space: srgb
+                      channels:
+                      - 0.04784313725490196
+                      - 0.32313725490196077
+                      - 0.3262745098039216
+                      alpha: 1
+                    info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.43529411764705883
+                      - 0.6776470588235295
+                      - 0.6588235294117647
+                      alpha: 1
+                    info-text:
+                      space: srgb
+                      channels:
+                      - 0.035490196078431374
+                      - 0.16607843137254902
+                      - 0.2080392156862745
+                      alpha: 1
+                    info-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8588235294117647
+                      - 0.9194117647058824
+                      - 0.9147058823529411
+                      alpha: 1
+                    on-danger:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-info:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.9882352941176471
+                      - 1
+                      alpha: 1
+                    on-info-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-primary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.023529411764705882
+                      - 0.08235294117647059
+                      - 0.11764705882352941
+                      alpha: 1
+                    on-secondary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-success:
+                      space: srgb
+                      channels:
+                      - 0.9411764705882353
+                      - 0.9921568627450981
+                      - 0.9568627450980393
+                      alpha: 1
+                    on-success-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-surface:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    on-surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    on-surface-dark-muted:
+                      space: srgb
+                      channels:
+                      - 0.6511764705882352
+                      - 0.6913725490196078
+                      - 0.7388235294117647
+                      alpha: 1
+                    on-surface-dark-strong:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-surface-muted:
+                      space: srgb
+                      channels:
+                      - 0.3433333333333333
+                      - 0.4
+                      - 0.4666666666666667
+                      alpha: 1
+                    on-surface-strong:
+                      space: srgb
+                      channels:
+                      - 0.03137254901960784
+                      - 0.11372549019607843
+                      - 0.16862745098039217
+                      alpha: 1
+                    on-warning:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.08627450980392157
+                      - 0.023529411764705882
+                      alpha: 1
+                    on-warning-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    outline:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    outline-dark-strong:
+                      space: srgb
+                      channels:
+                      - 0.6274509803921569
+                      - 0.6941176470588235
+                      - 0.7725490196078432
+                      alpha: 1
+                    outline-strong:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    primary:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.4470588235294118
+                      - 0.6392156862745098
+                      alpha: 1
+                    primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.23137254901960785
+                      - 0.807843137254902
+                      - 0.9686274509803922
+                      alpha: 1
+                    secondary:
+                      space: srgb
+                      channels:
+                      - 0.29411764705882354
+                      - 0.49019607843137253
+                      - 0.10980392156862745
+                      alpha: 1
+                    secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.8274509803921568
+                      - 0.8431372549019608
+                      - 0.3568627450980392
+                      alpha: 1
+                    success:
+                      space: srgb
+                      channels:
+                      - 0.01568627450980392
+                      - 0.47058823529411764
+                      - 0.3411764705882353
+                      alpha: 1
+                    success-action:
+                      space: srgb
+                      channels:
+                      - 0.02196078431372549
+                      - 0.32784313725490194
+                      - 0.27215686274509804
+                      alpha: 1
+                    success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.40941176470588236
+                      - 0.6823529411764706
+                      - 0.6047058823529412
+                      alpha: 1
+                    success-text:
+                      space: srgb
+                      channels:
+                      - 0.029019607843137254
+                      - 0.16725490196078432
+                      - 0.19450980392156864
+                      alpha: 1
+                    success-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8523529411764705
+                      - 0.9205882352941176
+                      - 0.9011764705882352
+                      alpha: 1
+                    surface:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    surface-alt:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235294
+                      - 0.9568627450980393
+                      - 0.984313725490196
+                      alpha: 1
+                    surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    surface-dark-alt:
+                      space: srgb
+                      channels:
+                      - 0.14901960784313725
+                      - 0.2196078431372549
+                      - 0.2784313725490196
+                      alpha: 1
+                    warning:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.6196078431372549
+                      - 0.043137254901960784
+                      alpha: 1
+                    warning-action:
+                      space: srgb
+                      channels:
+                      - 0.5890196078431372
+                      - 0.4172549019607843
+                      - 0.09333333333333334
+                      alpha: 1
+                    warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9764705882352941
+                      - 0.7717647058823529
+                      - 0.4258823529411765
+                      alpha: 1
+                    warning-text:
+                      space: srgb
+                      channels:
+                      - 0.17078431372549022
+                      - 0.1896078431372549
+                      - 0.14980392156862746
+                      alpha: 1
+                    warning-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9941176470588236
+                      - 0.9429411764705882
+                      - 0.8564705882352941
+                      alpha: 1
+                  typography:
+                    title:
+                      source: system
+                      id: stack-8a430142f47a470b2f0755a4
+                    body:
+                      source: system
+                      id: stack-58751021b6049b7de349355e
+                  radiusRem: 0.5
+                  provenance:
+                    presetKey: goshtoso
+                    goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                    catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+        '200':
+          description: Original creation payload recognized; the current theme is returned without a second
+            creation or edit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomTheme'
+              example:
+                id: theme:11111111-1111-4111-8111-111111111111
+                name: Ocean
+                revision: '1'
+                definition:
+                  schemaVersion: 1
+                  tokens:
+                    backdrop:
+                      space: srgb
+                      channels:
+                      - 0
+                      - 0
+                      - 0
+                      alpha: 1
+                    backdrop-surface:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    control-outline:
+                      space: srgb
+                      channels:
+                      - 0.47843137254901963
+                      - 0.5294117647058824
+                      - 0.5882352941176471
+                      alpha: 1
+                    control-outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.44313725490196076
+                      - 0.5137254901960784
+                      - 0.592156862745098
+                      alpha: 1
+                    danger:
+                      space: srgb
+                      channels:
+                      - 0.8627450980392157
+                      - 0.14901960784313725
+                      - 0.14901960784313725
+                      alpha: 1
+                    danger-action:
+                      space: srgb
+                      channels:
+                      - 0.5301960784313725
+                      - 0.1349019607843137
+                      - 0.1568627450980392
+                      alpha: 1
+                    danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235295
+                      - 0.4894117647058824
+                      - 0.4894117647058824
+                      alpha: 1
+                    danger-text:
+                      space: srgb
+                      channels:
+                      - 0.15607843137254904
+                      - 0.11901960784313725
+                      - 0.16568627450980394
+                      alpha: 1
+                    danger-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9794117647058823
+                      - 0.8723529411764706
+                      - 0.8723529411764706
+                      alpha: 1
+                    info:
+                      space: srgb
+                      channels:
+                      - 0.058823529411764705
+                      - 0.4627450980392157
+                      - 0.43137254901960786
+                      alpha: 1
+                    info-action:
+                      space: srgb
+                      channels:
+                      - 0.04784313725490196
+                      - 0.32313725490196077
+                      - 0.3262745098039216
+                      alpha: 1
+                    info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.43529411764705883
+                      - 0.6776470588235295
+                      - 0.6588235294117647
+                      alpha: 1
+                    info-text:
+                      space: srgb
+                      channels:
+                      - 0.035490196078431374
+                      - 0.16607843137254902
+                      - 0.2080392156862745
+                      alpha: 1
+                    info-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8588235294117647
+                      - 0.9194117647058824
+                      - 0.9147058823529411
+                      alpha: 1
+                    on-danger:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-info:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.9882352941176471
+                      - 1
+                      alpha: 1
+                    on-info-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-primary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.023529411764705882
+                      - 0.08235294117647059
+                      - 0.11764705882352941
+                      alpha: 1
+                    on-secondary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-success:
+                      space: srgb
+                      channels:
+                      - 0.9411764705882353
+                      - 0.9921568627450981
+                      - 0.9568627450980393
+                      alpha: 1
+                    on-success-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-surface:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    on-surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    on-surface-dark-muted:
+                      space: srgb
+                      channels:
+                      - 0.6511764705882352
+                      - 0.6913725490196078
+                      - 0.7388235294117647
+                      alpha: 1
+                    on-surface-dark-strong:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-surface-muted:
+                      space: srgb
+                      channels:
+                      - 0.3433333333333333
+                      - 0.4
+                      - 0.4666666666666667
+                      alpha: 1
+                    on-surface-strong:
+                      space: srgb
+                      channels:
+                      - 0.03137254901960784
+                      - 0.11372549019607843
+                      - 0.16862745098039217
+                      alpha: 1
+                    on-warning:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.08627450980392157
+                      - 0.023529411764705882
+                      alpha: 1
+                    on-warning-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    outline:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    outline-dark-strong:
+                      space: srgb
+                      channels:
+                      - 0.6274509803921569
+                      - 0.6941176470588235
+                      - 0.7725490196078432
+                      alpha: 1
+                    outline-strong:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    primary:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.4470588235294118
+                      - 0.6392156862745098
+                      alpha: 1
+                    primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.23137254901960785
+                      - 0.807843137254902
+                      - 0.9686274509803922
+                      alpha: 1
+                    secondary:
+                      space: srgb
+                      channels:
+                      - 0.29411764705882354
+                      - 0.49019607843137253
+                      - 0.10980392156862745
+                      alpha: 1
+                    secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.8274509803921568
+                      - 0.8431372549019608
+                      - 0.3568627450980392
+                      alpha: 1
+                    success:
+                      space: srgb
+                      channels:
+                      - 0.01568627450980392
+                      - 0.47058823529411764
+                      - 0.3411764705882353
+                      alpha: 1
+                    success-action:
+                      space: srgb
+                      channels:
+                      - 0.02196078431372549
+                      - 0.32784313725490194
+                      - 0.27215686274509804
+                      alpha: 1
+                    success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.40941176470588236
+                      - 0.6823529411764706
+                      - 0.6047058823529412
+                      alpha: 1
+                    success-text:
+                      space: srgb
+                      channels:
+                      - 0.029019607843137254
+                      - 0.16725490196078432
+                      - 0.19450980392156864
+                      alpha: 1
+                    success-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8523529411764705
+                      - 0.9205882352941176
+                      - 0.9011764705882352
+                      alpha: 1
+                    surface:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    surface-alt:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235294
+                      - 0.9568627450980393
+                      - 0.984313725490196
+                      alpha: 1
+                    surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    surface-dark-alt:
+                      space: srgb
+                      channels:
+                      - 0.14901960784313725
+                      - 0.2196078431372549
+                      - 0.2784313725490196
+                      alpha: 1
+                    warning:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.6196078431372549
+                      - 0.043137254901960784
+                      alpha: 1
+                    warning-action:
+                      space: srgb
+                      channels:
+                      - 0.5890196078431372
+                      - 0.4172549019607843
+                      - 0.09333333333333334
+                      alpha: 1
+                    warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9764705882352941
+                      - 0.7717647058823529
+                      - 0.4258823529411765
+                      alpha: 1
+                    warning-text:
+                      space: srgb
+                      channels:
+                      - 0.17078431372549022
+                      - 0.1896078431372549
+                      - 0.14980392156862746
+                      alpha: 1
+                    warning-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9941176470588236
+                      - 0.9429411764705882
+                      - 0.8564705882352941
+                      alpha: 1
+                  typography:
+                    title:
+                      source: system
+                      id: stack-8a430142f47a470b2f0755a4
+                    body:
+                      source: system
+                      id: stack-58751021b6049b7de349355e
+                  radiusRem: 0.5
+                  provenance:
+                    presetKey: goshtoso
+                    goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                    catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeCreate'
+            example:
+              id: theme:11111111-1111-4111-8111-111111111111
+              name: Ocean
+              definition:
+                schemaVersion: 1
+                tokens:
+                  backdrop:
+                    space: srgb
+                    channels:
+                    - 0
+                    - 0
+                    - 0
+                    alpha: 1
+                  backdrop-surface:
+                    space: srgb
+                    channels:
+                    - 0.07450980392156863
+                    - 0.09803921568627451
+                    - 0.12549019607843137
+                    alpha: 1
+                  control-outline:
+                    space: srgb
+                    channels:
+                    - 0.47843137254901963
+                    - 0.5294117647058824
+                    - 0.5882352941176471
+                    alpha: 1
+                  control-outline-dark:
+                    space: srgb
+                    channels:
+                    - 0.44313725490196076
+                    - 0.5137254901960784
+                    - 0.592156862745098
+                    alpha: 1
+                  danger:
+                    space: srgb
+                    channels:
+                    - 0.8627450980392157
+                    - 0.14901960784313725
+                    - 0.14901960784313725
+                    alpha: 1
+                  danger-action:
+                    space: srgb
+                    channels:
+                    - 0.5301960784313725
+                    - 0.1349019607843137
+                    - 0.1568627450980392
+                    alpha: 1
+                  danger-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.9176470588235295
+                    - 0.4894117647058824
+                    - 0.4894117647058824
+                    alpha: 1
+                  danger-text:
+                    space: srgb
+                    channels:
+                    - 0.15607843137254904
+                    - 0.11901960784313725
+                    - 0.16568627450980394
+                    alpha: 1
+                  danger-text-dark:
+                    space: srgb
+                    channels:
+                    - 0.9794117647058823
+                    - 0.8723529411764706
+                    - 0.8723529411764706
+                    alpha: 1
+                  info:
+                    space: srgb
+                    channels:
+                    - 0.058823529411764705
+                    - 0.4627450980392157
+                    - 0.43137254901960786
+                    alpha: 1
+                  info-action:
+                    space: srgb
+                    channels:
+                    - 0.04784313725490196
+                    - 0.32313725490196077
+                    - 0.3262745098039216
+                    alpha: 1
+                  info-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.43529411764705883
+                    - 0.6776470588235295
+                    - 0.6588235294117647
+                    alpha: 1
+                  info-text:
+                    space: srgb
+                    channels:
+                    - 0.035490196078431374
+                    - 0.16607843137254902
+                    - 0.2080392156862745
+                    alpha: 1
+                  info-text-dark:
+                    space: srgb
+                    channels:
+                    - 0.8588235294117647
+                    - 0.9194117647058824
+                    - 0.9147058823529411
+                    alpha: 1
+                  on-danger:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-danger-action:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-danger-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.07450980392156863
+                    - 0.09803921568627451
+                    - 0.12549019607843137
+                    alpha: 1
+                  on-info:
+                    space: srgb
+                    channels:
+                    - 0.9607843137254902
+                    - 0.9882352941176471
+                    - 1
+                    alpha: 1
+                  on-info-action:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-info-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.07450980392156863
+                    - 0.09803921568627451
+                    - 0.12549019607843137
+                    alpha: 1
+                  on-primary:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-primary-dark:
+                    space: srgb
+                    channels:
+                    - 0.023529411764705882
+                    - 0.08235294117647059
+                    - 0.11764705882352941
+                    alpha: 1
+                  on-secondary:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-secondary-dark:
+                    space: srgb
+                    channels:
+                    - 0.07450980392156863
+                    - 0.09803921568627451
+                    - 0.12549019607843137
+                    alpha: 1
+                  on-success:
+                    space: srgb
+                    channels:
+                    - 0.9411764705882353
+                    - 0.9921568627450981
+                    - 0.9568627450980393
+                    alpha: 1
+                  on-success-action:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-success-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.07450980392156863
+                    - 0.09803921568627451
+                    - 0.12549019607843137
+                    alpha: 1
+                  on-surface:
+                    space: srgb
+                    channels:
+                    - 0.22745098039215686
+                    - 0.29411764705882354
+                    - 0.37254901960784315
+                    alpha: 1
+                  on-surface-dark:
+                    space: srgb
+                    channels:
+                    - 0.7529411764705882
+                    - 0.796078431372549
+                    - 0.8470588235294118
+                    alpha: 1
+                  on-surface-dark-muted:
+                    space: srgb
+                    channels:
+                    - 0.6511764705882352
+                    - 0.6913725490196078
+                    - 0.7388235294117647
+                    alpha: 1
+                  on-surface-dark-strong:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-surface-muted:
+                    space: srgb
+                    channels:
+                    - 0.3433333333333333
+                    - 0.4
+                    - 0.4666666666666667
+                    alpha: 1
+                  on-surface-strong:
+                    space: srgb
+                    channels:
+                    - 0.03137254901960784
+                    - 0.11372549019607843
+                    - 0.16862745098039217
+                    alpha: 1
+                  on-warning:
+                    space: srgb
+                    channels:
+                    - 0.12941176470588237
+                    - 0.08627450980392157
+                    - 0.023529411764705882
+                    alpha: 1
+                  on-warning-action:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  on-warning-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.07450980392156863
+                    - 0.09803921568627451
+                    - 0.12549019607843137
+                    alpha: 1
+                  outline:
+                    space: srgb
+                    channels:
+                    - 0.7529411764705882
+                    - 0.796078431372549
+                    - 0.8470588235294118
+                    alpha: 1
+                  outline-dark:
+                    space: srgb
+                    channels:
+                    - 0.22745098039215686
+                    - 0.29411764705882354
+                    - 0.37254901960784315
+                    alpha: 1
+                  outline-dark-strong:
+                    space: srgb
+                    channels:
+                    - 0.6274509803921569
+                    - 0.6941176470588235
+                    - 0.7725490196078432
+                    alpha: 1
+                  outline-strong:
+                    space: srgb
+                    channels:
+                    - 0.22745098039215686
+                    - 0.29411764705882354
+                    - 0.37254901960784315
+                    alpha: 1
+                  primary:
+                    space: srgb
+                    channels:
+                    - 0.12941176470588237
+                    - 0.4470588235294118
+                    - 0.6392156862745098
+                    alpha: 1
+                  primary-dark:
+                    space: srgb
+                    channels:
+                    - 0.23137254901960785
+                    - 0.807843137254902
+                    - 0.9686274509803922
+                    alpha: 1
+                  secondary:
+                    space: srgb
+                    channels:
+                    - 0.29411764705882354
+                    - 0.49019607843137253
+                    - 0.10980392156862745
+                    alpha: 1
+                  secondary-dark:
+                    space: srgb
+                    channels:
+                    - 0.8274509803921568
+                    - 0.8431372549019608
+                    - 0.3568627450980392
+                    alpha: 1
+                  success:
+                    space: srgb
+                    channels:
+                    - 0.01568627450980392
+                    - 0.47058823529411764
+                    - 0.3411764705882353
+                    alpha: 1
+                  success-action:
+                    space: srgb
+                    channels:
+                    - 0.02196078431372549
+                    - 0.32784313725490194
+                    - 0.27215686274509804
+                    alpha: 1
+                  success-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.40941176470588236
+                    - 0.6823529411764706
+                    - 0.6047058823529412
+                    alpha: 1
+                  success-text:
+                    space: srgb
+                    channels:
+                    - 0.029019607843137254
+                    - 0.16725490196078432
+                    - 0.19450980392156864
+                    alpha: 1
+                  success-text-dark:
+                    space: srgb
+                    channels:
+                    - 0.8523529411764705
+                    - 0.9205882352941176
+                    - 0.9011764705882352
+                    alpha: 1
+                  surface:
+                    space: srgb
+                    channels:
+                    - 1
+                    - 1
+                    - 1
+                    alpha: 1
+                  surface-alt:
+                    space: srgb
+                    channels:
+                    - 0.9176470588235294
+                    - 0.9568627450980393
+                    - 0.984313725490196
+                    alpha: 1
+                  surface-dark:
+                    space: srgb
+                    channels:
+                    - 0.07450980392156863
+                    - 0.09803921568627451
+                    - 0.12549019607843137
+                    alpha: 1
+                  surface-dark-alt:
+                    space: srgb
+                    channels:
+                    - 0.14901960784313725
+                    - 0.2196078431372549
+                    - 0.2784313725490196
+                    alpha: 1
+                  warning:
+                    space: srgb
+                    channels:
+                    - 0.9607843137254902
+                    - 0.6196078431372549
+                    - 0.043137254901960784
+                    alpha: 1
+                  warning-action:
+                    space: srgb
+                    channels:
+                    - 0.5890196078431372
+                    - 0.4172549019607843
+                    - 0.09333333333333334
+                    alpha: 1
+                  warning-action-dark:
+                    space: srgb
+                    channels:
+                    - 0.9764705882352941
+                    - 0.7717647058823529
+                    - 0.4258823529411765
+                    alpha: 1
+                  warning-text:
+                    space: srgb
+                    channels:
+                    - 0.17078431372549022
+                    - 0.1896078431372549
+                    - 0.14980392156862746
+                    alpha: 1
+                  warning-text-dark:
+                    space: srgb
+                    channels:
+                    - 0.9941176470588236
+                    - 0.9429411764705882
+                    - 0.8564705882352941
+                    alpha: 1
+                typography:
+                  title:
+                    source: system
+                    id: stack-8a430142f47a470b2f0755a4
+                  body:
+                    source: system
+                    id: stack-58751021b6049b7de349355e
+                radiusRem: 0.5
+                provenance:
+                  presetKey: goshtoso
+                  goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                  catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        description: New inactive complete definition or a copyFrom command tied to the source revision.
+      description: Creates an inactive independent snapshot from definition or copyFrom, never both. Uses
+        the client theme:UUID. An exact creation replay returns 200, while a conflicting ID returns 409.
+        Saving presentation is required to activate the new theme.
+  /api/v1/themes/{themeID}:
+    parameters:
+    - $ref: '#/components/parameters/PresentationThemeID'
+    get:
+      operationId: GetTheme
+      tags:
+      - Presentation
+      summary: Read a custom theme
+      responses:
+        '200':
+          description: Saved definition and current revision for the requested custom theme.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomTheme'
+              example:
+                id: theme:11111111-1111-4111-8111-111111111111
+                name: Ocean
+                revision: '1'
+                definition:
+                  schemaVersion: 1
+                  tokens:
+                    backdrop:
+                      space: srgb
+                      channels:
+                      - 0
+                      - 0
+                      - 0
+                      alpha: 1
+                    backdrop-surface:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    control-outline:
+                      space: srgb
+                      channels:
+                      - 0.47843137254901963
+                      - 0.5294117647058824
+                      - 0.5882352941176471
+                      alpha: 1
+                    control-outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.44313725490196076
+                      - 0.5137254901960784
+                      - 0.592156862745098
+                      alpha: 1
+                    danger:
+                      space: srgb
+                      channels:
+                      - 0.8627450980392157
+                      - 0.14901960784313725
+                      - 0.14901960784313725
+                      alpha: 1
+                    danger-action:
+                      space: srgb
+                      channels:
+                      - 0.5301960784313725
+                      - 0.1349019607843137
+                      - 0.1568627450980392
+                      alpha: 1
+                    danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235295
+                      - 0.4894117647058824
+                      - 0.4894117647058824
+                      alpha: 1
+                    danger-text:
+                      space: srgb
+                      channels:
+                      - 0.15607843137254904
+                      - 0.11901960784313725
+                      - 0.16568627450980394
+                      alpha: 1
+                    danger-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9794117647058823
+                      - 0.8723529411764706
+                      - 0.8723529411764706
+                      alpha: 1
+                    info:
+                      space: srgb
+                      channels:
+                      - 0.058823529411764705
+                      - 0.4627450980392157
+                      - 0.43137254901960786
+                      alpha: 1
+                    info-action:
+                      space: srgb
+                      channels:
+                      - 0.04784313725490196
+                      - 0.32313725490196077
+                      - 0.3262745098039216
+                      alpha: 1
+                    info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.43529411764705883
+                      - 0.6776470588235295
+                      - 0.6588235294117647
+                      alpha: 1
+                    info-text:
+                      space: srgb
+                      channels:
+                      - 0.035490196078431374
+                      - 0.16607843137254902
+                      - 0.2080392156862745
+                      alpha: 1
+                    info-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8588235294117647
+                      - 0.9194117647058824
+                      - 0.9147058823529411
+                      alpha: 1
+                    on-danger:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-info:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.9882352941176471
+                      - 1
+                      alpha: 1
+                    on-info-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-primary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.023529411764705882
+                      - 0.08235294117647059
+                      - 0.11764705882352941
+                      alpha: 1
+                    on-secondary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-success:
+                      space: srgb
+                      channels:
+                      - 0.9411764705882353
+                      - 0.9921568627450981
+                      - 0.9568627450980393
+                      alpha: 1
+                    on-success-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-surface:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    on-surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    on-surface-dark-muted:
+                      space: srgb
+                      channels:
+                      - 0.6511764705882352
+                      - 0.6913725490196078
+                      - 0.7388235294117647
+                      alpha: 1
+                    on-surface-dark-strong:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-surface-muted:
+                      space: srgb
+                      channels:
+                      - 0.3433333333333333
+                      - 0.4
+                      - 0.4666666666666667
+                      alpha: 1
+                    on-surface-strong:
+                      space: srgb
+                      channels:
+                      - 0.03137254901960784
+                      - 0.11372549019607843
+                      - 0.16862745098039217
+                      alpha: 1
+                    on-warning:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.08627450980392157
+                      - 0.023529411764705882
+                      alpha: 1
+                    on-warning-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    outline:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    outline-dark-strong:
+                      space: srgb
+                      channels:
+                      - 0.6274509803921569
+                      - 0.6941176470588235
+                      - 0.7725490196078432
+                      alpha: 1
+                    outline-strong:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    primary:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.4470588235294118
+                      - 0.6392156862745098
+                      alpha: 1
+                    primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.23137254901960785
+                      - 0.807843137254902
+                      - 0.9686274509803922
+                      alpha: 1
+                    secondary:
+                      space: srgb
+                      channels:
+                      - 0.29411764705882354
+                      - 0.49019607843137253
+                      - 0.10980392156862745
+                      alpha: 1
+                    secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.8274509803921568
+                      - 0.8431372549019608
+                      - 0.3568627450980392
+                      alpha: 1
+                    success:
+                      space: srgb
+                      channels:
+                      - 0.01568627450980392
+                      - 0.47058823529411764
+                      - 0.3411764705882353
+                      alpha: 1
+                    success-action:
+                      space: srgb
+                      channels:
+                      - 0.02196078431372549
+                      - 0.32784313725490194
+                      - 0.27215686274509804
+                      alpha: 1
+                    success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.40941176470588236
+                      - 0.6823529411764706
+                      - 0.6047058823529412
+                      alpha: 1
+                    success-text:
+                      space: srgb
+                      channels:
+                      - 0.029019607843137254
+                      - 0.16725490196078432
+                      - 0.19450980392156864
+                      alpha: 1
+                    success-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8523529411764705
+                      - 0.9205882352941176
+                      - 0.9011764705882352
+                      alpha: 1
+                    surface:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    surface-alt:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235294
+                      - 0.9568627450980393
+                      - 0.984313725490196
+                      alpha: 1
+                    surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    surface-dark-alt:
+                      space: srgb
+                      channels:
+                      - 0.14901960784313725
+                      - 0.2196078431372549
+                      - 0.2784313725490196
+                      alpha: 1
+                    warning:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.6196078431372549
+                      - 0.043137254901960784
+                      alpha: 1
+                    warning-action:
+                      space: srgb
+                      channels:
+                      - 0.5890196078431372
+                      - 0.4172549019607843
+                      - 0.09333333333333334
+                      alpha: 1
+                    warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9764705882352941
+                      - 0.7717647058823529
+                      - 0.4258823529411765
+                      alpha: 1
+                    warning-text:
+                      space: srgb
+                      channels:
+                      - 0.17078431372549022
+                      - 0.1896078431372549
+                      - 0.14980392156862746
+                      alpha: 1
+                    warning-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9941176470588236
+                      - 0.9429411764705882
+                      - 0.8564705882352941
+                      alpha: 1
+                  typography:
+                    title:
+                      source: system
+                      id: stack-8a430142f47a470b2f0755a4
+                    body:
+                      source: system
+                      id: stack-58751021b6049b7de349355e
+                  radiusRem: 0.5
+                  provenance:
+                    presetKey: goshtoso
+                    goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                    catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      description: Reads the saved custom definition and its current decimal revision. Built-in keys are
+        enumerated by ListThemes and are not custom IDs.
+    patch:
+      operationId: RenameTheme
+      tags:
+      - Presentation
+      summary: Rename a theme without changing active selection
+      responses:
+        '200':
+          description: Display name changed and theme revision incremented. Global selection and definition
+            retained.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomTheme'
+              example:
+                id: theme:11111111-1111-4111-8111-111111111111
+                name: Ocean
+                revision: '1'
+                definition:
+                  schemaVersion: 1
+                  tokens:
+                    backdrop:
+                      space: srgb
+                      channels:
+                      - 0
+                      - 0
+                      - 0
+                      alpha: 1
+                    backdrop-surface:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    control-outline:
+                      space: srgb
+                      channels:
+                      - 0.47843137254901963
+                      - 0.5294117647058824
+                      - 0.5882352941176471
+                      alpha: 1
+                    control-outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.44313725490196076
+                      - 0.5137254901960784
+                      - 0.592156862745098
+                      alpha: 1
+                    danger:
+                      space: srgb
+                      channels:
+                      - 0.8627450980392157
+                      - 0.14901960784313725
+                      - 0.14901960784313725
+                      alpha: 1
+                    danger-action:
+                      space: srgb
+                      channels:
+                      - 0.5301960784313725
+                      - 0.1349019607843137
+                      - 0.1568627450980392
+                      alpha: 1
+                    danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235295
+                      - 0.4894117647058824
+                      - 0.4894117647058824
+                      alpha: 1
+                    danger-text:
+                      space: srgb
+                      channels:
+                      - 0.15607843137254904
+                      - 0.11901960784313725
+                      - 0.16568627450980394
+                      alpha: 1
+                    danger-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9794117647058823
+                      - 0.8723529411764706
+                      - 0.8723529411764706
+                      alpha: 1
+                    info:
+                      space: srgb
+                      channels:
+                      - 0.058823529411764705
+                      - 0.4627450980392157
+                      - 0.43137254901960786
+                      alpha: 1
+                    info-action:
+                      space: srgb
+                      channels:
+                      - 0.04784313725490196
+                      - 0.32313725490196077
+                      - 0.3262745098039216
+                      alpha: 1
+                    info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.43529411764705883
+                      - 0.6776470588235295
+                      - 0.6588235294117647
+                      alpha: 1
+                    info-text:
+                      space: srgb
+                      channels:
+                      - 0.035490196078431374
+                      - 0.16607843137254902
+                      - 0.2080392156862745
+                      alpha: 1
+                    info-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8588235294117647
+                      - 0.9194117647058824
+                      - 0.9147058823529411
+                      alpha: 1
+                    on-danger:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-danger-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-info:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.9882352941176471
+                      - 1
+                      alpha: 1
+                    on-info-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-info-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-primary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.023529411764705882
+                      - 0.08235294117647059
+                      - 0.11764705882352941
+                      alpha: 1
+                    on-secondary:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-success:
+                      space: srgb
+                      channels:
+                      - 0.9411764705882353
+                      - 0.9921568627450981
+                      - 0.9568627450980393
+                      alpha: 1
+                    on-success-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    on-surface:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    on-surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    on-surface-dark-muted:
+                      space: srgb
+                      channels:
+                      - 0.6511764705882352
+                      - 0.6913725490196078
+                      - 0.7388235294117647
+                      alpha: 1
+                    on-surface-dark-strong:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-surface-muted:
+                      space: srgb
+                      channels:
+                      - 0.3433333333333333
+                      - 0.4
+                      - 0.4666666666666667
+                      alpha: 1
+                    on-surface-strong:
+                      space: srgb
+                      channels:
+                      - 0.03137254901960784
+                      - 0.11372549019607843
+                      - 0.16862745098039217
+                      alpha: 1
+                    on-warning:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.08627450980392157
+                      - 0.023529411764705882
+                      alpha: 1
+                    on-warning-action:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    on-warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    outline:
+                      space: srgb
+                      channels:
+                      - 0.7529411764705882
+                      - 0.796078431372549
+                      - 0.8470588235294118
+                      alpha: 1
+                    outline-dark:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    outline-dark-strong:
+                      space: srgb
+                      channels:
+                      - 0.6274509803921569
+                      - 0.6941176470588235
+                      - 0.7725490196078432
+                      alpha: 1
+                    outline-strong:
+                      space: srgb
+                      channels:
+                      - 0.22745098039215686
+                      - 0.29411764705882354
+                      - 0.37254901960784315
+                      alpha: 1
+                    primary:
+                      space: srgb
+                      channels:
+                      - 0.12941176470588237
+                      - 0.4470588235294118
+                      - 0.6392156862745098
+                      alpha: 1
+                    primary-dark:
+                      space: srgb
+                      channels:
+                      - 0.23137254901960785
+                      - 0.807843137254902
+                      - 0.9686274509803922
+                      alpha: 1
+                    secondary:
+                      space: srgb
+                      channels:
+                      - 0.29411764705882354
+                      - 0.49019607843137253
+                      - 0.10980392156862745
+                      alpha: 1
+                    secondary-dark:
+                      space: srgb
+                      channels:
+                      - 0.8274509803921568
+                      - 0.8431372549019608
+                      - 0.3568627450980392
+                      alpha: 1
+                    success:
+                      space: srgb
+                      channels:
+                      - 0.01568627450980392
+                      - 0.47058823529411764
+                      - 0.3411764705882353
+                      alpha: 1
+                    success-action:
+                      space: srgb
+                      channels:
+                      - 0.02196078431372549
+                      - 0.32784313725490194
+                      - 0.27215686274509804
+                      alpha: 1
+                    success-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.40941176470588236
+                      - 0.6823529411764706
+                      - 0.6047058823529412
+                      alpha: 1
+                    success-text:
+                      space: srgb
+                      channels:
+                      - 0.029019607843137254
+                      - 0.16725490196078432
+                      - 0.19450980392156864
+                      alpha: 1
+                    success-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.8523529411764705
+                      - 0.9205882352941176
+                      - 0.9011764705882352
+                      alpha: 1
+                    surface:
+                      space: srgb
+                      channels:
+                      - 1
+                      - 1
+                      - 1
+                      alpha: 1
+                    surface-alt:
+                      space: srgb
+                      channels:
+                      - 0.9176470588235294
+                      - 0.9568627450980393
+                      - 0.984313725490196
+                      alpha: 1
+                    surface-dark:
+                      space: srgb
+                      channels:
+                      - 0.07450980392156863
+                      - 0.09803921568627451
+                      - 0.12549019607843137
+                      alpha: 1
+                    surface-dark-alt:
+                      space: srgb
+                      channels:
+                      - 0.14901960784313725
+                      - 0.2196078431372549
+                      - 0.2784313725490196
+                      alpha: 1
+                    warning:
+                      space: srgb
+                      channels:
+                      - 0.9607843137254902
+                      - 0.6196078431372549
+                      - 0.043137254901960784
+                      alpha: 1
+                    warning-action:
+                      space: srgb
+                      channels:
+                      - 0.5890196078431372
+                      - 0.4172549019607843
+                      - 0.09333333333333334
+                      alpha: 1
+                    warning-action-dark:
+                      space: srgb
+                      channels:
+                      - 0.9764705882352941
+                      - 0.7717647058823529
+                      - 0.4258823529411765
+                      alpha: 1
+                    warning-text:
+                      space: srgb
+                      channels:
+                      - 0.17078431372549022
+                      - 0.1896078431372549
+                      - 0.14980392156862746
+                      alpha: 1
+                    warning-text-dark:
+                      space: srgb
+                      channels:
+                      - 0.9941176470588236
+                      - 0.9429411764705882
+                      - 0.8564705882352941
+                      alpha: 1
+                  typography:
+                    title:
+                      source: system
+                      id: stack-8a430142f47a470b2f0755a4
+                    body:
+                      source: system
+                      id: stack-58751021b6049b7de349355e
+                  radiusRem: 0.5
+                  provenance:
+                    presetKey: goshtoso
+                    goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                    catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeRename'
+            example:
+              name: Ocean renamed
+              expectedRevision: '1'
+        description: New trimmed display name and the current expected theme revision.
+      description: Checks expectedRevision and changes only the trimmed display name. Increments the theme
+        revision without changing global selection or font references. Stale requests return 409.
+    delete:
+      operationId: DeleteTheme
+      tags:
+      - Presentation
+      summary: Delete an inactive theme
+      responses:
+        '204':
+          description: Inactive theme and its reference rows removed. Uploaded files preserved.
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      parameters:
+      - $ref: '#/components/parameters/PresentationExpectedRevision'
+      description: Checks expectedRevision and rejects the active custom theme with 409 in_use. Deleting
+        an inactive theme removes its reference rows without deleting font files or selecting a fallback.
+  /api/v1/fonts:
+    get:
+      operationId: ListFonts
+      tags:
+      - Presentation
+      summary: List uploaded font metadata without file bytes
+      responses:
+        '200':
+          description: Uploaded file metadata and current referencing themes. File bytes are omitted.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UploadedFont'
+              example:
+              - id: font:11111111-1111-4111-8111-111111111111
+                name: Go Regular
+                family: Go
+                weight: '400'
+                style: normal
+                variable: false
+                format: truetype
+                mime: font/ttf
+                byteLength: 148672
+                digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                revision: '1'
+                usedBy: []
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      description: Returns uploaded file metadata and saved-theme references, without BLOBs. Empty uploads
+        return an empty array. System, Google and packaged choices belong to the public Goshtoso catalog.
+    post:
+      operationId: UploadFont
+      tags:
+      - Presentation
+      summary: Upload a new immutable font reference
+      responses:
+        '201':
+          description: Validated original file and derived metadata committed under a new font identity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadedFont'
+              example:
+                id: font:11111111-1111-4111-8111-111111111111
+                name: Go Regular
+                family: Go
+                weight: '400'
+                style: normal
+                variable: false
+                format: truetype
+                mime: font/ttf
+                byteLength: 148672
+                digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                revision: '1'
+                usedBy: []
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+        '200':
+          description: Exact immutable upload replay recognized. Existing bytes and metadata retained.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadedFont'
+              example:
+                id: font:11111111-1111-4111-8111-111111111111
+                name: Go Regular
+                family: Go
+                weight: '400'
+                style: normal
+                variable: false
+                format: truetype
+                mime: font/ttf
+                byteLength: 148672
+                digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                revision: '1'
+                usedBy: []
+        '413':
+          $ref: '#/components/responses/PresentationTooLarge'
+        '415':
+          $ref: '#/components/responses/PresentationUnsupportedFont'
+      description: WOFF2, WOFF, TTF, OTF including variable fonts at default axes. Raw file <=10 MiB. Multipart
+        total <=10 MiB +64 KiB. At most 256 files and 512 MiB total. Metadata is derived from bounded container
+        inspection. Every deliberate upload uses a new font:UUID; exact same-ID replay is idempotent. No
+        replacement.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - id
+              - name
+              - file
+              properties:
+                id:
+                  type: string
+                  example: font:11111111-1111-4111-8111-111111111111
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: Go Regular
+                file:
+                  type: string
+                  format: binary
+                  example: <original font file bytes>
+            example:
+              id: font:11111111-1111-4111-8111-111111111111
+              name: Go Regular
+              file: <original font file bytes>
+        description: Client-generated font:UUID, display name, and one original font file. Metadata comes
+          from file contents.
+  /api/v1/fonts/{fontID}:
+    parameters:
+    - $ref: '#/components/parameters/PresentationFontID'
+    delete:
+      operationId: DeleteFont
+      tags:
+      - Presentation
+      summary: Delete an uploaded font with no saved references
+      responses:
+        '204':
+          description: Unreferenced uploaded font bytes and metadata removed.
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+      parameters:
+      - $ref: '#/components/parameters/PresentationExpectedRevision'
+      description: Checks the immutable font revision and rejects references from any saved theme with 409
+        in_use and usedBy. No referenced bytes are replaced or removed.
+  /api/v1/fonts/{fontID}/file:
+    parameters:
+    - $ref: '#/components/parameters/PresentationFontID'
+    get:
+      operationId: GetFontFile
+      tags:
+      - Presentation
+      summary: Read original immutable font bytes
+      responses:
+        '200':
+          description: Immutable original bytes; private cache and ETag
+          content:
+            font/woff2:
+              schema:
+                type: string
+                format: binary
+            font/woff:
+              schema:
+                type: string
+                format: binary
+            font/ttf:
+              schema:
+                type: string
+                format: binary
+            font/otf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/PresentationInvalid'
+        '404':
+          $ref: '#/components/responses/PresentationMissing'
+        '409':
+          $ref: '#/components/responses/PresentationRejected'
+        '503':
+          $ref: '#/components/responses/PresentationUnavailable'
+        '304':
+          description: Not modified
+      description: Returns original uploaded font bytes with validated media type, quoted digest ETag and
+        private, max-age=0, must-revalidate caching. If-None-Match may produce 304. Missing or deleted references
+        return the JSON error envelope.
 components:
   securitySchemes:
     PluginService:
@@ -1889,6 +5271,86 @@ components:
       scheme: bearer
       description: Configured source-bound credential for external publication only. It cannot list, mark or clear
         messages.
+  responses:
+    PresentationInvalid:
+      description: Malformed command, unsupported values, unknown fields, or a missing required revision.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: invalid_request
+            message: Invalid presentation request.
+    PresentationMissing:
+      description: The requested custom theme or uploaded font does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: not_found
+            message: Resource not found.
+    PresentationRejected:
+      description: Optimistic conflict, reused identity with different content, item in use, or a catalog/storage
+        quota. Saved state is preserved.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: conflict
+            message: Saved state changed. Preserve the draft and inspect the saved version.
+    PresentationTooLarge:
+      description: Raw upload, multipart request, declared decoded size, or actual decoded output exceeds
+        the documented bound.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: upload_too_large
+            message: Font exceeds upload or decoded-data limits.
+    PresentationUnsupportedFont:
+      description: Unsupported font container. Collections and EOT files are excluded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: unsupported_font
+            message: Use a single WOFF2, WOFF, TTF, or OTF font.
+    PresentationUnavailable:
+      description: Required storage or catalog could not be read or committed. No synthetic empty state
+        is returned.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: unavailable
+            message: Presentation storage or catalog unavailable.
+  parameters:
+    PresentationThemeID:
+      name: themeID
+      in: path
+      required: true
+      description: Stable theme:UUID returned by the custom-theme catalog.
+      schema:
+        type: string
+    PresentationFontID:
+      name: fontID
+      in: path
+      required: true
+      description: Immutable font:UUID returned by an upload or the uploaded-font catalog.
+      schema:
+        type: string
+    PresentationExpectedRevision:
+      name: expectedRevision
+      in: query
+      required: true
+      description: Exact current revision of the item being deleted. A stale value returns 409.
+      schema:
+        $ref: '#/components/schemas/PresentationRevision'
   schemas:
     PluginPlacementBody:
       type: object
@@ -2901,6 +6363,14 @@ components:
         - code
         - message
       properties:
+        fieldErrors:
+          type: object
+          additionalProperties: {type: string}
+        conflict:
+          $ref: "#/components/schemas/PresentationConflict"
+        usedBy:
+          type: array
+          items: {type: string}
         code:
           type: string
           description: Machine-readable reason such as unavailable, not_found, conflict, or invalid_snapshot.
@@ -3794,12 +7264,938 @@ components:
             provenance: synthetic
         images: []
         observedAt: '2026-10-25T12:00:00Z'
+    ThemeColor:
+      type: object
+      additionalProperties: false
+      required:
+      - space
+      - channels
+      - alpha
+      properties:
+        space:
+          type: string
+          enum:
+          - srgb
+          - oklch
+          example: srgb
+        channels:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: number
+          description: sRGB channels 0..1; OKLCH L 0..1, C 0..0.5, hue 0..<360. All finite.
+        alpha:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 1
+      description: Finite literal color with three channels and explicit alpha. No CSS expressions or palette
+        aliases.
+    ThemeFontRef:
+      type: object
+      additionalProperties: false
+      required:
+      - source
+      - id
+      properties:
+        source:
+          type: string
+          enum:
+          - system
+          - google
+          - bundled
+          - upload
+          example: system
+        id:
+          type: string
+          maxLength: 200
+          example: stack-58751021b6049b7de349355e
+      description: Stable font source and identity. Uploaded IDs reference immutable file bytes.
+    ThemeTypography:
+      type: object
+      additionalProperties: false
+      required:
+      - title
+      - body
+      properties:
+        title:
+          $ref: '#/components/schemas/ThemeFontRef'
+        body:
+          $ref: '#/components/schemas/ThemeFontRef'
+      description: Independent title and body font choices. Variable fonts use default axis values.
+    ThemeProvenance:
+      type: object
+      additionalProperties: false
+      required:
+      - presetKey
+      - goshtosoVersion
+      - catalogRevision
+      properties:
+        presetKey:
+          type: string
+          example: goshtoso
+        goshtosoVersion:
+          type: string
+          example: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        catalogRevision:
+          type: string
+          example: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+      description: Origin of a materialized snapshot. These fields establish no live preset inheritance.
+    ThemeDefinition:
+      type: object
+      additionalProperties: false
+      required:
+      - schemaVersion
+      - tokens
+      - typography
+      - radiusRem
+      - provenance
+      properties:
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+          example: 1
+        tokens:
+          type: object
+          maxProperties: 256
+          additionalProperties:
+            $ref: '#/components/schemas/ThemeColor'
+          description: Complete installed token registry. Literal values, no CSS or palette inheritance.
+        typography:
+          $ref: '#/components/schemas/ThemeTypography'
+        radiusRem:
+          type: number
+          minimum: 0
+          maximum: 4
+          example: 0.5
+        provenance:
+          $ref: '#/components/schemas/ThemeProvenance'
+      x-go-type: themes.Definition
+      x-go-type-import:
+        path: github.com/araihu/goshtoso/themes
+        name: themes
+      description: Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+    ThemeDraft:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - definition
+      properties:
+        brandLogoId:
+          type: string
+          maxLength: 200
+          example: upload:LOGO
+          description: Uploaded logo reference. Omit from a replacement draft to preserve the saved logo; empty restores the Balemoh logo.
+        brandIconId:
+          type: string
+          maxLength: 200
+          example: upload:EXAMPLE
+          description: Uploaded app icon/favicon. Omit to preserve the saved icon; empty restores the Balemoh icon.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Ocean
+        definition:
+          $ref: '#/components/schemas/ThemeDefinition'
+      description: Complete named replacement draft. Applied only by an atomic presentation Save.
+    PresentationSelection:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      properties:
+        brandLogoId:
+          type: string
+          maxLength: 200
+          example: upload:LOGO
+          description: Logo image for newCustom only. Empty selects the Balemoh logo; omitting this field retains the legacy shared icon behavior. Existing custom selections use their saved logo.
+        brandIconId:
+          type: string
+          maxLength: 200
+          example: upload:EXAMPLE
+          description: Uploaded app icon/favicon for newCustom only. Existing custom selections use their saved branding.
+        kind:
+          type: string
+          enum:
+          - builtin
+          - custom
+          - newCustom
+          example: builtin
+        key:
+          type: string
+          example: goshtoso
+        id:
+          type: string
+        expectedCatalogRevision:
+          type: string
+          example: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        expectedThemeRevision:
+          $ref: '#/components/schemas/PresentationRevision'
+        name:
+          type: string
+        definition:
+          $ref: '#/components/schemas/ThemeDefinition'
+        draft:
+          $ref: '#/components/schemas/ThemeDraft'
+      description: 'Exactly one form: builtin has key and expectedCatalogRevision; custom has id, expectedThemeRevision,
+        optional draft; newCustom has fresh theme:UUID id, name, definition, expectedCatalogRevision. Other
+        form fields are rejected. Read responses contain identity only, and expectedThemeRevision for the
+        active custom theme.'
+    PresentationSettings:
+      type: object
+      additionalProperties: false
+      required:
+      - revision
+      - colorMode
+      - selection
+      properties:
+        revision:
+          $ref: '#/components/schemas/PresentationRevision'
+        colorMode:
+          type: string
+          enum:
+          - system
+          - light
+          - dark
+          example: system
+        selection:
+          $ref: '#/components/schemas/PresentationSelection'
+      description: Instance-wide theme identity and color mode with a decimal settings revision.
+    PresentationState:
+      type: object
+      additionalProperties: false
+      required:
+      - settings
+      - catalogRevision
+      - definition
+      properties:
+        brandLogoId:
+          type: string
+          maxLength: 200
+          example: upload:LOGO
+          description: Independent logo reference of the active custom theme; omitted when its original Balemoh logo is selected.
+        brandIconId:
+          type: string
+          maxLength: 200
+          example: upload:EXAMPLE
+          description: App icon/favicon reference of the active custom theme; omitted for the Balemoh default.
+        settings:
+          example:
+            revision: '0'
+            colorMode: system
+            selection:
+              kind: builtin
+              key: goshtoso
+          allOf:
+          - $ref: '#/components/schemas/PresentationSettings'
+        catalogRevision:
+          type: string
+          example: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        definition:
+          $ref: '#/components/schemas/ThemeDefinition'
+      description: Authoritative settings and the complete currently selected definition. Storage failure
+        returns 503, never empty defaults.
+    PresentationSave:
+      type: object
+      additionalProperties: false
+      required:
+      - commandId
+      - expectedSettingsRevision
+      - colorMode
+      - selection
+      properties:
+        commandId:
+          type: string
+          format: uuid
+          example: 11111111-1111-4111-8111-111111111111
+        expectedSettingsRevision:
+          $ref: '#/components/schemas/PresentationRevision'
+        colorMode:
+          type: string
+          enum:
+          - system
+          - light
+          - dark
+          example: dark
+        selection:
+          $ref: '#/components/schemas/PresentationSelection'
+      description: Client-identified atomic Save. Preserve command and resource IDs when retrying an unconfirmed
+        response.
+    PresentationReceipt:
+      type: object
+      additionalProperties: false
+      required:
+      - commandId
+      - settings
+      properties:
+        commandId:
+          type: string
+          format: uuid
+          example: 11111111-1111-4111-8111-111111111111
+        settings:
+          example:
+            revision: '1'
+            colorMode: dark
+            selection:
+              kind: builtin
+              key: goshtoso
+          allOf:
+          - $ref: '#/components/schemas/PresentationSettings'
+        themeRevision:
+          $ref: '#/components/schemas/PresentationRevision'
+      description: Committed result of a successful Save or its immediate exact replay.
+    CustomTheme:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - revision
+      - definition
+      properties:
+        brandLogoId:
+          type: string
+          maxLength: 200
+          example: upload:LOGO
+          description: Pinned uploaded logo for this custom theme, independent of the app icon and favicon.
+        brandIconId:
+          type: string
+          maxLength: 200
+          example: upload:EXAMPLE
+          description: Pinned uploaded app icon and favicon.
+        id:
+          type: string
+          example: theme:11111111-1111-4111-8111-111111111111
+        name:
+          type: string
+          example: Ocean
+        revision:
+          $ref: '#/components/schemas/PresentationRevision'
+        definition:
+          $ref: '#/components/schemas/ThemeDefinition'
+      description: Named independent snapshot with stable theme:UUID identity and optimistic revision.
+    BuiltinTheme:
+      type: object
+      additionalProperties: false
+      required:
+      - key
+      - label
+      - definition
+      properties:
+        key:
+          type: string
+          example: goshtoso
+        label:
+          type: string
+          example: Goshtoso
+        definition:
+          $ref: '#/components/schemas/ThemeDefinition'
+      description: One immutable preset supplied by the installed Goshtoso catalog.
+    ThemeCatalog:
+      type: object
+      additionalProperties: false
+      required:
+      - catalogRevision
+      - builtins
+      - custom
+      properties:
+        catalogRevision:
+          type: string
+          example: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        builtins:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuiltinTheme'
+          example:
+          - key: goshtoso
+            label: Goshtoso
+            definition:
+              schemaVersion: 1
+              tokens:
+                backdrop:
+                  space: srgb
+                  channels:
+                  - 0
+                  - 0
+                  - 0
+                  alpha: 1
+                backdrop-surface:
+                  space: srgb
+                  channels:
+                  - 0.07450980392156863
+                  - 0.09803921568627451
+                  - 0.12549019607843137
+                  alpha: 1
+                control-outline:
+                  space: srgb
+                  channels:
+                  - 0.47843137254901963
+                  - 0.5294117647058824
+                  - 0.5882352941176471
+                  alpha: 1
+                control-outline-dark:
+                  space: srgb
+                  channels:
+                  - 0.44313725490196076
+                  - 0.5137254901960784
+                  - 0.592156862745098
+                  alpha: 1
+                danger:
+                  space: srgb
+                  channels:
+                  - 0.8627450980392157
+                  - 0.14901960784313725
+                  - 0.14901960784313725
+                  alpha: 1
+                danger-action:
+                  space: srgb
+                  channels:
+                  - 0.5301960784313725
+                  - 0.1349019607843137
+                  - 0.1568627450980392
+                  alpha: 1
+                danger-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.9176470588235295
+                  - 0.4894117647058824
+                  - 0.4894117647058824
+                  alpha: 1
+                danger-text:
+                  space: srgb
+                  channels:
+                  - 0.15607843137254904
+                  - 0.11901960784313725
+                  - 0.16568627450980394
+                  alpha: 1
+                danger-text-dark:
+                  space: srgb
+                  channels:
+                  - 0.9794117647058823
+                  - 0.8723529411764706
+                  - 0.8723529411764706
+                  alpha: 1
+                info:
+                  space: srgb
+                  channels:
+                  - 0.058823529411764705
+                  - 0.4627450980392157
+                  - 0.43137254901960786
+                  alpha: 1
+                info-action:
+                  space: srgb
+                  channels:
+                  - 0.04784313725490196
+                  - 0.32313725490196077
+                  - 0.3262745098039216
+                  alpha: 1
+                info-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.43529411764705883
+                  - 0.6776470588235295
+                  - 0.6588235294117647
+                  alpha: 1
+                info-text:
+                  space: srgb
+                  channels:
+                  - 0.035490196078431374
+                  - 0.16607843137254902
+                  - 0.2080392156862745
+                  alpha: 1
+                info-text-dark:
+                  space: srgb
+                  channels:
+                  - 0.8588235294117647
+                  - 0.9194117647058824
+                  - 0.9147058823529411
+                  alpha: 1
+                on-danger:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-danger-action:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-danger-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.07450980392156863
+                  - 0.09803921568627451
+                  - 0.12549019607843137
+                  alpha: 1
+                on-info:
+                  space: srgb
+                  channels:
+                  - 0.9607843137254902
+                  - 0.9882352941176471
+                  - 1
+                  alpha: 1
+                on-info-action:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-info-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.07450980392156863
+                  - 0.09803921568627451
+                  - 0.12549019607843137
+                  alpha: 1
+                on-primary:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-primary-dark:
+                  space: srgb
+                  channels:
+                  - 0.023529411764705882
+                  - 0.08235294117647059
+                  - 0.11764705882352941
+                  alpha: 1
+                on-secondary:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-secondary-dark:
+                  space: srgb
+                  channels:
+                  - 0.07450980392156863
+                  - 0.09803921568627451
+                  - 0.12549019607843137
+                  alpha: 1
+                on-success:
+                  space: srgb
+                  channels:
+                  - 0.9411764705882353
+                  - 0.9921568627450981
+                  - 0.9568627450980393
+                  alpha: 1
+                on-success-action:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-success-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.07450980392156863
+                  - 0.09803921568627451
+                  - 0.12549019607843137
+                  alpha: 1
+                on-surface:
+                  space: srgb
+                  channels:
+                  - 0.22745098039215686
+                  - 0.29411764705882354
+                  - 0.37254901960784315
+                  alpha: 1
+                on-surface-dark:
+                  space: srgb
+                  channels:
+                  - 0.7529411764705882
+                  - 0.796078431372549
+                  - 0.8470588235294118
+                  alpha: 1
+                on-surface-dark-muted:
+                  space: srgb
+                  channels:
+                  - 0.6511764705882352
+                  - 0.6913725490196078
+                  - 0.7388235294117647
+                  alpha: 1
+                on-surface-dark-strong:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-surface-muted:
+                  space: srgb
+                  channels:
+                  - 0.3433333333333333
+                  - 0.4
+                  - 0.4666666666666667
+                  alpha: 1
+                on-surface-strong:
+                  space: srgb
+                  channels:
+                  - 0.03137254901960784
+                  - 0.11372549019607843
+                  - 0.16862745098039217
+                  alpha: 1
+                on-warning:
+                  space: srgb
+                  channels:
+                  - 0.12941176470588237
+                  - 0.08627450980392157
+                  - 0.023529411764705882
+                  alpha: 1
+                on-warning-action:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                on-warning-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.07450980392156863
+                  - 0.09803921568627451
+                  - 0.12549019607843137
+                  alpha: 1
+                outline:
+                  space: srgb
+                  channels:
+                  - 0.7529411764705882
+                  - 0.796078431372549
+                  - 0.8470588235294118
+                  alpha: 1
+                outline-dark:
+                  space: srgb
+                  channels:
+                  - 0.22745098039215686
+                  - 0.29411764705882354
+                  - 0.37254901960784315
+                  alpha: 1
+                outline-dark-strong:
+                  space: srgb
+                  channels:
+                  - 0.6274509803921569
+                  - 0.6941176470588235
+                  - 0.7725490196078432
+                  alpha: 1
+                outline-strong:
+                  space: srgb
+                  channels:
+                  - 0.22745098039215686
+                  - 0.29411764705882354
+                  - 0.37254901960784315
+                  alpha: 1
+                primary:
+                  space: srgb
+                  channels:
+                  - 0.12941176470588237
+                  - 0.4470588235294118
+                  - 0.6392156862745098
+                  alpha: 1
+                primary-dark:
+                  space: srgb
+                  channels:
+                  - 0.23137254901960785
+                  - 0.807843137254902
+                  - 0.9686274509803922
+                  alpha: 1
+                secondary:
+                  space: srgb
+                  channels:
+                  - 0.29411764705882354
+                  - 0.49019607843137253
+                  - 0.10980392156862745
+                  alpha: 1
+                secondary-dark:
+                  space: srgb
+                  channels:
+                  - 0.8274509803921568
+                  - 0.8431372549019608
+                  - 0.3568627450980392
+                  alpha: 1
+                success:
+                  space: srgb
+                  channels:
+                  - 0.01568627450980392
+                  - 0.47058823529411764
+                  - 0.3411764705882353
+                  alpha: 1
+                success-action:
+                  space: srgb
+                  channels:
+                  - 0.02196078431372549
+                  - 0.32784313725490194
+                  - 0.27215686274509804
+                  alpha: 1
+                success-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.40941176470588236
+                  - 0.6823529411764706
+                  - 0.6047058823529412
+                  alpha: 1
+                success-text:
+                  space: srgb
+                  channels:
+                  - 0.029019607843137254
+                  - 0.16725490196078432
+                  - 0.19450980392156864
+                  alpha: 1
+                success-text-dark:
+                  space: srgb
+                  channels:
+                  - 0.8523529411764705
+                  - 0.9205882352941176
+                  - 0.9011764705882352
+                  alpha: 1
+                surface:
+                  space: srgb
+                  channels:
+                  - 1
+                  - 1
+                  - 1
+                  alpha: 1
+                surface-alt:
+                  space: srgb
+                  channels:
+                  - 0.9176470588235294
+                  - 0.9568627450980393
+                  - 0.984313725490196
+                  alpha: 1
+                surface-dark:
+                  space: srgb
+                  channels:
+                  - 0.07450980392156863
+                  - 0.09803921568627451
+                  - 0.12549019607843137
+                  alpha: 1
+                surface-dark-alt:
+                  space: srgb
+                  channels:
+                  - 0.14901960784313725
+                  - 0.2196078431372549
+                  - 0.2784313725490196
+                  alpha: 1
+                warning:
+                  space: srgb
+                  channels:
+                  - 0.9607843137254902
+                  - 0.6196078431372549
+                  - 0.043137254901960784
+                  alpha: 1
+                warning-action:
+                  space: srgb
+                  channels:
+                  - 0.5890196078431372
+                  - 0.4172549019607843
+                  - 0.09333333333333334
+                  alpha: 1
+                warning-action-dark:
+                  space: srgb
+                  channels:
+                  - 0.9764705882352941
+                  - 0.7717647058823529
+                  - 0.4258823529411765
+                  alpha: 1
+                warning-text:
+                  space: srgb
+                  channels:
+                  - 0.17078431372549022
+                  - 0.1896078431372549
+                  - 0.14980392156862746
+                  alpha: 1
+                warning-text-dark:
+                  space: srgb
+                  channels:
+                  - 0.9941176470588236
+                  - 0.9429411764705882
+                  - 0.8564705882352941
+                  alpha: 1
+              typography:
+                title:
+                  source: system
+                  id: stack-8a430142f47a470b2f0755a4
+                body:
+                  source: system
+                  id: stack-58751021b6049b7de349355e
+              radiusRem: 0.5
+              provenance:
+                presetKey: goshtoso
+                goshtosoVersion: catalog:ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+                catalogRevision: ef0a8c432f910d25d8e9e8b09948fbdac35df0aa5679a7238ed09a2f02738c8b
+        custom:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomTheme'
+          example: []
+      description: Installed preset catalog and saved custom themes. The example shows one preset entry; GET
+        returns every installed preset.
+    ThemeCopyFrom:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - expectedRevision
+      properties:
+        id:
+          type: string
+          example: theme:11111111-1111-4111-8111-111111111111
+        expectedRevision:
+          $ref: '#/components/schemas/PresentationRevision'
+      description: Copy a saved custom snapshot at an explicit revision. Later source edits do not change
+        the copy.
+    ThemeCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      properties:
+        brandLogoId:
+          type: string
+          maxLength: 200
+          example: upload:LOGO
+          description: Logo reference for an explicit definition; empty uses the Balemoh logo. Omission retains legacy shared icon behavior. A copyFrom request inherits both source images.
+        brandIconId:
+          type: string
+          maxLength: 200
+          example: upload:EXAMPLE
+          description: Image reference for an explicit definition. A copyFrom request inherits the source theme image.
+        id:
+          type: string
+          example: theme:11111111-1111-4111-8111-111111111111
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Ocean
+        definition:
+          $ref: '#/components/schemas/ThemeDefinition'
+        copyFrom:
+          $ref: '#/components/schemas/ThemeCopyFrom'
+      description: Supply exactly one of definition or copyFrom. Creates inactive theme. Same ID and creation
+        payload returns 200; changed payload conflicts. Maximum 128 saved themes.
+    ThemeRename:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - expectedRevision
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Ocean renamed
+        expectedRevision:
+          $ref: '#/components/schemas/PresentationRevision'
+      description: Metadata-only name change guarded by the current theme revision. Selection and definition
+        stay unchanged.
+    UploadedFont:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - family
+      - weight
+      - style
+      - variable
+      - format
+      - mime
+      - byteLength
+      - digest
+      - revision
+      - usedBy
+      properties:
+        id:
+          type: string
+          example: font:11111111-1111-4111-8111-111111111111
+        name:
+          type: string
+          example: Go Regular
+        family:
+          type: string
+          example: Go
+        weight:
+          type: string
+          example: '400'
+        style:
+          type: string
+          example: normal
+        variable:
+          type: boolean
+          example: false
+        format:
+          type: string
+          example: truetype
+        mime:
+          type: string
+          example: font/ttf
+        byteLength:
+          type: integer
+          maximum: 10485760
+          example: 148672
+        digest:
+          type: string
+          example: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        revision:
+          $ref: '#/components/schemas/PresentationRevision'
+        usedBy:
+          type: array
+          items:
+            type: string
+          example: []
+      description: Metadata derived from uploaded bytes. Each file is independent, including variable fonts.
+        Lists omit file bytes.
+    PresentationConflict:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      properties:
+        kind:
+          type: string
+          enum:
+          - settings
+          - theme
+          - font
+          - catalog
+          - command
+          example: settings
+        id:
+          type: string
+        currentRevision:
+          type: string
+          example: '2'
+      description: Resource and current revision explaining a rejected command. Never silently replace the
+        draft revision.
+    PresentationRevision:
+      type: string
+      pattern: ^(0|[1-9][0-9]*)$
+      description: Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions
+        never mean overwrite.
+      example: '1'
+      x-go-type: string
 servers:
   - url: http://127.0.0.1:8080
     description: Local development API. Replace with your private API origin; the static documentation host
       does not serve this API.
 security: []
 tags:
+  - name: Presentation
+    description: Global appearance, immutable preset snapshots and uploaded fonts.
   - name: Health
     description: Check API and SQLite readiness without triggering discovery.
   - name: Dashboard

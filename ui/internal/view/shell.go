@@ -12,14 +12,25 @@ import (
 )
 
 func ConsolePage(data PageData) templ.Component {
-	if data.Theme == "" {
-		data.Theme = "goshtoso"
+	if data.Appearance.Theme == "" {
+		data.Appearance.Theme = data.Theme
+		if data.Appearance.Theme == "" {
+			data.Appearance.Theme = "goshtoso"
+		}
 	}
-	if data.ColorScheme == "" {
-		data.ColorScheme = "system"
+	if data.Appearance.Mode == "" {
+		data.Appearance.Mode = data.ColorScheme
+		if data.Appearance.Mode == "" {
+			data.Appearance.Mode = "system"
+		}
 	}
-	persistPreferences := data.Theme == "goshtoso" && data.ColorScheme == "system"
 	runtimeScripts := []string{"/ui/plugin-runtime.js", "/ui/notifications.js"}
+	if data.IconPage != nil {
+		runtimeScripts = append(runtimeScripts, "/ui/theme-selection.js", "/ui/presentation-fonts.js")
+	}
+	if data.ThemeEditor != nil {
+		runtimeScripts = append(runtimeScripts, "/ui/presentation.js")
+	}
 	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, assets.HTMXExtSSEURL, "/ui/host-live.js")
 	}
@@ -31,9 +42,9 @@ func ConsolePage(data PageData) templ.Component {
 			Brand: consoleshell.Brand{
 				Name:       "Balemoh",
 				HomeURL:    "/",
-				Logo:       BrandLogo(),
+				Logo:       SiteLogo(data.Appearance.BrandLogoID),
 				HideName:   true,
-				FaviconURL: "/ui/brand/favicon.svg",
+				FaviconURL: data.Appearance.iconURL(),
 			},
 			Navigation: consoleshell.Navigation{
 				Drawer:        true,
@@ -49,22 +60,22 @@ func ConsolePage(data PageData) templ.Component {
 						Href:  "/presentation",
 						Icon:  icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
 						Items: []sidebar.Item{
-							{ID: "nav-presentation", Label: "Presentation", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
+							{ID: "nav-presentation", Label: "Appearance", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
 						},
 					},
 				}, data.PluginNavigation...),
 			},
 			Appearance: consoleshell.AppearanceConfig{
-				DefaultTheme:       data.Theme,
-				InitialColorScheme: consoleshell.ColorScheme(data.ColorScheme),
-				PersistPreferences: persistPreferences,
+				DefaultTheme:       data.Appearance.Theme,
+				InitialColorScheme: consoleshell.ColorScheme(data.Appearance.Mode),
+				PersistPreferences: false,
 				ThemeStylesheets:   []string{"/ui/balemoh.css"},
 			},
+			HeaderActions: HeaderActions(false),
 			Interactions:  consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
-			HeaderActions: HeaderActions(persistPreferences),
 			MainID:        "main-content",
 			ContentID:     "balemoh-content",
-			Footer:        AttributionLinks(),
+			Footer:        ProductFooter(),
 		},
 		consoleshell.Page{
 			Title:         data.Title,
@@ -73,7 +84,7 @@ func ConsolePage(data PageData) templ.Component {
 			CanonicalURL:  canonicalURL(data),
 			Active:        data.Active,
 			Content:       PageContent(data),
-			Head:          BrandHead(),
+			Head:          AppearanceHead(data.Appearance),
 			Metadata:      &head.MetadataConfig{Image: head.SocialImage{URL: "https://balemoh.decastro.me/ui/social-v2.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}},
 		},
 	)

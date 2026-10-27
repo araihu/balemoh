@@ -20,6 +20,24 @@ import (
 	"github.com/araihu/goshtoso/components/sidebar"
 )
 
+type pluginAppearanceKey struct{}
+
+// Resolve once for plugin metadata and its standalone native document.
+func (s *server) withPluginAppearance(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.presentation == nil {
+			next(w, r)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+		defer cancel()
+		appearance := s.appearance(ctx, false)
+		ctx = pluginui.WithDisplayContext(ctx, pluginui.DisplayContext{Theme: appearance.Theme, ColorScheme: appearance.Mode})
+		ctx = context.WithValue(ctx, pluginAppearanceKey{}, appearance)
+		next(w, r.WithContext(ctx))
+	}
+}
+
 func validPluginRequest(r *http.Request) bool {
 	return len(r.URL.RawQuery) <= 64<<10 && !strings.Contains(strings.ToLower(r.URL.EscapedPath()), "%2f")
 }
@@ -130,7 +148,12 @@ func (s *server) pluginContent(w http.ResponseWriter, r *http.Request, response 
 				styles = append(styles, asset.URL)
 			}
 		}
-		_ = view.PluginDocument(response.HTML, pluginui.Display(r.Context()).Theme, pluginui.Display(r.Context()).ColorScheme, styles).Render(r.Context(), w)
+		appearance, ok := r.Context().Value(pluginAppearanceKey{}).(view.Appearance)
+		if !ok {
+			display := pluginui.Display(r.Context())
+			appearance = view.Appearance{Theme: display.Theme, Mode: display.ColorScheme}
+		}
+		_ = view.PluginDocument(response.HTML, appearance, styles).Render(r.Context(), w)
 		return
 	}
 	if response.Kind == "fragment" {

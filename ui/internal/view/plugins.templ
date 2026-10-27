@@ -22,9 +22,10 @@ templ PluginRetry(contentURL string) {
 }
 
 // Native content runs in its own document so base shell never waits for plugin RPC.
-templ PluginDocument(content []byte,theme,scheme string,styles []string) {
+templ PluginDocument(content []byte,appearance Appearance,styles []string) {
  <!DOCTYPE html>
- <html lang="en" data-theme={ theme } class:dark={ scheme=="dark" }><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base target="_top"/><link rel="stylesheet" href="/assets/styles.css"/>
+ <html lang="en" data-theme={ appearance.Theme } class={ templ.KV("dark", appearance.Mode=="dark") }><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><base target="_top"/><link rel="stylesheet" href="/assets/styles.css"/>
+ @AppearanceHead(appearance)
  for _,href:=range styles {
  <link rel="stylesheet" href={templ.SafeURL(href)}/>
  }

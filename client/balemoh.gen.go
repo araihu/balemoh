@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	themes "github.com/araihu/goshtoso/themes"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -244,6 +245,96 @@ func (e PluginQueryResultState) Valid() bool {
 	}
 }
 
+// Defines values for PresentationConflictKind.
+const (
+	Catalog  PresentationConflictKind = "catalog"
+	Command  PresentationConflictKind = "command"
+	Font     PresentationConflictKind = "font"
+	Settings PresentationConflictKind = "settings"
+	Theme    PresentationConflictKind = "theme"
+)
+
+// Valid indicates whether the value is a known member of the PresentationConflictKind enum.
+func (e PresentationConflictKind) Valid() bool {
+	switch e {
+	case Catalog:
+		return true
+	case Command:
+		return true
+	case Font:
+		return true
+	case Settings:
+		return true
+	case Theme:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PresentationSaveColorMode.
+const (
+	PresentationSaveColorModeDark   PresentationSaveColorMode = "dark"
+	PresentationSaveColorModeLight  PresentationSaveColorMode = "light"
+	PresentationSaveColorModeSystem PresentationSaveColorMode = "system"
+)
+
+// Valid indicates whether the value is a known member of the PresentationSaveColorMode enum.
+func (e PresentationSaveColorMode) Valid() bool {
+	switch e {
+	case PresentationSaveColorModeDark:
+		return true
+	case PresentationSaveColorModeLight:
+		return true
+	case PresentationSaveColorModeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PresentationSelectionKind.
+const (
+	Builtin   PresentationSelectionKind = "builtin"
+	Custom    PresentationSelectionKind = "custom"
+	NewCustom PresentationSelectionKind = "newCustom"
+)
+
+// Valid indicates whether the value is a known member of the PresentationSelectionKind enum.
+func (e PresentationSelectionKind) Valid() bool {
+	switch e {
+	case Builtin:
+		return true
+	case Custom:
+		return true
+	case NewCustom:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PresentationSettingsColorMode.
+const (
+	PresentationSettingsColorModeDark   PresentationSettingsColorMode = "dark"
+	PresentationSettingsColorModeLight  PresentationSettingsColorMode = "light"
+	PresentationSettingsColorModeSystem PresentationSettingsColorMode = "system"
+)
+
+// Valid indicates whether the value is a known member of the PresentationSettingsColorMode enum.
+func (e PresentationSettingsColorMode) Valid() bool {
+	switch e {
+	case PresentationSettingsColorModeDark:
+		return true
+	case PresentationSettingsColorModeLight:
+		return true
+	case PresentationSettingsColorModeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ServiceCandidateStatus.
 const (
 	Hidden  ServiceCandidateStatus = "hidden"
@@ -259,6 +350,48 @@ func (e ServiceCandidateStatus) Valid() bool {
 	case Live:
 		return true
 	case Missing:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ThemeColorSpace.
+const (
+	Oklch ThemeColorSpace = "oklch"
+	Srgb  ThemeColorSpace = "srgb"
+)
+
+// Valid indicates whether the value is a known member of the ThemeColorSpace enum.
+func (e ThemeColorSpace) Valid() bool {
+	switch e {
+	case Oklch:
+		return true
+	case Srgb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ThemeFontRefSource.
+const (
+	Bundled ThemeFontRefSource = "bundled"
+	Google  ThemeFontRefSource = "google"
+	System  ThemeFontRefSource = "system"
+	Upload  ThemeFontRefSource = "upload"
+)
+
+// Valid indicates whether the value is a known member of the ThemeFontRefSource enum.
+func (e ThemeFontRefSource) Valid() bool {
+	switch e {
+	case Bundled:
+		return true
+	case Google:
+		return true
+	case System:
+		return true
+	case Upload:
 		return true
 	default:
 		return false
@@ -302,6 +435,31 @@ func (e ChangeServiceLifecycleJSONBodyAction) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// BuiltinTheme One immutable preset supplied by the installed Goshtoso catalog.
+type BuiltinTheme struct {
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition `json:"definition"`
+	Key        string          `json:"key"`
+	Label      string          `json:"label"`
+}
+
+// CustomTheme Named independent snapshot with stable theme:UUID identity and optimistic revision.
+type CustomTheme struct {
+	// BrandIconId Pinned uploaded app icon and favicon.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Pinned uploaded logo for this custom theme, independent of the app icon and favicon.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition `json:"definition"`
+	Id         string          `json:"id"`
+	Name       string          `json:"name"`
+
+	// Revision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	Revision PresentationRevision `json:"revision"`
 }
 
 // DashboardSnapshot Homepage widgets from the registered providers. A provider may fail independently; inspect unavailable even when the HTTP status is 200.
@@ -354,8 +512,13 @@ type ErrorResponse struct {
 	// Code Machine-readable reason such as unavailable, not_found, conflict, or invalid_snapshot.
 	Code string `json:"code"`
 
+	// Conflict Resource and current revision explaining a rejected command. Never silently replace the draft revision.
+	Conflict    *PresentationConflict `json:"conflict,omitempty"`
+	FieldErrors *map[string]string    `json:"fieldErrors,omitempty"`
+
 	// Message Human-readable explanation. Branch on code or HTTP status rather than matching this text.
-	Message string `json:"message"`
+	Message string    `json:"message"`
+	UsedBy  *[]string `json:"usedBy,omitempty"`
 }
 
 // FederatedCandidate One raw observation in a complete source snapshot. The ID is SHA-256 of the concatenation of five length-prefixed UTF-8 strings: source.kind, source.id, resource.kind, resource.namespace or empty, and resource.name. Each trimmed string is encoded as its byte length in decimal, then a colon, then its bytes. Prefer the agent implementation over constructing IDs by hand. Do not include gateway pin or edit state.
@@ -773,6 +936,97 @@ type PluginWidgetDefinition struct {
 	Title          string                 `json:"title"`
 }
 
+// PresentationConflict Resource and current revision explaining a rejected command. Never silently replace the draft revision.
+type PresentationConflict struct {
+	CurrentRevision *string                  `json:"currentRevision,omitempty"`
+	Id              *string                  `json:"id,omitempty"`
+	Kind            PresentationConflictKind `json:"kind"`
+}
+
+// PresentationConflictKind defines model for PresentationConflict.Kind.
+type PresentationConflictKind string
+
+// PresentationReceipt Committed result of a successful Save or its immediate exact replay.
+type PresentationReceipt struct {
+	CommandId openapi_types.UUID   `json:"commandId"`
+	Settings  PresentationSettings `json:"settings"`
+
+	// ThemeRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ThemeRevision *PresentationRevision `json:"themeRevision,omitempty"`
+}
+
+// PresentationRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+type PresentationRevision = string
+
+// PresentationSave Client-identified atomic Save. Preserve command and resource IDs when retrying an unconfirmed response.
+type PresentationSave struct {
+	ColorMode PresentationSaveColorMode `json:"colorMode"`
+	CommandId openapi_types.UUID        `json:"commandId"`
+
+	// ExpectedSettingsRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedSettingsRevision PresentationRevision `json:"expectedSettingsRevision"`
+
+	// Selection Exactly one form: builtin has key and expectedCatalogRevision; custom has id, expectedThemeRevision, optional draft; newCustom has fresh theme:UUID id, name, definition, expectedCatalogRevision. Other form fields are rejected. Read responses contain identity only, and expectedThemeRevision for the active custom theme.
+	Selection PresentationSelection `json:"selection"`
+}
+
+// PresentationSaveColorMode defines model for PresentationSave.ColorMode.
+type PresentationSaveColorMode string
+
+// PresentationSelection Exactly one form: builtin has key and expectedCatalogRevision; custom has id, expectedThemeRevision, optional draft; newCustom has fresh theme:UUID id, name, definition, expectedCatalogRevision. Other form fields are rejected. Read responses contain identity only, and expectedThemeRevision for the active custom theme.
+type PresentationSelection struct {
+	// BrandIconId Uploaded app icon/favicon for newCustom only. Existing custom selections use their saved branding.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Logo image for newCustom only. Empty selects the Balemoh logo; omitting this field retains the legacy shared icon behavior. Existing custom selections use their saved logo.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition *ThemeDefinition `json:"definition,omitempty"`
+
+	// Draft Complete named replacement draft. Applied only by an atomic presentation Save.
+	Draft                   *ThemeDraft `json:"draft,omitempty"`
+	ExpectedCatalogRevision *string     `json:"expectedCatalogRevision,omitempty"`
+
+	// ExpectedThemeRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedThemeRevision *PresentationRevision     `json:"expectedThemeRevision,omitempty"`
+	Id                    *string                   `json:"id,omitempty"`
+	Key                   *string                   `json:"key,omitempty"`
+	Kind                  PresentationSelectionKind `json:"kind"`
+	Name                  *string                   `json:"name,omitempty"`
+}
+
+// PresentationSelectionKind defines model for PresentationSelection.Kind.
+type PresentationSelectionKind string
+
+// PresentationSettings Instance-wide theme identity and color mode with a decimal settings revision.
+type PresentationSettings struct {
+	ColorMode PresentationSettingsColorMode `json:"colorMode"`
+
+	// Revision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	Revision PresentationRevision `json:"revision"`
+
+	// Selection Exactly one form: builtin has key and expectedCatalogRevision; custom has id, expectedThemeRevision, optional draft; newCustom has fresh theme:UUID id, name, definition, expectedCatalogRevision. Other form fields are rejected. Read responses contain identity only, and expectedThemeRevision for the active custom theme.
+	Selection PresentationSelection `json:"selection"`
+}
+
+// PresentationSettingsColorMode defines model for PresentationSettings.ColorMode.
+type PresentationSettingsColorMode string
+
+// PresentationState Authoritative settings and the complete currently selected definition. Storage failure returns 503, never empty defaults.
+type PresentationState struct {
+	// BrandIconId App icon/favicon reference of the active custom theme; omitted for the Balemoh default.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Independent logo reference of the active custom theme; omitted when its original Balemoh logo is selected.
+	BrandLogoId     *string `json:"brandLogoId,omitempty"`
+	CatalogRevision string  `json:"catalogRevision"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition      `json:"definition"`
+	Settings   PresentationSettings `json:"settings"`
+}
+
 // ResourceObservation The resource, endpoints, and images retained behind one member of a grouped service. It is evidence, not an independently selected homepage card.
 type ResourceObservation struct {
 	// Endpoints Endpoint evidence for this grouped resource.
@@ -911,6 +1165,115 @@ type TelemetryBatch struct {
 	Source SourceRef `json:"source"`
 }
 
+// ThemeCatalog Installed preset catalog and saved custom themes. The example shows one preset entry; GET returns every installed preset.
+type ThemeCatalog struct {
+	Builtins        []BuiltinTheme `json:"builtins"`
+	CatalogRevision string         `json:"catalogRevision"`
+	Custom          []CustomTheme  `json:"custom"`
+}
+
+// ThemeColor Finite literal color with three channels and explicit alpha. No CSS expressions or palette aliases.
+type ThemeColor struct {
+	Alpha float32 `json:"alpha"`
+
+	// Channels sRGB channels 0..1; OKLCH L 0..1, C 0..0.5, hue 0..<360. All finite.
+	Channels []float32       `json:"channels"`
+	Space    ThemeColorSpace `json:"space"`
+}
+
+// ThemeColorSpace defines model for ThemeColor.Space.
+type ThemeColorSpace string
+
+// ThemeCopyFrom Copy a saved custom snapshot at an explicit revision. Later source edits do not change the copy.
+type ThemeCopyFrom struct {
+	// ExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedRevision PresentationRevision `json:"expectedRevision"`
+	Id               string               `json:"id"`
+}
+
+// ThemeCreate Supply exactly one of definition or copyFrom. Creates inactive theme. Same ID and creation payload returns 200; changed payload conflicts. Maximum 128 saved themes.
+type ThemeCreate struct {
+	// BrandIconId Image reference for an explicit definition. A copyFrom request inherits the source theme image.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Logo reference for an explicit definition; empty uses the Balemoh logo. Omission retains legacy shared icon behavior. A copyFrom request inherits both source images.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// CopyFrom Copy a saved custom snapshot at an explicit revision. Later source edits do not change the copy.
+	CopyFrom *ThemeCopyFrom `json:"copyFrom,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition *ThemeDefinition `json:"definition,omitempty"`
+	Id         string           `json:"id"`
+	Name       string           `json:"name"`
+}
+
+// ThemeDefinition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+type ThemeDefinition = themes.Definition
+
+// ThemeDraft Complete named replacement draft. Applied only by an atomic presentation Save.
+type ThemeDraft struct {
+	// BrandIconId Uploaded app icon/favicon. Omit to preserve the saved icon; empty restores the Balemoh icon.
+	BrandIconId *string `json:"brandIconId,omitempty"`
+
+	// BrandLogoId Uploaded logo reference. Omit from a replacement draft to preserve the saved logo; empty restores the Balemoh logo.
+	BrandLogoId *string `json:"brandLogoId,omitempty"`
+
+	// Definition Complete snapshot, at most 64 KiB JSON. Unknown fields and incomplete token sets are rejected.
+	Definition ThemeDefinition `json:"definition"`
+	Name       string          `json:"name"`
+}
+
+// ThemeFontRef Stable font source and identity. Uploaded IDs reference immutable file bytes.
+type ThemeFontRef struct {
+	Id     string             `json:"id"`
+	Source ThemeFontRefSource `json:"source"`
+}
+
+// ThemeFontRefSource defines model for ThemeFontRef.Source.
+type ThemeFontRefSource string
+
+// ThemeProvenance Origin of a materialized snapshot. These fields establish no live preset inheritance.
+type ThemeProvenance struct {
+	CatalogRevision string `json:"catalogRevision"`
+	GoshtosoVersion string `json:"goshtosoVersion"`
+	PresetKey       string `json:"presetKey"`
+}
+
+// ThemeRename Metadata-only name change guarded by the current theme revision. Selection and definition stay unchanged.
+type ThemeRename struct {
+	// ExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	ExpectedRevision PresentationRevision `json:"expectedRevision"`
+	Name             string               `json:"name"`
+}
+
+// ThemeTypography Independent title and body font choices. Variable fonts use default axis values.
+type ThemeTypography struct {
+	// Body Stable font source and identity. Uploaded IDs reference immutable file bytes.
+	Body ThemeFontRef `json:"body"`
+
+	// Title Stable font source and identity. Uploaded IDs reference immutable file bytes.
+	Title ThemeFontRef `json:"title"`
+}
+
+// UploadedFont Metadata derived from uploaded bytes. Each file is independent, including variable fonts. Lists omit file bytes.
+type UploadedFont struct {
+	ByteLength int    `json:"byteLength"`
+	Digest     string `json:"digest"`
+	Family     string `json:"family"`
+	Format     string `json:"format"`
+	Id         string `json:"id"`
+	Mime       string `json:"mime"`
+	Name       string `json:"name"`
+
+	// Revision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+	Revision PresentationRevision `json:"revision"`
+	Style    string               `json:"style"`
+	UsedBy   []string             `json:"usedBy"`
+	Variable bool                 `json:"variable"`
+	Weight   string               `json:"weight"`
+}
+
 // UploadedIcon Metadata for a user-uploaded icon. digest is a revision of the trimmed name, tags, and image bytes, not just an image hash. usedBy lists service display names rather than service IDs.
 type UploadedIcon struct {
 	// Digest SHA-256 revision over name, a NUL byte, tags, a NUL byte, and image bytes. Supply it for update or delete.
@@ -932,6 +1295,33 @@ type UploadedIcon struct {
 	UsedBy []string `json:"usedBy"`
 }
 
+// PresentationExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
+type PresentationExpectedRevision = PresentationRevision
+
+// PresentationFontID defines model for PresentationFontID.
+type PresentationFontID = string
+
+// PresentationThemeID defines model for PresentationThemeID.
+type PresentationThemeID = string
+
+// PresentationInvalid Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationInvalid = ErrorResponse
+
+// PresentationMissing Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationMissing = ErrorResponse
+
+// PresentationRejected Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationRejected = ErrorResponse
+
+// PresentationTooLarge Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationTooLarge = ErrorResponse
+
+// PresentationUnavailable Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationUnavailable = ErrorResponse
+
+// PresentationUnsupportedFont Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type PresentationUnsupportedFont = ErrorResponse
+
 // federationBearerContextKey is the context key for FederationBearer security scheme
 type federationBearerContextKey string
 
@@ -948,6 +1338,19 @@ type pluginServiceContextKey string
 type SetDashboardSelectionJSONBody struct {
 	// Enabled Whether this source should be selected for the homepage.
 	Enabled bool `json:"enabled"`
+}
+
+// UploadFontMultipartBody defines parameters for UploadFont.
+type UploadFontMultipartBody struct {
+	File openapi_types.File `json:"file"`
+	Id   string             `json:"id"`
+	Name string             `json:"name"`
+}
+
+// DeleteFontParams defines parameters for DeleteFont.
+type DeleteFontParams struct {
+	// ExpectedRevision Exact current revision of the item being deleted. A stale value returns 409.
+	ExpectedRevision PresentationExpectedRevision `form:"expectedRevision" json:"expectedRevision"`
 }
 
 // GetHostParams defines parameters for GetHost.
@@ -1003,6 +1406,12 @@ type ChangeServiceLifecycleJSONBody struct {
 // ChangeServiceLifecycleJSONBodyAction defines parameters for ChangeServiceLifecycle.
 type ChangeServiceLifecycleJSONBodyAction string
 
+// DeleteThemeParams defines parameters for DeleteTheme.
+type DeleteThemeParams struct {
+	// ExpectedRevision Exact current revision of the item being deleted. A stale value returns 409.
+	ExpectedRevision PresentationExpectedRevision `form:"expectedRevision" json:"expectedRevision"`
+}
+
 // SetDashboardSelectionJSONRequestBody defines body for SetDashboardSelection for application/json ContentType.
 type SetDashboardSelectionJSONRequestBody SetDashboardSelectionJSONBody
 
@@ -1011,6 +1420,9 @@ type ImportFederationSnapshotJSONRequestBody = FederationSnapshot
 
 // ImportTelemetryJSONRequestBody defines body for ImportTelemetry for application/json ContentType.
 type ImportTelemetryJSONRequestBody = TelemetryBatch
+
+// UploadFontMultipartRequestBody defines body for UploadFont for multipart/form-data ContentType.
+type UploadFontMultipartRequestBody UploadFontMultipartBody
 
 // UploadIconJSONRequestBody defines body for UploadIcon for application/json ContentType.
 type UploadIconJSONRequestBody = IconUpload
@@ -1027,6 +1439,9 @@ type PutPluginWidgetJSONRequestBody = PluginPlacementBody
 // QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
 type QueryPluginJSONRequestBody QueryPluginJSONBody
 
+// SavePresentationJSONRequestBody defines body for SavePresentation for application/json ContentType.
+type SavePresentationJSONRequestBody = PresentationSave
+
 // CreateManualServiceJSONRequestBody defines body for CreateManualService for application/json ContentType.
 type CreateManualServiceJSONRequestBody = ManualServiceCreate
 
@@ -1035,6 +1450,12 @@ type EditStagingServiceJSONRequestBody = ServiceEdit
 
 // ChangeServiceLifecycleJSONRequestBody defines body for ChangeServiceLifecycle for application/json ContentType.
 type ChangeServiceLifecycleJSONRequestBody ChangeServiceLifecycleJSONBody
+
+// CreateThemeJSONRequestBody defines body for CreateTheme for application/json ContentType.
+type CreateThemeJSONRequestBody = ThemeCreate
+
+// RenameThemeJSONRequestBody defines body for RenameTheme for application/json ContentType.
+type RenameThemeJSONRequestBody = ThemeRename
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -1130,6 +1551,18 @@ type ClientInterface interface {
 
 	ImportTelemetry(ctx context.Context, body ImportTelemetryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListFonts request
+	ListFonts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UploadFontWithBody request with any body
+	UploadFontWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteFont request
+	DeleteFont(ctx context.Context, fontID PresentationFontID, params *DeleteFontParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetFontFile request
+	GetFontFile(ctx context.Context, fontID PresentationFontID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetHomepageServices request
 	GetHomepageServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1197,6 +1630,14 @@ type ClientInterface interface {
 
 	QueryPlugin(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetPresentation request
+	GetPresentation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SavePresentationWithBody request with any body
+	SavePresentationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SavePresentation(ctx context.Context, body SavePresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetStagingServices request
 	GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1220,6 +1661,25 @@ type ClientInterface interface {
 
 	// PinStagingService request
 	PinStagingService(ctx context.Context, serviceId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListThemes request
+	ListThemes(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateThemeWithBody request with any body
+	CreateThemeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateTheme(ctx context.Context, body CreateThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteTheme request
+	DeleteTheme(ctx context.Context, themeID PresentationThemeID, params *DeleteThemeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTheme request
+	GetTheme(ctx context.Context, themeID PresentationThemeID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RenameThemeWithBody request with any body
+	RenameThemeWithBody(ctx context.Context, themeID PresentationThemeID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RenameTheme(ctx context.Context, themeID PresentationThemeID, body RenameThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetHealthz request
 	GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1311,6 +1771,54 @@ func (c *Client) ImportTelemetryWithBody(ctx context.Context, contentType string
 
 func (c *Client) ImportTelemetry(ctx context.Context, body ImportTelemetryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewImportTelemetryRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListFonts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListFontsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UploadFontWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUploadFontRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteFont(ctx context.Context, fontID PresentationFontID, params *DeleteFontParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteFontRequest(c.Server, fontID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetFontFile(ctx context.Context, fontID PresentationFontID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFontFileRequest(c.Server, fontID)
 	if err != nil {
 		return nil, err
 	}
@@ -1609,6 +2117,42 @@ func (c *Client) QueryPlugin(ctx context.Context, pluginId string, connectionId 
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetPresentation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPresentationRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SavePresentationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSavePresentationRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SavePresentation(ctx context.Context, body SavePresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSavePresentationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetStagingServices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetStagingServicesRequest(c.Server)
 	if err != nil {
@@ -1707,6 +2251,90 @@ func (c *Client) UnpinStagingService(ctx context.Context, serviceId string, reqE
 
 func (c *Client) PinStagingService(ctx context.Context, serviceId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPinStagingServiceRequest(c.Server, serviceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListThemes(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListThemesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateThemeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateThemeRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateTheme(ctx context.Context, body CreateThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateThemeRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteTheme(ctx context.Context, themeID PresentationThemeID, params *DeleteThemeParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteThemeRequest(c.Server, themeID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTheme(ctx context.Context, themeID PresentationThemeID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetThemeRequest(c.Server, themeID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RenameThemeWithBody(ctx context.Context, themeID PresentationThemeID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRenameThemeRequestWithBody(c.Server, themeID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RenameTheme(ctx context.Context, themeID PresentationThemeID, body RenameThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRenameThemeRequest(c.Server, themeID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1913,6 +2541,153 @@ func NewImportTelemetryRequestWithBody(server string, contentType string, body i
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListFontsRequest generates requests for ListFonts
+func NewListFontsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/fonts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUploadFontRequestWithBody generates requests for UploadFont with any type of body
+func NewUploadFontRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/fonts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteFontRequest generates requests for DeleteFont
+func NewDeleteFontRequest(server string, fontID PresentationFontID, params *DeleteFontParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "fontID", fontID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/fonts/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "expectedRevision", params.ExpectedRevision, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetFontFileRequest generates requests for GetFontFile
+func NewGetFontFileRequest(server string, fontID PresentationFontID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "fontID", fontID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/fonts/%s/file", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -2703,6 +3478,73 @@ func NewQueryPluginRequestWithBody(server string, pluginId string, connectionId 
 	return req, nil
 }
 
+// NewGetPresentationRequest generates requests for GetPresentation
+func NewGetPresentationRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/presentation")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSavePresentationRequest calls the generic SavePresentation builder with application/json body
+func NewSavePresentationRequest(server string, body SavePresentationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSavePresentationRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSavePresentationRequestWithBody generates requests for SavePresentation with any type of body
+func NewSavePresentationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/presentation")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetStagingServicesRequest generates requests for GetStagingServices
 func NewGetStagingServicesRequest(server string) (*http.Request, error) {
 	var err error
@@ -2932,6 +3774,211 @@ func NewPinStagingServiceRequest(server string, serviceId string) (*http.Request
 	return req, nil
 }
 
+// NewListThemesRequest generates requests for ListThemes
+func NewListThemesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/themes")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateThemeRequest calls the generic CreateTheme builder with application/json body
+func NewCreateThemeRequest(server string, body CreateThemeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateThemeRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateThemeRequestWithBody generates requests for CreateTheme with any type of body
+func NewCreateThemeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/themes")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteThemeRequest generates requests for DeleteTheme
+func NewDeleteThemeRequest(server string, themeID PresentationThemeID, params *DeleteThemeParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "themeID", themeID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/themes/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "expectedRevision", params.ExpectedRevision, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetThemeRequest generates requests for GetTheme
+func NewGetThemeRequest(server string, themeID PresentationThemeID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "themeID", themeID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/themes/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRenameThemeRequest calls the generic RenameTheme builder with application/json body
+func NewRenameThemeRequest(server string, themeID PresentationThemeID, body RenameThemeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRenameThemeRequestWithBody(server, themeID, "application/json", bodyReader)
+}
+
+// NewRenameThemeRequestWithBody generates requests for RenameTheme with any type of body
+func NewRenameThemeRequestWithBody(server string, themeID PresentationThemeID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "themeID", themeID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/themes/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetHealthzRequest generates requests for GetHealthz
 func NewGetHealthzRequest(server string) (*http.Request, error) {
 	var err error
@@ -3023,6 +4070,18 @@ type ClientWithResponsesInterface interface {
 
 	ImportTelemetryWithResponse(ctx context.Context, body ImportTelemetryJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportTelemetryResponse, error)
 
+	// ListFontsWithResponse request
+	ListFontsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListFontsResponse, error)
+
+	// UploadFontWithBodyWithResponse request with any body
+	UploadFontWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadFontResponse, error)
+
+	// DeleteFontWithResponse request
+	DeleteFontWithResponse(ctx context.Context, fontID PresentationFontID, params *DeleteFontParams, reqEditors ...RequestEditorFn) (*DeleteFontResponse, error)
+
+	// GetFontFileWithResponse request
+	GetFontFileWithResponse(ctx context.Context, fontID PresentationFontID, reqEditors ...RequestEditorFn) (*GetFontFileResponse, error)
+
 	// GetHomepageServicesWithResponse request
 	GetHomepageServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHomepageServicesResponse, error)
 
@@ -3090,6 +4149,14 @@ type ClientWithResponsesInterface interface {
 
 	QueryPluginWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error)
 
+	// GetPresentationWithResponse request
+	GetPresentationWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPresentationResponse, error)
+
+	// SavePresentationWithBodyWithResponse request with any body
+	SavePresentationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SavePresentationResponse, error)
+
+	SavePresentationWithResponse(ctx context.Context, body SavePresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*SavePresentationResponse, error)
+
 	// GetStagingServicesWithResponse request
 	GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error)
 
@@ -3113,6 +4180,25 @@ type ClientWithResponsesInterface interface {
 
 	// PinStagingServiceWithResponse request
 	PinStagingServiceWithResponse(ctx context.Context, serviceId string, reqEditors ...RequestEditorFn) (*PinStagingServiceResponse, error)
+
+	// ListThemesWithResponse request
+	ListThemesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListThemesResponse, error)
+
+	// CreateThemeWithBodyWithResponse request with any body
+	CreateThemeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateThemeResponse, error)
+
+	CreateThemeWithResponse(ctx context.Context, body CreateThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateThemeResponse, error)
+
+	// DeleteThemeWithResponse request
+	DeleteThemeWithResponse(ctx context.Context, themeID PresentationThemeID, params *DeleteThemeParams, reqEditors ...RequestEditorFn) (*DeleteThemeResponse, error)
+
+	// GetThemeWithResponse request
+	GetThemeWithResponse(ctx context.Context, themeID PresentationThemeID, reqEditors ...RequestEditorFn) (*GetThemeResponse, error)
+
+	// RenameThemeWithBodyWithResponse request with any body
+	RenameThemeWithBodyWithResponse(ctx context.Context, themeID PresentationThemeID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RenameThemeResponse, error)
+
+	RenameThemeWithResponse(ctx context.Context, themeID PresentationThemeID, body RenameThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*RenameThemeResponse, error)
 
 	// GetHealthzWithResponse request
 	GetHealthzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthzResponse, error)
@@ -3270,6 +4356,143 @@ func (r ImportTelemetryResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ImportTelemetryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListFontsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]UploadedFont
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListFontsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListFontsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListFontsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UploadFontResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *UploadedFont
+	JSON201      *UploadedFont
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON413      *PresentationTooLarge
+	JSON415      *PresentationUnsupportedFont
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r UploadFontResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UploadFontResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UploadFontResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteFontResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteFontResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteFontResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteFontResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetFontFileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r GetFontFileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetFontFileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetFontFileResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3851,6 +5074,74 @@ func (r QueryPluginResponse) ContentType() string {
 	return ""
 }
 
+type GetPresentationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PresentationState
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPresentationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPresentationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPresentationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SavePresentationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PresentationReceipt
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r SavePresentationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SavePresentationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SavePresentationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetStagingServicesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4041,6 +5332,176 @@ func (r PinStagingServiceResponse) ContentType() string {
 	return ""
 }
 
+type ListThemesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ThemeCatalog
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListThemesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListThemesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListThemesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateThemeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CustomTheme
+	JSON201      *CustomTheme
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateThemeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateThemeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateThemeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteThemeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteThemeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteThemeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteThemeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetThemeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CustomTheme
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r GetThemeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetThemeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetThemeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RenameThemeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CustomTheme
+	JSON400      *PresentationInvalid
+	JSON404      *PresentationMissing
+	JSON409      *PresentationRejected
+	JSON503      *PresentationUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r RenameThemeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RenameThemeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RenameThemeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetHealthzResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4139,6 +5600,42 @@ func (c *ClientWithResponses) ImportTelemetryWithResponse(ctx context.Context, b
 		return nil, err
 	}
 	return ParseImportTelemetryResponse(rsp)
+}
+
+// ListFontsWithResponse request returning *ListFontsResponse
+func (c *ClientWithResponses) ListFontsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListFontsResponse, error) {
+	rsp, err := c.ListFonts(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListFontsResponse(rsp)
+}
+
+// UploadFontWithBodyWithResponse request with arbitrary body returning *UploadFontResponse
+func (c *ClientWithResponses) UploadFontWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadFontResponse, error) {
+	rsp, err := c.UploadFontWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUploadFontResponse(rsp)
+}
+
+// DeleteFontWithResponse request returning *DeleteFontResponse
+func (c *ClientWithResponses) DeleteFontWithResponse(ctx context.Context, fontID PresentationFontID, params *DeleteFontParams, reqEditors ...RequestEditorFn) (*DeleteFontResponse, error) {
+	rsp, err := c.DeleteFont(ctx, fontID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteFontResponse(rsp)
+}
+
+// GetFontFileWithResponse request returning *GetFontFileResponse
+func (c *ClientWithResponses) GetFontFileWithResponse(ctx context.Context, fontID PresentationFontID, reqEditors ...RequestEditorFn) (*GetFontFileResponse, error) {
+	rsp, err := c.GetFontFile(ctx, fontID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetFontFileResponse(rsp)
 }
 
 // GetHomepageServicesWithResponse request returning *GetHomepageServicesResponse
@@ -4352,6 +5849,32 @@ func (c *ClientWithResponses) QueryPluginWithResponse(ctx context.Context, plugi
 	return ParseQueryPluginResponse(rsp)
 }
 
+// GetPresentationWithResponse request returning *GetPresentationResponse
+func (c *ClientWithResponses) GetPresentationWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPresentationResponse, error) {
+	rsp, err := c.GetPresentation(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPresentationResponse(rsp)
+}
+
+// SavePresentationWithBodyWithResponse request with arbitrary body returning *SavePresentationResponse
+func (c *ClientWithResponses) SavePresentationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SavePresentationResponse, error) {
+	rsp, err := c.SavePresentationWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSavePresentationResponse(rsp)
+}
+
+func (c *ClientWithResponses) SavePresentationWithResponse(ctx context.Context, body SavePresentationJSONRequestBody, reqEditors ...RequestEditorFn) (*SavePresentationResponse, error) {
+	rsp, err := c.SavePresentation(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSavePresentationResponse(rsp)
+}
+
 // GetStagingServicesWithResponse request returning *GetStagingServicesResponse
 func (c *ClientWithResponses) GetStagingServicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetStagingServicesResponse, error) {
 	rsp, err := c.GetStagingServices(ctx, reqEditors...)
@@ -4428,6 +5951,67 @@ func (c *ClientWithResponses) PinStagingServiceWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParsePinStagingServiceResponse(rsp)
+}
+
+// ListThemesWithResponse request returning *ListThemesResponse
+func (c *ClientWithResponses) ListThemesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListThemesResponse, error) {
+	rsp, err := c.ListThemes(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListThemesResponse(rsp)
+}
+
+// CreateThemeWithBodyWithResponse request with arbitrary body returning *CreateThemeResponse
+func (c *ClientWithResponses) CreateThemeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateThemeResponse, error) {
+	rsp, err := c.CreateThemeWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateThemeResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateThemeWithResponse(ctx context.Context, body CreateThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateThemeResponse, error) {
+	rsp, err := c.CreateTheme(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateThemeResponse(rsp)
+}
+
+// DeleteThemeWithResponse request returning *DeleteThemeResponse
+func (c *ClientWithResponses) DeleteThemeWithResponse(ctx context.Context, themeID PresentationThemeID, params *DeleteThemeParams, reqEditors ...RequestEditorFn) (*DeleteThemeResponse, error) {
+	rsp, err := c.DeleteTheme(ctx, themeID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteThemeResponse(rsp)
+}
+
+// GetThemeWithResponse request returning *GetThemeResponse
+func (c *ClientWithResponses) GetThemeWithResponse(ctx context.Context, themeID PresentationThemeID, reqEditors ...RequestEditorFn) (*GetThemeResponse, error) {
+	rsp, err := c.GetTheme(ctx, themeID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetThemeResponse(rsp)
+}
+
+// RenameThemeWithBodyWithResponse request with arbitrary body returning *RenameThemeResponse
+func (c *ClientWithResponses) RenameThemeWithBodyWithResponse(ctx context.Context, themeID PresentationThemeID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RenameThemeResponse, error) {
+	rsp, err := c.RenameThemeWithBody(ctx, themeID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRenameThemeResponse(rsp)
+}
+
+func (c *ClientWithResponses) RenameThemeWithResponse(ctx context.Context, themeID PresentationThemeID, body RenameThemeJSONRequestBody, reqEditors ...RequestEditorFn) (*RenameThemeResponse, error) {
+	rsp, err := c.RenameTheme(ctx, themeID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRenameThemeResponse(rsp)
 }
 
 // GetHealthzWithResponse request returning *GetHealthzResponse
@@ -4615,6 +6199,229 @@ func ParseImportTelemetryResponse(rsp *http.Response) (*ImportTelemetryResponse,
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListFontsResponse parses an HTTP response from a ListFontsWithResponse call
+func ParseListFontsResponse(rsp *http.Response) (*ListFontsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListFontsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []UploadedFont
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUploadFontResponse parses an HTTP response from a UploadFontWithResponse call
+func ParseUploadFontResponse(rsp *http.Response) (*UploadFontResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UploadFontResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UploadedFont
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest UploadedFont
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PresentationTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 415:
+		var dest PresentationUnsupportedFont
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON415 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteFontResponse parses an HTTP response from a DeleteFontWithResponse call
+func ParseDeleteFontResponse(rsp *http.Response) (*DeleteFontResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteFontResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetFontFileResponse parses an HTTP response from a GetFontFileWithResponse call
+func ParseGetFontFileResponse(rsp *http.Response) (*GetFontFileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetFontFileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -5100,6 +6907,114 @@ func ParseQueryPluginResponse(rsp *http.Response) (*QueryPluginResponse, error) 
 	return response, nil
 }
 
+// ParseGetPresentationResponse parses an HTTP response from a GetPresentationWithResponse call
+func ParseGetPresentationResponse(rsp *http.Response) (*GetPresentationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPresentationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PresentationState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSavePresentationResponse parses an HTTP response from a SavePresentationWithResponse call
+func ParseSavePresentationResponse(rsp *http.Response) (*SavePresentationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SavePresentationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PresentationReceipt
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetStagingServicesResponse parses an HTTP response from a GetStagingServicesWithResponse call
 func ParseGetStagingServicesResponse(rsp *http.Response) (*GetStagingServicesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5316,6 +7231,276 @@ func ParsePinStagingServiceResponse(rsp *http.Response) (*PinStagingServiceRespo
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListThemesResponse parses an HTTP response from a ListThemesWithResponse call
+func ParseListThemesResponse(rsp *http.Response) (*ListThemesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListThemesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ThemeCatalog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateThemeResponse parses an HTTP response from a CreateThemeWithResponse call
+func ParseCreateThemeResponse(rsp *http.Response) (*CreateThemeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateThemeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CustomTheme
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CustomTheme
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteThemeResponse parses an HTTP response from a DeleteThemeWithResponse call
+func ParseDeleteThemeResponse(rsp *http.Response) (*DeleteThemeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteThemeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetThemeResponse parses an HTTP response from a GetThemeWithResponse call
+func ParseGetThemeResponse(rsp *http.Response) (*GetThemeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetThemeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CustomTheme
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRenameThemeResponse parses an HTTP response from a RenameThemeWithResponse call
+func ParseRenameThemeResponse(rsp *http.Response) (*RenameThemeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RenameThemeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CustomTheme
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest PresentationInvalid
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest PresentationMissing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest PresentationRejected
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest PresentationUnavailable
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

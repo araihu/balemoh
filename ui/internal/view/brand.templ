@@ -1,14 +1,55 @@
 package view
 
+import "github.com/araihu/goshtoso/components/link"
+
 templ BrandLogo() {
- <span>
-  <img class="balemoh-brand-logo balemoh-brand-logo-light" src="/ui/brand/logo-light.svg" alt="Balemoh" width="145" height="32"/>
-  <img class="balemoh-brand-logo balemoh-brand-logo-dark" src="/ui/brand/logo-dark.svg" alt="Balemoh" width="145" height="32"/>
- </span>
+	<span>
+		<img class="balemoh-brand-logo balemoh-brand-logo-light" src="/ui/brand/logo-light.svg" alt="Balemoh" width="145" height="32"/>
+		<img class="balemoh-brand-logo balemoh-brand-logo-dark" src="/ui/brand/logo-dark.svg" alt="Balemoh" width="145" height="32"/>
+	</span>
 }
 
-templ BrandHead() {
- <link rel="alternate icon" type="image/png" sizes="32x32" href="/ui/brand/favicon-32.png"/>
- <link rel="apple-touch-icon" sizes="180x180" href="/ui/brand/apple-touch-icon-180.png"/>
- <link rel="manifest" href="/ui/brand/manifest-icons.json"/>
+templ BrandHead(a Appearance) {
+	if a.BrandIconID!="" {
+		<link rel="apple-touch-icon" href={ IconImageURL(a.BrandIconID) }/>
+		<link rel="manifest" href={ brandManifestURL(a.BrandIconID) }/>
+	} else {
+		<link rel="alternate icon" type="image/png" sizes="32x32" href="/ui/brand/favicon-32.png"/>
+		<link rel="apple-touch-icon" sizes="180x180" href="/ui/brand/apple-touch-icon-180.png"/>
+		<link rel="manifest" href="/ui/brand/manifest-icons.json"/>
+	}
+}
+
+templ SiteLogo(id string) {
+	<span data-site-logo>
+		<span data-site-logo-default hidden?={ id!="" }>@BrandLogo()</span>
+		<img
+			data-site-logo-custom
+			hidden?={ id=="" }
+			class="balemoh-custom-brand-logo"
+			alt="Site logo"
+			width="145"
+			height="32"
+			if id!="" {
+				src={ IconImageURL(id) }
+			}
+		/>
+	</span>
+}
+
+templ ProductFooter() {
+	<div class="balemoh-footer">
+		<p class="balemoh-product-credit">
+			@BrandLogo()
+			<span>is made by</span>
+			@link.Link("https://araihu.com/", link.WithTarget("_blank"), link.WithRel("noopener")) {
+				Arai Hû
+			}
+			<span>with</span>
+			@link.Link("https://goshtoso.araihu.com/", link.WithTarget("_blank"), link.WithRel("noopener")) {
+				Goshtoso
+			}
+		</p>
+		@AttributionLinks()
+	</div>
 }

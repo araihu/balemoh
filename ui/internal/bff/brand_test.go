@@ -52,6 +52,7 @@ func TestPagesExposeBrandAndUpdatedSocialPreview(t *testing.T) {
 	for _, path := range []string{"/", "/staging", "/hosts"} {
 		t.Run(path, func(t *testing.T) {
 			response := request(t, handler, http.MethodGet, path, "")
+			assertSocialMetadata(t, response.Body.String(), "https://balemoh.decastro.me"+path)
 			for _, expected := range []string{"/ui/brand/logo-light.svg", "/ui/brand/logo-dark.svg", "/ui/brand/favicon.svg", "/ui/brand/apple-touch-icon-180.png", "/ui/brand/manifest-icons.json", "https://balemoh.decastro.me/ui/social-v2.png"} {
 				if !strings.Contains(response.Body.String(), expected) {
 					t.Errorf("missing %s", expected)
@@ -67,8 +68,23 @@ func TestPagesExposeBrandAndUpdatedSocialPreview(t *testing.T) {
 	if info.Width != 1280 || info.Height != 640 {
 		t.Errorf("social preview = %dx%d, want 1280x640", info.Width, info.Height)
 	}
+	if response.Body.Len() >= 1<<20 || !strings.HasPrefix(response.Header().Get("Content-Type"), "image/png") {
+		t.Fatal("invalid social preview delivery")
+	}
 	legacy := request(t, handler, http.MethodGet, "/ui/social-v1.png", "")
 	if legacy.Code != http.StatusOK {
 		t.Errorf("previously shared social preview status = %d, want 200", legacy.Code)
+	}
+}
+
+func assertSocialMetadata(t *testing.T, html, canonical string) {
+	t.Helper()
+	for _, marker := range []string{`<title>`, `name="description"`, `rel="canonical"`, `property="og:url"`, `property="og:type"`, `property="og:title"`, `property="og:description"`, `property="og:site_name"`, `property="og:image"`, `property="og:image:type"`, `property="og:image:width"`, `property="og:image:height"`, `property="og:image:alt"`, `name="twitter:card"`, `name="twitter:title"`, `name="twitter:description"`, `name="twitter:image"`, `name="twitter:image:alt"`} {
+		if strings.Count(html, marker) != 1 {
+			t.Errorf("metadata %s must appear once", marker)
+		}
+	}
+	if !strings.Contains(html, `href="`+canonical+`"`) || !strings.Contains(html, `property="og:url" content="`+canonical+`"`) {
+		t.Error("canonical and Open Graph URL mismatch", canonical)
 	}
 }

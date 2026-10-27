@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"github.com/araihu/balemoh/migrations"
 	"testing"
 	"testing/fstest"
 )
@@ -35,8 +36,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := db.QueryRowContext(context.Background(), "SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 12 || dirty {
-		t.Fatalf("schema_migrations = (version %d, dirty %t), want (12, false)", version, dirty)
+	if version != 15 || dirty {
+		t.Fatalf("schema_migrations = (version %d, dirty %t), want (15, false)", version, dirty)
 	}
 }
 
@@ -89,5 +90,46 @@ func TestRunMigrationsInvalidSource(t *testing.T) {
 	}
 	if err := runMigrations(db, files); err == nil {
 		t.Fatal("runMigrations() error = nil, want error")
+	}
+}
+
+func TestSeparateLogoMigrationPreservesLegacyBranding(t *testing.T) {
+	db, err := Open(t.Context(), t.TempDir()+"/legacy.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	files := fstest.MapFS{}
+	entries, err := migrations.FS.ReadDir(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Name() >= "000015" {
+			continue
+		}
+		data, err := migrations.FS.ReadFile(entry.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[entry.Name()] = &fstest.MapFile{Data: data}
+	}
+	if err = runMigrations(db, files); err != nil {
+		t.Fatal(err)
+	}
+	image, err := NewIconStore(db).Save(t.Context(), "", "Legacy", "", "", []byte(`<svg xmlns="http://www.w3.org/2000/svg"><circle r="8"/></svg>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`INSERT INTO presentation_themes(id,name,schema_version,definition_json,provenance_json,revision,creation_digest,brand_icon_id) VALUES('legacy','Legacy',1,'{}','{}',1,'legacy',?)`, image.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+	var logo, icon string
+	if err = db.QueryRow("SELECT brand_logo_id,brand_icon_id FROM presentation_themes WHERE id='legacy'").Scan(&logo, &icon); err != nil || logo != image.ID || icon != image.ID {
+		t.Fatal("migration changed branding", logo, icon, err)
 	}
 }
