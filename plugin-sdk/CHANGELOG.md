@@ -8,6 +8,7 @@ First MIT-licensed release of `github.com/araihu/balemoh/plugin-sdk`.
 - Separate UI/backend processes through HashiCorp go-plugin and gRPC.
 - Scoped queries, notification publication, routes, DOM IDs and rendering.
 - Author CLI with versioned scaffolds, packaging, health checks and fixture preview.
+- gRPC v1.83.1 includes the current transport security fixes.
 
 Protocol remains `balemoh.plugins/v1alpha1`; UI profile remains
 `balemoh.goshtoso/v1alpha2`. This release retains the existing host contracts.
