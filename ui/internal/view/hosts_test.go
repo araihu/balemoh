@@ -51,7 +51,7 @@ func TestHostTabsKeepLiveUpdatesScoped(t *testing.T) {
 			t.Fatal(err)
 		}
 		body := output.String()
-		for _, tab := range []string{"overview", "workloads"} {
+		for _, tab := range []string{"overview", "applications"} {
 			if !strings.Contains(body, `aria-controls="tabpanelhost-tabs`+tab+`"`) {
 				t.Errorf("%s missing %s tab", kind, tab)
 			}
@@ -59,8 +59,8 @@ func TestHostTabsKeepLiveUpdatesScoped(t *testing.T) {
 		if strings.Contains(body, `id="host-nodes"`) != (kind == "Kubernetes cluster") {
 			t.Errorf("wrong nodes panel for %s", kind)
 		}
-		if strings.Contains(body, "Applications discovered on this source") != (kind != "Kubernetes node") {
-			t.Errorf("wrong services panel for %s", kind)
+		if strings.Contains(body, `aria-controls="tabpanelhost-tabsservices"`) || strings.Contains(body, `aria-controls="tabpanelhost-tabsworkloads"`) {
+			t.Errorf("legacy inventory tabs remain for %s", kind)
 		}
 		output.Reset()
 		if err := HostLiveSnapshot(page).Render(context.Background(), &output); err != nil {

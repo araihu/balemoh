@@ -1,0 +1,38 @@
+version: 1
+source: site/.build/content
+output: dist/site
+assets: local
+offline: true
+site:
+  name: Balemoh
+  description: A self-hosted homepage that discovers your services, keeps your favorites close, and shows how your hosts are doing.
+  version: v0.0.8
+  repository_url: https://github.com/araihu/balemoh
+  base_url: https://balemoh.araihu.com
+  home: index.md
+  logo: ui/internal/view/static/brand/logo-light.svg
+  icon: ui/internal/view/static/brand/favicon-32.png
+  social_image:
+    path: site/assets/social-v1.png
+    alt: Balemoh. Your homelab, within reach. Service discovery, a curated homepage, and federated agents.
+layout:
+  kind: docs
+  default:
+    families: [docs]
+    sidebar: true
+    toc: true
+    content:
+      layout: article
+  values:
+    family: docs
+locales:
+  default: en
+  supported: [en]
+navigation:
+  mode: file-tree
+theme:
+  builtin: true
+  name: modern
+  color_mode: light
+custom_css:
+  - css_url: site/theme.css

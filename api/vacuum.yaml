@@ -1,0 +1,25 @@
+extends:
+  - [vacuum:oas, recommended]
+rules:
+  balemoh-operation-summary:
+    description: Each operation needs a short label for the API navigation.
+    severity: error
+    given:
+      - $.paths.*.get
+      - $.paths.*.post
+      - $.paths.*.put
+      - $.paths.*.delete
+    then:
+      field: summary
+      function: truthy
+  balemoh-operation-description:
+    description: Each operation must explain behavior, not only name it.
+    severity: error
+    given:
+      - $.paths.*.get
+      - $.paths.*.post
+      - $.paths.*.put
+      - $.paths.*.delete
+    then:
+      field: description
+      function: truthy

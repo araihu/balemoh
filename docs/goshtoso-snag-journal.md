@@ -88,3 +88,13 @@
 
 - Alert facets need supporting option counts that stay outside the closed selection label. Goshtoso's public `Option.Trailing` slot in [PR344](https://github.com/araihu/goshtoso/pull/344) covers this without copying option markup or changing selection values.
 - The full combobox suite exposed a pending keyboard open that could run after Escape and reopen the menu. Cancel deferred open/focus work on Escape while preserving focus ownership. The host must serve the v0.4.4 runtime together with plugins using the trailing slot; update the scaffold's patch baseline as well.
+
+## Host applications, 2026-10-25
+
+- Compose Toolbar, TextInput, Select, Badge, Table, Link and existing console components. Accordion v0.3.3 only accepts a plain Title plus leading Icon; it cannot express a rich application summary with separate readiness/location information. Use app-owned semantic native details/summary for these domain disclosures, with stable IDs and keyboard behavior. No component-internal CSS overrides.
+- ConsoleShell LocalRuntime loads scripts in order and does not expose head.Dependencies' optional goshtosoDependencies promise. Register the disclosure morph extension immediately when HTMX exists; a promise-only registration silently leaves disclosures unprotected. Browser validation reproduced the closure and verified preservation after the correction.
+- Select v0.3.3 does not emit bubbling native input/change when a user chooses an option. Use its public AlpineConfig.Model bridge and a watcher in the stable application filter region to apply filtering immediately. Keep controls outside streamed results.
+- PageHeader's public HideSeparator keeps 24px bottom padding. On host detail this stacked with the application's 16px section gap. Use its public RootClass to let the host stack own that separation. Conditional application notices share the same 16px grid gap; address and catalog-time metadata form an 8px group.
+- Native summary markers placed inside the line wrap above rich headings on narrow screens. Keep the native marker outside an application-owned 16px gutter so long headings wrap without creating an empty marker line.
+- Table v0.3.3 exposes no responsive cell-label or stacked-row contract. Reuse it on desktop; compose a semantic read-only workload list with definition lists below 768px. CSS exposes one representation at a time, and both render from the same workload evidence in each streamed application row.
+- Tabs v0.3.3 has RootClass but no tab-list or button class hooks. Scope responsive rules through the public host RootClass and semantic tab roles: compact padding, 44px targets and wrapping keep all host labels visible at 320px and with larger text. No library markup copied or selection logic replaced.

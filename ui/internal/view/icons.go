@@ -44,9 +44,9 @@ func IconImageURL(id string) string   { return "/icons/" + url.PathEscape(id) + 
 func IconEditURL(id string) string    { return "/icons/" + url.PathEscape(id) + "/edit" }
 func IconDetailsURL(id string) string { return "/icons/" + url.PathEscape(id) + "/details" }
 func IconPageURL(data IconPage, page int) string {
-	path := "/icons"
+	path := "/presentation"
 	if data.Picker {
-		path += "/picker"
+		path = "/icons/picker"
 	}
 	query := url.Values{"q": {data.Query}, "page": {strconv.Itoa(page)}}
 	for _, source := range data.Sources {

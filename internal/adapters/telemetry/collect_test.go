@@ -113,3 +113,21 @@ func TestDockerUnavailableArchitectureKeepsInventory(t *testing.T) {
 		t.Fatalf("unavailable daemon info: %+v", h)
 	}
 }
+
+func TestPodWorkloadReportsCurrentReadinessAndReason(t *testing.T) {
+	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "media"}, Spec: corev1.PodSpec{NodeName: "raspi", Containers: []corev1.Container{{Name: "app", Image: "jellyfin:10"}}}, Status: corev1.PodStatus{Phase: corev1.PodRunning, Conditions: []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionFalse}}, ContainerStatuses: []corev1.ContainerStatus{{RestartCount: 4, State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "CrashLoopBackOff"}}, LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "OOMKilled", ExitCode: 137}}}}}}
+	w := podWorkload(pod)
+	if w.Ready == nil || *w.Ready || w.Reason != "CrashLoopBackOff" || w.Node != "raspi" || w.Restarts != 4 || len(w.Images) != 1 || w.Images[0] != "jellyfin:10" {
+		t.Fatalf("pod evidence missing: %+v", w)
+	}
+	pod.Status.Conditions[0].Status = corev1.ConditionTrue
+	pod.Status.ContainerStatuses[0].State = corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}
+	w = podWorkload(pod)
+	if w.Ready == nil || !*w.Ready || w.Reason != "" {
+		t.Fatalf("previous termination became a current failure: %+v", w)
+	}
+	pod.Status.Conditions = nil
+	if podWorkload(pod).Ready != nil {
+		t.Fatal("missing condition became false readiness")
+	}
+}

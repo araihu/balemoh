@@ -221,7 +221,9 @@ body {
 
 .balemoh-resource-endpoint { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem; }
 
-#host-overview, #host-measurements, #host-nodes, #host-workloads-panel, #tabpanelhost-tabsservices { display: grid; gap: 1rem; min-width: 0; }
+/* The host stack owns section spacing, including conditional live notices. */
+.balemoh-host-page-header { padding-bottom: 0; }
+#host-overview, #host-measurements, #host-nodes, #host-applications, #host-application-results, #host-application-observation { display: grid; gap: 1rem; min-width: 0; }
 .balemoh-host-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .balemoh-host-grid > * { min-width: 0; }
 .balemoh-host-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
@@ -229,7 +231,39 @@ body {
 .balemoh-host-actions a[aria-current="true"] { font-weight: 700; text-decoration: underline; text-underline-offset: .3em; }
 .balemoh-host-status { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; font-size: .875rem; }
 .balemoh-metric-value { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 600; font-variant-numeric: tabular-nums; }
-.balemoh-host-services { display: flex; flex-wrap: wrap; gap: 1rem; }
+.balemoh-application-observation { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; color: var(--balemoh-muted); }
+.balemoh-application-list { min-width: 0; }
+.balemoh-application-row { border-bottom: 1px solid var(--balemoh-border); }
+.balemoh-application-row summary { cursor: pointer; margin-left: 1rem; padding: 1rem .25rem; list-style-position: outside; overflow-wrap: anywhere; }
+.balemoh-application-row summary:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.balemoh-application-heading { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; max-width: 100%; vertical-align: top; }
+.balemoh-application-name { font-weight: 600; }
+.balemoh-application-location { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin-top: .5rem; font-size: .875rem; }
+.balemoh-application-body { display: grid; gap: 1rem; padding: .25rem .25rem 1.25rem; min-width: 0; }
+.balemoh-application-catalog { display: grid; gap: .5rem; min-width: 0; }
+.balemoh-workload-identity { display: grid; gap: .25rem; overflow-wrap: anywhere; }
+.balemoh-application-body table { min-width: 40rem; }
+.balemoh-application-body td:first-child { min-width: 15rem; max-width: 34rem; white-space: normal; }
+.balemoh-application-body td { font-variant-numeric: tabular-nums; }
+.balemoh-workloads-table { display: none; }
+.balemoh-workloads-mobile { display: grid; gap: 1rem; min-width: 0; }
+.balemoh-workloads-mobile > li { display: grid; gap: 1rem; min-width: 0; }
+.balemoh-workloads-mobile > li + li { border-top: 1px solid var(--balemoh-border); padding-top: 1rem; }
+.balemoh-workload-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; min-width: 0; }
+.balemoh-workload-fields > div { min-width: 0; overflow-wrap: anywhere; }
+.balemoh-workload-fields dt { margin-bottom: .25rem; color: var(--balemoh-muted); font-size: .875rem; }
+.balemoh-workload-fields dd { font-variant-numeric: tabular-nums; }
+.balemoh-workload-wide { grid-column: 1 / -1; }
+@media (min-width: 768px) {
+ .balemoh-workloads-mobile { display: none; }
+ .balemoh-workloads-table { display: block; }
+}
+/* Host tabs have three short labels. Keep each label whole and allow a new
+   row when larger text needs it, rather than clipping the selected tab. */
+@media (max-width: 480px) {
+ .balemoh-host-tabs [role="tablist"] { flex-wrap: wrap; gap: .25rem; overflow-x: visible; }
+ .balemoh-host-tabs [role="tab"] { flex: 1 0 auto; min-height: 2.75rem; padding-inline: .25rem; white-space: nowrap; }
+}
 #hosts-table small { display: block; margin-top: .3rem; }
 #hosts-table td:first-child, #host-workloads td:first-child { overflow-wrap: anywhere; white-space: normal; }
 /* Charts v0.0.3 always renders its data disclosure; this page shows charts only. */

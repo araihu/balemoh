@@ -1,0 +1,149 @@
+name: Publish Balemoh site
+
+on:
+  release:
+    types: [published]
+  pull_request:
+    paths:
+      - '.github/workflows/site-deploy.yml'
+      - 'api/openapi.yaml'
+      - 'api/vacuum.yaml'
+      - 'docs/icons.md'
+      - 'internal/config/**'
+      - 'ui/internal/config/**'
+      - 'ui/internal/view/static/brand/**'
+      - 'hack/build-site.sh'
+      - 'hack/lint-openapi.sh'
+      - 'hack/check-site.py'
+      - 'hack/site_structured_data.py'
+      - 'site.yaml'
+      - 'site/**'
+      - 'wrangler.jsonc'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/site-deploy.yml'
+      - 'api/openapi.yaml'
+      - 'api/vacuum.yaml'
+      - 'docs/icons.md'
+      - 'internal/config/**'
+      - 'ui/internal/config/**'
+      - 'ui/internal/view/static/brand/**'
+      - 'hack/build-site.sh'
+      - 'hack/lint-openapi.sh'
+      - 'hack/check-site.py'
+      - 'hack/site_structured_data.py'
+      - 'site.yaml'
+      - 'site/**'
+      - 'wrangler.jsonc'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: balemoh-site-${{ github.event_name == 'release' && 'production' || format('{0}-{1}', github.event_name, github.ref) }}
+  cancel-in-progress: false
+
+env:
+  GOWORK: 'off'
+  WRANGLER_VERSION: '4.151.3'
+
+jobs:
+  build:
+    name: Build and validate static site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      publish: ${{ steps.release.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.3'
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          check-latest: false
+      - name: Use canonical stable release version
+        id: release
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          RELEASE_DRAFT: ${{ github.event.release.draft }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import re
+
+          tag = os.environ["RELEASE_TAG"]
+          number = r"(?:0|[1-9][0-9]*)"
+          canonical = bool(re.fullmatch(rf"v{number}\.{number}\.{number}", tag))
+          stable = os.environ["RELEASE_PRERELEASE"] == "false" and os.environ["RELEASE_DRAFT"] == "false"
+          output = Path(os.environ["GITHUB_OUTPUT"])
+          if not canonical or not stable:
+              with output.open("a") as stream:
+                  stream.write("publish=false\n")
+              print("Release is not canonical stable SemVer; deployment skipped.")
+              raise SystemExit(0)
+          path = Path("site.yaml")
+          updated, count = re.subn(r"^  version: .+$", lambda _: "  version: " + tag,
+                                   path.read_text(), flags=re.MULTILINE)
+          if count != 1:
+              raise SystemExit("Expected exactly one site.version field")
+          path.write_text(updated)
+          with output.open("a") as stream:
+              stream.write("publish=true\n")
+          PY
+      - name: Build Margo pages and Manja API reference
+        run: bash hack/build-site.sh
+      - name: Validate static asset deployment
+        run: npx --yes "wrangler@${WRANGLER_VERSION}" deploy --dry-run
+      - name: Save verified publication
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: balemoh-site
+          path: dist/site/
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+
+  deploy:
+    name: Publish static assets
+    if: github.repository == 'araihu/balemoh' && github.event_name == 'release' && github.event.action == 'published' && needs.build.outputs.publish == 'true'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://balemoh.araihu.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Restore verified publication
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: balemoh-site
+          path: dist/site/
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          check-latest: false
+      - name: Deploy Worker and static assets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if test -z "${CLOUDFLARE_API_TOKEN:-}"; then
+            echo '::error::Set CLOUDFLARE_API_TOKEN in repository or production environment secrets.'
+            exit 1
+          fi
+          npx --yes "wrangler@${WRANGLER_VERSION}" deploy
+      - name: Verify deployed publication
+        run: python3 hack/check-site-live.py

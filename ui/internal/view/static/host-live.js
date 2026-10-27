@@ -1,4 +1,58 @@
 // Connection and measurement freshness share one visible status indicator.
+// Existing bookmarks retain their meaning after the two inventory tabs merge.
+function normalizeApplicationHash() {
+  if (['#services', '#workloads'].includes(location.hash)) {
+    history.replaceState(null, '', `${location.pathname}${location.search}#applications`);
+  }
+}
+normalizeApplicationHash();
+
+function filterHostApplications() {
+  const root = document.getElementById('host-applications');
+  if (!root) return;
+  const query = root.querySelector('[data-application-search]').value.trim().toLocaleLowerCase();
+  const filter = root.querySelector('[data-application-filter]').value;
+  const rows = root.querySelectorAll('[data-application-row]');
+  const status = root.querySelector('#host-application-filter-status');
+  // The server owns the source-empty state. Filter recovery only makes sense
+  // when some received rows can be revealed by a different query or scope.
+  if (rows.length === 0) {
+    status.hidden = true;
+    status.textContent = '';
+    return;
+  }
+  let visible = 0;
+  for (const row of rows) {
+    const inScope = row.dataset.scope === (filter === 'missing' ? 'missing' : 'current');
+    row.hidden = !(inScope && (filter !== 'attention' || row.dataset.attention === 'true') && row.dataset.search.includes(query));
+    if (!row.hidden) visible++;
+  }
+  const message = visible === 0 ? 'No matching applications or workloads. Try another search or filter.' : `${visible} ${visible === 1 ? 'group' : 'groups'} shown`;
+  status.hidden = false;
+  if (status.textContent !== message) status.textContent = message;
+}
+document.addEventListener('input', event => {
+  if (event.target.matches('[data-application-search], [data-application-filter]')) filterHostApplications();
+});
+document.addEventListener('change', event => {
+  if (event.target.matches('[data-application-filter]')) filterHostApplications();
+});
+document.addEventListener('htmx:after:swap', filterHostApplications);
+document.addEventListener('application-filter-changed', filterHostApplications);
+document.addEventListener('DOMContentLoaded', filterHostApplications, { once: true });
+function initializeHostApplicationMorphs() {
+  window.htmx.registerExtension('balemoh-application-disclosures', {
+    htmx_before_morph_attr(element, detail) {
+      if (element.matches('[data-application-details]') && detail.attrName === 'open') return false;
+    },
+  });
+  filterHostApplications();
+}
+// ConsoleShell's LocalRuntime loads HTMX before this script and does not
+// create the optional head.Dependencies promise used by CDN-first consumers.
+if (window.htmx) initializeHostApplicationMorphs();
+else window.goshtosoDependencies?.ready.then(initializeHostApplicationMorphs);
+
 function syncHostStatusDot() {
   const dot = document.getElementById('host-status-dot');
   const tooltip = document.getElementById('host-status-tooltip');
