@@ -12,10 +12,10 @@ import (
 	"strings"
 )
 
-const SDKVersion = "v0.0.0"
+const SDKVersion = "v0.0.1-alpha.1"
 const ProfileVersion = "v0.4.4"
 
-// Init writes only into a new or empty directory. The SDK is explicitly unpublished.
+// Init writes only into a new or empty directory and pins the released SDK.
 func Init(dir, id, module string, backend bool) error {
 	if module == "" {
 		module = "example.com/" + strings.ReplaceAll(id, ".", "-")
@@ -65,7 +65,7 @@ templ Message(id,message,refresh string) {
 }
 `,
 		"internal/view/generate.go": "package view\n//go:generate go run github.com/a-h/templ/cmd/templ@v0.3.1070 generate\n",
-		"README.md":                 fmt.Sprintf("# %s\n\nIndependent Balemoh application plugin. Go 1.27, SDK %s, Goshtoso %s.\n\nSDK is unpublished. For local development copy go.mod to .local/development.mod and add an explicit SDK replace there. Run templ generation for this project's own files, then tidy and test with GOWORK=off and the development modfile. Never add the local replace to exported go.mod.\n\nUse balemoh-plugin package --source . --output dist --target linux/amd64 --modfile .local/development.mod. Run balemoh-plugin check --package dist.\n\nUse balemoh-plugin dev --source . --host /path/to/balemoh-ui --sdk /path/to/plugin-sdk for a real-shell fixture preview. Dev uses loopback fixtures and never contacts production.\n", id, SDKVersion, ProfileVersion),
+		"README.md":                 fmt.Sprintf("# %s\n\nIndependent Balemoh application plugin. Go 1.27, SDK %s, Goshtoso %s.\n\nRun GOWORK=off go generate ./..., GOWORK=off go mod tidy and GOWORK=off go test ./... in this directory. Dependencies resolve from published Go modules.\n\nInstall the pinned author CLI with go install github.com/araihu/balemoh/plugin-sdk/cmd/balemoh-plugin@%s. Use balemoh-plugin package --source . --output dist --target linux/amd64 and balemoh-plugin check --package dist.\n\nUse balemoh-plugin dev --source . --host /path/to/balemoh-ui for a real-shell fixture preview. Dev uses loopback fixtures and never contacts production. Optional --sdk /path/to/plugin-sdk selects an explicit local development override in a temporary modfile; never export that replacement in go.mod.\n", id, SDKVersion, ProfileVersion, SDKVersion),
 	}
 	query := "message := \"Independent UI plugin\""
 	if backend {

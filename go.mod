@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/araihu/balemoh/client v0.0.0
-	github.com/araihu/balemoh/plugin-sdk v0.0.0
+	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
 	github.com/araihu/goshtoso v0.3.2
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
@@ -116,7 +116,7 @@ require (
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/image v0.46.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect

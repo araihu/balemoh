@@ -31,12 +31,12 @@ Runtime checks use controlled source fixtures and real subprocesses. Browser evi
 - Browser checked default Goshtoso and explicit minimal/dark appearance, desktop and mobile layouts. Viewport widths were inspected from DOM, with no horizontal overflow. Keyboard focus survived the filter fragment. Mobile screenshots inspected rather than inferred from HTTP responses.
 - Non-root read-only image smoke loads an independently generated package through real API/BFF. Plugin artifact image compiles Linux amd64/arm64; native subprocess execution was macOS arm64 and local container architecture. Cross-compilation does not claim an exhaustive Linux architecture matrix.
 
-## Independent review and CI
+## Independent review and CI, 2026-10-25
 
-Consumer package version is `0.0.1-alpha`; generated independent fixture version is
+At this checkpoint, consumer package version was `0.0.1-alpha`; generated independent fixture version was
 `0.0.1`. Both use protocol `balemoh.plugins/v1alpha1` and UI profile
 `balemoh.goshtoso/v1alpha1`, with Go 1.27 module contracts, Goshtoso v0.3.3 and
-templ v0.3.1070. SDK module remains `github.com/araihu/balemoh/plugin-sdk` v0.0.0
+templ v0.3.1070. SDK module was `github.com/araihu/balemoh/plugin-sdk` v0.0.0
 with the documented explicit bootstrap replacement, not a published stable tag.
 
 Two independent reviewers accepted architecture and code quality at the final source
@@ -57,7 +57,7 @@ the three portable smoke assertions in `78c4029`, identity
   passed pinned-host SDK/consumer integration, generated drift checks and consumer
   race suites. `BALEMOH_SDK_REF` is explicitly pinned to `033af1892b4c46cd901bf44468fe44a655b0da41`.
 - Source integration is tracked in [PR 42](https://github.com/araihu/balemoh/pull/42).
-  No SDK tag or source release has been published. Source merge and stable SDK
+  At this checkpoint, no SDK tag or source release had been published. Source merge and stable SDK
   distribution remain separate actions.
 
 ## Authorized homelab verification, 2026-10-25
@@ -117,7 +117,7 @@ hidden fallback values in JavaScript fragments.
 After resolving the real tag, the normal multi-module gate passed generation,
 module tidy, tests and vet for root/client/UI/SDK, generated standalone UI/backend
 consumers and the external Alertmanager consumer. Controlled API/BFF integration
-also passed. The SDK remains unpublished; consumer CI still requires its explicit
+also passed. At this checkpoint the SDK was unpublished; consumer CI required its explicit
 reviewed host commit.
 
 ## Compact alert results, 2026-10-25
@@ -139,3 +139,16 @@ outside the console shell. Scroll the tray and verify that the main page stays p
 Repeat at desktop/mobile widths and in light/dark modes. Check that the header
 menu remains visible, Escape returns focus to the bell, and the unread filter
 keeps its state. Do not mark or clear production messages for this test.
+
+## SDK alpha release contract, 2026-10-27
+
+SDK `v0.0.1-alpha.1` uses the nested-module tag `plugin-sdk/v0.0.1-alpha.1`
+and an SDK-local MIT license. Its scaffold pins that Go version without a
+replacement. Protocol v1alpha1 and UI profile v1alpha2 are unchanged.
+
+Publication acceptance requires a fresh public proxy/checksum-database download,
+CLI installation and independent UI/backend scaffold builds without replacements.
+The Alertmanager consumer must use committed `go.mod`/`go.sum` resolution, normal
+Docker build context and a version-derived host tag for API/BFF integration.
+No commit-valued Actions variable or local SDK checkout is required by the
+consumer's default build. Local SDK overrides remain explicit co-development tools.

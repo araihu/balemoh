@@ -1,7 +1,9 @@
 # Balemoh plugin SDK
 
 Alpha SDK module `github.com/araihu/balemoh/plugin-sdk`. It is independent of
-Balemoh's API and BFF internal packages. No public tag has been published.
+Balemoh's API and BFF internal packages. The first version is `v0.0.1-alpha.1`,
+released under MIT through the repository tag `plugin-sdk/v0.0.1-alpha.1`.
+Alpha APIs may change; only trusted plugins are supported.
 
 P1 implements closed manifest validation, local schema compilation, UI requests,
 host-scoped page URLs and DOM identities, bounded templ rendering, and trusted
@@ -51,8 +53,8 @@ Home and dashboard SSE make no plugin UI calls. Each slot has its own deadline
 and local failure/retry state. The shared HTMX runtime loads isolated slots. Without JavaScript, a native iframe loads the contribution independently; filters, detail links and configuration forms remain usable. Pages/sidebar/widgets must declare their
 extension-point capability before the host mounts them.
 
-See the [system specification](../docs/superpowers/specs/2026-10-25-plugin-system-design.md)
-and [implementation plan](../docs/superpowers/plans/2026-10-25-plugin-system-implementation.md).
+See the [system specification](https://github.com/araihu/balemoh/blob/plugin-sdk/v0.0.1-alpha.1/docs/superpowers/specs/2026-10-25-plugin-system-design.md)
+and [implementation plan](https://github.com/araihu/balemoh/blob/plugin-sdk/v0.0.1-alpha.1/docs/superpowers/plans/2026-10-25-plugin-system-implementation.md).
 The first external consumer is `araihu/balemoh-plugin-alertmanager`, with a read-only Alertmanager API v2 backend and current/detail pages, filtering, pagination, summary and active-list widgets. Generic process conformance fixtures live under
 `runtime/testdata`, and are never installed as a product plugin.
 
@@ -60,7 +62,8 @@ The `balemoh.goshtoso/v1alpha2` author baseline remains Goshtoso v0.4.4;
 the host serves the compatible v0.4.5 runtime, including nested-popover focus
 fixes. Consumers compile their components against the scaffold baseline and use
 the host's shared assets. This patch split does not waive manifest/capability
-validation or the requirement to pin a compatible host/SDK commit.
+validation or the requirement to use a compatible host and SDK version.
+For this alpha, build the integration host from the same `plugin-sdk/` release tag.
 
 ## Backend and data contracts
 
@@ -124,18 +127,24 @@ explicit startup errors.
 
 ## Author commands
 
-Build the CLI with `GOWORK=off go build -o /tmp/balemoh-plugin ./cmd/balemoh-plugin`.
-Generate an independent project:
+Install the released CLI, then generate an independent project:
 
 ```sh
-/tmp/balemoh-plugin init --id example.metrics --module example.com/metrics --output ../metrics --backend
-/tmp/balemoh-plugin dev --source ../metrics --host /path/to/balemoh-ui --sdk /path/to/plugin-sdk
+GOWORK=off go install github.com/araihu/balemoh/plugin-sdk/cmd/balemoh-plugin@v0.0.1-alpha.1
+balemoh-plugin init --id example.metrics --module example.com/metrics --output ../metrics --backend
+cd ../metrics
+GOWORK=off go generate ./...
+GOWORK=off go mod tidy
+GOWORK=off go test ./...
+balemoh-plugin dev --source . --host /path/to/balemoh-ui
 ```
 
 Omit `--backend` for UI-only contributions. `init` accepts a new or empty directory.
-The generated module owns its templ source, tests and assets. The unpublished SDK
-is pinned as `v0.0.0`; `dev --sdk` creates an explicit temporary development modfile.
-An exported module never includes a developer absolute replacement or go.work.
+The generated module owns its templ source, tests and assets and requires SDK
+`v0.0.1-alpha.1` through normal Go module resolution, with no source checkout or
+replacement. Commit its `go.mod` and `go.sum`. Optional `dev --sdk` is for SDK
+co-development only and creates a temporary development modfile. An exported
+module never includes a developer absolute replacement or go.work.
 The real host must report the matching protocol/profile via `--plugin-host-info`.
 
 Dev runs the actual BFF shell with an isolated loopback fixture API, two widget
@@ -147,8 +156,8 @@ Provide operation results with `--fixtures file.json`, keyed by state then query
 Preview data does not contact the source backend or a production API.
 
 ```sh
-/tmp/balemoh-plugin package --source ../metrics --output ../metrics/dist --target linux/amd64 --target linux/arm64 --modfile /path/to/development.mod
-/tmp/balemoh-plugin check --package ../metrics/dist
+balemoh-plugin package --source . --output dist --target linux/amd64 --target linux/arm64
+balemoh-plugin check --package dist
 ```
 
 Generate templ and tidy the author module before packaging. `package` compiles the
@@ -176,7 +185,7 @@ shared styles/runtime and outer widget wrapper. Never emit another shell, HTMX,
 Alpine or global CSS replacement. Fragment HTML replaces its contribution region.
 Use templ's normal escaping for source text. Source/API credentials stay out of UI.
 
-See [operator guide](../docs/plugins/operations.md) and [acceptance ledger](../docs/plugins/acceptance.md).
+See [operator guide](https://github.com/araihu/balemoh/blob/plugin-sdk/v0.0.1-alpha.1/docs/plugins/operations.md) and [acceptance ledger](https://github.com/araihu/balemoh/blob/plugin-sdk/v0.0.1-alpha.1/docs/plugins/acceptance.md).
 
 ## Producer logo assets
 
@@ -194,3 +203,16 @@ document assets follow the existing 5 MiB per-file bound and package-root rules.
 This additive alpha manifest contract requires a matching host; install upgraded
 host binaries and plugin package pins together. No notification payload or RPC
 change is required.
+
+## Release checks
+
+A nested Go module uses tags prefixed with `plugin-sdk/`; a root `v` tag does not
+version this module. Tag the reviewed, merged commit without moving an existing
+tag. The Go dependency version is `v0.0.1-alpha.1`, not the prefixed Git tag.
+
+After publishing, run `bash hack/check-published-plugin-sdk.sh v0.0.1-alpha.1`
+from the repository root. It installs the CLI and builds independent UI-only and
+backend projects using a fresh public Go module cache and checksum database,
+without a local replacement. Host integration tests must compile the consumer
+against that published module even when the integration host comes from the
+matching repository tag.

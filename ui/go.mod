@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	github.com/a-h/templ v0.3.1070
 	github.com/araihu/balemoh/client v0.0.0
-	github.com/araihu/balemoh/plugin-sdk v0.0.0
+	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
 	github.com/araihu/goshtoso v0.4.5
 	github.com/araihu/goshtoso-app-shells v0.1.9-0.20260910224508-5b2222e54637
 	github.com/araihu/goshtoso-charts v0.0.4
@@ -46,8 +46,8 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
-	google.golang.org/grpc v1.79.1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 

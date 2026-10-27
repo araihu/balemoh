@@ -82,6 +82,9 @@ func TestInitPackageIndependentConsumers(t *testing.T) {
 			}
 			mod := filepath.Join(root, "development.mod")
 			original, _ := os.ReadFile(filepath.Join(source, "go.mod"))
+			if !bytes.Contains(original, []byte("github.com/araihu/balemoh/plugin-sdk "+SDKVersion)) || bytes.Contains(original, []byte("replace ")) {
+				t.Fatal("scaffold must pin the released SDK without a local replacement")
+			}
 			if err = os.WriteFile(mod, original, 0600); err != nil {
 				t.Fatal(err)
 			}
