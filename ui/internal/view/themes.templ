@@ -1,0 +1,227 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/actiongroup"
+	"github.com/araihu/goshtoso/components/alert"
+	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/fileinput"
+	"github.com/araihu/goshtoso/components/form"
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/icon/heroicons"
+	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/modal"
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/radio"
+	selectfield "github.com/araihu/goshtoso/components/select"
+	"github.com/araihu/goshtoso/components/textinput"
+	"github.com/araihu/goshtoso/components/themeeditor"
+	"github.com/araihu/goshtoso/components/themeplayground"
+	"github.com/araihu/goshtoso/components/tooltip"
+	"strings"
+)
+
+templ ThemesContent(d ThemesPage) {
+	if !d.Available {
+		@alert.Alert(alert.Config{Title: "Themes unavailable", Description: d.Error, Tone: alert.ToneWarning})
+	} else {
+		<section data-theme-selection={ d.bootstrap() } class="space-y-6">
+			<noscript><p role="alert">Applying themes requires JavaScript. Saved appearance remains unchanged.</p></noscript>
+			<form data-theme-apply class="space-y-4">
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<div class="space-y-4">
+						<div class="balemoh-theme-picker-row">
+							<div class="balemoh-theme-picker">
+								@selectfield.Select(selectfield.Config{ID: "presentation-theme-selection", Label: "Theme", Options: d.options(), InputAttrs: templ.Attributes{"data-presentation-selection": ""}})
+							</div>
+							<div data-theme-edit class="balemoh-theme-actions" hidden?={ strings.HasPrefix(d.SelectedID,"builtin:") }>
+								@actiongroup.ActionGroup(actiongroup.Config{Label: "Theme actions", RootAttrs: templ.Attributes{"x-data": "{}"}, Primary: actiongroup.Action{ID: "theme-primary-edit", Label: "Edit", Href: d.editorURL(false), Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPencilSquare, Decorative: true, RootClass: "size-4"})}, Secondary: []actiongroup.Action{{ID: "theme-secondary-create", Label: "Create", OnClick: "$dispatch('theme-create')", Tooltip: "Create an independent theme from this theme", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPlus, Decorative: true, RootClass: "size-4"})}}})
+							</div>
+							<div data-theme-create class="balemoh-theme-actions" hidden?={ !strings.HasPrefix(d.SelectedID,"builtin:") }>
+								@actiongroup.ActionGroup(actiongroup.Config{Label: "Theme actions", Primary: actiongroup.Action{ID: "theme-primary-create", Label: "Create", Href: d.editorURL(true), Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPlus, Decorative: true, RootClass: "size-4"})}})
+							</div>
+						</div>
+						@ThemeGlobalMode(d)
+					</div>
+					@themeplayground.ThemePlayground(themeplayground.Config{ID: "presentation-theme-preview", Src: "/presentation/preview", Title: "Balemoh interface preview", RootClass: "balemoh-theme-preview-frame"})
+				</div>
+				<p data-theme-selection-feedback role="status" aria-live="polite" tabindex="-1"></p>
+				@link.Link(d.themesURL(), link.WithAttrs(templ.Attributes{"data-theme-selection-reload": "", "hidden": true})) {
+					Reload saved settings
+				}
+				@button.Button(button.WithType("submit"), button.Disabled(), button.WithAttrs(templ.Attributes{"data-theme-apply-button": ""}), button.WithLoadingText("Applying…")) {
+					Apply theme
+				}
+			</form>
+		</section>
+	}
+}
+
+templ ThemeGlobalMode(d ThemesPage) {
+	<fieldset data-presentation-mode class="balemoh-mode-group">
+		<legend>Global mode</legend>
+		@radio.RadioBar() {
+			for _,option:=range d.modeOptions() {
+				@radio.Radio(radio.Config{ID: "presentation-mode-" + option.Value, Name: "colorMode", Value: option.Value, Label: option.Label, Checked: option.Selected, Segmented: true, RootClass: "balemoh-mode-option", LabelLeading: ModeIcon(option.Value)})
+			}
+		}
+	</fieldset>
+}
+
+templ ThemeEditorContent(d ThemesPage) {
+	@pageheader.PageHeader(pageheader.Config{Title: themeEditorTitle(d), HideSeparator: true, Actions: d.editorActions()})
+	@link.Link(d.themesURL()) {
+		Back to Themes
+	}
+	<noscript><p role="alert">Theme editing and saving require JavaScript. Saved appearance remains unchanged.</p></noscript>
+	@ThemeEditorForm(d)
+}
+
+templ ThemeEditorForm(d ThemesPage) {
+	if !d.Available {
+		@alert.Alert(alert.Config{Title: "Themes unavailable", Description: d.Error, Tone: alert.ToneWarning})
+	} else {
+		<section id="presentation-themes" data-presentation-themes={ d.bootstrap() } class="space-y-6">
+			<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+				<div class="min-w-0">
+					@form.Form(form.Config{ID: "presentation-save", Action: "/presentation/save", RootClass: "space-y-4", PreventEnterSubmit: new(false)}) {
+						@form.Section(form.SectionConfig{ID: "theme-details-section", Title: "Theme details", Columns: "1"}) {
+							if d.Creating {
+								@form.FieldGroup(form.FieldGroupConfig{ID: "presentation-base-field", Select: &selectfield.Config{ID: "presentation-theme-selection", Label: "Base theme", Options: d.options(), InputAttrs: templ.Attributes{"data-presentation-selection": ""}}})
+							} else {
+								<input type="hidden" data-presentation-selection value={ d.SelectedID }/>
+							}
+							<input type="hidden" name="colorMode" value={ d.ColorMode }/>
+							@form.FieldGroup(form.FieldGroupConfig{ID: "presentation-name-field", Label: "Custom theme name", Required: true, Input: &textinput.Config{ID: "presentation-theme-name", Name: "name", MaxLength: 200, Pattern: `.*\S.*`, InputAttrs: templ.Attributes{"data-presentation-name": ""}}})
+						}
+						@form.Section(form.SectionConfig{ID: "theme-brand-section", Title: "Site identity", Columns: "1"}) {
+							<p>Upload a logo and a separate icon. The icon supplies the favicon and app icons. Balemoh credits stay in the footer.</p>
+							<div class="space-y-3">
+								@form.FieldGroup(form.FieldGroupConfig{ID: "presentation-logo-field", FileInput: &fileinput.Config{ID: "theme-brand-file", Name: "brandImage", Label: "Logo image", Accept: "image/png,image/jpeg,image/webp,image/svg+xml", HelperText: "PNG, JPEG, WebP or passive SVG, up to 2 MiB. Uploads on selection.", Appearance: fileinput.AppearanceUpload, InputAttrs: templ.Attributes{"data-brand-file": "", "aria-describedby": "theme-brand-feedback"}}})
+								<p id="theme-brand-feedback" data-brand-feedback class="text-sm" role="status" aria-live="polite"></p>
+								@button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithSize(button.SizeSmall), button.WithAttrs(templ.Attributes{"data-brand-dismiss": "", "hidden": true})) {
+									Discard failed upload
+								}
+								<div class="flex items-center gap-2">
+									<div data-brand-default-preview hidden?={ d.brandLogoID()!="" }>@BrandLogo()</div>
+									<img
+										data-brand-logo-preview
+										class="balemoh-custom-brand-logo"
+										alt="Logo preview"
+										hidden?={ d.brandLogoID()=="" }
+										if d.brandLogoID()!="" {
+											src={ IconImageURL(d.brandLogoID()) }
+										}
+									/>
+									@BrandResetAction("brand", "Restore default logo", d.brandLogoID() != "")
+								</div>
+							</div>
+							<div class="space-y-3">
+								@form.FieldGroup(form.FieldGroupConfig{ID: "presentation-icon-field", FileInput: &fileinput.Config{ID: "theme-brand-icon-file", Name: "brandIconImage", Label: "Icon image", Accept: "image/png,image/jpeg,image/webp,image/svg+xml", HelperText: "Square PNG recommended. PNG, JPEG, WebP or passive SVG, up to 2 MiB. Uploads on selection.", Appearance: fileinput.AppearanceUpload, InputAttrs: templ.Attributes{"data-brand-icon-file": "", "aria-describedby": "theme-brand-icon-feedback"}}})
+								<p id="theme-brand-icon-feedback" data-brand-icon-feedback class="text-sm" role="status" aria-live="polite"></p>
+								@button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithSize(button.SizeSmall), button.WithAttrs(templ.Attributes{"data-brand-icon-dismiss": "", "hidden": true})) {
+									Discard failed upload
+								}
+								<div class="flex items-center gap-2">
+									<img data-brand-icon-preview class="balemoh-brand-icon-preview" alt="Icon and favicon preview" src={ brandPreviewIconURL(d.brandIconID()) }/>
+									@BrandResetAction("brand-icon", "Restore default icon", d.brandIconID() != "")
+								</div>
+							</div>
+						}
+						@form.Section(form.SectionConfig{ID: "theme-appearance-section", Title: "Appearance", Columns: "1"}) {
+							@themeeditor.ThemeEditor(d.editor())
+						}
+						@button.Button(button.WithType("submit"), button.Disabled(), button.WithAttrs(templ.Attributes{"data-presentation-save": ""}), button.WithLoadingText("Saving…")) {
+							Save and apply globally
+						}
+						<p data-presentation-feedback role="status" aria-live="polite" tabindex="-1"></p>
+						<div data-presentation-conflict hidden>
+							<a href="/presentation/conflict" target="_blank" rel="noopener" data-presentation-inspect>View saved version in a new tab</a>
+							@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"data-presentation-reload": ""})) {
+								Discard draft and reload
+							}
+						</div>
+					}
+				</div>
+				<section aria-labelledby="theme-preview-heading" class="balemoh-theme-preview-column min-w-0 space-y-4">
+					<h2 id="theme-preview-heading">Preview</h2>
+					@themeplayground.ThemePlayground(themeplayground.Config{ID: "presentation-theme-preview", Src: "/presentation/preview", Title: "Balemoh interface preview", RootClass: "balemoh-theme-preview-frame"})
+					@themeeditor.ContrastAdvisory("presentation-theme-contrast")
+				</section>
+			</div>
+			@modal.Dialog(modal.DialogConfig{ID: "presentation-confirm", Title: "Confirm change", Content: PresentationConfirmation()})
+		</section>
+	}
+}
+
+templ AppearanceHead(a Appearance) {
+	@BrandHead(a)
+	if len(a.FontWatch)>0 {
+		@templ.JSONScript("balemoh-font-watch", a.FontWatch)
+		<script src="/ui/appearance.js" defer></script>
+	}
+	if a.CSS!="" {
+		@templ.Raw("<style id=\"balemoh-appearance\">" + a.CSS + "</style>")
+	}
+}
+
+templ ThemePreviewHead() {
+	<link rel="icon" href="/ui/brand/favicon.svg"/>
+	<link rel="stylesheet" href="/ui/balemoh.css"/>
+	<script src="/ui/theme-preview.js"></script>
+}
+
+templ PresentationConflict(saved string) {
+	<!DOCTYPE html>
+	<html lang="en"><head><meta charset="utf-8"/><title>Saved presentation settings</title></head><body><h1>Saved version, read-only</h1><p>Your draft remains in the original tab. This page does not change revisions or settings.</p><pre>{ saved }</pre></body></html>
+}
+
+templ PresentationConfirmation() {
+	<p data-presentation-confirm-message></p>
+	<div class="flex justify-end gap-2 mt-4">
+		@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"data-presentation-confirm-cancel": "", "autofocus": true})) {
+			Cancel
+		}
+		@button.Button(button.WithType("button"), button.WithAttrs(templ.Attributes{"data-presentation-confirm-accept": ""})) {
+			Confirm
+		}
+	</div>
+}
+
+templ ModeIcon(mode string) {
+	switch mode {
+		case "light":
+			@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidSun, Decorative: true})
+		case "dark":
+			@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidMoon, Decorative: true})
+		default:
+			@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidWindow, Decorative: true})
+	}
+}
+
+templ ThemeKindBadge(builtin bool) {
+	if builtin {
+		@badge.Badge(badge.Config{Label: "Built-in", Appearance: badge.AppearanceSoft, Size: badge.SizeSM, RootClass: "balemoh-theme-kind-badge whitespace-nowrap"})
+	} else {
+		@badge.Badge(badge.Config{Label: "Custom", Tone: badge.TonePrimary, Appearance: badge.AppearanceSoft, Size: badge.SizeSM, RootClass: "balemoh-theme-kind-badge whitespace-nowrap"})
+	}
+}
+
+templ ThemeEditorActions() {
+	<div class="space-y-2">
+		@actiongroup.ActionGroup(actiongroup.Config{Label: "Theme actions", RootAttrs: templ.Attributes{"x-data": "{}"}, Primary: actiongroup.Action{ID: "theme-primary-delete", Label: "Delete", Danger: true, OnClick: "$dispatch('presentation-delete-theme')", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidTrash, Decorative: true, RootClass: "size-4"})}})
+		<p data-theme-delete-feedback class="text-sm text-danger" role="status" aria-live="polite"></p>
+	</div>
+}
+
+templ BrandResetAction(kind, label string, custom bool) {
+	<div { templ.Attributes{"data-" + kind + "-reset-control": ""}... } hidden?={ !custom }>
+		@tooltip.Tooltip("theme-"+kind+"-reset-tooltip", label, tooltip.WithPosition(tooltip.PositionTop), tooltip.WithPortal(true), tooltip.WithTrigger(BrandResetButton(kind, label)))
+	</div>
+}
+
+templ BrandResetButton(kind, label string) {
+	@button.Button(button.WithType("button"), button.WithAppearance(button.AppearancePlain), button.WithTone(button.ToneAlternate), button.WithSize(button.SizeSmall), button.WithRootClass("balemoh-icon-button"), button.WithAttrs(templ.Attributes{"data-" + kind + "-reset": "", "aria-label": label, "aria-describedby": "theme-" + kind + "-reset-tooltip"})) {
+		@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidXMark, Decorative: true})
+	}
+}

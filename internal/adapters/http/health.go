@@ -11,9 +11,11 @@ import (
 	"github.com/araihu/balemoh/internal/application/health"
 	"github.com/araihu/balemoh/internal/application/notifications"
 	"github.com/araihu/balemoh/internal/application/plugins"
+	"github.com/araihu/balemoh/internal/application/presentation"
 )
 
 type Handler struct {
+	presentation      presentation.Store
 	plugins           *plugins.Service
 	pluginToken       string
 	dashboard         *dashboard.Service

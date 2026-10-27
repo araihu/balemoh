@@ -1,27 +1,20 @@
 package view
 
 import (
-	"github.com/araihu/goshtoso/components/emptystate"
 	"github.com/araihu/goshtoso/components/pageheader"
 	"github.com/araihu/goshtoso/components/tabs"
 )
 
-templ PresentationContent(data IconPage) {
-	@pageheader.PageHeader(pageheader.Config{Title: "Presentation", HideSeparator: true})
+templ PresentationContent(data IconPage, themes ThemesPage) {
+	@pageheader.PageHeader(pageheader.Config{Title: "Appearance", HideSeparator: true})
 	@tabs.Tabs(tabs.Config{
-		ID: "presentation-tabs",
+		ID:         "presentation-tabs",
 		DefaultTab: "icons",
-		SyncHash: true,
+		SyncHash:   true,
 		Tabs: []tabs.Tab{
 			{ID: "icons", Label: "Icons", Content: IconsContent(data)},
-			{ID: "themes", Label: "Themes", Content: ThemesContent()},
+			{ID: "themes", Label: "Themes", Content: ThemesContent(themes)},
+			{ID: "fonts", Label: "Fonts", Content: FontsContent(themes)},
 		},
-	})
-}
-
-templ ThemesContent() {
-	@emptystate.EmptyState(emptystate.Config{
-		Title: "Theme settings",
-		Description: "Theme customization is not available yet.",
 	})
 }

@@ -3,15 +3,17 @@ module github.com/araihu/balemoh
 go 1.27.3
 
 require (
+	github.com/andybalholm/brotli v1.2.6
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
-	github.com/araihu/goshtoso v0.3.2
+	github.com/araihu/goshtoso v0.4.6-0.20261027195056-cea8387a3c88
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
 	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.5.1
 	github.com/oapi-codegen/runtime v1.7.0
+	golang.org/x/image v0.47.0
 	k8s.io/api v0.35.6
 	k8s.io/apimachinery v0.35.6
 	k8s.io/client-go v0.35.6
@@ -114,14 +116,13 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
-	golang.org/x/image v0.46.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/term v0.46.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d // indirect

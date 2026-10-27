@@ -81,6 +81,51 @@ type PluginPlacement struct {
 	UpdatedAt      string `json:"updated_at"`
 }
 
+type PresentationFont struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Family         string `json:"family"`
+	Weight         string `json:"weight"`
+	Style          string `json:"style"`
+	Variable       int64  `json:"variable"`
+	Format         string `json:"format"`
+	Mime           string `json:"mime"`
+	ByteLength     int64  `json:"byte_length"`
+	Digest         string `json:"digest"`
+	Data           []byte `json:"data"`
+	Revision       int64  `json:"revision"`
+	CreationDigest string `json:"creation_digest"`
+}
+
+type PresentationSetting struct {
+	ID                int64          `json:"id"`
+	BuiltinKey        sql.NullString `json:"builtin_key"`
+	CustomThemeID     sql.NullString `json:"custom_theme_id"`
+	ColorMode         string         `json:"color_mode"`
+	Revision          int64          `json:"revision"`
+	LastCommandID     string         `json:"last_command_id"`
+	LastPayloadDigest string         `json:"last_payload_digest"`
+	LastReceipt       string         `json:"last_receipt"`
+}
+
+type PresentationTheme struct {
+	ID             string         `json:"id"`
+	Name           string         `json:"name"`
+	SchemaVersion  int64          `json:"schema_version"`
+	DefinitionJson string         `json:"definition_json"`
+	ProvenanceJson string         `json:"provenance_json"`
+	Revision       int64          `json:"revision"`
+	CreationDigest string         `json:"creation_digest"`
+	BrandIconID    sql.NullString `json:"brand_icon_id"`
+	BrandLogoID    sql.NullString `json:"brand_logo_id"`
+}
+
+type PresentationThemeFont struct {
+	ThemeID string `json:"theme_id"`
+	Role    string `json:"role"`
+	FontID  string `json:"font_id"`
+}
+
 type ServiceEdit struct {
 	ServiceID   string `json:"service_id"`
 	DisplayName string `json:"display_name"`

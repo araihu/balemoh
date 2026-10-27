@@ -32,7 +32,11 @@ templ PageContent(data PageData) {
  if data.HostDetail != nil && data.Error == "" {
   @dependencies.Dependencies()
  }
-	@toast.ToastContainer(toast.ContainerConfig{DisplayDuration: 4000})
+	if data.Appearance.Warning!="" {
+ @alert.Alert(alert.Config{Title:"Temporary appearance",Description:data.Appearance.Warning,Tone:alert.ToneWarning})
+ }
+ <p id="appearance-font-warning" role="status" hidden></p>
+ @toast.ToastContainer(toast.ContainerConfig{DisplayDuration: 4000})
 	if data.Notice != "" {
 		<div hidden x-data="{}" x-init={ successToastEvent(data.Notice) }></div>
 	}
@@ -68,8 +72,10 @@ templ PageContent(data PageData) {
  }
  } else if data.HostsPage != nil {
  @HostsContent(*data.HostsPage, data.Error == "")
+ } else if data.ThemeEditor != nil {
+ @ThemeEditorContent(*data.ThemeEditor)
  } else if data.IconPage != nil {
- @PresentationContent(*data.IconPage)
+ @PresentationContent(*data.IconPage, data.Themes)
  } else if data.Editor != nil {
  if data.Editor.Creating {
  @ServiceEditor(*data.Editor)

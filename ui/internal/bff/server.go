@@ -50,6 +50,7 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 	if registry != nil {
 		server.widgets["plugin-widget/plugin-ui"] = server.pluginRenderer
 	}
+	server.presentation, _ = catalog.(PresentationCatalog)
 	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /notifications", server.notificationPage)
@@ -66,16 +67,16 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 	})
 	if registry != nil {
 		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/pages/{pluginPath...}", server.pluginPage)
-		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/page-content/{pluginPath...}", server.pluginPageContent)
-		mux.HandleFunc("GET /plugin-widgets/{placementID}", server.pluginWidgetContent)
+		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/page-content/{pluginPath...}", server.withPluginAppearance(server.pluginPageContent))
+		mux.HandleFunc("GET /plugin-widgets/{placementID}", server.withPluginAppearance(server.pluginWidgetContent))
 		mux.HandleFunc("GET /plugins/", server.pluginAsset)
-		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/fragments/{contributionID}/{region}", server.pluginFragment)
+		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/fragments/{contributionID}/{region}", server.withPluginAppearance(server.pluginFragment))
 		mux.HandleFunc("GET /plugins/widgets", server.pluginWidgetsIndex)
 		mux.HandleFunc("GET /plugin-widgets/{placementID}/edit", server.pluginWidgetEdit)
 		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}/new", server.pluginWidgetNew)
 		mux.HandleFunc("GET /plugins/{pluginID}/connections/{connectionID}/widgets", server.pluginWidgets)
 		protection := http.NewCrossOriginProtection()
-		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/pages/{pluginPath...}", protection.Handler(http.HandlerFunc(server.pluginPagePost)))
+		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/pages/{pluginPath...}", protection.Handler(http.HandlerFunc(server.withPluginAppearance(server.pluginPagePost))))
 		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}/selection", protection.Handler(http.HandlerFunc(server.pluginWidgetSelection)))
 		mux.Handle("POST /plugins/{pluginID}/connections/{connectionID}/widgets/{contributionID}", protection.Handler(http.HandlerFunc(server.pluginPlacementWrite)))
 		mux.Handle("POST /plugin-widgets/{placementID}/{action}", protection.Handler(http.HandlerFunc(server.pluginPlacementWrite)))
@@ -101,6 +102,38 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 		mux.Handle("GET /ui/icon-library/selfhst/", http.StripPrefix("/ui/icon-library/selfhst/", icons))
 	}
 	mux.HandleFunc("GET /presentation", server.iconsPage)
+	mux.HandleFunc("GET /presentation/themes/editor", server.presentationEditor)
+	mux.HandleFunc("POST /presentation/save", server.savePresentation)
+	mux.HandleFunc("GET /presentation/preview", server.presentationPreview)
+	mux.HandleFunc("POST /presentation/brand/upload", server.uploadThemeBrand)
+	mux.HandleFunc("GET /presentation/brand/manifest", server.themeBrandManifest)
+	mux.HandleFunc("GET /presentation/conflict", server.presentationConflict)
+	mux.HandleFunc("POST /presentation/themes", server.createPresentationTheme)
+	mux.HandleFunc("POST /presentation/themes/{themeID}/{action}", server.managePresentationTheme)
+	mux.HandleFunc("GET /presentation/fonts/catalog", server.presentationFontCatalog)
+	mux.HandleFunc("GET /presentation/fonts/{fontID}/file", server.presentationFontFile)
+	mux.HandleFunc("POST /presentation/fonts/upload", server.uploadPresentationFont)
+	mux.HandleFunc("POST /presentation/fonts/{fontID}/delete", server.deletePresentationFont)
+	mux.HandleFunc("GET /ui/appearance.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.AppearanceJS())
+	})
+	mux.HandleFunc("GET /ui/theme-preview.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.ThemePreviewJS())
+	})
+	mux.HandleFunc("GET /ui/presentation.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.PresentationJS())
+	})
+	mux.HandleFunc("GET /ui/presentation-fonts.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript")
+		_, _ = w.Write(view.PresentationFontsJS())
+	})
+	mux.HandleFunc("GET /ui/theme-selection.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.ThemeSelectionJS())
+	})
 	mux.HandleFunc("GET /icons", server.iconsPage)
 	mux.HandleFunc("GET /icons/picker", server.iconsPage)
 	mux.HandleFunc("POST /icons/upload", server.uploadIcon)
@@ -143,11 +176,12 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 }
 
 type server struct {
-	plugins *plugins.Registry
-	widgets map[string]WidgetRenderer
-	icons   IconCatalog
-	catalog Catalog
-	timeout time.Duration
+	presentation PresentationCatalog
+	plugins      *plugins.Registry
+	widgets      map[string]WidgetRenderer
+	icons        IconCatalog
+	catalog      Catalog
+	timeout      time.Duration
 }
 
 func (s *server) staging(w http.ResponseWriter, r *http.Request) {
@@ -325,6 +359,16 @@ func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageDa
 		data.PluginWarning = s.plugins.Problems() > 0
 	}
 	var body bytes.Buffer
+	if !(data.HostDetail != nil && r.Header.Get("HX-Request-Type") == "partial") {
+		ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+		defer cancel()
+		recovery := strings.HasPrefix(r.URL.Path, "/presentation") && r.URL.Query().Get("appearance") == "recovery"
+		if data.IconPage != nil && r.URL.Path == "/presentation" {
+			data.Themes, data.Appearance = s.themesPage(ctx, recovery)
+		} else if data.ThemeEditor == nil {
+			data.Appearance = s.appearance(ctx, recovery)
+		}
+	}
 	component := view.ConsolePage(data)
 	if data.HostDetail != nil {
 		w.Header().Add("Vary", "HX-Request-Type")

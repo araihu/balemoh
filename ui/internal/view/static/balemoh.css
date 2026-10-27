@@ -23,6 +23,7 @@ body {
 	width: min(100%, var(--balemoh-content-width));
 	margin-inline: auto;
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 1rem;
 	padding: 2rem 1rem 4rem;
 }
@@ -393,4 +394,47 @@ body {
  .balemoh-notification-center-heading h1 { font-size: 1.125rem; }
  .balemoh-notification-center-heading .balemoh-header-icon { width: 2rem; height: 2rem; }
  .balemoh-notification-center-heading .balemoh-notification-filter { grid-column: 1 / -1; grid-row: 2; }
+}
+
+.balemoh-mode-group { border: 0; padding: 0; margin: 0; min-width: 0; }
+.balemoh-mode-group > legend { margin-bottom: .375rem; font-size: .875rem; }
+.balemoh-mode-option { min-height: 2.75rem; min-width: 5.5rem; }
+
+.balemoh-custom-brand-logo { display: block; width: 145px; height: 32px; object-fit: contain; }
+.balemoh-custom-brand-logo[hidden] { display: none; }
+.balemoh-brand-previews { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; }
+.balemoh-brand-icon-preview { width: 32px; height: 32px; object-fit: contain; }
+.balemoh-footer { display: flex; flex-direction: column; align-items: center; gap: 1rem; width: 100%; }
+.balemoh-footer .balemoh-footer-links { justify-content: center; }
+.balemoh-product-credit { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .35rem; margin: 0; }
+.balemoh-product-credit .balemoh-brand-logo { width: 109px; height: 24px; }
+@media (min-width: 768px) {
+	.balemoh-footer { flex-direction: row; justify-content: space-between; }
+	.balemoh-footer .balemoh-product-credit { justify-content: flex-start; }
+	.balemoh-footer .balemoh-footer-links { justify-content: flex-end; }
+}
+
+.balemoh-theme-picker-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
+.balemoh-theme-picker { flex: 1 1 14rem; min-width: 0; }
+.balemoh-theme-actions { flex: 0 1 auto; max-width: 100%; margin-left: auto; }
+[data-theme-selection-feedback]:empty { display: none; }
+
+.balemoh-theme-preview-frame {
+  height: 44rem;
+}
+
+@media (min-width: 1024px) {
+  .balemoh-theme-preview-column { position: sticky; top: 1.5rem; align-self: start; }
+  .balemoh-theme-preview-column .balemoh-theme-preview-frame {
+    height: clamp(12rem, calc(100dvh - 28rem), 36rem);
+    min-height: 0;
+  }
+}
+
+.balemoh-theme-preview {
+  gap: 1.25rem;
+}
+
+.balemoh-preview-feedback:empty {
+  display: none;
 }

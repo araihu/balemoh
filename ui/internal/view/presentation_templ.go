@@ -9,12 +9,11 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/araihu/goshtoso/components/emptystate"
 	"github.com/araihu/goshtoso/components/pageheader"
 	"github.com/araihu/goshtoso/components/tabs"
 )
 
-func PresentationContent(data IconPage) templ.Component {
+func PresentationContent(data IconPage, themes ThemesPage) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -35,7 +34,7 @@ func PresentationContent(data IconPage) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = pageheader.PageHeader(pageheader.Config{Title: "Presentation", HideSeparator: true}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = pageheader.PageHeader(pageheader.Config{Title: "Appearance", HideSeparator: true}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -45,40 +44,9 @@ func PresentationContent(data IconPage) templ.Component {
 			SyncHash:   true,
 			Tabs: []tabs.Tab{
 				{ID: "icons", Label: "Icons", Content: IconsContent(data)},
-				{ID: "themes", Label: "Themes", Content: ThemesContent()},
+				{ID: "themes", Label: "Themes", Content: ThemesContent(themes)},
+				{ID: "fonts", Label: "Fonts", Content: FontsContent(themes)},
 			},
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
-
-func ThemesContent() templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var2 == nil {
-			templ_7745c5c3_Var2 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = emptystate.EmptyState(emptystate.Config{
-			Title:       "Theme settings",
-			Description: "Theme customization is not available yet.",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

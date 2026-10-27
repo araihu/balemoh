@@ -35,7 +35,7 @@ func (s *IconStore) List(ctx context.Context) ([]icons.Icon, error) {
 		return nil, err
 	}
 	for idx := range result {
-		rows, err = s.db.QueryContext(ctx, "SELECT display_name FROM service_edits WHERE icon_ref=? ORDER BY display_name", result[idx].ID)
+		rows, err = s.db.QueryContext(ctx, "SELECT display_name FROM service_edits WHERE icon_ref=? UNION ALL SELECT 'Theme: ' || name FROM presentation_themes WHERE (brand_icon_id=? OR brand_logo_id=?) ORDER BY 1", result[idx].ID, result[idx].ID, result[idx].ID)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +83,7 @@ func (s *IconStore) Save(ctx context.Context, id, name, tags, revision string, d
 		_, err = s.db.ExecContext(ctx, "INSERT INTO uploaded_icons(id,name,tags,mime,digest,data) VALUES(?,?,?,?,?,?)", id, name, tags, mime, digest, data)
 	} else {
 		var res sql.Result
-		res, err = s.db.ExecContext(ctx, "UPDATE uploaded_icons SET name=?,tags=?,mime=?,digest=?,data=? WHERE id=? AND digest=?", name, tags, mime, digest, data, id, revision)
+		res, err = s.db.ExecContext(ctx, "UPDATE uploaded_icons SET name=?,tags=?,mime=?,digest=?,data=? WHERE id=? AND digest=? AND (data=? OR NOT EXISTS(SELECT 1 FROM presentation_themes WHERE (brand_icon_id=? OR brand_logo_id=?)))", name, tags, mime, digest, data, id, revision, data, id, id)
 		if err == nil {
 			n, e := res.RowsAffected()
 			if e != nil {
@@ -100,7 +100,7 @@ func (s *IconStore) Save(ctx context.Context, id, name, tags, revision string, d
 	return icons.Icon{ID: id, Name: name, Tags: tags, MIME: mime, Digest: digest, UsedBy: []string{}}, nil
 }
 func (s *IconStore) Delete(ctx context.Context, id, revision string) error {
-	res, err := s.db.ExecContext(ctx, "DELETE FROM uploaded_icons WHERE id=? AND digest=? AND NOT EXISTS(SELECT 1 FROM service_edits WHERE icon_ref=?)", id, revision, id)
+	res, err := s.db.ExecContext(ctx, "DELETE FROM uploaded_icons WHERE id=? AND digest=? AND NOT EXISTS(SELECT 1 FROM service_edits WHERE icon_ref=?) AND NOT EXISTS(SELECT 1 FROM presentation_themes WHERE (brand_icon_id=? OR brand_logo_id=?))", id, revision, id, id, id)
 	if err != nil {
 		return err
 	}
