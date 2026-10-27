@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/araihu/balemoh/client v0.0.0
-	github.com/araihu/balemoh/plugin-sdk v0.0.0
+	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
 	github.com/araihu/goshtoso v0.3.2
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
