@@ -17,6 +17,11 @@ info:
     and rely on your network or reverse-proxy access boundary. Federation imports
     require a Bearer token registered for the exact source kind and ID in the body.
 
+    Plugin metadata, queries and widget configuration require the private BFF service
+    credential. Notification inbox operations require the separate operator credential;
+    external publication uses a source-bound publisher credential. These roles cannot
+    substitute for one another. Plugin publication uses its connection-scoped runtime.
+
     Check HTTP status and Content-Type. Structured success responses use JSON, but
     errors can be ErrorResponse JSON or plain text as documented for each operation.
     Reuse requestId when retrying manual creation. Pin, unpin, and widget selection
@@ -35,7 +40,8 @@ paths:
   /api/v1/plugin-widgets:
     get:
       operationId: GetPluginWidgets
-      security: [{PluginService: []}]
+      security:
+      - PluginService: []
       responses:
         '200':
           description: Widget definitions and retained placements
@@ -43,105 +49,264 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [definitions, placements]
+                required:
+                - definitions
+                - placements
                 properties:
-                  definitions: {type: array, items: {$ref: '#/components/schemas/PluginWidgetDefinition'}}
-                  placements: {type: array, items: {$ref: '#/components/schemas/PluginPlacement'}}
-        '401': {description: Missing private credential}
-        '503': {description: Metadata unavailable}
+                  definitions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PluginWidgetDefinition'
+                    example: []
+                  placements:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PluginPlacement'
+                    example: []
+              example:
+                definitions: []
+                placements: []
+        '401':
+          description: A valid BFF service credential is required to list widget definitions and placements.
+        '503':
+          description: The service cannot list widget definitions and placements because required storage or
+            plugin metadata is unavailable.
+      tags:
+      - Plugins
+      summary: List widget definitions and placements
+      description: Read installed widget definitions and all retained placements. Saved configuration remains
+        available when a plugin or its source is unavailable.
   /api/v1/plugin-widgets/{placementId}:
     parameters:
-      - {name: placementId, in: path, required: true, schema: {type: string, format: uuid}}
+    - name: placementId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Client-selected placement UUID. Reuse it for create retries.
+      example: 00000000-0000-4000-8000-000000000002
     put:
       operationId: PutPluginWidget
-      security: [{PluginService: []}]
+      security:
+      - PluginService: []
       parameters:
-        - {name: If-Match, in: header, schema: {type: string}}
+      - name: If-Match
+        in: header
+        schema:
+          type: string
+        description: Current quoted placement revision from ETag. Required when updating this placement.
+        example: '"1"'
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/PluginPlacementBody'}
+            schema:
+              $ref: '#/components/schemas/PluginPlacementBody'
+            example:
+              pluginId: example.status
+              connectionId: 00000000-0000-4000-8000-000000000001
+              contributionId: summary
+              options: {}
+              enabled: true
+        description: Widget configuration to retain.
       responses:
         '201':
           description: Placement created
           headers:
-            ETag: {schema: {type: string}}
+            ETag:
+              schema:
+                type: string
+              description: Quoted revision of the newly created placement.
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/PluginPlacement'}
+              schema:
+                $ref: '#/components/schemas/PluginPlacement'
+              example:
+                pluginId: example.status
+                connectionId: 00000000-0000-4000-8000-000000000001
+                contributionId: summary
+                options: {}
+                enabled: true
+                placementId: 00000000-0000-4000-8000-000000000002
+                revision: '1'
+                createdAt: '2026-10-26T12:00:00Z'
+                updatedAt: '2026-10-26T12:00:00Z'
         '200':
           description: Identical create replay or updated placement
           headers:
-            ETag: {schema: {type: string}}
+            ETag:
+              schema:
+                type: string
+              description: Quoted revision retained after this save or identical replay.
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/PluginPlacement'}
-        '400': {description: Invalid body or options}
-        '401': {description: Missing private credential}
-        '404': {description: Connection or definition missing}
-        '409': {description: Create identity conflict or capacity reached}
-        '412': {description: Stale revision}
-        '428': {description: Required revision missing}
+              schema:
+                $ref: '#/components/schemas/PluginPlacement'
+              example:
+                pluginId: example.status
+                connectionId: 00000000-0000-4000-8000-000000000001
+                contributionId: summary
+                options: {}
+                enabled: true
+                placementId: 00000000-0000-4000-8000-000000000002
+                revision: '1'
+                createdAt: '2026-10-26T12:00:00Z'
+                updatedAt: '2026-10-26T12:00:00Z'
+        '400':
+          description: Invalid body or options
+        '401':
+          description: A valid BFF service credential is required to save widget configuration.
+        '404':
+          description: Connection or definition missing
+        '409':
+          description: Create identity conflict or capacity reached
+        '412':
+          description: The retained placement revision changed before this save.
+        '428':
+          description: Placement save requires its current revision in If-Match.
+      tags:
+      - Plugins
+      summary: Save a widget placement
+      description: Create a placement under a client-selected UUID or update its saved options and enabled state.
+        Updates require the quoted revision in If-Match; an identical create replay returns the retained placement.
     delete:
       operationId: DeletePluginWidget
-      security: [{PluginService: []}]
+      security:
+      - PluginService: []
       parameters:
-        - {name: If-Match, in: header, schema: {type: string}}
+      - name: If-Match
+        in: header
+        schema:
+          type: string
+        description: Current quoted placement revision from ETag. Required to delete this placement.
+        example: '"1"'
       responses:
-        '204': {description: Configuration removed, source data untouched}
-        '401': {description: Missing private credential}
-        '404': {description: Placement absent}
-        '412': {description: Stale revision}
-        '428': {description: Required revision missing}
+        '204':
+          description: Configuration removed, source data untouched
+        '401':
+          description: A valid BFF service credential is required to delete widget configuration.
+        '404':
+          description: Placement absent
+        '412':
+          description: The retained placement revision changed before this deletion.
+        '428':
+          description: Placement deletion requires its current revision in If-Match.
+      tags:
+      - Plugins
+      summary: Remove a widget placement
+      description: Delete saved widget configuration using its current quoted If-Match revision. This does not
+        modify data in the plugin source.
   /api/v1/plugins:
     get:
       operationId: GetPlugins
-      security: [{PluginService: []}]
+      security:
+      - PluginService: []
       responses:
         '200':
           description: Data-only plugin descriptors, without deployment paths or credentials
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/PluginCatalog'}
+              schema:
+                $ref: '#/components/schemas/PluginCatalog'
+              example:
+                plugins: []
+                problems: []
         '401':
-          description: Missing or invalid private BFF service credential
+          description: A valid BFF service credential is required to list installed plugins.
         '503':
-          description: Plugin metadata unavailable
+          description: The service cannot list installed plugins because required storage or plugin metadata
+            is unavailable.
+      tags:
+      - Plugins
+      summary: List installed plugins
+      description: Read local installation and connection metadata without calling plugin processes. Executable
+        paths, configuration secrets and credentials are excluded.
   /api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId}:
     post:
       operationId: QueryPlugin
-      security: [{PluginService: []}]
+      security:
+      - PluginService: []
       parameters:
-        - {name: pluginId, in: path, required: true, schema: {type: string}}
-        - {name: connectionId, in: path, required: true, schema: {type: string}}
-        - {name: queryId, in: path, required: true, schema: {type: string}}
+      - name: pluginId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Installed plugin identifier returned by the plugin catalog.
+        example: example.status
+      - name: connectionId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Configured connection ID returned by the plugin catalog.
+        example: 00000000-0000-4000-8000-000000000001
+      - name: queryId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Declared query identifier returned by the connection descriptor.
+        example: list
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [input]
+              required:
+              - input
               additionalProperties: false
               properties:
-                input: {type: object, additionalProperties: true}
+                input:
+                  type: object
+                  additionalProperties: true
+                  example: {}
+            example:
+              input: {}
+        description: Declared query input object.
       responses:
         '200':
           description: Validated cached observation; never performs collection
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/PluginQueryResult'}
-        '400': {description: Invalid query input}
-        '401': {description: Missing or invalid private BFF service credential}
-        '403': {description: Connection disabled or operation not granted}
-        '404': {description: Unknown plugin, connection or operation}
-        '409': {description: Observation revision changed}
-        '413': {description: Query input exceeds limit}
-        '429': {description: Plugin query capacity exceeded}
-        '502': {description: Invalid plugin output}
-        '503': {description: Plugin or source observation unavailable}
-        '504': {description: Plugin query deadline exceeded}
+              schema:
+                $ref: '#/components/schemas/PluginQueryResult'
+              example:
+                data:
+                  count: 2
+                state: fresh
+                observationRevision: '1'
+                observedAt: '2026-10-26T12:00:00Z'
+                lastSuccessAt: '2026-10-26T12:00:00Z'
+        '400':
+          description: Invalid query input
+        '401':
+          description: A valid BFF service credential is required to query a plugin observation.
+        '403':
+          description: Connection disabled or operation not granted
+        '404':
+          description: Unknown plugin, connection or operation
+        '409':
+          description: Observation revision changed
+        '413':
+          description: Query input exceeds limit
+        '429':
+          description: Plugin query capacity exceeded
+        '502':
+          description: Invalid plugin output
+        '503':
+          description: The service cannot query a plugin observation because required storage or plugin metadata
+            is unavailable.
+        '504':
+          description: Plugin query exceeded the host deadline
+      tags:
+      - Plugins
+      summary: Query a plugin observation
+      description: Run a declared query for one enabled connection with its configured grants. Queries read the
+        cached observation and do not start collection. Input is limited to 64 KiB and host deadlines bound the
+        call.
   /api/v1/dashboard:
     get:
       operationId: GetDashboard
@@ -218,96 +383,245 @@ paths:
   /api/v1/notifications:
     delete:
       operationId: ClearNotifications
-      description: Permanently remove all stored notifications, read and unread, across sources and pages. This also resets their deduplication identities. Messages committed after the clear statement remain. No source alerts are changed.
+      description: Permanently remove all stored notifications, read and unread, across sources and pages. This
+        also resets their deduplication identities. Messages committed after the clear statement remain. No source
+        alerts are changed.
       security:
-        - NotificationOperator: []
+      - NotificationOperator: []
       responses:
-        '204': {description: Inbox cleared, including an already empty inbox}
-        '401': {description: Missing or invalid operator credential}
-        '503': {description: Notification storage unavailable}
+        '204':
+          description: Inbox cleared, including an already empty inbox
+        '401':
+          description: A valid operator credential is required to clear the retained inbox.
+        '503':
+          description: The service cannot clear the retained inbox because required storage or plugin metadata
+            is unavailable.
+      tags:
+      - Notifications
+      summary: Clear all notifications
     get:
       operationId: GetNotifications
       security:
-        - NotificationOperator: []
+      - NotificationOperator: []
       parameters:
-        - {name: before, in: query, required: false, schema: {type: string}}
-        - {name: unread, in: query, required: false, schema: {type: boolean, default: false}}
-        - {name: limit, in: query, required: false, schema: {type: integer, format: int32, minimum: 1, maximum: 50, default: 50}}
+      - name: before
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque nextCursor from the previous response; omit it for the newest page.
+        example: bm90aWZpY2F0aW9uOjU
+      - name: unread
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: Return only unread messages when true. The unread total remains global.
+        example: true
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 50
+          default: 50
+        description: Maximum number of messages in this page, from 1 through 50.
+        example: 50
       responses:
         '200':
           description: One stable inbox page and unread total
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/NotificationPage'}
-        '400': {description: Invalid cursor or page options}
-        '401': {description: Missing or invalid operator credential}
-        '503': {description: Notification storage unavailable}
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
+              example:
+                notifications:
+                - id: 00000000-0000-4000-8000-000000000001
+                  source:
+                    kind: external
+                    id: example-monitor
+                  eventId: maintenance-20261026
+                  severity: success
+                  title: Maintenance complete
+                  body: Datastore maintenance finished.
+                  occurredAt: '2026-10-26T12:00:00Z'
+                  destination:
+                    kind: external
+                    url: https://status.example.test/incidents/123
+                  receivedAt: '2026-10-26T12:00:00Z'
+                  readAt: null
+                unreadCount: 1
+                retentionDays: 30
+        '400':
+          description: Invalid cursor or page options
+        '401':
+          description: A valid operator credential is required to list retained notifications.
+        '503':
+          description: The service cannot list retained notifications because required storage or plugin metadata
+            is unavailable.
+      tags:
+      - Notifications
+      summary: List retained notifications
+      description: Read an inbox page without marking messages read. Use nextCursor as before for older messages
+        and unread to restrict the page. unreadCount is the global unread total, independent of the page filter.
     post:
       operationId: PublishNotification
       security:
-        - NotificationPublisher: []
+      - NotificationPublisher: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/NotificationPublishRequest'}
+            schema:
+              $ref: '#/components/schemas/NotificationPublishRequest'
+            example:
+              eventId: maintenance-20261026
+              severity: success
+              title: Maintenance complete
+              body: Datastore maintenance finished.
+              occurredAt: '2026-10-26T12:00:00Z'
+              destination:
+                kind: external
+                url: https://status.example.test/incidents/123
+        description: Immutable event content from the authenticated publisher.
       responses:
         '201':
           description: New notification durably accepted
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/NotificationReceipt'}
+              schema:
+                $ref: '#/components/schemas/NotificationReceipt'
+              example:
+                id: 00000000-0000-4000-8000-000000000001
+                createdAt: '2026-10-26T12:00:00Z'
+                accepted: true
         '200':
           description: Identical event replay acknowledged
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/NotificationReceipt'}
-        '400': {description: Invalid notification envelope}
-        '401': {description: Missing or invalid publisher credential}
-        '409': {description: Event identity conflicts with immutable content}
-        '413': {description: Request body exceeds 16 KiB}
-        '429': {description: Producer concurrency or inbox capacity exceeded}
-        '503': {description: Notification storage unavailable}
-
+              schema:
+                $ref: '#/components/schemas/NotificationReceipt'
+              example:
+                id: 00000000-0000-4000-8000-000000000001
+                createdAt: '2026-10-26T12:00:00Z'
+                accepted: true
+        '400':
+          description: Invalid notification envelope
+        '401':
+          description: A valid external publisher credential is required to publish an external notification.
+        '409':
+          description: Event identity conflicts with immutable content
+        '413':
+          description: Request body exceeds 16 KiB
+        '429':
+          description: Producer concurrency or inbox capacity exceeded
+        '503':
+          description: The service cannot publish an external notification because required storage or plugin
+            metadata is unavailable.
+        '404':
+          description: External publishing is not configured
+      tags:
+      - Notifications
+      summary: Publish an external notification
+      description: Publish a message using a configured source-bound external publisher credential. An identical
+        eventId replay returns the original receipt; conflicting content returns 409. The operator credential
+        cannot publish, and this endpoint does not mutate source alerts.
   /api/v1/notifications/read:
     put:
       operationId: MarkAllNotificationsRead
       security:
-        - NotificationOperator: []
+      - NotificationOperator: []
       responses:
-        '204': {description: All retained unread notifications marked read atomically. Already-read timestamps and later publications are preserved.}
-        '401': {description: Missing or invalid operator credential}
-        '503': {description: Notification storage unavailable}
-
+        '204':
+          description: All retained unread notifications marked read atomically. Already-read timestamps and
+            later publications are preserved.
+        '401':
+          description: A valid operator credential is required to mark the retained inbox read.
+        '503':
+          description: The service cannot mark the retained inbox read because required storage or plugin metadata
+            is unavailable.
+      tags:
+      - Notifications
+      summary: Mark all notifications read
+      description: Atomically mark retained unread messages as read. Already-read timestamps and messages committed
+        after the update remain unchanged. Source alerts are unaffected.
   /api/v1/notifications/{notificationId}/read:
     parameters:
-      - {name: notificationId, in: path, required: true, schema: {type: string}}
+    - name: notificationId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Identifier of the retained notification to mark read.
+      example: 00000000-0000-4000-8000-000000000001
     put:
       operationId: MarkNotificationRead
       security:
-        - NotificationOperator: []
+      - NotificationOperator: []
       responses:
-        '204': {description: Notification marked read, including an idempotent replay}
-        '401': {description: Missing or invalid operator credential}
-        '404': {description: Notification was not found}
-        '503': {description: Notification storage unavailable}
-
+        '204':
+          description: Notification marked read, including an idempotent replay
+        '401':
+          description: A valid operator credential is required to mark this notification read.
+        '404':
+          description: The notification to mark read is no longer retained.
+        '503':
+          description: The service cannot mark this notification read because required storage or plugin metadata
+            is unavailable.
+      tags:
+      - Notifications
+      summary: Mark a notification read
+      description: Set the read timestamp for one retained notification. Repeated requests preserve the original
+        read timestamp and do not resolve or modify source alerts.
   /api/v1/notifications/{notificationId}:
     parameters:
-      - {name: notificationId, in: path, required: true, schema: {type: string}}
+    - name: notificationId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Identifier of the retained notification to inspect.
+      example: 00000000-0000-4000-8000-000000000001
     get:
       operationId: GetNotification
       security:
-        - NotificationOperator: []
+      - NotificationOperator: []
       responses:
         '200':
           description: One notification without changing its read state
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/Notification'}
-        '401': {description: Missing or invalid operator credential}
-        '404': {description: Notification was not found}
-        '503': {description: Notification storage unavailable}
+              schema:
+                $ref: '#/components/schemas/Notification'
+              example:
+                id: 00000000-0000-4000-8000-000000000001
+                source:
+                  kind: external
+                  id: example-monitor
+                eventId: maintenance-20261026
+                severity: success
+                title: Maintenance complete
+                body: Datastore maintenance finished.
+                occurredAt: '2026-10-26T12:00:00Z'
+                destination:
+                  kind: external
+                  url: https://status.example.test/incidents/123
+                receivedAt: '2026-10-26T12:00:00Z'
+                readAt: null
+        '401':
+          description: A valid operator credential is required to read this notification.
+        '404':
+          description: No retained notification has the requested identifier.
+        '503':
+          description: The service cannot read this notification because required storage or plugin metadata
+            is unavailable.
+      tags:
+      - Notifications
+      summary: Read a notification
+      description: Read one retained notification by ID without changing its read state or opening its destination.
   /api/v1/dashboard/widgets/{sourceKind}/{sourceId}:
     put:
       operationId: SetDashboardSelection
@@ -1558,6 +1872,7 @@ components:
     PluginService:
       type: http
       scheme: bearer
+      description: Private BFF service credential for plugin metadata, queries and retained widget configuration.
     FederationBearer:
       type: http
       scheme: bearer
@@ -1567,109 +1882,411 @@ components:
     NotificationOperator:
       type: http
       scheme: bearer
+      description: Private operator credential for listing, reading, marking and clearing the retained inbox. It
+        cannot publish messages.
     NotificationPublisher:
       type: http
       scheme: bearer
+      description: Configured source-bound credential for external publication only. It cannot list, mark or clear
+        messages.
   schemas:
     PluginPlacementBody:
       type: object
       additionalProperties: false
-      required: [pluginId, connectionId, contributionId, options, enabled]
+      required:
+      - pluginId
+      - connectionId
+      - contributionId
+      - options
+      - enabled
       properties:
-        pluginId: {type: string}
-        connectionId: {type: string}
-        contributionId: {type: string}
-        options: {type: object, additionalProperties: true}
-        enabled: {type: boolean}
+        pluginId:
+          type: string
+          example: example.status
+        connectionId:
+          type: string
+          example: 00000000-0000-4000-8000-000000000001
+        contributionId:
+          type: string
+          example: summary
+        options:
+          type: object
+          additionalProperties: true
+          example: {}
+        enabled:
+          type: boolean
+          example: true
+      description: Selected plugin connection, widget contribution, saved options and enabled state.
+      example:
+        pluginId: example.status
+        connectionId: 00000000-0000-4000-8000-000000000001
+        contributionId: summary
+        options: {}
+        enabled: true
     PluginPlacement:
-      allOf:
-        - {$ref: '#/components/schemas/PluginPlacementBody'}
-        - type: object
-          required: [placementId, revision, createdAt, updatedAt]
-          properties:
-            placementId: {type: string}
-            revision: {type: string, pattern: '^[1-9][0-9]*$'}
-            createdAt: {type: string, format: date-time}
-            updatedAt: {type: string, format: date-time}
+      type: object
+      additionalProperties: false
+      required:
+      - pluginId
+      - connectionId
+      - contributionId
+      - options
+      - enabled
+      - placementId
+      - revision
+      - createdAt
+      - updatedAt
+      properties:
+        pluginId:
+          type: string
+          example: example.status
+        connectionId:
+          type: string
+          example: 00000000-0000-4000-8000-000000000001
+        contributionId:
+          type: string
+          example: summary
+        options:
+          type: object
+          additionalProperties: true
+          example: {}
+        enabled:
+          type: boolean
+          example: true
+        placementId:
+          type: string
+          example: 00000000-0000-4000-8000-000000000002
+        revision:
+          type: string
+          pattern: ^[1-9][0-9]*$
+          example: '1'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T12:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T12:00:00Z'
+      description: Retained widget configuration with its optimistic concurrency revision and persistence timestamps.
+      example:
+        pluginId: example.status
+        connectionId: 00000000-0000-4000-8000-000000000001
+        contributionId: summary
+        options: {}
+        enabled: true
+        placementId: 00000000-0000-4000-8000-000000000002
+        revision: '1'
+        createdAt: '2026-10-26T12:00:00Z'
+        updatedAt: '2026-10-26T12:00:00Z'
     PluginWidgetDefinition:
       type: object
-      required: [pluginId, contributionId, title, optionsSchema]
+      required:
+      - pluginId
+      - contributionId
+      - title
+      - optionsSchema
       properties:
-        pluginId: {type: string}
-        contributionId: {type: string}
-        title: {type: string}
-        optionsSchema: {type: object, additionalProperties: true}
+        pluginId:
+          type: string
+          example: example.status
+        contributionId:
+          type: string
+          example: summary
+        title:
+          type: string
+          example: Example summary
+        optionsSchema:
+          type: object
+          additionalProperties: true
+          example:
+            type: object
+            properties: {}
+            additionalProperties: false
+      description: Installed widget contribution and its JSON Schema for user-configurable options.
+      example:
+        pluginId: example.status
+        contributionId: summary
+        title: Example summary
+        optionsSchema:
+          type: object
+          properties: {}
+          additionalProperties: false
     PluginCatalog:
       type: object
       additionalProperties: false
-      required: [plugins, problems]
+      required:
+      - plugins
+      - problems
       properties:
         plugins:
           type: array
-          items: {$ref: '#/components/schemas/PluginDescriptor'}
+          items:
+            $ref: '#/components/schemas/PluginDescriptor'
+          example: []
         problems:
           type: array
-          items: {$ref: '#/components/schemas/PluginInstallationProblem'}
+          items:
+            $ref: '#/components/schemas/PluginInstallationProblem'
+          example: []
+      description: Installed plugin descriptors and safe installation failures, without executable paths or credentials.
+      example:
+        plugins: []
+        problems: []
     PluginInstallationProblem:
       type: object
       additionalProperties: false
-      required: [installationId, error]
+      required:
+      - installationId
+      - error
       properties:
-        installationId: {type: string}
-        pluginId: {type: string}
-        connectionKey: {type: string}
-        error: {$ref: '#/components/schemas/PluginFailure'}
+        installationId:
+          type: string
+          example: example-installation
+        pluginId:
+          type: string
+          example: example.status
+        connectionKey:
+          type: string
+          example: primary
+        error:
+          $ref: '#/components/schemas/PluginFailure'
+      description: Installation identity and safe failure details when a configured package cannot become available.
+      example:
+        installationId: example-installation
+        pluginId: example.status
+        connectionKey: primary
+        error:
+          code: unavailable
+          message: Source unavailable
+          retryable: true
     PluginDescriptor:
       type: object
       additionalProperties: false
-      required: [id, version, manifestDigest, connections]
+      required:
+      - id
+      - version
+      - manifestDigest
+      - connections
       properties:
-        id: {type: string}
-        version: {type: string}
-        manifestDigest: {type: string}
+        id:
+          type: string
+          example: example.status
+        version:
+          type: string
+          example: 0.1.0
+        manifestDigest:
+          type: string
+          example: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
         connections:
           type: array
-          items: {$ref: '#/components/schemas/PluginConnection'}
+          items:
+            $ref: '#/components/schemas/PluginConnection'
+          example:
+          - id: 00000000-0000-4000-8000-000000000001
+            key: primary
+            name: Example source
+            revision: '1'
+            enabled: true
+            ready: true
+            state: fresh
+            appliedRevision: '1'
+            observationRevision: '1'
+            observedAt: '2026-10-26T12:00:00Z'
+            lastAttemptAt: '2026-10-26T12:00:00Z'
+            lastSuccessAt: '2026-10-26T12:00:00Z'
+            lastConfigureAttemptAt: '2026-10-26T12:00:00Z'
+            queries:
+            - list
+      description: Installed plugin version, verified manifest digest and configured connection descriptors.
+      example:
+        id: example.status
+        version: 0.1.0
+        manifestDigest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        connections:
+        - id: 00000000-0000-4000-8000-000000000001
+          key: primary
+          name: Example source
+          revision: '1'
+          enabled: true
+          ready: true
+          state: fresh
+          appliedRevision: '1'
+          observationRevision: '1'
+          observedAt: '2026-10-26T12:00:00Z'
+          lastAttemptAt: '2026-10-26T12:00:00Z'
+          lastSuccessAt: '2026-10-26T12:00:00Z'
+          lastConfigureAttemptAt: '2026-10-26T12:00:00Z'
+          queries:
+          - list
     PluginConnection:
       type: object
       additionalProperties: false
-      required: [id, key, name, revision, enabled, ready, state, appliedRevision, observationRevision, observedAt, lastAttemptAt, lastSuccessAt, lastConfigureAttemptAt, queries]
+      required:
+      - id
+      - key
+      - name
+      - revision
+      - enabled
+      - ready
+      - state
+      - appliedRevision
+      - observationRevision
+      - observedAt
+      - lastAttemptAt
+      - lastSuccessAt
+      - lastConfigureAttemptAt
+      - queries
       properties:
-        id: {type: string}
-        key: {type: string}
-        name: {type: string}
-        revision: {type: string}
-        enabled: {type: boolean}
-        ready: {type: boolean}
-        state: {type: string, enum: [fresh, partial, stale, unavailable]}
-        appliedRevision: {type: string, nullable: true}
-        observationRevision: {type: string, nullable: true}
-        observedAt: {type: string, format: date-time, nullable: true}
-        lastSuccessAt: {type: string, format: date-time, nullable: true}
-        lastAttemptAt: {type: string, format: date-time, nullable: true}
-        lastConfigureAttemptAt: {type: string, format: date-time, nullable: true}
-        sourceError: {$ref: '#/components/schemas/PluginFailure'}
-        configurationError: {$ref: '#/components/schemas/PluginFailure'}
-        queries: {type: array, items: {type: string}}
+        id:
+          type: string
+          example: 00000000-0000-4000-8000-000000000001
+        key:
+          type: string
+          example: primary
+        name:
+          type: string
+          example: Example source
+        revision:
+          type: string
+          example: '1'
+        enabled:
+          type: boolean
+          example: true
+        ready:
+          type: boolean
+          example: true
+        state:
+          type: string
+          enum:
+          - fresh
+          - partial
+          - stale
+          - unavailable
+          example: fresh
+        appliedRevision:
+          type: string
+          nullable: true
+          example: '1'
+        observationRevision:
+          type: string
+          nullable: true
+          example: '1'
+        observedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-26T12:00:00Z'
+        lastSuccessAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-26T12:00:00Z'
+        lastAttemptAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-26T12:00:00Z'
+        lastConfigureAttemptAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-26T12:00:00Z'
+        sourceError:
+          $ref: '#/components/schemas/PluginFailure'
+        configurationError:
+          $ref: '#/components/schemas/PluginFailure'
+        queries:
+          type: array
+          items:
+            type: string
+          example:
+          - list
+      description: Connection identity, applied configuration revision, collection state and available query identifiers.
+      example:
+        id: 00000000-0000-4000-8000-000000000001
+        key: primary
+        name: Example source
+        revision: '1'
+        enabled: true
+        ready: true
+        state: fresh
+        appliedRevision: '1'
+        observationRevision: '1'
+        observedAt: '2026-10-26T12:00:00Z'
+        lastAttemptAt: '2026-10-26T12:00:00Z'
+        lastSuccessAt: '2026-10-26T12:00:00Z'
+        lastConfigureAttemptAt: '2026-10-26T12:00:00Z'
+        queries:
+        - list
     PluginFailure:
       type: object
       additionalProperties: false
-      required: [code, message, retryable]
+      required:
+      - code
+      - message
+      - retryable
       properties:
-        code: {type: string}
-        message: {type: string}
-        retryable: {type: boolean}
+        code:
+          type: string
+          example: unavailable
+        message:
+          type: string
+          example: Source unavailable
+        retryable:
+          type: boolean
+          example: true
+      description: Safe error code and message, with a retryability hint and no source credentials.
+      example:
+        code: unavailable
+        message: Source unavailable
+        retryable: true
     PluginQueryResult:
       type: object
       additionalProperties: false
-      required: [data, state, observationRevision, observedAt, lastSuccessAt]
+      required:
+      - data
+      - state
+      - observationRevision
+      - observedAt
+      - lastSuccessAt
       properties:
-        data: {type: object, additionalProperties: true}
-        state: {type: string, enum: [fresh, partial, stale, unavailable]}
-        observationRevision: {type: string}
-        observedAt: {type: string, format: date-time, nullable: true}
-        lastSuccessAt: {type: string, format: date-time, nullable: true}
-        sourceError: {$ref: '#/components/schemas/PluginFailure'}
+        data:
+          type: object
+          additionalProperties: true
+          example:
+            count: 2
+        state:
+          type: string
+          enum:
+          - fresh
+          - partial
+          - stale
+          - unavailable
+          example: fresh
+        observationRevision:
+          type: string
+          example: '1'
+        observedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-26T12:00:00Z'
+        lastSuccessAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-26T12:00:00Z'
+        sourceError:
+          $ref: '#/components/schemas/PluginFailure'
+      description: Cached query data with collection freshness, observation identity and source failure metadata.
+      example:
+        data:
+          count: 2
+        state: fresh
+        observationRevision: '1'
+        observedAt: '2026-10-26T12:00:00Z'
+        lastSuccessAt: '2026-10-26T12:00:00Z'
     DashboardSnapshot:
       type: object
       required: [items, unavailable]
@@ -2325,73 +2942,277 @@ components:
     NotificationSource:
       type: object
       additionalProperties: false
-      required: [kind, id]
+      required:
+      - kind
+      - id
       properties:
-        kind: {type: string, enum: [core, plugin, external]}
-        id: {type: string}
-        connectionId: {type: string, nullable: true}
-
+        kind:
+          type: string
+          enum:
+          - core
+          - plugin
+          - external
+          example: external
+        id:
+          type: string
+          example: example-monitor
+        connectionId:
+          type: string
+          nullable: true
+      description: Producer identity assigned by the authenticated publisher or installed plugin connection.
+      example:
+        kind: external
+        id: example-monitor
     NotificationDestination:
       type: object
       additionalProperties: false
-      required: [kind]
+      required:
+      - kind
       properties:
-        kind: {type: string, enum: [core, plugin, external]}
-        route: {type: string}
-        pluginId: {type: string}
-        connectionId: {type: string}
-        page: {type: string}
-        params: {type: object, additionalProperties: {type: string}}
-        query: {type: object, additionalProperties: {type: array, items: {type: string}}}
-        url: {type: string, format: uri}
-
+        kind:
+          type: string
+          enum:
+          - core
+          - plugin
+          - external
+          example: external
+        route:
+          type: string
+        pluginId:
+          type: string
+        connectionId:
+          type: string
+        page:
+          type: string
+        params:
+          type: object
+          additionalProperties:
+            type: string
+        query:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        url:
+          type: string
+          format: uri
+          example: https://status.example.test/incidents/123
+      description: Optional navigation target. The kind selects a core route, a connection-scoped plugin page or
+        an external URL.
+      example:
+        kind: external
+        url: https://status.example.test/incidents/123
     NotificationPublishRequest:
       type: object
       additionalProperties: false
-      required: [eventId, severity, title, occurredAt]
+      required:
+      - eventId
+      - severity
+      - title
+      - occurredAt
       properties:
-        eventId: {type: string, maxLength: 128}
-        severity: {type: string, enum: [info, success, warning, critical]}
-        title: {type: string, minLength: 1, maxLength: 200}
-        body: {type: string, maxLength: 4000}
-        occurredAt: {type: string, format: date-time}
-        destination: {$ref: '#/components/schemas/NotificationDestination', nullable: true}
-
+        eventId:
+          type: string
+          maxLength: 128
+          example: maintenance-20261026
+        severity:
+          type: string
+          enum:
+          - info
+          - success
+          - warning
+          - critical
+          example: success
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Maintenance complete
+        body:
+          type: string
+          maxLength: 4000
+          example: Datastore maintenance finished.
+        occurredAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T12:00:00Z'
+        destination:
+          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/NotificationDestination'
+          example:
+            kind: external
+            url: https://status.example.test/incidents/123
+      description: External publisher message. The credential determines source identity; eventId deduplicates
+        within that source.
+      example:
+        eventId: maintenance-20261026
+        severity: success
+        title: Maintenance complete
+        body: Datastore maintenance finished.
+        occurredAt: '2026-10-26T12:00:00Z'
+        destination:
+          kind: external
+          url: https://status.example.test/incidents/123
     Notification:
       type: object
       additionalProperties: false
-      required: [id, source, eventId, severity, title, body, occurredAt, receivedAt, readAt]
+      required:
+      - id
+      - source
+      - eventId
+      - severity
+      - title
+      - body
+      - occurredAt
+      - receivedAt
+      - readAt
       properties:
-        id: {type: string, format: uuid}
-        source: {$ref: '#/components/schemas/NotificationSource'}
-        eventId: {type: string}
-        severity: {type: string, enum: [info, success, warning, critical]}
-        title: {type: string}
-        body: {type: string}
-        occurredAt: {type: string, format: date-time}
-        receivedAt: {type: string, format: date-time}
-        destination: {$ref: '#/components/schemas/NotificationDestination', nullable: true}
-        readAt: {type: string, format: date-time, nullable: true}
-
+        id:
+          type: string
+          format: uuid
+          example: 00000000-0000-4000-8000-000000000001
+        source:
+          $ref: '#/components/schemas/NotificationSource'
+        eventId:
+          type: string
+          example: maintenance-20261026
+        severity:
+          type: string
+          enum:
+          - info
+          - success
+          - warning
+          - critical
+          example: success
+        title:
+          type: string
+          example: Maintenance complete
+        body:
+          type: string
+          example: Datastore maintenance finished.
+        occurredAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T12:00:00Z'
+        receivedAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T12:00:00Z'
+        destination:
+          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/NotificationDestination'
+          example:
+            kind: external
+            url: https://status.example.test/incidents/123
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+      description: Retained message with immutable producer content, server receipt time and independent read state.
+      example:
+        id: 00000000-0000-4000-8000-000000000001
+        source:
+          kind: external
+          id: example-monitor
+        eventId: maintenance-20261026
+        severity: success
+        title: Maintenance complete
+        body: Datastore maintenance finished.
+        occurredAt: '2026-10-26T12:00:00Z'
+        destination:
+          kind: external
+          url: https://status.example.test/incidents/123
+        receivedAt: '2026-10-26T12:00:00Z'
+        readAt: null
     NotificationReceipt:
       type: object
       additionalProperties: false
-      required: [id, createdAt, accepted]
+      required:
+      - id
+      - createdAt
+      - accepted
       properties:
-        id: {type: string, format: uuid}
-        createdAt: {type: string, format: date-time}
-        accepted: {type: boolean}
-
+        id:
+          type: string
+          format: uuid
+          example: 00000000-0000-4000-8000-000000000001
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T12:00:00Z'
+        accepted:
+          type: boolean
+          example: true
+      description: Durable notification identity and original creation time. accepted is false for an identical
+        event replay.
+      example:
+        id: 00000000-0000-4000-8000-000000000001
+        createdAt: '2026-10-26T12:00:00Z'
+        accepted: true
     NotificationPage:
       type: object
       additionalProperties: false
-      required: [notifications, unreadCount, retentionDays]
+      required:
+      - notifications
+      - unreadCount
+      - retentionDays
       properties:
-        notifications: {type: array, items: {$ref: '#/components/schemas/Notification'}}
-        unreadCount: {type: integer, format: int32, minimum: 0}
-        retentionDays: {type: integer, format: int32, minimum: 1, maximum: 3650}
-        nextCursor: {type: string, nullable: true}
-
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+          example:
+          - id: 00000000-0000-4000-8000-000000000001
+            source:
+              kind: external
+              id: example-monitor
+            eventId: maintenance-20261026
+            severity: success
+            title: Maintenance complete
+            body: Datastore maintenance finished.
+            occurredAt: '2026-10-26T12:00:00Z'
+            destination:
+              kind: external
+              url: https://status.example.test/incidents/123
+            receivedAt: '2026-10-26T12:00:00Z'
+            readAt: null
+        unreadCount:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 1
+        retentionDays:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 3650
+          example: 30
+        nextCursor:
+          type: string
+          nullable: true
+      description: Cursor-based retained inbox page, global unread count and effective retention in days.
+      example:
+        notifications:
+        - id: 00000000-0000-4000-8000-000000000001
+          source:
+            kind: external
+            id: example-monitor
+          eventId: maintenance-20261026
+          severity: success
+          title: Maintenance complete
+          body: Datastore maintenance finished.
+          occurredAt: '2026-10-26T12:00:00Z'
+          destination:
+            kind: external
+            url: https://status.example.test/incidents/123
+          receivedAt: '2026-10-26T12:00:00Z'
+          readAt: null
+        unreadCount: 1
+        retentionDays: 30
     ResourceRef:
       type: object
       required:
@@ -2994,6 +3815,10 @@ tags:
   - name: Icons
     description: Manage uploaded image assets and their revision digests. Bundled icons are referenced by ID
       through service edits.
+  - name: Plugins
+    description: Installed plugins, cached connection queries and retained widget configuration.
+  - name: Notifications
+    description: Source-bound publication and operator management of retained notifications.
 externalDocs:
   description: API integration guide and request examples
   url: https://balemoh.araihu.com/reference/api-integration/

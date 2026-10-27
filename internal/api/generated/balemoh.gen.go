@@ -596,7 +596,7 @@ type ManualServiceCreate struct {
 	RequestId string `json:"requestId"`
 }
 
-// Notification defines model for Notification.
+// Notification Retained message with immutable producer content, server receipt time and independent read state.
 type Notification struct {
 	Body        string                   `json:"body"`
 	Destination *NotificationDestination `json:"destination,omitempty"`
@@ -606,14 +606,16 @@ type Notification struct {
 	ReadAt      *time.Time               `json:"readAt"`
 	ReceivedAt  time.Time                `json:"receivedAt"`
 	Severity    NotificationSeverity     `json:"severity"`
-	Source      NotificationSource       `json:"source"`
-	Title       string                   `json:"title"`
+
+	// Source Producer identity assigned by the authenticated publisher or installed plugin connection.
+	Source NotificationSource `json:"source"`
+	Title  string             `json:"title"`
 }
 
 // NotificationSeverity defines model for Notification.Severity.
 type NotificationSeverity string
 
-// NotificationDestination defines model for NotificationDestination.
+// NotificationDestination Optional navigation target. The kind selects a core route, a connection-scoped plugin page or an external URL.
 type NotificationDestination struct {
 	ConnectionId *string                     `json:"connectionId,omitempty"`
 	Kind         NotificationDestinationKind `json:"kind"`
@@ -628,7 +630,7 @@ type NotificationDestination struct {
 // NotificationDestinationKind defines model for NotificationDestination.Kind.
 type NotificationDestinationKind string
 
-// NotificationPage defines model for NotificationPage.
+// NotificationPage Cursor-based retained inbox page, global unread count and effective retention in days.
 type NotificationPage struct {
 	NextCursor    *string        `json:"nextCursor,omitempty"`
 	Notifications []Notification `json:"notifications"`
@@ -636,7 +638,7 @@ type NotificationPage struct {
 	UnreadCount   int32          `json:"unreadCount"`
 }
 
-// NotificationPublishRequest defines model for NotificationPublishRequest.
+// NotificationPublishRequest External publisher message. The credential determines source identity; eventId deduplicates within that source.
 type NotificationPublishRequest struct {
 	Body        *string                            `json:"body,omitempty"`
 	Destination *NotificationDestination           `json:"destination,omitempty"`
@@ -649,14 +651,14 @@ type NotificationPublishRequest struct {
 // NotificationPublishRequestSeverity defines model for NotificationPublishRequest.Severity.
 type NotificationPublishRequestSeverity string
 
-// NotificationReceipt defines model for NotificationReceipt.
+// NotificationReceipt Durable notification identity and original creation time. accepted is false for an identical event replay.
 type NotificationReceipt struct {
 	Accepted  bool               `json:"accepted"`
 	CreatedAt time.Time          `json:"createdAt"`
 	Id        openapi_types.UUID `json:"id"`
 }
 
-// NotificationSource defines model for NotificationSource.
+// NotificationSource Producer identity assigned by the authenticated publisher or installed plugin connection.
 type NotificationSource struct {
 	ConnectionId *string                `json:"connectionId,omitempty"`
 	Id           string                 `json:"id"`
@@ -666,36 +668,40 @@ type NotificationSource struct {
 // NotificationSourceKind defines model for NotificationSource.Kind.
 type NotificationSourceKind string
 
-// PluginCatalog defines model for PluginCatalog.
+// PluginCatalog Installed plugin descriptors and safe installation failures, without executable paths or credentials.
 type PluginCatalog struct {
 	Plugins  []PluginDescriptor          `json:"plugins"`
 	Problems []PluginInstallationProblem `json:"problems"`
 }
 
-// PluginConnection defines model for PluginConnection.
+// PluginConnection Connection identity, applied configuration revision, collection state and available query identifiers.
 type PluginConnection struct {
-	AppliedRevision        *string               `json:"appliedRevision"`
-	ConfigurationError     *PluginFailure        `json:"configurationError,omitempty"`
-	Enabled                bool                  `json:"enabled"`
-	Id                     string                `json:"id"`
-	Key                    string                `json:"key"`
-	LastAttemptAt          *time.Time            `json:"lastAttemptAt"`
-	LastConfigureAttemptAt *time.Time            `json:"lastConfigureAttemptAt"`
-	LastSuccessAt          *time.Time            `json:"lastSuccessAt"`
-	Name                   string                `json:"name"`
-	ObservationRevision    *string               `json:"observationRevision"`
-	ObservedAt             *time.Time            `json:"observedAt"`
-	Queries                []string              `json:"queries"`
-	Ready                  bool                  `json:"ready"`
-	Revision               string                `json:"revision"`
-	SourceError            *PluginFailure        `json:"sourceError,omitempty"`
-	State                  PluginConnectionState `json:"state"`
+	AppliedRevision *string `json:"appliedRevision"`
+
+	// ConfigurationError Safe error code and message, with a retryability hint and no source credentials.
+	ConfigurationError     *PluginFailure `json:"configurationError,omitempty"`
+	Enabled                bool           `json:"enabled"`
+	Id                     string         `json:"id"`
+	Key                    string         `json:"key"`
+	LastAttemptAt          *time.Time     `json:"lastAttemptAt"`
+	LastConfigureAttemptAt *time.Time     `json:"lastConfigureAttemptAt"`
+	LastSuccessAt          *time.Time     `json:"lastSuccessAt"`
+	Name                   string         `json:"name"`
+	ObservationRevision    *string        `json:"observationRevision"`
+	ObservedAt             *time.Time     `json:"observedAt"`
+	Queries                []string       `json:"queries"`
+	Ready                  bool           `json:"ready"`
+	Revision               string         `json:"revision"`
+
+	// SourceError Safe error code and message, with a retryability hint and no source credentials.
+	SourceError *PluginFailure        `json:"sourceError,omitempty"`
+	State       PluginConnectionState `json:"state"`
 }
 
 // PluginConnectionState defines model for PluginConnection.State.
 type PluginConnectionState string
 
-// PluginDescriptor defines model for PluginDescriptor.
+// PluginDescriptor Installed plugin version, verified manifest digest and configured connection descriptors.
 type PluginDescriptor struct {
 	Connections    []PluginConnection `json:"connections"`
 	Id             string             `json:"id"`
@@ -703,22 +709,24 @@ type PluginDescriptor struct {
 	Version        string             `json:"version"`
 }
 
-// PluginFailure defines model for PluginFailure.
+// PluginFailure Safe error code and message, with a retryability hint and no source credentials.
 type PluginFailure struct {
 	Code      string `json:"code"`
 	Message   string `json:"message"`
 	Retryable bool   `json:"retryable"`
 }
 
-// PluginInstallationProblem defines model for PluginInstallationProblem.
+// PluginInstallationProblem Installation identity and safe failure details when a configured package cannot become available.
 type PluginInstallationProblem struct {
-	ConnectionKey  *string       `json:"connectionKey,omitempty"`
+	ConnectionKey *string `json:"connectionKey,omitempty"`
+
+	// Error Safe error code and message, with a retryability hint and no source credentials.
 	Error          PluginFailure `json:"error"`
 	InstallationId string        `json:"installationId"`
 	PluginId       *string       `json:"pluginId,omitempty"`
 }
 
-// PluginPlacement defines model for PluginPlacement.
+// PluginPlacement Retained widget configuration with its optimistic concurrency revision and persistence timestamps.
 type PluginPlacement struct {
 	ConnectionId   string                 `json:"connectionId"`
 	ContributionId string                 `json:"contributionId"`
@@ -731,7 +739,7 @@ type PluginPlacement struct {
 	UpdatedAt      time.Time              `json:"updatedAt"`
 }
 
-// PluginPlacementBody defines model for PluginPlacementBody.
+// PluginPlacementBody Selected plugin connection, widget contribution, saved options and enabled state.
 type PluginPlacementBody struct {
 	ConnectionId   string                 `json:"connectionId"`
 	ContributionId string                 `json:"contributionId"`
@@ -740,20 +748,22 @@ type PluginPlacementBody struct {
 	PluginId       string                 `json:"pluginId"`
 }
 
-// PluginQueryResult defines model for PluginQueryResult.
+// PluginQueryResult Cached query data with collection freshness, observation identity and source failure metadata.
 type PluginQueryResult struct {
 	Data                map[string]interface{} `json:"data"`
 	LastSuccessAt       *time.Time             `json:"lastSuccessAt"`
 	ObservationRevision string                 `json:"observationRevision"`
 	ObservedAt          *time.Time             `json:"observedAt"`
-	SourceError         *PluginFailure         `json:"sourceError,omitempty"`
-	State               PluginQueryResultState `json:"state"`
+
+	// SourceError Safe error code and message, with a retryability hint and no source credentials.
+	SourceError *PluginFailure         `json:"sourceError,omitempty"`
+	State       PluginQueryResultState `json:"state"`
 }
 
 // PluginQueryResultState defines model for PluginQueryResult.State.
 type PluginQueryResultState string
 
-// PluginWidgetDefinition defines model for PluginWidgetDefinition.
+// PluginWidgetDefinition Installed widget contribution and its JSON Schema for user-configurable options.
 type PluginWidgetDefinition struct {
 	ContributionId string                 `json:"contributionId"`
 	OptionsSchema  map[string]interface{} `json:"optionsSchema"`
@@ -955,18 +965,25 @@ type DeleteIconParams struct {
 
 // GetNotificationsParams defines parameters for GetNotifications.
 type GetNotificationsParams struct {
+	// Before Opaque nextCursor from the previous response; omit it for the newest page.
 	Before *string `form:"before,omitempty" json:"before,omitempty"`
-	Unread *bool   `form:"unread,omitempty" json:"unread,omitempty"`
-	Limit  *int32  `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Unread Return only unread messages when true. The unread total remains global.
+	Unread *bool `form:"unread,omitempty" json:"unread,omitempty"`
+
+	// Limit Maximum number of messages in this page, from 1 through 50.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // DeletePluginWidgetParams defines parameters for DeletePluginWidget.
 type DeletePluginWidgetParams struct {
+	// IfMatch Current quoted placement revision from ETag. Required to delete this placement.
 	IfMatch *string `json:"If-Match,omitempty"`
 }
 
 // PutPluginWidgetParams defines parameters for PutPluginWidget.
 type PutPluginWidgetParams struct {
+	// IfMatch Current quoted placement revision from ETag. Required when updating this placement.
 	IfMatch *string `json:"If-Match,omitempty"`
 }
 
@@ -1058,37 +1075,37 @@ type ServerInterface interface {
 	// Download an uploaded icon image
 	// (GET /api/v1/icons/{iconID}/image)
 	GetIconImage(w http.ResponseWriter, r *http.Request, iconID string)
-
+	// Clear all notifications
 	// (DELETE /api/v1/notifications)
 	ClearNotifications(w http.ResponseWriter, r *http.Request)
-
+	// List retained notifications
 	// (GET /api/v1/notifications)
 	GetNotifications(w http.ResponseWriter, r *http.Request, params GetNotificationsParams)
-
+	// Publish an external notification
 	// (POST /api/v1/notifications)
 	PublishNotification(w http.ResponseWriter, r *http.Request)
-
+	// Mark all notifications read
 	// (PUT /api/v1/notifications/read)
 	MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request)
-
+	// Read a notification
 	// (GET /api/v1/notifications/{notificationId})
 	GetNotification(w http.ResponseWriter, r *http.Request, notificationId string)
-
+	// Mark a notification read
 	// (PUT /api/v1/notifications/{notificationId}/read)
 	MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId string)
-
+	// List widget definitions and placements
 	// (GET /api/v1/plugin-widgets)
 	GetPluginWidgets(w http.ResponseWriter, r *http.Request)
-
+	// Remove a widget placement
 	// (DELETE /api/v1/plugin-widgets/{placementId})
 	DeletePluginWidget(w http.ResponseWriter, r *http.Request, placementId openapi_types.UUID, params DeletePluginWidgetParams)
-
+	// Save a widget placement
 	// (PUT /api/v1/plugin-widgets/{placementId})
 	PutPluginWidget(w http.ResponseWriter, r *http.Request, placementId openapi_types.UUID, params PutPluginWidgetParams)
-
+	// List installed plugins
 	// (GET /api/v1/plugins)
 	GetPlugins(w http.ResponseWriter, r *http.Request)
-
+	// Query a plugin observation
 	// (POST /api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId})
 	QueryPlugin(w http.ResponseWriter, r *http.Request, pluginId string, connectionId string, queryId string)
 	// List services for review
