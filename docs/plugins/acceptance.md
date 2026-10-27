@@ -127,3 +127,15 @@ keyboard opens when Escape is pressed. The UI host and generated SDK consumers
 pin this patch so the host serves the fixed runtime used by the Alertmanager
 filter controls. CSS remains byte-identical; visual profile v1alpha2 and the RPC
 contract remain compatible. Deploy the host and plugin package pins together.
+
+
+## Notification overlay scroll containment
+
+With a long tray containing both read and unread messages, scroll the main page
+before opening the bell. Opening, refreshing and closing the popover must preserve
+the document width/height and the main container's bounds and scroll position.
+Only the tray may gain its own scrollbar; it must not create a document scrollbar
+outside the console shell. Scroll the tray and verify that the main page stays put.
+Repeat at desktop/mobile widths and in light/dark modes. Check that the header
+menu remains visible, Escape returns focus to the bell, and the unread filter
+keeps its state. Do not mark or clear production messages for this test.
