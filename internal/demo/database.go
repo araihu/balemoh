@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const databaseMarker = "balemoh-synthetic-demo-v1\n"
@@ -13,6 +14,11 @@ const databaseMarker = "balemoh-synthetic-demo-v1\n"
 // The marker is an operator-error guard, not authorization against a filesystem
 // owner who can replace both the database and marker.
 func ClaimDatabase(path string) error {
+	// SQLite accepts URI/query DSNs that do not name the same filesystem entry
+	// os.Stat would inspect. Demo ownership must refer to one plain file.
+	if strings.TrimSpace(path) == "" || strings.HasPrefix(path, "file:") || strings.ContainsAny(path, "?#") || path == ":memory:" {
+		return fmt.Errorf("demo requires a plain database file path")
+	}
 	marker := path + ".synthetic-demo"
 	body, markerErr := os.ReadFile(marker)
 	if markerErr == nil {

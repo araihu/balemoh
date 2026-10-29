@@ -41,3 +41,11 @@ func TestDemoClaimsFreshStorageAndAllowsItsOwnRestart(t *testing.T) {
 		t.Fatal("accepted invalid marker")
 	}
 }
+
+func TestDemoRejectsSQLiteURIAndQueryAliases(t *testing.T) {
+	for _, path := range []string{"file:/private.db", "private.db?mode=ro", "private.db#fragment", ":memory:", " "} {
+		if err := demo.ClaimDatabase(path); err == nil {
+			t.Fatalf("accepted ambiguous ownership path %q", path)
+		}
+	}
+}
