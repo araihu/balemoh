@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -13,6 +14,11 @@ import (
 
 // Options configures the Balemoh server-rendered UI BFF.
 type Options struct {
+	// PublicURL is the HTTPS origin used for canonical and social metadata. Empty omits canonical/social metadata in the public demo.
+	PublicURL string `env:"BALEMOH_UI_PUBLIC_URL"`
+	// ReadOnly requires a loopback synthetic API and serves a shared public demo with operator writes and SSE disabled, a 16-request concurrency budget and a global 20 requests/second rate with a 40-request burst.
+	ReadOnly bool `env:"BALEMOH_UI_READ_ONLY" envDefault:"false"`
+
 	// NotificationOperatorTokenFile contains the private notification inbox credential. Empty leaves notification fragments unavailable without blocking base pages.
 	NotificationOperatorTokenFile string `env:"BALEMOH_UI_NOTIFICATION_OPERATOR_TOKEN_FILE"`
 	// Theme selects the shared visual profile theme, goshtoso or minimal.
@@ -76,6 +82,12 @@ func normalize(options Options) Options {
 // Validate rejects configuration that would make the UI unusable or send
 // requests to an ambiguous upstream URL.
 func (o Options) Validate() error {
+	if o.PublicURL != "" {
+		u, err := url.Parse(o.PublicURL)
+		if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+			return fmt.Errorf("public URL must be an HTTPS origin without credentials, query or fragment")
+		}
+	}
 	if o.Theme != "goshtoso" && o.Theme != "minimal" {
 		return fmt.Errorf("unsupported UI theme")
 	}
@@ -111,6 +123,9 @@ func (o Options) Validate() error {
 	}
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return fmt.Errorf("API base URL scheme must be http or https")
+	}
+	if o.ReadOnly && (net.ParseIP(parsed.Hostname()) == nil || !net.ParseIP(parsed.Hostname()).IsLoopback() || (parsed.Path != "" && parsed.Path != "/")) {
+		return fmt.Errorf("public demo API must use an explicit loopback IP without a path prefix")
 	}
 	if parsed.User != nil {
 		return fmt.Errorf("API base URL must not include credentials")

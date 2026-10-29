@@ -164,6 +164,10 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		_, _ = w.Write(view.DashboardLayoutJS())
 	})
+	mux.HandleFunc("GET /ui/demo-refresh.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.DemoRefreshJS())
+	})
 	mux.HandleFunc("GET /ui/host-live.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		_, _ = w.Write(view.HostLiveJS())
@@ -355,6 +359,8 @@ func (s *server) serveCSS(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageData, status int) {
+	data.ReadOnly = view.ReadOnly(r.Context())
+	data.PublicURL = view.PublicURL(r.Context())
 	display := pluginui.Display(r.Context())
 	data.Theme = display.Theme
 	data.ColorScheme = display.ColorScheme

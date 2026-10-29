@@ -39,6 +39,8 @@ func addressMenuItems(addresses []string) []dropdown.Item {
 // PageData is the presentation model for the operator-facing catalog
 // pages. It deliberately contains no generated API types.
 type PageData struct {
+	ReadOnly           bool
+	PublicURL          string
 	Attributions       bool
 	Appearance         Appearance
 	Themes             ThemesPage
@@ -120,7 +122,7 @@ func serviceTableRows(data PageData) []table.Row {
 				"endpoint": {Component: GroupAddresses(service)},
 			},
 		}
-		if data.Staging {
+		if data.Staging && !data.ReadOnly {
 			row.Link = EditURL(service.ID)
 			row.LinkMode = table.LinkFull
 		}

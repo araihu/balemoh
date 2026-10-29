@@ -160,9 +160,11 @@ templ HostOverviewPanel(page HostDetail){
  <div id="host-overview">@HostOverview(page)</div>
 }
 templ HostOverview(page HostDetail){
+ if !ReadOnly(ctx) {
  <div id={ "host-live-"+page.Window } class="sr-only" data-host-live hx-sse:connect={ "/hosts/"+page.Host.ID+"/events?range="+page.Window } hx-target="#host-live-status" hx-swap="innerMorph">
   <div id="host-live-status" role="status" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
  </div>
+ }
  <div id="host-measurements">@HostMeasurements(page)</div>
  <div class="balemoh-host-actions">
   <h2>Usage history</h2>

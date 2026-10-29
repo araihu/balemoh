@@ -4,6 +4,9 @@
 
 Options contains Balemoh's runtime environment configuration.
 
+ - `BALEMOH_READ_ONLY` (default: `false`) - ReadOnly rejects operator API writes, preserving authenticated federation imports and plugin queries.
+ - `BALEMOH_DEMO_ENABLED` (default: `false`) - DemoEnabled seeds and refreshes a bounded synthetic scenario. Requires read-only mode and disables all real discovery and federation configuration.
+ - `BALEMOH_DEMO_ALERTMANAGER_ADDR` (default: `127.0.0.1:9093`) - DemoAlertmanagerAddr serves the synthetic Alertmanager source on a loopback address when demo mode is enabled.
  - `BALEMOH_NOTIFICATION_RETENTION_DAYS` (default: `30`) - NotificationRetentionDays permanently expires read and unread notifications after this many 24-hour days from receipt. Range 1 to 3650; cleanup runs at startup and hourly, and reads immediately exclude expired messages.
  - `BALEMOH_PLUGIN_CONFIG` - PluginConfig enables trusted local plugin installations and source connections from a JSON deployment file. Empty disables plugins.
  - `BALEMOH_PLUGIN_SERVICE_TOKEN_FILE` - PluginServiceTokenFile contains the private BFF service credential used only by new plugin API routes.

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/araihu/balemoh/plugin-sdk/credential"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
@@ -41,6 +42,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	if options.ReadOnly {
+		if err := waitForDemoAPI(ctx, options.APIBaseURL, &http.Client{Timeout: options.RequestTimeout}); err != nil {
+			return err
+		}
+	}
 	apiClient, err := bff.NewAPIClient(options.APIBaseURL, &http.Client{Timeout: options.RequestTimeout})
 	if err != nil {
 		return err
@@ -54,7 +60,10 @@ func run(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	icons := startIconCache(ctx, options.IconCacheDir, options.IconStartupTimeout, selfhst.Ensure, slog.Default())
+	var icons http.Handler
+	if !options.ReadOnly {
+		icons = startIconCache(ctx, options.IconCacheDir, options.IconStartupTimeout, selfhst.Ensure, slog.Default())
+	}
 	var registry *plugins.Registry
 	if options.PluginPreviewConfig != "" {
 		registry, err = plugins.Open(ctx, options.PluginPreviewConfig)
@@ -80,6 +89,9 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("create UI handler: %w", err)
 	}
 
+	if options.ReadOnly {
+		handler = bff.PublicReadOnly(handler, options.PublicURL)
+	}
 	inner := handler
 	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		inner.ServeHTTP(w, r.WithContext(pluginui.WithDisplayContext(r.Context(), pluginui.DisplayContext{Theme: options.Theme, ColorScheme: options.ColorScheme})))
@@ -89,6 +101,12 @@ func run(ctx context.Context) error {
 		Handler:           handler,
 		BaseContext:       func(net.Listener) context.Context { return ctx },
 		ReadHeaderTimeout: options.RequestTimeout,
+		IdleTimeout:       30 * time.Second,
+		MaxHeaderBytes:    16 << 10,
+	}
+	if options.ReadOnly {
+		server.ReadTimeout = 10 * time.Second
+		server.WriteTimeout = 10 * time.Second
 	}
 	serveErr := make(chan error, 1)
 	go func() {

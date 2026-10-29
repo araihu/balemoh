@@ -113,3 +113,25 @@ func TestAppearanceEnvironment(t *testing.T) {
 		}
 	}
 }
+
+func TestReadOnlyRequiresLoopbackAPI(t *testing.T) {
+	for _, address := range []string{"https://private.example.test", "http://localhost:8080", "http://127.0.0.1:8080/private"} {
+		if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_READ_ONLY": "true", "BALEMOH_UI_API_BASE_URL": address}); err == nil {
+			t.Fatalf("accepted %s", address)
+		}
+	}
+	if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_READ_ONLY": "true"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPublicURLMustBeAnHTTPSOrigin(t *testing.T) {
+	for _, value := range []string{"http://example.test", "https://user:pass@example.test", "https://example.test/path", "https://example.test?query=value", "https://example.test#fragment"} {
+		if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_PUBLIC_URL": value}); err == nil {
+			t.Fatalf("accepted public URL %q", value)
+		}
+	}
+	if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_PUBLIC_URL": "https://demo.example.test"}); err != nil {
+		t.Fatal(err)
+	}
+}

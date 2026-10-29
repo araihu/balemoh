@@ -26,6 +26,7 @@ import (
 	"github.com/araihu/balemoh/internal/application/notifications"
 	"github.com/araihu/balemoh/internal/application/telemetry"
 	"github.com/araihu/balemoh/internal/config"
+	"github.com/araihu/balemoh/internal/demo"
 	"github.com/araihu/balemoh/internal/storage/sqlc"
 	"k8s.io/client-go/rest"
 )
@@ -40,6 +41,11 @@ func run() error {
 	options, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
+	}
+	if options.DemoEnabled {
+		if err := demo.ClaimDatabase(options.DatabasePath); err != nil {
+			return err
+		}
 	}
 	deployment, pluginToken, err := pluginDeployment(options)
 	if err != nil {
@@ -58,11 +64,35 @@ func run() error {
 	}
 	defer db.Close()
 
-	closePlugins, err := startPlugins(ctx, db, server, deployment, pluginToken, catalogService, notificationService)
+	closePlugins, err := startPlugins(ctx, db, server, deployment, pluginToken, catalogService, notificationService, options.DemoEnabled)
 	if err != nil {
 		return err
 	}
 	defer closePlugins()
+	if options.ReadOnly {
+		server.Handler = httpadapter.ReadOnly(server.Handler)
+	}
+	if options.DemoEnabled {
+		closeDemo, err := startDemo(ctx, db, catalogService, notificationService, options)
+		if err != nil {
+			return err
+		}
+		defer closeDemo()
+		previous := server.Handler
+		server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/healthz" {
+				w.Header().Set("X-Balemoh-Demo", "synthetic-v1")
+			}
+			previous.ServeHTTP(w, r)
+		})
+	}
+	server.ReadHeaderTimeout = 5 * time.Second
+	server.IdleTimeout = 30 * time.Second
+	server.MaxHeaderBytes = 16 << 10
+	if options.ReadOnly {
+		server.ReadTimeout = 10 * time.Second
+		server.WriteTimeout = 10 * time.Second
+	}
 	stopRetention := startNotificationRetention(ctx, notificationService)
 	defer stopRetention()
 	go runDiscoverySync(ctx, catalogService, options.DiscoverySyncInterval)
