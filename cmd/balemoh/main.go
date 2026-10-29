@@ -25,6 +25,7 @@ import (
 	"github.com/araihu/balemoh/internal/application/health"
 	"github.com/araihu/balemoh/internal/application/notifications"
 	"github.com/araihu/balemoh/internal/application/telemetry"
+	push "github.com/araihu/balemoh/internal/application/webpush"
 	"github.com/araihu/balemoh/internal/config"
 	"github.com/araihu/balemoh/internal/demo"
 	"github.com/araihu/balemoh/internal/storage/sqlc"
@@ -58,11 +59,13 @@ func run() error {
 		return err
 	}
 
-	server, db, catalogService, notificationService, err := constructServerWithCatalog(ctx, options, sqlite.RunMigrations, discoverers...)
+	server, db, catalogService, notificationService, pushService, err := constructServerWithCatalog(ctx, options, sqlite.RunMigrations, discoverers...)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
+	stopPush := startWebPush(ctx, pushService)
+	defer stopPush()
 
 	closePlugins, err := startPlugins(ctx, db, server, deployment, pluginToken, catalogService, notificationService, options.DemoEnabled)
 	if err != nil {
@@ -104,22 +107,22 @@ func run() error {
 }
 
 func constructServer(ctx context.Context, options config.Options, migrate func(*sql.DB) error, discoverers ...catalog.Discoverer) (*http.Server, *sql.DB, error) {
-	server, db, _, _, err := constructServerWithCatalog(ctx, options, migrate, discoverers...)
+	server, db, _, _, _, err := constructServerWithCatalog(ctx, options, migrate, discoverers...)
 	return server, db, err
 }
 
-func constructServerWithCatalog(ctx context.Context, options config.Options, migrate func(*sql.DB) error, discoverers ...catalog.Discoverer) (*http.Server, *sql.DB, *catalog.Service, *notifications.Service, error) {
+func constructServerWithCatalog(ctx context.Context, options config.Options, migrate func(*sql.DB) error, discoverers ...catalog.Discoverer) (*http.Server, *sql.DB, *catalog.Service, *notifications.Service, *push.Service, error) {
 	if err := os.MkdirAll(filepath.Dir(options.DatabasePath), 0o755); err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("create database directory: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("create database directory: %w", err)
 	}
 
 	db, err := sqlite.Open(ctx, options.DatabasePath)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("open database: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("open database: %w", err)
 	}
 	if err := migrate(db); err != nil {
 		_ = db.Close()
-		return nil, nil, nil, nil, fmt.Errorf("run migrations: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	queries := sqlc.New(db)
@@ -127,12 +130,12 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 	publisher, err := configuredPublisher(options)
 	if err != nil {
 		_ = db.Close()
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	sourceTokens, err := configuredFederationSourceTokens(options)
 	if err != nil {
 		_ = db.Close()
-		return nil, nil, nil, nil, fmt.Errorf("configure federation source tokens: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("configure federation source tokens: %w", err)
 	}
 	catalogService := catalog.NewServiceWithPublisher(sqlite.NewCatalogStore(db), publisher, discoverers...)
 	handler := httpadapter.NewHandlerWithFederation(
@@ -144,9 +147,15 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 	notificationService, notificationAuth, err := configureNotifications(options, db)
 	if err != nil {
 		_ = db.Close()
-		return nil, nil, nil, nil, fmt.Errorf("configure notifications: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("configure notifications: %w", err)
 	}
 	handler = handler.WithNotifications(notificationService, notificationAuth)
+	pushService, err := configureWebPush(ctx, options, db)
+	if err != nil {
+		_ = db.Close()
+		return nil, nil, nil, nil, nil, fmt.Errorf("configure Web Push: %w", err)
+	}
+	handler = handler.WithWebPush(pushService)
 	handler = handler.WithIcons(sqlite.NewIconStore(db))
 	handler = handler.WithPresentation(sqlite.NewPresentationStore(db))
 	telemetryStore := sqlite.NewTelemetryStore(db)
@@ -162,12 +171,12 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 	}
 	if err := telemetryStore.Register(ctx, sources); err != nil {
 		_ = db.Close()
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	handler = handler.WithTelemetry(telemetryStore)
 	handler = handler.WithDashboard(dashboard.New(dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: telemetryStore, Selections: sqlite.NewDashboardSelections(db)}))
 	httpHandler := generated.HandlerWithOptions(handler, generated.StdHTTPServerOptions{BaseRouter: http.NewServeMux(), ErrorHandlerFunc: httpadapter.RequestError})
-	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, notificationService, nil
+	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, notificationService, pushService, nil
 }
 
 type discoverySyncer interface {

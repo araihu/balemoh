@@ -48,7 +48,7 @@ jobs:
           (cd ui && GOWORK=off go build -o /tmp/balemoh-ui ./cmd/balemoh-ui)
 
       - name: Notification refresh scheduling
-        run: node --test ui/internal/view/static/tests/notifications.test.cjs
+        run: node --test ui/internal/view/static/tests/*.test.cjs
 
       - name: Race test
         run: |

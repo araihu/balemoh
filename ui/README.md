@@ -75,6 +75,31 @@ host and plugin pins together while the unpublished manifest remains alpha.
 
 ## Notification center presentation
 
+Browser notifications use Web Push, enabled through the bell tray or notification
+center. Click **Enable browser notifications**, then allow the browser permission
+prompt. Delivery continues after closing the tab. HTTPS or localhost, service
+workers and browser push support are required. iPhone and iPad users must add
+Balemoh to their Home Screen first; the UI serves an installable app manifest.
+
+Configure the API server with a stable private VAPID key file and a contact
+subject, as described in the root README. The UI obtains only the public key
+through the notification operator credential. Missing backend configuration is
+shown explicitly; it does not silently fall back to open-tab-only delivery.
+
+Opt-in stores a private browser management token locally and saves the
+push subscription and its encryption keys in the API database. Existing inbox messages are not replayed.
+Opening Balemoh renews the subscription's 90-day lease. Disabling unsubscribes the
+browser and removes its server subscription and pending jobs. If server cleanup
+fails, the UI offers a retry after local delivery has stopped. Browser storage is
+required to retain subscription management across visits.
+
+New notifications queue delivery atomically with publication. Delivery retries
+transient failures and removes endpoints rejected with 404 or 410. Push-service
+acceptance does not guarantee immediate OS display; offline devices, browser/OS
+settings and expired subscriptions can prevent delivery. Message previews may
+appear on the lock screen. Clicking opens the inbox without marking read. The
+worker does not intercept or cache requests.
+
 The inbox and bell share notification rows, producer icons, unread indicators,
 source/time metadata and read controls. The center keeps full message text in a
 58rem reading column. Its Goshtoso panel, toggle and icon actions use the existing

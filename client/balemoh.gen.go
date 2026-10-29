@@ -1301,6 +1301,33 @@ type UploadedIcon struct {
 	UsedBy []string `json:"usedBy"`
 }
 
+// WebPushRegistration defines model for WebPushRegistration.
+type WebPushRegistration struct {
+	Subscription WebPushSubscription `json:"subscription"`
+	Token        string              `json:"token"`
+}
+
+// WebPushSettings defines model for WebPushSettings.
+type WebPushSettings struct {
+	Enabled    bool   `json:"enabled"`
+	PublicKey  string `json:"publicKey"`
+	Subscribed bool   `json:"subscribed"`
+}
+
+// WebPushSubscription defines model for WebPushSubscription.
+type WebPushSubscription struct {
+	Endpoint string `json:"endpoint"`
+	Keys     struct {
+		Auth   string `json:"auth"`
+		P256dh string `json:"p256dh"`
+	} `json:"keys"`
+}
+
+// WebPushToken defines model for WebPushToken.
+type WebPushToken struct {
+	Token string `json:"token"`
+}
+
 // PresentationExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
 type PresentationExpectedRevision = PresentationRevision
 
@@ -1386,6 +1413,12 @@ type GetNotificationsParams struct {
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// GetWebPushSettingsParams defines parameters for GetWebPushSettings.
+type GetWebPushSettingsParams struct {
+	// XPushToken Optional private browser management token. Never log or put in URLs.
+	XPushToken *string `json:"X-Push-Token,omitempty"`
+}
+
 // DeletePluginWidgetParams defines parameters for DeletePluginWidget.
 type DeletePluginWidgetParams struct {
 	// IfMatch Current quoted placement revision from ETag. Required to delete this placement.
@@ -1438,6 +1471,12 @@ type UpdateIconJSONRequestBody = IconUpload
 
 // PublishNotificationJSONRequestBody defines body for PublishNotification for application/json ContentType.
 type PublishNotificationJSONRequestBody = NotificationPublishRequest
+
+// DeleteWebPushJSONRequestBody defines body for DeleteWebPush for application/json ContentType.
+type DeleteWebPushJSONRequestBody = WebPushToken
+
+// RegisterWebPushJSONRequestBody defines body for RegisterWebPush for application/json ContentType.
+type RegisterWebPushJSONRequestBody = WebPushRegistration
 
 // PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
 type PutPluginWidgetJSONRequestBody = PluginPlacementBody
@@ -1607,6 +1646,19 @@ type ClientInterface interface {
 	PublishNotificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteWebPushWithBody request with any body
+	DeleteWebPushWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	DeleteWebPush(ctx context.Context, body DeleteWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWebPushSettings request
+	GetWebPushSettings(ctx context.Context, params *GetWebPushSettingsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RegisterWebPushWithBody request with any body
+	RegisterWebPushWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RegisterWebPush(ctx context.Context, body RegisterWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MarkAllNotificationsRead request
 	MarkAllNotificationsRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1993,6 +2045,66 @@ func (c *Client) PublishNotificationWithBody(ctx context.Context, contentType st
 
 func (c *Client) PublishNotification(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPublishNotificationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteWebPushWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteWebPushRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteWebPush(ctx context.Context, body DeleteWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteWebPushRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWebPushSettings(ctx context.Context, params *GetWebPushSettingsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWebPushSettingsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterWebPushWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterWebPushRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterWebPush(ctx context.Context, body RegisterWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterWebPushRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3163,6 +3275,128 @@ func NewPublishNotificationRequestWithBody(server string, contentType string, bo
 	return req, nil
 }
 
+// NewDeleteWebPushRequest calls the generic DeleteWebPush builder with application/json body
+func NewDeleteWebPushRequest(server string, body DeleteWebPushJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewDeleteWebPushRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewDeleteWebPushRequestWithBody generates requests for DeleteWebPush with any type of body
+func NewDeleteWebPushRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/push")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetWebPushSettingsRequest generates requests for GetWebPushSettings
+func NewGetWebPushSettingsRequest(server string, params *GetWebPushSettingsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/push")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+
+		if params.XPushToken != nil {
+			var headerParam0 string
+
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-Push-Token", *params.XPushToken, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("X-Push-Token", headerParam0)
+		}
+
+	}
+
+	return req, nil
+}
+
+// NewRegisterWebPushRequest calls the generic RegisterWebPush builder with application/json body
+func NewRegisterWebPushRequest(server string, body RegisterWebPushJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRegisterWebPushRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewRegisterWebPushRequestWithBody generates requests for RegisterWebPush with any type of body
+func NewRegisterWebPushRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notifications/push")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewMarkAllNotificationsReadRequest generates requests for MarkAllNotificationsRead
 func NewMarkAllNotificationsReadRequest(server string) (*http.Request, error) {
 	var err error
@@ -4127,6 +4361,19 @@ type ClientWithResponsesInterface interface {
 
 	PublishNotificationWithResponse(ctx context.Context, body PublishNotificationJSONRequestBody, reqEditors ...RequestEditorFn) (*PublishNotificationResponse, error)
 
+	// DeleteWebPushWithBodyWithResponse request with any body
+	DeleteWebPushWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteWebPushResponse, error)
+
+	DeleteWebPushWithResponse(ctx context.Context, body DeleteWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteWebPushResponse, error)
+
+	// GetWebPushSettingsWithResponse request
+	GetWebPushSettingsWithResponse(ctx context.Context, params *GetWebPushSettingsParams, reqEditors ...RequestEditorFn) (*GetWebPushSettingsResponse, error)
+
+	// RegisterWebPushWithBodyWithResponse request with any body
+	RegisterWebPushWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterWebPushResponse, error)
+
+	RegisterWebPushWithResponse(ctx context.Context, body RegisterWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterWebPushResponse, error)
+
 	// MarkAllNotificationsReadWithResponse request
 	MarkAllNotificationsReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*MarkAllNotificationsReadResponse, error)
 
@@ -4833,6 +5080,94 @@ func (r PublishNotificationResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r PublishNotificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteWebPushResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteWebPushResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteWebPushResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteWebPushResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetWebPushSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WebPushSettings
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWebPushSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWebPushSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetWebPushSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RegisterWebPushResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RegisterWebPushResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RegisterWebPushResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RegisterWebPushResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -5765,6 +6100,49 @@ func (c *ClientWithResponses) PublishNotificationWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParsePublishNotificationResponse(rsp)
+}
+
+// DeleteWebPushWithBodyWithResponse request with arbitrary body returning *DeleteWebPushResponse
+func (c *ClientWithResponses) DeleteWebPushWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteWebPushResponse, error) {
+	rsp, err := c.DeleteWebPushWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteWebPushResponse(rsp)
+}
+
+func (c *ClientWithResponses) DeleteWebPushWithResponse(ctx context.Context, body DeleteWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteWebPushResponse, error) {
+	rsp, err := c.DeleteWebPush(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteWebPushResponse(rsp)
+}
+
+// GetWebPushSettingsWithResponse request returning *GetWebPushSettingsResponse
+func (c *ClientWithResponses) GetWebPushSettingsWithResponse(ctx context.Context, params *GetWebPushSettingsParams, reqEditors ...RequestEditorFn) (*GetWebPushSettingsResponse, error) {
+	rsp, err := c.GetWebPushSettings(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWebPushSettingsResponse(rsp)
+}
+
+// RegisterWebPushWithBodyWithResponse request with arbitrary body returning *RegisterWebPushResponse
+func (c *ClientWithResponses) RegisterWebPushWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterWebPushResponse, error) {
+	rsp, err := c.RegisterWebPushWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterWebPushResponse(rsp)
+}
+
+func (c *ClientWithResponses) RegisterWebPushWithResponse(ctx context.Context, body RegisterWebPushJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterWebPushResponse, error) {
+	rsp, err := c.RegisterWebPush(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterWebPushResponse(rsp)
 }
 
 // MarkAllNotificationsReadWithResponse request returning *MarkAllNotificationsReadResponse
@@ -6720,6 +7098,64 @@ func ParsePublishNotificationResponse(rsp *http.Response) (*PublishNotificationR
 		}
 		response.JSON201 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseDeleteWebPushResponse parses an HTTP response from a DeleteWebPushWithResponse call
+func ParseDeleteWebPushResponse(rsp *http.Response) (*DeleteWebPushResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteWebPushResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetWebPushSettingsResponse parses an HTTP response from a GetWebPushSettingsWithResponse call
+func ParseGetWebPushSettingsResponse(rsp *http.Response) (*GetWebPushSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWebPushSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WebPushSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRegisterWebPushResponse parses an HTTP response from a RegisterWebPushWithResponse call
+func ParseRegisterWebPushResponse(rsp *http.Response) (*RegisterWebPushResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RegisterWebPushResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

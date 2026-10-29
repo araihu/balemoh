@@ -269,3 +269,28 @@ func TestDemoConfigurationFailsClosed(t *testing.T) {
 		}
 	}
 }
+
+func TestWebPushEnvironmentContract(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		values map[string]string
+		valid  bool
+	}{
+		{"disabled", map[string]string{}, true},
+		{"read-only disabled", map[string]string{"BALEMOH_READ_ONLY": "true"}, true},
+		{"read-only rejects push", map[string]string{"BALEMOH_READ_ONLY": "true", "BALEMOH_WEB_PUSH_VAPID_KEY_FILE": "/keys/vapid", "BALEMOH_WEB_PUSH_SUBJECT": "mailto:ops@example.com", "BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE": "/keys/operator"}, false},
+		{"complete", map[string]string{"BALEMOH_WEB_PUSH_VAPID_KEY_FILE": "/keys/vapid", "BALEMOH_WEB_PUSH_SUBJECT": "mailto:ops@example.com", "BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE": "/keys/operator"}, true},
+		{"key only", map[string]string{"BALEMOH_WEB_PUSH_VAPID_KEY_FILE": "/keys/vapid"}, false},
+		{"subject only", map[string]string{"BALEMOH_WEB_PUSH_SUBJECT": "mailto:ops@example.com"}, false},
+		{"missing operator", map[string]string{"BALEMOH_WEB_PUSH_VAPID_KEY_FILE": "/keys/vapid", "BALEMOH_WEB_PUSH_SUBJECT": "mailto:ops@example.com"}, false},
+		{"invalid subject", map[string]string{"BALEMOH_WEB_PUSH_VAPID_KEY_FILE": "/keys/vapid", "BALEMOH_WEB_PUSH_SUBJECT": "http://example.com", "BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE": "/keys/operator"}, false},
+		{"blank file", map[string]string{"BALEMOH_WEB_PUSH_VAPID_KEY_FILE": " ", "BALEMOH_WEB_PUSH_SUBJECT": "mailto:ops@example.com", "BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE": "/keys/operator"}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := ParseEnvironment(test.values)
+			if (err == nil) != test.valid {
+				t.Fatalf("valid=%v error=%v", test.valid, err)
+			}
+		})
+	}
+}

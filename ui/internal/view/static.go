@@ -53,6 +53,16 @@ var notificationsJS []byte
 
 func NotificationsJS() []byte { return notificationsJS }
 
+//go:embed static/browser-notifications.js
+var browserNotificationsJS []byte
+
+func BrowserNotificationsJS() []byte { return browserNotificationsJS }
+
+//go:embed static/notifications-worker.js
+var notificationsWorkerJS []byte
+
+func NotificationsWorkerJS() []byte { return notificationsWorkerJS }
+
 //go:embed static/presentation.js
 var presentationJS []byte
 

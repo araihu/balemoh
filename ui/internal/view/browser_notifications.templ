@@ -1,0 +1,15 @@
+package view
+
+import "github.com/araihu/goshtoso/components/button"
+
+templ BrowserNotificationSettings(location string) {
+ if !ReadOnly(ctx) {
+	<div class="balemoh-notification-message" data-browser-notifications hidden>
+		@button.Button(button.WithType("button"), button.WithSize(button.SizeSmall), button.WithAppearance(button.AppearancePlain), button.WithAttrs(templ.Attributes{"data-browser-notifications-toggle": true, "aria-describedby": "browser-notifications-status-" + location})) {
+			Enable browser notifications
+		}
+		<p id={ "browser-notifications-status-" + location } data-browser-notifications-status role="status">Browser notifications are off.</p>
+		<p class="balemoh-muted">New messages arrive even with the tab closed. Message text may appear on your lock screen.</p>
+	</div>
+}
+}

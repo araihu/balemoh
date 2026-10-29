@@ -137,7 +137,7 @@ func TestPublicReadOnlyPageHasNoticeAndNoStream(t *testing.T) {
 	for range 2 {
 		response := httptest.NewRecorder()
 		h.ServeHTTP(response, httptest.NewRequest("GET", "/", nil))
-		if response.Code != 200 || !strings.Contains(response.Body.String(), "Shared read-only demo") || strings.Contains(response.Body.String(), `hx-sse:connect=`) {
+		if response.Code != 200 || !strings.Contains(response.Body.String(), "Shared read-only demo") || strings.Contains(response.Body.String(), `hx-sse:connect=`) || strings.Contains(response.Body.String(), `data-browser-notifications`) || strings.Contains(response.Body.String(), `/ui/browser-notifications.js`) {
 			t.Fatalf("demo page=%d", response.Code)
 		}
 	}

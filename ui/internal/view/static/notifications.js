@@ -27,6 +27,7 @@
   }
   if (typeof module !== 'undefined' && module.exports) { module.exports = {createScheduler}; return; }
   function start() {
+    const browser = global.BalemohBrowserNotifications?.create(global);
     const trigger = document.getElementById('notification-trigger');
     const summary = document.getElementById('notification-summary');
     const tray = document.getElementById('notification-tray');
@@ -93,7 +94,7 @@
       wasOpen = open;
     });
     observer.observe(trigger, {attributes: true, attributeFilter: ['aria-expanded']});
-    const visibilityChanged = () => scheduler.visibilityChanged();
+    const visibilityChanged = () => { browser?.sync(); scheduler.visibilityChanged(); };
     document.addEventListener('visibilitychange', visibilityChanged);
     document.getElementById('notification-refresh')?.addEventListener('click', () => scheduler.refresh());
     global.addEventListener('notifications:refresh', () => scheduler.refresh());
@@ -108,6 +109,7 @@
       scheduler.refresh();
     });
     document.addEventListener('htmx:after:settle', () => {
+      browser?.sync();
       syncLabel();
       if (returnPage && global.location.pathname === '/notifications') returnPage.value = global.location.pathname + global.location.search;
       const cleared = document.querySelector('[data-notifications-cleared]');

@@ -8,11 +8,17 @@ import (
 	"strings"
 	"time"
 
+	push "github.com/araihu/balemoh/internal/application/webpush"
 	"github.com/caarlos0/env/v11"
 )
 
 // Options contains Balemoh's runtime environment configuration.
 type Options struct {
+	// WebPushVAPIDKeyFile contains one base64url-encoded P-256 private scalar for Web Push. Empty disables push. Keep this file stable across restarts and mount it as a secret.
+	WebPushVAPIDKeyFile string `env:"BALEMOH_WEB_PUSH_VAPID_KEY_FILE"`
+	// WebPushSubject is a mailto: or HTTPS contact URI for the VAPID subject. Required with the key file. Web Push also requires the notification operator credential.
+	WebPushSubject string `env:"BALEMOH_WEB_PUSH_SUBJECT"`
+
 	// ReadOnly rejects operator API writes, preserving authenticated federation imports and plugin queries.
 	ReadOnly bool `env:"BALEMOH_READ_ONLY" envDefault:"false"`
 	// DemoEnabled seeds and refreshes a bounded synthetic scenario. Requires read-only mode and disables all real discovery and federation configuration.
@@ -85,6 +91,13 @@ func ParseEnvironment(environment map[string]string) (Options, error) {
 
 // Validate checks that required configuration values contain non-whitespace content.
 func (o Options) Validate() error {
+	if o.ReadOnly && o.WebPushVAPIDKeyFile != "" {
+		return fmt.Errorf("Web Push cannot be enabled in read-only mode")
+	}
+	if (o.WebPushVAPIDKeyFile != "") != (o.WebPushSubject != "") || (o.WebPushVAPIDKeyFile != "" && (strings.TrimSpace(o.WebPushVAPIDKeyFile) == "" || strings.ContainsRune(o.WebPushVAPIDKeyFile, '\x00') || !push.ValidSubject(o.WebPushSubject) || strings.TrimSpace(o.NotificationOperatorTokenFile) == "")) {
+		return fmt.Errorf("Web Push requires a key file, a mailto or HTTPS contact subject, and notification operator credentials")
+	}
+
 	if o.DemoEnabled {
 		if !o.ReadOnly || o.KubernetesEnabled || o.ContainerEnabled || o.TelemetryEnabled || o.FederationGatewayURL != "" || len(o.FederationAllowedSources) > 0 || len(o.FederationSourceTokens) > 0 || o.NotificationPublishersFile != "" {
 			return fmt.Errorf("demo requires read-only mode without real discovery, telemetry, federation or notification publishers")

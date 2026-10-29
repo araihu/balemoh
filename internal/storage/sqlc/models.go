@@ -169,3 +169,26 @@ type UploadedIcon struct {
 	Digest string `json:"digest"`
 	Data   []byte `json:"data"`
 }
+
+type WebPushDelivery struct {
+	SubscriptionID string `json:"subscription_id"`
+	NotificationID string `json:"notification_id"`
+	Attempts       int64  `json:"attempts"`
+	NextAttempt    int64  `json:"next_attempt"`
+	LeaseUntil     int64  `json:"lease_until"`
+	ExpiresAt      int64  `json:"expires_at"`
+}
+
+type WebPushState struct {
+	Singleton int64  `json:"singleton"`
+	PublicKey string `json:"public_key"`
+	Enabled   int64  `json:"enabled"`
+}
+
+type WebPushSubscription struct {
+	ID        string `json:"id"`
+	Endpoint  string `json:"endpoint"`
+	P256dh    string `json:"p256dh"`
+	Auth      string `json:"auth"`
+	ExpiresAt int64  `json:"expires_at"`
+}

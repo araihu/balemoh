@@ -12,9 +12,11 @@ import (
 	"github.com/araihu/balemoh/internal/application/notifications"
 	"github.com/araihu/balemoh/internal/application/plugins"
 	"github.com/araihu/balemoh/internal/application/presentation"
+	push "github.com/araihu/balemoh/internal/application/webpush"
 )
 
 type Handler struct {
+	webPush           *push.Service
 	presentation      presentation.Store
 	plugins           *plugins.Service
 	pluginToken       string

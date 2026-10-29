@@ -24,7 +24,11 @@ func ConsolePage(data PageData) templ.Component {
 			data.Appearance.Mode = "system"
 		}
 	}
-	runtimeScripts := []string{"/ui/plugin-runtime.js", "/ui/notifications.js"}
+	runtimeScripts := []string{"/ui/plugin-runtime.js"}
+	if !data.ReadOnly {
+		runtimeScripts = append(runtimeScripts, "/ui/browser-notifications.js")
+	}
+	runtimeScripts = append(runtimeScripts, "/ui/notifications.js")
 	if data.ReadOnly {
 		runtimeScripts = append(runtimeScripts, "/ui/demo-refresh.js")
 	}

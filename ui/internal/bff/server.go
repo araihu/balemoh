@@ -60,6 +60,22 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 	mux.Handle("POST /notifications/clear", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationClear)))
 	mux.HandleFunc("GET /notifications/summary", server.notificationSummary)
 	mux.HandleFunc("GET /notifications/tray", server.notificationTray)
+	mux.HandleFunc("GET /notifications/push", server.webPush)
+	mux.Handle("POST /notifications/push", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.webPush)))
+	mux.Handle("DELETE /notifications/push", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.webPush)))
+	mux.HandleFunc("GET /manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/manifest+json")
+		_, _ = w.Write([]byte(`{"id":"/","name":"Balemoh","short_name":"Balemoh","start_url":"/","scope":"/","display":"standalone","icons":[{"src":"/ui/brand/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/ui/brand/icon-512.png","sizes":"512x512","type":"image/png"},{"src":"/ui/brand/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}`))
+	})
+	mux.HandleFunc("GET /ui/browser-notifications.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(view.BrowserNotificationsJS())
+	})
+	mux.HandleFunc("GET /notifications-worker.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(view.NotificationsWorkerJS())
+	})
 	mux.HandleFunc("GET /notifications/{notificationID}/open", server.notificationOpen)
 	mux.Handle("POST /notifications/{notificationID}/read", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationRead)))
 	mux.HandleFunc("GET /ui/notifications.js", func(w http.ResponseWriter, r *http.Request) {
