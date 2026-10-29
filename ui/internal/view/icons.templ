@@ -149,12 +149,9 @@ templ IconBatch(data IconPage) {
 }
 
 templ AttributionLinks() {
- <nav class="balemoh-footer-links" aria-label="Attributions and licenses">
-  @link.Link("https://selfh.st/icons/",link.WithTarget("_blank")) {
-   Icons by selfh.st
-  }
-  @link.Link("/ui/icon-library/selfhst/LICENSES/selfhst.txt",link.WithTarget("_blank")) {
-   Icon license
+ <nav class="balemoh-footer-links" aria-label="Attributions">
+  @link.Link("/attributions") {
+   Attributions
   }
  </nav>
 }

@@ -49,7 +49,7 @@ func TestPagesExposeBrandAndUpdatedSocialPreview(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/", "/staging", "/hosts"} {
+	for _, path := range []string{"/", "/staging", "/hosts", "/attributions"} {
 		t.Run(path, func(t *testing.T) {
 			response := request(t, handler, http.MethodGet, path, "")
 			assertSocialMetadata(t, response.Body.String(), "https://balemoh.decastro.me"+path)

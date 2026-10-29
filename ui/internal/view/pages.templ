@@ -62,7 +62,9 @@ templ PageContent(data PageData) {
  @alert.Alert(alert.Config{Title: "Request could not be completed", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
  </div>
 		}
-		if data.NotificationsPage != nil {
+		if data.Attributions {
+ @AttributionsContent()
+ } else if data.NotificationsPage != nil {
  @NotificationsContent(*data.NotificationsPage)
  } else if data.PluginContent != nil {
  @data.PluginContent
