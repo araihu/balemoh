@@ -17,7 +17,11 @@ import (
 )
 
 // Source owns the private BFF credential. Only scoped data callbacks reach UI children.
-type Source struct{ client *api.Client }
+type Source struct {
+	client *api.Client
+	// Services is configured once, before OpenData starts any children.
+	Services ui.ServiceCatalog
+}
 
 func NewSource(baseURL, tokenPath string, timeout time.Duration) (*Source, error) {
 	u, err := url.Parse(baseURL)
@@ -41,7 +45,7 @@ func NewSource(baseURL, tokenPath string, timeout time.Duration) (*Source, error
 	if err != nil {
 		return nil, errors.New("cannot create plugin data API client")
 	}
-	return &Source{client}, nil
+	return &Source{client: client}, nil
 }
 func readResponse(response *http.Response, target any) error {
 	defer response.Body.Close()
@@ -109,6 +113,25 @@ type scopedServices struct {
 	placement ui.Placement
 	grants    map[string]bool
 	requestID string
+}
+
+func (h scopedServices) ResolveServices(ctx context.Context, ids []string) ([]ui.ServiceIdentity, error) {
+	if ui.ValidateServiceIDs(ids) != nil {
+		return nil, backend.Fail("invalid_argument")
+	}
+	if !h.entry.Package.Manifest.Declares(ui.ServiceCatalogCapability) || h.source.Services == nil {
+		return nil, backend.Fail("permission_denied")
+	}
+	allowed := map[string]bool{}
+	for _, id := range h.entry.Installation.ServiceIDs {
+		allowed[id] = true
+	}
+	for _, id := range ids {
+		if !allowed[id] {
+			return nil, backend.Fail("permission_denied")
+		}
+	}
+	return h.source.Services.ResolveServices(ctx, ids)
 }
 
 func (h scopedServices) Query(ctx context.Context, operation string, input json.RawMessage) (ui.QueryResult, error) {

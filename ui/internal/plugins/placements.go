@@ -182,7 +182,7 @@ func (r *Registry) PersistentWidget(ctx context.Context, id string) (ui.Response
 	r.mu.RLock()
 	cached, ok := r.cache[id]
 	r.mu.RUnlock()
-	if ok && cached.Key == key {
+	if ok && cached.Key == key && !e.Package.Manifest.Declares(ui.ServiceCatalogCapability) {
 		return cached.Response, nil
 	}
 	response, err := child.HandleWithServices(ctx, req, scopedServices{source: r.source, entry: e, grants: grants, requestID: req.RequestID, placement: ui.Placement{ID: p.PlacementID, ContributionID: p.ContributionID, Options: p.Options, Revision: p.Revision}})

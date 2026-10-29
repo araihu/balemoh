@@ -274,7 +274,7 @@ func validateContribution(m manifest.Manifest, kind, id, mode string) error {
 	return nil
 }
 func supportedCapability(c string) bool {
-	return c == "page.content/v1" || c == "sidebar.navigation/v1" || c == "home.widget/v1" || c == "data.query/v1" || c == "notifications.publish/v1"
+	return c == "page.content/v1" || c == "sidebar.navigation/v1" || c == "home.widget/v1" || c == "data.query/v1" || c == "notifications.publish/v1" || c == ui.ServiceCatalogCapability
 }
 func toWire(r ui.Request) *pb.UIRequest {
 	q := map[string]*pb.Values{}

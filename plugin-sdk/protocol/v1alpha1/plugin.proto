@@ -22,7 +22,11 @@ service Backend {
 service Host {
   rpc Query(QueryRequest) returns (QueryResult);
   rpc Placement(google.protobuf.Empty) returns (PlacementResult);
+  rpc ResolveServices(ServiceIDs) returns (ServiceIdentities);
 }
+message ServiceIDs { repeated string ids = 1; }
+message ServiceIdentity { string id = 1; string name = 2; string icon_url = 3; string icon_sprite_url = 4; string icon_symbol = 5; }
+message ServiceIdentities { repeated ServiceIdentity services = 1; }
 // Connection-scoped backend callback. UI children never receive this broker.
 service BackendHost {
   rpc Publish(NotificationPublishRequest) returns (NotificationReceipt);

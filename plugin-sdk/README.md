@@ -216,3 +216,19 @@ backend projects using a fresh public Go module cache and checksum database,
 without a local replacement. Host integration tests must compile the consumer
 against that published module even when the integration host comes from the
 matching repository tag.
+
+## Service presentation
+
+Declare optional capability `catalog.services.read/v1`, then type-assert
+`ui.ServiceCatalog` on the invocation's `ui.HostServices`. Call
+`ResolveServices(ctx, ids)` with 1 to 64 distinct lowercase 64-character hex
+service IDs. Results contain only ID, effective display name and local image
+or sprite references. IDs that no longer resolve to visible live services
+are omitted. Source URLs, endpoints and credentials are never returned.
+
+The host must explicitly grant IDs per installation/connection. In Balemoh UI
+configuration, `serviceIDs` is that allow-list. An ungranted ID or an undeclared
+capability rejects the batch. Catalog failure must not hide the plugin's main
+content. No name matching or catalog enumeration is provided. The optional
+interface keeps existing HostServices authors source compatible; old hosts
+return an unavailable callback and consumers should retain their text fallback.

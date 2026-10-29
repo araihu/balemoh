@@ -28,6 +28,7 @@ type Config struct {
 	Installations []Installation `json:"installations"`
 }
 type Installation struct {
+	ServiceIDs     []string    `json:"serviceIDs,omitempty"`
 	Package        string      `json:"package"`
 	ConnectionID   string      `json:"connectionId,omitempty"`
 	Name           string      `json:"name,omitempty"`
@@ -174,6 +175,11 @@ func (r *Registry) initialize(ctx context.Context, configPath string, config Con
 		}
 		installation.Package = absolute
 		e.Installation = installation
+		if len(installation.ServiceIDs) > 0 && ui.ValidateServiceIDs(installation.ServiceIDs) != nil {
+			e.Problem = errors.New("invalid service ID grants")
+			publish(e)
+			continue
+		}
 		p, err := manifest.Load(installation.Package)
 		if err != nil {
 			e.Problem = errors.New("invalid or incompatible plugin package")

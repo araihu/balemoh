@@ -12,6 +12,27 @@ import (
 
 type hostClient struct{ client pb.HostClient }
 
+func (h *hostClient) ResolveServices(ctx context.Context, ids []string) ([]ui.ServiceIdentity, error) {
+	if ui.ValidateServiceIDs(ids) != nil {
+		return nil, backend.Fail("invalid_argument")
+	}
+	r, err := h.client.ResolveServices(ctx, &pb.ServiceIDs{Ids: ids})
+	if err != nil {
+		return nil, fromRPC(err)
+	}
+	services := make([]ui.ServiceIdentity, 0, len(r.Services))
+	for _, s := range r.Services {
+		if s == nil {
+			return nil, backend.Fail("invalid_response")
+		}
+		services = append(services, ui.ServiceIdentity{ID: s.Id, Name: s.Name, IconURL: s.IconUrl, IconSpriteURL: s.IconSpriteUrl, IconSymbol: s.IconSymbol})
+	}
+	if ui.ValidateServiceIdentities(ids, services) != nil {
+		return nil, backend.Fail("invalid_response")
+	}
+	return services, nil
+}
+
 func (h *hostClient) Query(ctx context.Context, operation string, input json.RawMessage) (ui.QueryResult, error) {
 	if !backend.Object(input, backend.MaxInput) {
 		return ui.QueryResult{}, backend.Fail("invalid_argument")
@@ -38,6 +59,41 @@ type hostServer struct {
 	ctx      context.Context
 	services ui.HostServices
 	slots    chan struct{}
+}
+
+func (h *hostServer) ResolveServices(ctx context.Context, r *pb.ServiceIDs) (*pb.ServiceIdentities, error) {
+	select {
+	case h.slots <- struct{}{}:
+		defer func() { <-h.slots }()
+	default:
+		return nil, toRPC(backend.Fail("resource_exhausted"))
+	}
+	if h.ctx.Err() != nil {
+		return nil, toRPC(h.ctx.Err())
+	}
+	if ui.ValidateServiceIDs(r.Ids) != nil {
+		return nil, toRPC(backend.Fail("invalid_argument"))
+	}
+	catalog, ok := h.services.(ui.ServiceCatalog)
+	if !ok {
+		return nil, toRPC(backend.Fail("permission_denied"))
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stop := context.AfterFunc(h.ctx, cancel)
+	defer stop()
+	services, err := catalog.ResolveServices(ctx, r.Ids)
+	if err != nil {
+		return nil, toRPC(err)
+	}
+	if ui.ValidateServiceIdentities(r.Ids, services) != nil {
+		return nil, toRPC(backend.Fail("invalid_response"))
+	}
+	result := &pb.ServiceIdentities{}
+	for _, s := range services {
+		result.Services = append(result.Services, &pb.ServiceIdentity{Id: s.ID, Name: s.Name, IconUrl: s.IconURL, IconSpriteUrl: s.IconSpriteURL, IconSymbol: s.IconSymbol})
+	}
+	return result, nil
 }
 
 func (h *hostServer) Query(ctx context.Context, r *pb.QueryRequest) (*pb.QueryResult, error) {
