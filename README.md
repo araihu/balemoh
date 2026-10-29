@@ -9,7 +9,8 @@ dependencies and tools declared in `go.mod`.
 
 ## Public read-only demo
 
-Run `bash hack/run-demo.sh` with Docker Compose available, then open
+Run `bash hack/run-demo.sh` with Docker Compose available and GHCR read access to the pinned internal plugin
+carrier, then open
 `http://127.0.0.1:18081`. The script builds the host, installs a digest-pinned
 Alertmanager plugin and creates temporary, separate plugin/operator credentials.
 Ctrl-C removes the containers, credentials and disposable database.

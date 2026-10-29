@@ -5,7 +5,7 @@ image=${1:?usage: smoke-demo.sh IMAGE}
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/balemoh-demo-smoke.XXXXXX")
 export BALEMOH_DEMO_CREDENTIAL_DIR="$scratch/credentials"
 export BALEMOH_DEMO_PORT=0
-mkdir -m 0700 "$BALEMOH_DEMO_CREDENTIAL_DIR"
+mkdir -m 0755 "$BALEMOH_DEMO_CREDENTIAL_DIR"
 openssl rand -hex 32 > "$BALEMOH_DEMO_CREDENTIAL_DIR/plugin-token"
 openssl rand -hex 32 > "$BALEMOH_DEMO_CREDENTIAL_DIR/operator-token"
 chmod 0444 "$BALEMOH_DEMO_CREDENTIAL_DIR"/*
