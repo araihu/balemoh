@@ -22,6 +22,170 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ServiceIDs struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ids           []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceIDs) Reset() {
+	*x = ServiceIDs{}
+	mi := &file_plugin_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceIDs) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceIDs) ProtoMessage() {}
+
+func (x *ServiceIDs) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceIDs.ProtoReflect.Descriptor instead.
+func (*ServiceIDs) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ServiceIDs) GetIds() []string {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+type ServiceIdentity struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	IconUrl       string                 `protobuf:"bytes,3,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
+	IconSpriteUrl string                 `protobuf:"bytes,4,opt,name=icon_sprite_url,json=iconSpriteUrl,proto3" json:"icon_sprite_url,omitempty"`
+	IconSymbol    string                 `protobuf:"bytes,5,opt,name=icon_symbol,json=iconSymbol,proto3" json:"icon_symbol,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceIdentity) Reset() {
+	*x = ServiceIdentity{}
+	mi := &file_plugin_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceIdentity) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceIdentity) ProtoMessage() {}
+
+func (x *ServiceIdentity) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceIdentity.ProtoReflect.Descriptor instead.
+func (*ServiceIdentity) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ServiceIdentity) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ServiceIdentity) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ServiceIdentity) GetIconUrl() string {
+	if x != nil {
+		return x.IconUrl
+	}
+	return ""
+}
+
+func (x *ServiceIdentity) GetIconSpriteUrl() string {
+	if x != nil {
+		return x.IconSpriteUrl
+	}
+	return ""
+}
+
+func (x *ServiceIdentity) GetIconSymbol() string {
+	if x != nil {
+		return x.IconSymbol
+	}
+	return ""
+}
+
+type ServiceIdentities struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Services      []*ServiceIdentity     `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceIdentities) Reset() {
+	*x = ServiceIdentities{}
+	mi := &file_plugin_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceIdentities) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceIdentities) ProtoMessage() {}
+
+func (x *ServiceIdentities) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceIdentities.ProtoReflect.Descriptor instead.
+func (*ServiceIdentities) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ServiceIdentities) GetServices() []*ServiceIdentity {
+	if x != nil {
+		return x.Services
+	}
+	return nil
+}
+
 type Description struct {
 	state                  protoimpl.MessageState `protogen:"open.v1"`
 	PluginId               string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
@@ -36,7 +200,7 @@ type Description struct {
 
 func (x *Description) Reset() {
 	*x = Description{}
-	mi := &file_plugin_proto_msgTypes[0]
+	mi := &file_plugin_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -48,7 +212,7 @@ func (x *Description) String() string {
 func (*Description) ProtoMessage() {}
 
 func (x *Description) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[0]
+	mi := &file_plugin_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -61,7 +225,7 @@ func (x *Description) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Description.ProtoReflect.Descriptor instead.
 func (*Description) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{0}
+	return file_plugin_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Description) GetPluginId() string {
@@ -115,7 +279,7 @@ type Values struct {
 
 func (x *Values) Reset() {
 	*x = Values{}
-	mi := &file_plugin_proto_msgTypes[1]
+	mi := &file_plugin_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -127,7 +291,7 @@ func (x *Values) String() string {
 func (*Values) ProtoMessage() {}
 
 func (x *Values) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[1]
+	mi := &file_plugin_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -140,7 +304,7 @@ func (x *Values) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Values.ProtoReflect.Descriptor instead.
 func (*Values) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{1}
+	return file_plugin_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Values) GetValues() []string {
@@ -178,7 +342,7 @@ type UIRequest struct {
 
 func (x *UIRequest) Reset() {
 	*x = UIRequest{}
-	mi := &file_plugin_proto_msgTypes[2]
+	mi := &file_plugin_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -190,7 +354,7 @@ func (x *UIRequest) String() string {
 func (*UIRequest) ProtoMessage() {}
 
 func (x *UIRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[2]
+	mi := &file_plugin_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -203,7 +367,7 @@ func (x *UIRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UIRequest.ProtoReflect.Descriptor instead.
 func (*UIRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{2}
+	return file_plugin_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UIRequest) GetRequestId() string {
@@ -361,7 +525,7 @@ type UIResponse struct {
 
 func (x *UIResponse) Reset() {
 	*x = UIResponse{}
-	mi := &file_plugin_proto_msgTypes[3]
+	mi := &file_plugin_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -373,7 +537,7 @@ func (x *UIResponse) String() string {
 func (*UIResponse) ProtoMessage() {}
 
 func (x *UIResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[3]
+	mi := &file_plugin_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -386,7 +550,7 @@ func (x *UIResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UIResponse.ProtoReflect.Descriptor instead.
 func (*UIResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{3}
+	return file_plugin_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UIResponse) GetKind() string {
@@ -449,7 +613,7 @@ type Redirect struct {
 
 func (x *Redirect) Reset() {
 	*x = Redirect{}
-	mi := &file_plugin_proto_msgTypes[4]
+	mi := &file_plugin_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -461,7 +625,7 @@ func (x *Redirect) String() string {
 func (*Redirect) ProtoMessage() {}
 
 func (x *Redirect) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[4]
+	mi := &file_plugin_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -474,7 +638,7 @@ func (x *Redirect) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Redirect.ProtoReflect.Descriptor instead.
 func (*Redirect) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{4}
+	return file_plugin_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Redirect) GetPage() string {
@@ -508,7 +672,7 @@ type QueryRequest struct {
 
 func (x *QueryRequest) Reset() {
 	*x = QueryRequest{}
-	mi := &file_plugin_proto_msgTypes[5]
+	mi := &file_plugin_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -520,7 +684,7 @@ func (x *QueryRequest) String() string {
 func (*QueryRequest) ProtoMessage() {}
 
 func (x *QueryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[5]
+	mi := &file_plugin_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -533,7 +697,7 @@ func (x *QueryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryRequest.ProtoReflect.Descriptor instead.
 func (*QueryRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{5}
+	return file_plugin_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *QueryRequest) GetOperationId() string {
@@ -564,7 +728,7 @@ type QueryResult struct {
 
 func (x *QueryResult) Reset() {
 	*x = QueryResult{}
-	mi := &file_plugin_proto_msgTypes[6]
+	mi := &file_plugin_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -576,7 +740,7 @@ func (x *QueryResult) String() string {
 func (*QueryResult) ProtoMessage() {}
 
 func (x *QueryResult) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[6]
+	mi := &file_plugin_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,7 +753,7 @@ func (x *QueryResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryResult.ProtoReflect.Descriptor instead.
 func (*QueryResult) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{6}
+	return file_plugin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *QueryResult) GetDataJson() []byte {
@@ -645,7 +809,7 @@ type Failure struct {
 
 func (x *Failure) Reset() {
 	*x = Failure{}
-	mi := &file_plugin_proto_msgTypes[7]
+	mi := &file_plugin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -657,7 +821,7 @@ func (x *Failure) String() string {
 func (*Failure) ProtoMessage() {}
 
 func (x *Failure) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[7]
+	mi := &file_plugin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -670,7 +834,7 @@ func (x *Failure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Failure.ProtoReflect.Descriptor instead.
 func (*Failure) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{7}
+	return file_plugin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Failure) GetCode() string {
@@ -703,7 +867,7 @@ type ConnectionID struct {
 
 func (x *ConnectionID) Reset() {
 	*x = ConnectionID{}
-	mi := &file_plugin_proto_msgTypes[8]
+	mi := &file_plugin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -715,7 +879,7 @@ func (x *ConnectionID) String() string {
 func (*ConnectionID) ProtoMessage() {}
 
 func (x *ConnectionID) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[8]
+	mi := &file_plugin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -728,7 +892,7 @@ func (x *ConnectionID) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionID.ProtoReflect.Descriptor instead.
 func (*ConnectionID) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{8}
+	return file_plugin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ConnectionID) GetConnectionId() string {
@@ -751,7 +915,7 @@ type ConnectionConfig struct {
 
 func (x *ConnectionConfig) Reset() {
 	*x = ConnectionConfig{}
-	mi := &file_plugin_proto_msgTypes[9]
+	mi := &file_plugin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -763,7 +927,7 @@ func (x *ConnectionConfig) String() string {
 func (*ConnectionConfig) ProtoMessage() {}
 
 func (x *ConnectionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[9]
+	mi := &file_plugin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -776,7 +940,7 @@ func (x *ConnectionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionConfig.ProtoReflect.Descriptor instead.
 func (*ConnectionConfig) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{9}
+	return file_plugin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ConnectionConfig) GetConnectionId() string {
@@ -830,7 +994,7 @@ type ConnectionStatus struct {
 
 func (x *ConnectionStatus) Reset() {
 	*x = ConnectionStatus{}
-	mi := &file_plugin_proto_msgTypes[10]
+	mi := &file_plugin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -842,7 +1006,7 @@ func (x *ConnectionStatus) String() string {
 func (*ConnectionStatus) ProtoMessage() {}
 
 func (x *ConnectionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[10]
+	mi := &file_plugin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -855,7 +1019,7 @@ func (x *ConnectionStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionStatus.ProtoReflect.Descriptor instead.
 func (*ConnectionStatus) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{10}
+	return file_plugin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ConnectionStatus) GetConnectionId() string {
@@ -926,7 +1090,7 @@ type BackendQueryRequest struct {
 
 func (x *BackendQueryRequest) Reset() {
 	*x = BackendQueryRequest{}
-	mi := &file_plugin_proto_msgTypes[11]
+	mi := &file_plugin_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -938,7 +1102,7 @@ func (x *BackendQueryRequest) String() string {
 func (*BackendQueryRequest) ProtoMessage() {}
 
 func (x *BackendQueryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[11]
+	mi := &file_plugin_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -951,7 +1115,7 @@ func (x *BackendQueryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackendQueryRequest.ProtoReflect.Descriptor instead.
 func (*BackendQueryRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{11}
+	return file_plugin_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *BackendQueryRequest) GetConnectionId() string {
@@ -994,7 +1158,7 @@ type PlacementResult struct {
 
 func (x *PlacementResult) Reset() {
 	*x = PlacementResult{}
-	mi := &file_plugin_proto_msgTypes[12]
+	mi := &file_plugin_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1006,7 +1170,7 @@ func (x *PlacementResult) String() string {
 func (*PlacementResult) ProtoMessage() {}
 
 func (x *PlacementResult) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[12]
+	mi := &file_plugin_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1019,7 +1183,7 @@ func (x *PlacementResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlacementResult.ProtoReflect.Descriptor instead.
 func (*PlacementResult) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{12}
+	return file_plugin_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *PlacementResult) GetPlacementId() string {
@@ -1059,7 +1223,7 @@ type NotificationPublishRequest struct {
 
 func (x *NotificationPublishRequest) Reset() {
 	*x = NotificationPublishRequest{}
-	mi := &file_plugin_proto_msgTypes[13]
+	mi := &file_plugin_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1071,7 +1235,7 @@ func (x *NotificationPublishRequest) String() string {
 func (*NotificationPublishRequest) ProtoMessage() {}
 
 func (x *NotificationPublishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[13]
+	mi := &file_plugin_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1084,7 +1248,7 @@ func (x *NotificationPublishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotificationPublishRequest.ProtoReflect.Descriptor instead.
 func (*NotificationPublishRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{13}
+	return file_plugin_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *NotificationPublishRequest) GetMessage() *NotificationMessage {
@@ -1108,7 +1272,7 @@ type NotificationMessage struct {
 
 func (x *NotificationMessage) Reset() {
 	*x = NotificationMessage{}
-	mi := &file_plugin_proto_msgTypes[14]
+	mi := &file_plugin_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1120,7 +1284,7 @@ func (x *NotificationMessage) String() string {
 func (*NotificationMessage) ProtoMessage() {}
 
 func (x *NotificationMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[14]
+	mi := &file_plugin_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1133,7 +1297,7 @@ func (x *NotificationMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotificationMessage.ProtoReflect.Descriptor instead.
 func (*NotificationMessage) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{14}
+	return file_plugin_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *NotificationMessage) GetEventId() string {
@@ -1194,7 +1358,7 @@ type NotificationDestination struct {
 
 func (x *NotificationDestination) Reset() {
 	*x = NotificationDestination{}
-	mi := &file_plugin_proto_msgTypes[15]
+	mi := &file_plugin_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1206,7 +1370,7 @@ func (x *NotificationDestination) String() string {
 func (*NotificationDestination) ProtoMessage() {}
 
 func (x *NotificationDestination) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[15]
+	mi := &file_plugin_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1219,7 +1383,7 @@ func (x *NotificationDestination) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotificationDestination.ProtoReflect.Descriptor instead.
 func (*NotificationDestination) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{15}
+	return file_plugin_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *NotificationDestination) GetKind() string {
@@ -1288,7 +1452,7 @@ type NotificationReceipt struct {
 
 func (x *NotificationReceipt) Reset() {
 	*x = NotificationReceipt{}
-	mi := &file_plugin_proto_msgTypes[16]
+	mi := &file_plugin_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1300,7 +1464,7 @@ func (x *NotificationReceipt) String() string {
 func (*NotificationReceipt) ProtoMessage() {}
 
 func (x *NotificationReceipt) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[16]
+	mi := &file_plugin_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1313,7 +1477,7 @@ func (x *NotificationReceipt) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotificationReceipt.ProtoReflect.Descriptor instead.
 func (*NotificationReceipt) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{16}
+	return file_plugin_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *NotificationReceipt) GetId() string {
@@ -1334,7 +1498,19 @@ var File_plugin_proto protoreflect.FileDescriptor
 
 const file_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\fplugin.proto\x12\x18balemoh.plugins.v1alpha1\x1a\x1bgoogle/protobuf/empty.proto\"\xe1\x01\n" +
+	"\fplugin.proto\x12\x18balemoh.plugins.v1alpha1\x1a\x1bgoogle/protobuf/empty.proto\"\x1e\n" +
+	"\n" +
+	"ServiceIDs\x12\x10\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\"\x99\x01\n" +
+	"\x0fServiceIdentity\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
+	"\bicon_url\x18\x03 \x01(\tR\aiconUrl\x12&\n" +
+	"\x0ficon_sprite_url\x18\x04 \x01(\tR\riconSpriteUrl\x12\x1f\n" +
+	"\vicon_symbol\x18\x05 \x01(\tR\n" +
+	"iconSymbol\"Z\n" +
+	"\x11ServiceIdentities\x12E\n" +
+	"\bservices\x18\x01 \x03(\v2).balemoh.plugins.v1alpha1.ServiceIdentityR\bservices\"\xe1\x01\n" +
 	"\vDescription\x12\x1b\n" +
 	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12'\n" +
@@ -1488,10 +1664,11 @@ const file_plugin_proto_rawDesc = "" +
 	"\tConfigure\x12*.balemoh.plugins.v1alpha1.ConnectionConfig\x1a*.balemoh.plugins.v1alpha1.ConnectionStatus\x12\\\n" +
 	"\x06Status\x12&.balemoh.plugins.v1alpha1.ConnectionID\x1a*.balemoh.plugins.v1alpha1.ConnectionStatus\x12]\n" +
 	"\x05Query\x12-.balemoh.plugins.v1alpha1.BackendQueryRequest\x1a%.balemoh.plugins.v1alpha1.QueryResult\x12Q\n" +
-	"\x0fCloseConnection\x12&.balemoh.plugins.v1alpha1.ConnectionID\x1a\x16.google.protobuf.Empty2\xae\x01\n" +
+	"\x0fCloseConnection\x12&.balemoh.plugins.v1alpha1.ConnectionID\x1a\x16.google.protobuf.Empty2\x94\x02\n" +
 	"\x04Host\x12V\n" +
 	"\x05Query\x12&.balemoh.plugins.v1alpha1.QueryRequest\x1a%.balemoh.plugins.v1alpha1.QueryResult\x12N\n" +
-	"\tPlacement\x12\x16.google.protobuf.Empty\x1a).balemoh.plugins.v1alpha1.PlacementResult2}\n" +
+	"\tPlacement\x12\x16.google.protobuf.Empty\x1a).balemoh.plugins.v1alpha1.PlacementResult\x12d\n" +
+	"\x0fResolveServices\x12$.balemoh.plugins.v1alpha1.ServiceIDs\x1a+.balemoh.plugins.v1alpha1.ServiceIdentities2}\n" +
 	"\vBackendHost\x12n\n" +
 	"\aPublish\x124.balemoh.plugins.v1alpha1.NotificationPublishRequest\x1a-.balemoh.plugins.v1alpha1.NotificationReceiptBAZ?github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1;protocolb\x06proto3"
 
@@ -1507,80 +1684,86 @@ func file_plugin_proto_rawDescGZIP() []byte {
 	return file_plugin_proto_rawDescData
 }
 
-var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_plugin_proto_goTypes = []any{
-	(*Description)(nil),                // 0: balemoh.plugins.v1alpha1.Description
-	(*Values)(nil),                     // 1: balemoh.plugins.v1alpha1.Values
-	(*UIRequest)(nil),                  // 2: balemoh.plugins.v1alpha1.UIRequest
-	(*UIResponse)(nil),                 // 3: balemoh.plugins.v1alpha1.UIResponse
-	(*Redirect)(nil),                   // 4: balemoh.plugins.v1alpha1.Redirect
-	(*QueryRequest)(nil),               // 5: balemoh.plugins.v1alpha1.QueryRequest
-	(*QueryResult)(nil),                // 6: balemoh.plugins.v1alpha1.QueryResult
-	(*Failure)(nil),                    // 7: balemoh.plugins.v1alpha1.Failure
-	(*ConnectionID)(nil),               // 8: balemoh.plugins.v1alpha1.ConnectionID
-	(*ConnectionConfig)(nil),           // 9: balemoh.plugins.v1alpha1.ConnectionConfig
-	(*ConnectionStatus)(nil),           // 10: balemoh.plugins.v1alpha1.ConnectionStatus
-	(*BackendQueryRequest)(nil),        // 11: balemoh.plugins.v1alpha1.BackendQueryRequest
-	(*PlacementResult)(nil),            // 12: balemoh.plugins.v1alpha1.PlacementResult
-	(*NotificationPublishRequest)(nil), // 13: balemoh.plugins.v1alpha1.NotificationPublishRequest
-	(*NotificationMessage)(nil),        // 14: balemoh.plugins.v1alpha1.NotificationMessage
-	(*NotificationDestination)(nil),    // 15: balemoh.plugins.v1alpha1.NotificationDestination
-	(*NotificationReceipt)(nil),        // 16: balemoh.plugins.v1alpha1.NotificationReceipt
-	nil,                                // 17: balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
-	nil,                                // 18: balemoh.plugins.v1alpha1.UIRequest.QueryEntry
-	nil,                                // 19: balemoh.plugins.v1alpha1.UIRequest.FormEntry
-	nil,                                // 20: balemoh.plugins.v1alpha1.Redirect.ParamsEntry
-	nil,                                // 21: balemoh.plugins.v1alpha1.Redirect.QueryEntry
-	nil,                                // 22: balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
-	nil,                                // 23: balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
-	nil,                                // 24: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
-	(*emptypb.Empty)(nil),              // 25: google.protobuf.Empty
+	(*ServiceIDs)(nil),                 // 0: balemoh.plugins.v1alpha1.ServiceIDs
+	(*ServiceIdentity)(nil),            // 1: balemoh.plugins.v1alpha1.ServiceIdentity
+	(*ServiceIdentities)(nil),          // 2: balemoh.plugins.v1alpha1.ServiceIdentities
+	(*Description)(nil),                // 3: balemoh.plugins.v1alpha1.Description
+	(*Values)(nil),                     // 4: balemoh.plugins.v1alpha1.Values
+	(*UIRequest)(nil),                  // 5: balemoh.plugins.v1alpha1.UIRequest
+	(*UIResponse)(nil),                 // 6: balemoh.plugins.v1alpha1.UIResponse
+	(*Redirect)(nil),                   // 7: balemoh.plugins.v1alpha1.Redirect
+	(*QueryRequest)(nil),               // 8: balemoh.plugins.v1alpha1.QueryRequest
+	(*QueryResult)(nil),                // 9: balemoh.plugins.v1alpha1.QueryResult
+	(*Failure)(nil),                    // 10: balemoh.plugins.v1alpha1.Failure
+	(*ConnectionID)(nil),               // 11: balemoh.plugins.v1alpha1.ConnectionID
+	(*ConnectionConfig)(nil),           // 12: balemoh.plugins.v1alpha1.ConnectionConfig
+	(*ConnectionStatus)(nil),           // 13: balemoh.plugins.v1alpha1.ConnectionStatus
+	(*BackendQueryRequest)(nil),        // 14: balemoh.plugins.v1alpha1.BackendQueryRequest
+	(*PlacementResult)(nil),            // 15: balemoh.plugins.v1alpha1.PlacementResult
+	(*NotificationPublishRequest)(nil), // 16: balemoh.plugins.v1alpha1.NotificationPublishRequest
+	(*NotificationMessage)(nil),        // 17: balemoh.plugins.v1alpha1.NotificationMessage
+	(*NotificationDestination)(nil),    // 18: balemoh.plugins.v1alpha1.NotificationDestination
+	(*NotificationReceipt)(nil),        // 19: balemoh.plugins.v1alpha1.NotificationReceipt
+	nil,                                // 20: balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
+	nil,                                // 21: balemoh.plugins.v1alpha1.UIRequest.QueryEntry
+	nil,                                // 22: balemoh.plugins.v1alpha1.UIRequest.FormEntry
+	nil,                                // 23: balemoh.plugins.v1alpha1.Redirect.ParamsEntry
+	nil,                                // 24: balemoh.plugins.v1alpha1.Redirect.QueryEntry
+	nil,                                // 25: balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
+	nil,                                // 26: balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
+	nil,                                // 27: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
+	(*emptypb.Empty)(nil),              // 28: google.protobuf.Empty
 }
 var file_plugin_proto_depIdxs = []int32{
-	17, // 0: balemoh.plugins.v1alpha1.UIRequest.path_params:type_name -> balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
-	18, // 1: balemoh.plugins.v1alpha1.UIRequest.query:type_name -> balemoh.plugins.v1alpha1.UIRequest.QueryEntry
-	19, // 2: balemoh.plugins.v1alpha1.UIRequest.form:type_name -> balemoh.plugins.v1alpha1.UIRequest.FormEntry
-	4,  // 3: balemoh.plugins.v1alpha1.UIResponse.redirect:type_name -> balemoh.plugins.v1alpha1.Redirect
-	20, // 4: balemoh.plugins.v1alpha1.Redirect.params:type_name -> balemoh.plugins.v1alpha1.Redirect.ParamsEntry
-	21, // 5: balemoh.plugins.v1alpha1.Redirect.query:type_name -> balemoh.plugins.v1alpha1.Redirect.QueryEntry
-	7,  // 6: balemoh.plugins.v1alpha1.QueryResult.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
-	22, // 7: balemoh.plugins.v1alpha1.ConnectionConfig.secrets:type_name -> balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
-	7,  // 8: balemoh.plugins.v1alpha1.ConnectionStatus.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
-	14, // 9: balemoh.plugins.v1alpha1.NotificationPublishRequest.message:type_name -> balemoh.plugins.v1alpha1.NotificationMessage
-	15, // 10: balemoh.plugins.v1alpha1.NotificationMessage.destination:type_name -> balemoh.plugins.v1alpha1.NotificationDestination
-	23, // 11: balemoh.plugins.v1alpha1.NotificationDestination.params:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
-	24, // 12: balemoh.plugins.v1alpha1.NotificationDestination.query:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
-	1,  // 13: balemoh.plugins.v1alpha1.UIRequest.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	1,  // 14: balemoh.plugins.v1alpha1.UIRequest.FormEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	1,  // 15: balemoh.plugins.v1alpha1.Redirect.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	1,  // 16: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	25, // 17: balemoh.plugins.v1alpha1.Control.Describe:input_type -> google.protobuf.Empty
-	25, // 18: balemoh.plugins.v1alpha1.Control.CheckHealth:input_type -> google.protobuf.Empty
-	25, // 19: balemoh.plugins.v1alpha1.Control.Shutdown:input_type -> google.protobuf.Empty
-	2,  // 20: balemoh.plugins.v1alpha1.UI.Handle:input_type -> balemoh.plugins.v1alpha1.UIRequest
-	9,  // 21: balemoh.plugins.v1alpha1.Backend.Configure:input_type -> balemoh.plugins.v1alpha1.ConnectionConfig
-	8,  // 22: balemoh.plugins.v1alpha1.Backend.Status:input_type -> balemoh.plugins.v1alpha1.ConnectionID
-	11, // 23: balemoh.plugins.v1alpha1.Backend.Query:input_type -> balemoh.plugins.v1alpha1.BackendQueryRequest
-	8,  // 24: balemoh.plugins.v1alpha1.Backend.CloseConnection:input_type -> balemoh.plugins.v1alpha1.ConnectionID
-	5,  // 25: balemoh.plugins.v1alpha1.Host.Query:input_type -> balemoh.plugins.v1alpha1.QueryRequest
-	25, // 26: balemoh.plugins.v1alpha1.Host.Placement:input_type -> google.protobuf.Empty
-	13, // 27: balemoh.plugins.v1alpha1.BackendHost.Publish:input_type -> balemoh.plugins.v1alpha1.NotificationPublishRequest
-	0,  // 28: balemoh.plugins.v1alpha1.Control.Describe:output_type -> balemoh.plugins.v1alpha1.Description
-	25, // 29: balemoh.plugins.v1alpha1.Control.CheckHealth:output_type -> google.protobuf.Empty
-	25, // 30: balemoh.plugins.v1alpha1.Control.Shutdown:output_type -> google.protobuf.Empty
-	3,  // 31: balemoh.plugins.v1alpha1.UI.Handle:output_type -> balemoh.plugins.v1alpha1.UIResponse
-	10, // 32: balemoh.plugins.v1alpha1.Backend.Configure:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
-	10, // 33: balemoh.plugins.v1alpha1.Backend.Status:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
-	6,  // 34: balemoh.plugins.v1alpha1.Backend.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
-	25, // 35: balemoh.plugins.v1alpha1.Backend.CloseConnection:output_type -> google.protobuf.Empty
-	6,  // 36: balemoh.plugins.v1alpha1.Host.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
-	12, // 37: balemoh.plugins.v1alpha1.Host.Placement:output_type -> balemoh.plugins.v1alpha1.PlacementResult
-	16, // 38: balemoh.plugins.v1alpha1.BackendHost.Publish:output_type -> balemoh.plugins.v1alpha1.NotificationReceipt
-	28, // [28:39] is the sub-list for method output_type
-	17, // [17:28] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	1,  // 0: balemoh.plugins.v1alpha1.ServiceIdentities.services:type_name -> balemoh.plugins.v1alpha1.ServiceIdentity
+	20, // 1: balemoh.plugins.v1alpha1.UIRequest.path_params:type_name -> balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
+	21, // 2: balemoh.plugins.v1alpha1.UIRequest.query:type_name -> balemoh.plugins.v1alpha1.UIRequest.QueryEntry
+	22, // 3: balemoh.plugins.v1alpha1.UIRequest.form:type_name -> balemoh.plugins.v1alpha1.UIRequest.FormEntry
+	7,  // 4: balemoh.plugins.v1alpha1.UIResponse.redirect:type_name -> balemoh.plugins.v1alpha1.Redirect
+	23, // 5: balemoh.plugins.v1alpha1.Redirect.params:type_name -> balemoh.plugins.v1alpha1.Redirect.ParamsEntry
+	24, // 6: balemoh.plugins.v1alpha1.Redirect.query:type_name -> balemoh.plugins.v1alpha1.Redirect.QueryEntry
+	10, // 7: balemoh.plugins.v1alpha1.QueryResult.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
+	25, // 8: balemoh.plugins.v1alpha1.ConnectionConfig.secrets:type_name -> balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
+	10, // 9: balemoh.plugins.v1alpha1.ConnectionStatus.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
+	17, // 10: balemoh.plugins.v1alpha1.NotificationPublishRequest.message:type_name -> balemoh.plugins.v1alpha1.NotificationMessage
+	18, // 11: balemoh.plugins.v1alpha1.NotificationMessage.destination:type_name -> balemoh.plugins.v1alpha1.NotificationDestination
+	26, // 12: balemoh.plugins.v1alpha1.NotificationDestination.params:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
+	27, // 13: balemoh.plugins.v1alpha1.NotificationDestination.query:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
+	4,  // 14: balemoh.plugins.v1alpha1.UIRequest.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	4,  // 15: balemoh.plugins.v1alpha1.UIRequest.FormEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	4,  // 16: balemoh.plugins.v1alpha1.Redirect.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	4,  // 17: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
+	28, // 18: balemoh.plugins.v1alpha1.Control.Describe:input_type -> google.protobuf.Empty
+	28, // 19: balemoh.plugins.v1alpha1.Control.CheckHealth:input_type -> google.protobuf.Empty
+	28, // 20: balemoh.plugins.v1alpha1.Control.Shutdown:input_type -> google.protobuf.Empty
+	5,  // 21: balemoh.plugins.v1alpha1.UI.Handle:input_type -> balemoh.plugins.v1alpha1.UIRequest
+	12, // 22: balemoh.plugins.v1alpha1.Backend.Configure:input_type -> balemoh.plugins.v1alpha1.ConnectionConfig
+	11, // 23: balemoh.plugins.v1alpha1.Backend.Status:input_type -> balemoh.plugins.v1alpha1.ConnectionID
+	14, // 24: balemoh.plugins.v1alpha1.Backend.Query:input_type -> balemoh.plugins.v1alpha1.BackendQueryRequest
+	11, // 25: balemoh.plugins.v1alpha1.Backend.CloseConnection:input_type -> balemoh.plugins.v1alpha1.ConnectionID
+	8,  // 26: balemoh.plugins.v1alpha1.Host.Query:input_type -> balemoh.plugins.v1alpha1.QueryRequest
+	28, // 27: balemoh.plugins.v1alpha1.Host.Placement:input_type -> google.protobuf.Empty
+	0,  // 28: balemoh.plugins.v1alpha1.Host.ResolveServices:input_type -> balemoh.plugins.v1alpha1.ServiceIDs
+	16, // 29: balemoh.plugins.v1alpha1.BackendHost.Publish:input_type -> balemoh.plugins.v1alpha1.NotificationPublishRequest
+	3,  // 30: balemoh.plugins.v1alpha1.Control.Describe:output_type -> balemoh.plugins.v1alpha1.Description
+	28, // 31: balemoh.plugins.v1alpha1.Control.CheckHealth:output_type -> google.protobuf.Empty
+	28, // 32: balemoh.plugins.v1alpha1.Control.Shutdown:output_type -> google.protobuf.Empty
+	6,  // 33: balemoh.plugins.v1alpha1.UI.Handle:output_type -> balemoh.plugins.v1alpha1.UIResponse
+	13, // 34: balemoh.plugins.v1alpha1.Backend.Configure:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
+	13, // 35: balemoh.plugins.v1alpha1.Backend.Status:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
+	9,  // 36: balemoh.plugins.v1alpha1.Backend.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
+	28, // 37: balemoh.plugins.v1alpha1.Backend.CloseConnection:output_type -> google.protobuf.Empty
+	9,  // 38: balemoh.plugins.v1alpha1.Host.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
+	15, // 39: balemoh.plugins.v1alpha1.Host.Placement:output_type -> balemoh.plugins.v1alpha1.PlacementResult
+	2,  // 40: balemoh.plugins.v1alpha1.Host.ResolveServices:output_type -> balemoh.plugins.v1alpha1.ServiceIdentities
+	19, // 41: balemoh.plugins.v1alpha1.BackendHost.Publish:output_type -> balemoh.plugins.v1alpha1.NotificationReceipt
+	30, // [30:42] is the sub-list for method output_type
+	18, // [18:30] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_plugin_proto_init() }
@@ -1594,7 +1777,7 @@ func file_plugin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_plugin_proto_rawDesc), len(file_plugin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   25,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

@@ -68,6 +68,7 @@ func run(ctx context.Context) error {
 		if sourceErr != nil {
 			return sourceErr
 		}
+		source.Services = bff.PluginServiceCatalog{Catalog: apiClient}
 		registry, err = plugins.OpenData(ctx, options.PluginConfig, source)
 		if err != nil {
 			return fmt.Errorf("load plugins: %w", err)

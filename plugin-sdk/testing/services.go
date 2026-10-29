@@ -9,9 +9,17 @@ import (
 )
 
 type Services struct {
-	Current   ui.Placement
-	Queries   map[string]ui.QueryResult
-	QueryFunc func(context.Context, string, json.RawMessage) (ui.QueryResult, error)
+	ResolveServicesFunc func(context.Context, []string) ([]ui.ServiceIdentity, error)
+	Current             ui.Placement
+	Queries             map[string]ui.QueryResult
+	QueryFunc           func(context.Context, string, json.RawMessage) (ui.QueryResult, error)
+}
+
+func (s Services) ResolveServices(ctx context.Context, ids []string) ([]ui.ServiceIdentity, error) {
+	if s.ResolveServicesFunc == nil {
+		return nil, backend.Fail("permission_denied")
+	}
+	return s.ResolveServicesFunc(ctx, ids)
 }
 
 func (s Services) Placement(context.Context) (ui.Placement, error) {

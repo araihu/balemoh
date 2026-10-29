@@ -43,6 +43,14 @@ func main() {
 			}
 			return ui.Response{Kind: "content", Status: 200, HTML: result.Data}, nil
 		}
+		if id := r.Query.Get("service"); id != "" {
+			services, err := h.(ui.ServiceCatalog).ResolveServices(ctx, []string{id})
+			if err != nil {
+				return ui.Response{}, err
+			}
+			data, _ := json.Marshal(services)
+			return ui.Response{Kind: "content", Status: 200, HTML: data}, nil
+		}
 		if _, err := h.Query(ctx, "not-granted", json.RawMessage(`{}`)); !errors.Is(err, ui.ErrUnavailable) && backend.Code(err) != "permission_denied" {
 			return ui.Response{}, errors.New("unexpected query grant")
 		}

@@ -516,8 +516,9 @@ var Backend_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Host_Query_FullMethodName     = "/balemoh.plugins.v1alpha1.Host/Query"
-	Host_Placement_FullMethodName = "/balemoh.plugins.v1alpha1.Host/Placement"
+	Host_Query_FullMethodName           = "/balemoh.plugins.v1alpha1.Host/Query"
+	Host_Placement_FullMethodName       = "/balemoh.plugins.v1alpha1.Host/Placement"
+	Host_ResolveServices_FullMethodName = "/balemoh.plugins.v1alpha1.Host/ResolveServices"
 )
 
 // HostClient is the client API for Host service.
@@ -528,6 +529,7 @@ const (
 type HostClient interface {
 	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResult, error)
 	Placement(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PlacementResult, error)
+	ResolveServices(ctx context.Context, in *ServiceIDs, opts ...grpc.CallOption) (*ServiceIdentities, error)
 }
 
 type hostClient struct {
@@ -558,6 +560,16 @@ func (c *hostClient) Placement(ctx context.Context, in *emptypb.Empty, opts ...g
 	return out, nil
 }
 
+func (c *hostClient) ResolveServices(ctx context.Context, in *ServiceIDs, opts ...grpc.CallOption) (*ServiceIdentities, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ServiceIdentities)
+	err := c.cc.Invoke(ctx, Host_ResolveServices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HostServer is the server API for Host service.
 // All implementations must embed UnimplementedHostServer
 // for forward compatibility.
@@ -566,6 +578,7 @@ func (c *hostClient) Placement(ctx context.Context, in *emptypb.Empty, opts ...g
 type HostServer interface {
 	Query(context.Context, *QueryRequest) (*QueryResult, error)
 	Placement(context.Context, *emptypb.Empty) (*PlacementResult, error)
+	ResolveServices(context.Context, *ServiceIDs) (*ServiceIdentities, error)
 	mustEmbedUnimplementedHostServer()
 }
 
@@ -581,6 +594,9 @@ func (UnimplementedHostServer) Query(context.Context, *QueryRequest) (*QueryResu
 }
 func (UnimplementedHostServer) Placement(context.Context, *emptypb.Empty) (*PlacementResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method Placement not implemented")
+}
+func (UnimplementedHostServer) ResolveServices(context.Context, *ServiceIDs) (*ServiceIdentities, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveServices not implemented")
 }
 func (UnimplementedHostServer) mustEmbedUnimplementedHostServer() {}
 func (UnimplementedHostServer) testEmbeddedByValue()              {}
@@ -639,6 +655,24 @@ func _Host_Placement_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Host_ResolveServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceIDs)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostServer).ResolveServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Host_ResolveServices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostServer).ResolveServices(ctx, req.(*ServiceIDs))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Host_ServiceDesc is the grpc.ServiceDesc for Host service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -653,6 +687,10 @@ var Host_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Placement",
 			Handler:    _Host_Placement_Handler,
+		},
+		{
+			MethodName: "ResolveServices",
+			Handler:    _Host_ResolveServices_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

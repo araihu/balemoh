@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.1-alpha.2
+
+- Optional `ui.ServiceCatalog` callback and additive `Host.ResolveServices` RPC.
+- Bounded service ID batches and local icon presentation, without catalog endpoints or credentials.
+- Existing `ui.HostServices` implementations remain source compatible. Older hosts can omit this optional capability.
+
+
 ## v0.0.1-alpha.1
 
 First MIT-licensed release of `github.com/araihu/balemoh/plugin-sdk`.

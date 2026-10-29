@@ -92,3 +92,18 @@ The trust boundary is one shared dashboard audience and explicitly installed Go,
 HTML and JavaScript. go-plugin AutoMTLS separates process RPC; it is not filesystem,
 network or browser sandboxing. Signing, marketplace distribution, per-user access,
 untrusted plugins and SDK compatibility upgrades remain later work.
+
+## Explicit service icons
+
+UI installations can grant `serviceIDs: ["<catalog service ID>"]` to plugins
+that declare `catalog.services.read/v1`. IDs belong to the host's current
+Staging catalog, including unpinned live services. Hidden, missing or purged
+entries never resolve. Host-owned effective name and icon match Home, including
+custom uploads and sprites. Catalog-aware widget HTML is rendered again on
+each request so renames and icon changes do not stay behind observation caches.
+
+Alertmanager uses annotation `balemoh_service_id` as the explicit service ID.
+Add it to the Prometheus rule and grant that exact ID to the Alertmanager UI
+installation. Use the intended source/resource identity in Staging, not a
+name lookup. Missing, malformed, denied or unavailable associations leave the
+alert text and severity unchanged.

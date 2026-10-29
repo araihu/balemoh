@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const SDKVersion = "v0.0.1-alpha.1"
+const SDKVersion = "v0.0.1-alpha.2"
 const ProfileVersion = "v0.4.4"
 
 // Init writes only into a new or empty directory and pins the released SDK.
