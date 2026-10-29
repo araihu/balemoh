@@ -53,6 +53,7 @@ type Notification struct {
 	DestinationJson string         `json:"destination_json"`
 	PayloadJson     string         `json:"payload_json"`
 	ReadAt          sql.NullString `json:"read_at"`
+	ServiceID       string         `json:"service_id"`
 }
 
 type PluginConnection struct {

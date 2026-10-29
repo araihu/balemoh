@@ -236,6 +236,9 @@ func notificationMessage(request generated.NotificationPublishRequest) (notifica
 		Title:      request.Title,
 		OccurredAt: request.OccurredAt,
 	}
+	if request.ServiceId != nil {
+		message.ServiceID = *request.ServiceId
+	}
 	if request.Body != nil {
 		message.Body = *request.Body
 	}
@@ -329,6 +332,10 @@ func notificationResponse(notification notifications.Notification) generated.Not
 	if !notification.Destination.IsZero() {
 		destination := notificationDestinationResponse(notification.Destination)
 		response.Destination = &destination
+	}
+	if notification.ServiceID != "" {
+		id := notification.ServiceID
+		response.ServiceId = &id
 	}
 	return response
 }

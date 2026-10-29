@@ -131,6 +131,7 @@ func notificationRequest(message notifications.Message) (*pb.NotificationPublish
 		return nil, err
 	}
 	wire := &pb.NotificationMessage{
+		ServiceId:  message.ServiceID,
 		EventId:    message.EventID,
 		Severity:   message.Severity,
 		Title:      message.Title,
@@ -168,7 +169,7 @@ func notificationMessage(message *pb.NotificationMessage) (notifications.Message
 	if err != nil {
 		return notifications.Message{}, notifications.Fail("invalid_argument")
 	}
-	result := notifications.Message{EventID: message.EventId, Severity: message.Severity, Title: message.Title, Body: message.Body, OccurredAt: occurred}
+	result := notifications.Message{ServiceID: message.ServiceId, EventID: message.EventId, Severity: message.Severity, Title: message.Title, Body: message.Body, OccurredAt: occurred}
 	if d := message.Destination; d != nil {
 		destination := notifications.Destination{Kind: d.Kind, Route: d.Route, PluginID: d.PluginId, ConnectionID: d.ConnectionId, Page: d.Page, URL: d.Url}
 		if len(d.Params) > 0 {
@@ -208,6 +209,8 @@ func fromNotificationRPC(err error) error {
 	code := "unavailable"
 	statusCode := status.Code(err)
 	switch statusCode {
+	case codes.NotFound:
+		code = "not_found"
 	case codes.InvalidArgument:
 		code = "invalid_argument"
 	case codes.PermissionDenied, codes.Unauthenticated:
@@ -237,6 +240,7 @@ func toNotificationRPC(err error) error {
 		}
 	}
 	grpcCode := map[string]codes.Code{
+		"not_found":          codes.NotFound,
 		"invalid_argument":   codes.InvalidArgument,
 		"permission_denied":  codes.PermissionDenied,
 		"conflict":           codes.Aborted,
@@ -469,4 +473,63 @@ func (c *BackendClient) monitorBackendExit() {
 			}
 		}
 	}
+}
+
+func (p *rebindableNotificationPublisher) BindService(ctx context.Context, eventID, serviceID string) (notifications.Receipt, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	binder, ok := p.publisher.(notifications.ServiceBinder)
+	if p.revoked || !ok {
+		return notifications.Receipt{}, notifications.Fail("permission_denied")
+	}
+	return binder.BindService(ctx, eventID, serviceID)
+}
+func (p *notificationPublisher) BindService(ctx context.Context, eventID, serviceID string) (notifications.Receipt, error) {
+	if err := notifications.ValidateServiceBinding(eventID, serviceID); err != nil {
+		return notifications.Receipt{}, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, notifications.PublishTimeout)
+	defer cancel()
+	response, err := p.client.BindService(ctx, &pb.NotificationServiceBinding{EventId: eventID, ServiceId: serviceID})
+	if err != nil {
+		return notifications.Receipt{}, fromNotificationRPC(err)
+	}
+	receipt, err := notificationReceipt(response)
+	if receipt.Created {
+		return notifications.Receipt{}, notifications.Fail("unavailable")
+	}
+	return receipt, err
+}
+func (h *backendHostServer) BindService(ctx context.Context, request *pb.NotificationServiceBinding) (*pb.NotificationReceipt, error) {
+	binder, ok := h.publisher.(notifications.ServiceBinder)
+	if !ok {
+		return nil, toNotificationRPC(notifications.Fail("permission_denied"))
+	}
+	if h.ctx.Err() != nil {
+		return nil, toNotificationRPC(notifications.Fail("unavailable"))
+	}
+	select {
+	case h.slots <- struct{}{}:
+		defer func() { <-h.slots }()
+	default:
+		return nil, toNotificationRPC(notifications.Fail("resource_exhausted"))
+	}
+	if request == nil || proto.Size(request) > notifications.MaxEnvelope {
+		return nil, toNotificationRPC(notifications.Fail("invalid_argument"))
+	}
+	if err := notifications.ValidateServiceBinding(request.EventId, request.ServiceId); err != nil {
+		return nil, toNotificationRPC(err)
+	}
+	callCtx, cancel := context.WithTimeout(ctx, notifications.PublishTimeout)
+	defer cancel()
+	stop := context.AfterFunc(h.ctx, cancel)
+	defer stop()
+	receipt, err := binder.BindService(callCtx, request.EventId, request.ServiceId)
+	if err != nil {
+		return nil, toNotificationRPC(err)
+	}
+	if receipt.ID == "" || receipt.Created {
+		return nil, toNotificationRPC(notifications.Fail("unavailable"))
+	}
+	return &pb.NotificationReceipt{Id: receipt.ID, Created: false}, nil
 }

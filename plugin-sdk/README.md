@@ -89,6 +89,22 @@ callback accepts only `notifications.Message` and returns a host-issued
 SDK applies a 16 KiB envelope bound, four concurrent calls per connection and
 a five-second publish deadline. UI handlers receive no publisher.
 
+`Message.ServiceID` optionally references the exact 64-character lowercase hex
+catalog ID. It is presentation metadata, separate from producer identity and
+`Destination`. The host fills an empty reference once; a different nonempty
+reference conflicts. Replay still compares the original immutable event content.
+The inbox resolves a visible service through the producer connection's catalog
+grant, without calling the plugin. Missing, hidden or denied services retain the
+producer icon.
+
+Backends may type-assert `notifications.ServiceBinder` on their publisher and call
+`BindService(ctx, eventID, serviceID)` to enrich a retained event from their own
+connection. Binding never creates a notification, changes content or marks it
+unread. It returns `not_found` for an absent or expired event and `conflict` for a
+replacement reference. The callback shares the publication deadline and call
+budget. Hosts without this additive alpha.3 callback may reject it; producers
+must preserve their existing baseline and delivery behavior.
+
 Backend queries allow four concurrent calls per child, without queuing. Input
 is limited to 64 KiB; data result to 1 MiB. Caller deadlines propagate through
 API and callback. UI requests retain their separate eight-call budget. Each UI
@@ -208,9 +224,9 @@ change is required.
 
 A nested Go module uses tags prefixed with `plugin-sdk/`; a root `v` tag does not
 version this module. Tag the reviewed, merged commit without moving an existing
-tag. The Go dependency version is `v0.0.1-alpha.1`, not the prefixed Git tag.
+tag. The current Go dependency version is `v0.0.1-alpha.3`, not the prefixed Git tag.
 
-After publishing, run `bash hack/check-published-plugin-sdk.sh v0.0.1-alpha.1`
+After publishing, run `bash hack/check-published-plugin-sdk.sh v0.0.1-alpha.3`
 from the repository root. It installs the CLI and builds independent UI-only and
 backend projects using a fresh public Go module cache and checksum database,
 without a local replacement. Host integration tests must compile the consumer

@@ -11,6 +11,7 @@ import (
 // existing identity before capacity checks and keep publish identity and
 // capacity decisions in one transaction.
 type Store interface {
+	BindService(context.Context, Source, string, string, time.Time) (Receipt, error)
 	Publish(context.Context, Source, Message, []byte, time.Time, time.Time) (Receipt, error)
 	List(context.Context, ListOptions) (Page, error)
 	Get(context.Context, string) (Notification, error)
@@ -168,3 +169,22 @@ var _ interface {
 	MarkRead(context.Context, string) error
 	ClearAll(context.Context) error
 } = (*Service)(nil)
+
+// BindService enriches only an existing, source-owned event. It deliberately
+// does not publish: startup baselines must not create or revive notifications.
+func (s *Service) BindService(ctx context.Context, source Source, eventID, serviceID string) (Receipt, error) {
+	if s == nil || s.store == nil {
+		return Receipt{}, ErrUnavailable
+	}
+	source = source.Normalize()
+	if err := source.Validate(); err != nil {
+		return Receipt{}, err
+	}
+	if err := validateText(eventID, "event ID", MaxEventIDBytes, false); err != nil {
+		return Receipt{}, err
+	}
+	if err := validateServiceID(serviceID); err != nil || serviceID == "" {
+		return Receipt{}, ErrInvalid
+	}
+	return s.store.BindService(ctx, source, eventID, serviceID, s.cutoff())
+}

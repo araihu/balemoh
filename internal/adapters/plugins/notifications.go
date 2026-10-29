@@ -42,7 +42,7 @@ func (p *connectionPublisher) Publish(ctx context.Context, message sdk.Message) 
 	if err := message.Validate(); err != nil {
 		return sdk.Receipt{}, err
 	}
-	m := core.Message{EventID: message.EventID, Severity: core.Severity(message.Severity), Title: message.Title, Body: message.Body, OccurredAt: message.OccurredAt}
+	m := core.Message{ServiceID: message.ServiceID, EventID: message.EventID, Severity: core.Severity(message.Severity), Title: message.Title, Body: message.Body, OccurredAt: message.OccurredAt}
 	if d := message.Destination; d != nil {
 		m.Destination = core.Destination{Kind: d.Kind, Route: d.Route, PluginID: d.PluginID, ConnectionID: d.ConnectionID, Page: d.Page, Params: d.Params, Query: d.Query, URL: d.URL}
 		if d.Kind == core.SourcePlugin {
@@ -71,6 +71,8 @@ func notificationFailure(err error) error {
 	switch {
 	case errors.Is(err, core.ErrInvalid), errors.Is(err, core.ErrTooLarge):
 		return sdk.Fail("invalid_argument")
+	case errors.Is(err, core.ErrNotFound):
+		return sdk.Fail("not_found")
 	case errors.Is(err, core.ErrConflict):
 		return sdk.Fail("conflict")
 	case errors.Is(err, core.ErrCapacity):
@@ -88,4 +90,30 @@ func (c preparedConnection) canPublishNotifications() bool {
 		}
 	}
 	return false
+}
+
+func (p *connectionPublisher) BindService(ctx context.Context, eventID, serviceID string) (sdk.Receipt, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if !p.active || p.ctx.Err() != nil || p.publisher == nil {
+		return sdk.Receipt{}, sdk.Fail("permission_denied")
+	}
+	if err := sdk.ValidateServiceBinding(eventID, serviceID); err != nil {
+		return sdk.Receipt{}, err
+	}
+	binder, ok := p.publisher.(interface {
+		BindService(context.Context, core.Source, string, string) (core.Receipt, error)
+	})
+	if !ok {
+		return sdk.Receipt{}, sdk.Fail("unavailable")
+	}
+	callCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stop := context.AfterFunc(p.ctx, cancel)
+	defer stop()
+	receipt, err := binder.BindService(callCtx, p.source, eventID, serviceID)
+	if err != nil {
+		return sdk.Receipt{}, notificationFailure(err)
+	}
+	return sdk.Receipt{ID: receipt.ID, Created: false}, nil
 }

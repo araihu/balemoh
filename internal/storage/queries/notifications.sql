@@ -1,6 +1,6 @@
 -- name: GetNotificationByIdentity :one
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
-       title, body, occurred_at, received_at, destination_json, payload_json, read_at
+       title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id
 FROM notifications
 WHERE source_kind = ? AND source_id = ? AND connection_id = ? AND event_id = ?;
 
@@ -13,11 +13,11 @@ INSERT INTO notifications (
     occurred_at, received_at, destination_json, payload_json
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING sequence, id, source_kind, source_id, connection_id, event_id, severity,
-          title, body, occurred_at, received_at, destination_json, payload_json, read_at;
+          title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id;
 
 -- name: ListNotifications :many
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
-       title, body, occurred_at, received_at, destination_json, payload_json, read_at
+       title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id
 FROM notifications
 WHERE (sqlc.narg(before_sequence) IS NULL OR sequence < sqlc.narg(before_sequence))
   AND (CAST(sqlc.arg(unread_only) AS INTEGER) = 0 OR read_at IS NULL)
@@ -30,7 +30,7 @@ SELECT COUNT(*) FROM notifications WHERE read_at IS NULL AND unixepoch(received_
 
 -- name: GetNotificationByID :one
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
-       title, body, occurred_at, received_at, destination_json, payload_json, read_at
+       title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id
 FROM notifications
 WHERE id = ?;
 
@@ -48,3 +48,6 @@ WHERE read_at IS NULL AND unixepoch(received_at) >= CAST(sqlc.arg(since_epoch) A
 
 -- name: PruneExpiredNotifications :execrows
 DELETE FROM notifications WHERE unixepoch(received_at) < CAST(sqlc.arg(since_epoch) AS INTEGER);
+
+-- name: FillNotificationService :exec
+UPDATE notifications SET service_id = ? WHERE id = ? AND service_id = '';

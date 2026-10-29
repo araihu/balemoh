@@ -1260,6 +1260,7 @@ func (x *NotificationPublishRequest) GetMessage() *NotificationMessage {
 
 type NotificationMessage struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
+	ServiceId     string                   `protobuf:"bytes,7,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
 	EventId       string                   `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	Severity      string                   `protobuf:"bytes,2,opt,name=severity,proto3" json:"severity,omitempty"`
 	Title         string                   `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
@@ -1298,6 +1299,13 @@ func (x *NotificationMessage) ProtoReflect() protoreflect.Message {
 // Deprecated: Use NotificationMessage.ProtoReflect.Descriptor instead.
 func (*NotificationMessage) Descriptor() ([]byte, []int) {
 	return file_plugin_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *NotificationMessage) GetServiceId() string {
+	if x != nil {
+		return x.ServiceId
+	}
+	return ""
 }
 
 func (x *NotificationMessage) GetEventId() string {
@@ -1494,6 +1502,58 @@ func (x *NotificationReceipt) GetCreated() bool {
 	return false
 }
 
+type NotificationServiceBinding struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	ServiceId     string                 `protobuf:"bytes,2,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotificationServiceBinding) Reset() {
+	*x = NotificationServiceBinding{}
+	mi := &file_plugin_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotificationServiceBinding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotificationServiceBinding) ProtoMessage() {}
+
+func (x *NotificationServiceBinding) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotificationServiceBinding.ProtoReflect.Descriptor instead.
+func (*NotificationServiceBinding) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *NotificationServiceBinding) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *NotificationServiceBinding) GetServiceId() string {
+	if x != nil {
+		return x.ServiceId
+	}
+	return ""
+}
+
 var File_plugin_proto protoreflect.FileDescriptor
 
 const file_plugin_proto_rawDesc = "" +
@@ -1626,8 +1686,10 @@ const file_plugin_proto_rawDesc = "" +
 	"\foptions_json\x18\x03 \x01(\fR\voptionsJson\x12\x1a\n" +
 	"\brevision\x18\x04 \x01(\tR\brevision\"e\n" +
 	"\x1aNotificationPublishRequest\x12G\n" +
-	"\amessage\x18\x01 \x01(\v2-.balemoh.plugins.v1alpha1.NotificationMessageR\amessage\"\xec\x01\n" +
-	"\x13NotificationMessage\x12\x19\n" +
+	"\amessage\x18\x01 \x01(\v2-.balemoh.plugins.v1alpha1.NotificationMessageR\amessage\"\x8b\x02\n" +
+	"\x13NotificationMessage\x12\x1d\n" +
+	"\n" +
+	"service_id\x18\a \x01(\tR\tserviceId\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1a\n" +
 	"\bseverity\x18\x02 \x01(\tR\bseverity\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12\x12\n" +
@@ -1653,7 +1715,11 @@ const file_plugin_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2 .balemoh.plugins.v1alpha1.ValuesR\x05value:\x028\x01\"?\n" +
 	"\x13NotificationReceipt\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\acreated\x18\x02 \x01(\bR\acreated2\xcf\x01\n" +
+	"\acreated\x18\x02 \x01(\bR\acreated\"V\n" +
+	"\x1aNotificationServiceBinding\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1d\n" +
+	"\n" +
+	"service_id\x18\x02 \x01(\tR\tserviceId2\xcf\x01\n" +
 	"\aControl\x12I\n" +
 	"\bDescribe\x12\x16.google.protobuf.Empty\x1a%.balemoh.plugins.v1alpha1.Description\x12=\n" +
 	"\vCheckHealth\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12:\n" +
@@ -1668,9 +1734,10 @@ const file_plugin_proto_rawDesc = "" +
 	"\x04Host\x12V\n" +
 	"\x05Query\x12&.balemoh.plugins.v1alpha1.QueryRequest\x1a%.balemoh.plugins.v1alpha1.QueryResult\x12N\n" +
 	"\tPlacement\x12\x16.google.protobuf.Empty\x1a).balemoh.plugins.v1alpha1.PlacementResult\x12d\n" +
-	"\x0fResolveServices\x12$.balemoh.plugins.v1alpha1.ServiceIDs\x1a+.balemoh.plugins.v1alpha1.ServiceIdentities2}\n" +
+	"\x0fResolveServices\x12$.balemoh.plugins.v1alpha1.ServiceIDs\x1a+.balemoh.plugins.v1alpha1.ServiceIdentities2\xf1\x01\n" +
 	"\vBackendHost\x12n\n" +
-	"\aPublish\x124.balemoh.plugins.v1alpha1.NotificationPublishRequest\x1a-.balemoh.plugins.v1alpha1.NotificationReceiptBAZ?github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1;protocolb\x06proto3"
+	"\aPublish\x124.balemoh.plugins.v1alpha1.NotificationPublishRequest\x1a-.balemoh.plugins.v1alpha1.NotificationReceipt\x12r\n" +
+	"\vBindService\x124.balemoh.plugins.v1alpha1.NotificationServiceBinding\x1a-.balemoh.plugins.v1alpha1.NotificationReceiptBAZ?github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1;protocolb\x06proto3"
 
 var (
 	file_plugin_proto_rawDescOnce sync.Once
@@ -1684,7 +1751,7 @@ func file_plugin_proto_rawDescGZIP() []byte {
 	return file_plugin_proto_rawDescData
 }
 
-var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_plugin_proto_goTypes = []any{
 	(*ServiceIDs)(nil),                 // 0: balemoh.plugins.v1alpha1.ServiceIDs
 	(*ServiceIdentity)(nil),            // 1: balemoh.plugins.v1alpha1.ServiceIdentity
@@ -1706,61 +1773,64 @@ var file_plugin_proto_goTypes = []any{
 	(*NotificationMessage)(nil),        // 17: balemoh.plugins.v1alpha1.NotificationMessage
 	(*NotificationDestination)(nil),    // 18: balemoh.plugins.v1alpha1.NotificationDestination
 	(*NotificationReceipt)(nil),        // 19: balemoh.plugins.v1alpha1.NotificationReceipt
-	nil,                                // 20: balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
-	nil,                                // 21: balemoh.plugins.v1alpha1.UIRequest.QueryEntry
-	nil,                                // 22: balemoh.plugins.v1alpha1.UIRequest.FormEntry
-	nil,                                // 23: balemoh.plugins.v1alpha1.Redirect.ParamsEntry
-	nil,                                // 24: balemoh.plugins.v1alpha1.Redirect.QueryEntry
-	nil,                                // 25: balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
-	nil,                                // 26: balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
-	nil,                                // 27: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
-	(*emptypb.Empty)(nil),              // 28: google.protobuf.Empty
+	(*NotificationServiceBinding)(nil), // 20: balemoh.plugins.v1alpha1.NotificationServiceBinding
+	nil,                                // 21: balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
+	nil,                                // 22: balemoh.plugins.v1alpha1.UIRequest.QueryEntry
+	nil,                                // 23: balemoh.plugins.v1alpha1.UIRequest.FormEntry
+	nil,                                // 24: balemoh.plugins.v1alpha1.Redirect.ParamsEntry
+	nil,                                // 25: balemoh.plugins.v1alpha1.Redirect.QueryEntry
+	nil,                                // 26: balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
+	nil,                                // 27: balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
+	nil,                                // 28: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
+	(*emptypb.Empty)(nil),              // 29: google.protobuf.Empty
 }
 var file_plugin_proto_depIdxs = []int32{
 	1,  // 0: balemoh.plugins.v1alpha1.ServiceIdentities.services:type_name -> balemoh.plugins.v1alpha1.ServiceIdentity
-	20, // 1: balemoh.plugins.v1alpha1.UIRequest.path_params:type_name -> balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
-	21, // 2: balemoh.plugins.v1alpha1.UIRequest.query:type_name -> balemoh.plugins.v1alpha1.UIRequest.QueryEntry
-	22, // 3: balemoh.plugins.v1alpha1.UIRequest.form:type_name -> balemoh.plugins.v1alpha1.UIRequest.FormEntry
+	21, // 1: balemoh.plugins.v1alpha1.UIRequest.path_params:type_name -> balemoh.plugins.v1alpha1.UIRequest.PathParamsEntry
+	22, // 2: balemoh.plugins.v1alpha1.UIRequest.query:type_name -> balemoh.plugins.v1alpha1.UIRequest.QueryEntry
+	23, // 3: balemoh.plugins.v1alpha1.UIRequest.form:type_name -> balemoh.plugins.v1alpha1.UIRequest.FormEntry
 	7,  // 4: balemoh.plugins.v1alpha1.UIResponse.redirect:type_name -> balemoh.plugins.v1alpha1.Redirect
-	23, // 5: balemoh.plugins.v1alpha1.Redirect.params:type_name -> balemoh.plugins.v1alpha1.Redirect.ParamsEntry
-	24, // 6: balemoh.plugins.v1alpha1.Redirect.query:type_name -> balemoh.plugins.v1alpha1.Redirect.QueryEntry
+	24, // 5: balemoh.plugins.v1alpha1.Redirect.params:type_name -> balemoh.plugins.v1alpha1.Redirect.ParamsEntry
+	25, // 6: balemoh.plugins.v1alpha1.Redirect.query:type_name -> balemoh.plugins.v1alpha1.Redirect.QueryEntry
 	10, // 7: balemoh.plugins.v1alpha1.QueryResult.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
-	25, // 8: balemoh.plugins.v1alpha1.ConnectionConfig.secrets:type_name -> balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
+	26, // 8: balemoh.plugins.v1alpha1.ConnectionConfig.secrets:type_name -> balemoh.plugins.v1alpha1.ConnectionConfig.SecretsEntry
 	10, // 9: balemoh.plugins.v1alpha1.ConnectionStatus.source_error:type_name -> balemoh.plugins.v1alpha1.Failure
 	17, // 10: balemoh.plugins.v1alpha1.NotificationPublishRequest.message:type_name -> balemoh.plugins.v1alpha1.NotificationMessage
 	18, // 11: balemoh.plugins.v1alpha1.NotificationMessage.destination:type_name -> balemoh.plugins.v1alpha1.NotificationDestination
-	26, // 12: balemoh.plugins.v1alpha1.NotificationDestination.params:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
-	27, // 13: balemoh.plugins.v1alpha1.NotificationDestination.query:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
+	27, // 12: balemoh.plugins.v1alpha1.NotificationDestination.params:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.ParamsEntry
+	28, // 13: balemoh.plugins.v1alpha1.NotificationDestination.query:type_name -> balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry
 	4,  // 14: balemoh.plugins.v1alpha1.UIRequest.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
 	4,  // 15: balemoh.plugins.v1alpha1.UIRequest.FormEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
 	4,  // 16: balemoh.plugins.v1alpha1.Redirect.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
 	4,  // 17: balemoh.plugins.v1alpha1.NotificationDestination.QueryEntry.value:type_name -> balemoh.plugins.v1alpha1.Values
-	28, // 18: balemoh.plugins.v1alpha1.Control.Describe:input_type -> google.protobuf.Empty
-	28, // 19: balemoh.plugins.v1alpha1.Control.CheckHealth:input_type -> google.protobuf.Empty
-	28, // 20: balemoh.plugins.v1alpha1.Control.Shutdown:input_type -> google.protobuf.Empty
+	29, // 18: balemoh.plugins.v1alpha1.Control.Describe:input_type -> google.protobuf.Empty
+	29, // 19: balemoh.plugins.v1alpha1.Control.CheckHealth:input_type -> google.protobuf.Empty
+	29, // 20: balemoh.plugins.v1alpha1.Control.Shutdown:input_type -> google.protobuf.Empty
 	5,  // 21: balemoh.plugins.v1alpha1.UI.Handle:input_type -> balemoh.plugins.v1alpha1.UIRequest
 	12, // 22: balemoh.plugins.v1alpha1.Backend.Configure:input_type -> balemoh.plugins.v1alpha1.ConnectionConfig
 	11, // 23: balemoh.plugins.v1alpha1.Backend.Status:input_type -> balemoh.plugins.v1alpha1.ConnectionID
 	14, // 24: balemoh.plugins.v1alpha1.Backend.Query:input_type -> balemoh.plugins.v1alpha1.BackendQueryRequest
 	11, // 25: balemoh.plugins.v1alpha1.Backend.CloseConnection:input_type -> balemoh.plugins.v1alpha1.ConnectionID
 	8,  // 26: balemoh.plugins.v1alpha1.Host.Query:input_type -> balemoh.plugins.v1alpha1.QueryRequest
-	28, // 27: balemoh.plugins.v1alpha1.Host.Placement:input_type -> google.protobuf.Empty
+	29, // 27: balemoh.plugins.v1alpha1.Host.Placement:input_type -> google.protobuf.Empty
 	0,  // 28: balemoh.plugins.v1alpha1.Host.ResolveServices:input_type -> balemoh.plugins.v1alpha1.ServiceIDs
 	16, // 29: balemoh.plugins.v1alpha1.BackendHost.Publish:input_type -> balemoh.plugins.v1alpha1.NotificationPublishRequest
-	3,  // 30: balemoh.plugins.v1alpha1.Control.Describe:output_type -> balemoh.plugins.v1alpha1.Description
-	28, // 31: balemoh.plugins.v1alpha1.Control.CheckHealth:output_type -> google.protobuf.Empty
-	28, // 32: balemoh.plugins.v1alpha1.Control.Shutdown:output_type -> google.protobuf.Empty
-	6,  // 33: balemoh.plugins.v1alpha1.UI.Handle:output_type -> balemoh.plugins.v1alpha1.UIResponse
-	13, // 34: balemoh.plugins.v1alpha1.Backend.Configure:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
-	13, // 35: balemoh.plugins.v1alpha1.Backend.Status:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
-	9,  // 36: balemoh.plugins.v1alpha1.Backend.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
-	28, // 37: balemoh.plugins.v1alpha1.Backend.CloseConnection:output_type -> google.protobuf.Empty
-	9,  // 38: balemoh.plugins.v1alpha1.Host.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
-	15, // 39: balemoh.plugins.v1alpha1.Host.Placement:output_type -> balemoh.plugins.v1alpha1.PlacementResult
-	2,  // 40: balemoh.plugins.v1alpha1.Host.ResolveServices:output_type -> balemoh.plugins.v1alpha1.ServiceIdentities
-	19, // 41: balemoh.plugins.v1alpha1.BackendHost.Publish:output_type -> balemoh.plugins.v1alpha1.NotificationReceipt
-	30, // [30:42] is the sub-list for method output_type
-	18, // [18:30] is the sub-list for method input_type
+	20, // 30: balemoh.plugins.v1alpha1.BackendHost.BindService:input_type -> balemoh.plugins.v1alpha1.NotificationServiceBinding
+	3,  // 31: balemoh.plugins.v1alpha1.Control.Describe:output_type -> balemoh.plugins.v1alpha1.Description
+	29, // 32: balemoh.plugins.v1alpha1.Control.CheckHealth:output_type -> google.protobuf.Empty
+	29, // 33: balemoh.plugins.v1alpha1.Control.Shutdown:output_type -> google.protobuf.Empty
+	6,  // 34: balemoh.plugins.v1alpha1.UI.Handle:output_type -> balemoh.plugins.v1alpha1.UIResponse
+	13, // 35: balemoh.plugins.v1alpha1.Backend.Configure:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
+	13, // 36: balemoh.plugins.v1alpha1.Backend.Status:output_type -> balemoh.plugins.v1alpha1.ConnectionStatus
+	9,  // 37: balemoh.plugins.v1alpha1.Backend.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
+	29, // 38: balemoh.plugins.v1alpha1.Backend.CloseConnection:output_type -> google.protobuf.Empty
+	9,  // 39: balemoh.plugins.v1alpha1.Host.Query:output_type -> balemoh.plugins.v1alpha1.QueryResult
+	15, // 40: balemoh.plugins.v1alpha1.Host.Placement:output_type -> balemoh.plugins.v1alpha1.PlacementResult
+	2,  // 41: balemoh.plugins.v1alpha1.Host.ResolveServices:output_type -> balemoh.plugins.v1alpha1.ServiceIdentities
+	19, // 42: balemoh.plugins.v1alpha1.BackendHost.Publish:output_type -> balemoh.plugins.v1alpha1.NotificationReceipt
+	19, // 43: balemoh.plugins.v1alpha1.BackendHost.BindService:output_type -> balemoh.plugins.v1alpha1.NotificationReceipt
+	31, // [31:44] is the sub-list for method output_type
+	18, // [18:31] is the sub-list for method input_type
 	18, // [18:18] is the sub-list for extension type_name
 	18, // [18:18] is the sub-list for extension extendee
 	0,  // [0:18] is the sub-list for field type_name
@@ -1777,7 +1847,7 @@ func file_plugin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_plugin_proto_rawDesc), len(file_plugin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

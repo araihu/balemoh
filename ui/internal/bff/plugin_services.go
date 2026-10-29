@@ -7,16 +7,16 @@ import (
 	"github.com/araihu/balemoh/plugin-sdk/ui"
 )
 
-// PluginServiceCatalog uses the same effective names and icons as Home. Only
+// ServiceCatalog uses the same effective names and icons as Home. Only
 // live services are disclosed, including unpinned entries. Grants live in the
 // plugin registry, not in user-controlled alert annotations.
-type PluginServiceCatalog struct {
+type ServiceCatalog struct {
 	Catalog interface {
 		Staging(context.Context) ([]api.ServiceCandidate, error)
 	}
 }
 
-func (c PluginServiceCatalog) ResolveServices(ctx context.Context, ids []string) ([]ui.ServiceIdentity, error) {
+func (c ServiceCatalog) ResolveServices(ctx context.Context, ids []string) ([]ui.ServiceIdentity, error) {
 	if ui.ValidateServiceIDs(ids) != nil {
 		return nil, backend.Fail("invalid_argument")
 	}

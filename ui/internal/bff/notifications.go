@@ -67,6 +67,7 @@ func (s *server) notificationList(r *http.Request, limit int) (view.Notification
 		result.Items[i].ProducerIcon = s.notificationProducerIcon(result.Items[i])
 		result.Items[i].ProducerIconURL = s.notificationProducerLogo(result.Items[i])
 	}
+	s.applyNotificationServices(ctx, result.Items)
 	return result, 200
 }
 func (s *server) notificationSummary(w http.ResponseWriter, r *http.Request) {
@@ -415,4 +416,37 @@ func (s *server) notificationProducerLogo(item view.Notification) string {
 		return ""
 	}
 	return assets[0].URL
+}
+
+func (s *server) applyNotificationServices(ctx context.Context, items []view.Notification) {
+	ids := []string{}
+	seen := map[string]bool{}
+	for _, item := range items {
+		if item.SourceKind == "plugin" && s.plugins.AllowsServiceID(item.ProducerID, item.ProducerConnectionID, item.ServiceID) && !seen[item.ServiceID] {
+			ids = append(ids, item.ServiceID)
+			seen[item.ServiceID] = true
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	services, err := (ServiceCatalog{Catalog: s.catalog}).ResolveServices(ctx, ids)
+	if err != nil {
+		return
+	}
+	byID := map[string]pluginui.ServiceIdentity{}
+	for _, service := range services {
+		byID[service.ID] = service
+	}
+	for i := range items {
+		item := &items[i]
+		// Authorize each producer even when a different row requested the same ID.
+		if item.SourceKind != "plugin" || !s.plugins.AllowsServiceID(item.ProducerID, item.ProducerConnectionID, item.ServiceID) {
+			continue
+		}
+		if service, ok := byID[item.ServiceID]; ok {
+			item.ServiceName = service.Name
+			item.ServiceIcon = view.LibraryIcon{URL: service.IconURL, SpriteURL: service.IconSpriteURL, Symbol: service.IconSymbol}
+		}
+	}
 }

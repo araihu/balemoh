@@ -698,7 +698,8 @@ var Host_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	BackendHost_Publish_FullMethodName = "/balemoh.plugins.v1alpha1.BackendHost/Publish"
+	BackendHost_Publish_FullMethodName     = "/balemoh.plugins.v1alpha1.BackendHost/Publish"
+	BackendHost_BindService_FullMethodName = "/balemoh.plugins.v1alpha1.BackendHost/BindService"
 )
 
 // BackendHostClient is the client API for BackendHost service.
@@ -708,6 +709,7 @@ const (
 // Connection-scoped backend callback. UI children never receive this broker.
 type BackendHostClient interface {
 	Publish(ctx context.Context, in *NotificationPublishRequest, opts ...grpc.CallOption) (*NotificationReceipt, error)
+	BindService(ctx context.Context, in *NotificationServiceBinding, opts ...grpc.CallOption) (*NotificationReceipt, error)
 }
 
 type backendHostClient struct {
@@ -728,6 +730,16 @@ func (c *backendHostClient) Publish(ctx context.Context, in *NotificationPublish
 	return out, nil
 }
 
+func (c *backendHostClient) BindService(ctx context.Context, in *NotificationServiceBinding, opts ...grpc.CallOption) (*NotificationReceipt, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotificationReceipt)
+	err := c.cc.Invoke(ctx, BackendHost_BindService_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BackendHostServer is the server API for BackendHost service.
 // All implementations must embed UnimplementedBackendHostServer
 // for forward compatibility.
@@ -735,6 +747,7 @@ func (c *backendHostClient) Publish(ctx context.Context, in *NotificationPublish
 // Connection-scoped backend callback. UI children never receive this broker.
 type BackendHostServer interface {
 	Publish(context.Context, *NotificationPublishRequest) (*NotificationReceipt, error)
+	BindService(context.Context, *NotificationServiceBinding) (*NotificationReceipt, error)
 	mustEmbedUnimplementedBackendHostServer()
 }
 
@@ -747,6 +760,9 @@ type UnimplementedBackendHostServer struct{}
 
 func (UnimplementedBackendHostServer) Publish(context.Context, *NotificationPublishRequest) (*NotificationReceipt, error) {
 	return nil, status.Error(codes.Unimplemented, "method Publish not implemented")
+}
+func (UnimplementedBackendHostServer) BindService(context.Context, *NotificationServiceBinding) (*NotificationReceipt, error) {
+	return nil, status.Error(codes.Unimplemented, "method BindService not implemented")
 }
 func (UnimplementedBackendHostServer) mustEmbedUnimplementedBackendHostServer() {}
 func (UnimplementedBackendHostServer) testEmbeddedByValue()                     {}
@@ -787,6 +803,24 @@ func _BackendHost_Publish_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BackendHost_BindService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotificationServiceBinding)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BackendHostServer).BindService(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BackendHost_BindService_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BackendHostServer).BindService(ctx, req.(*NotificationServiceBinding))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BackendHost_ServiceDesc is the grpc.ServiceDesc for BackendHost service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -797,6 +831,10 @@ var BackendHost_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Publish",
 			Handler:    _BackendHost_Publish_Handler,
+		},
+		{
+			MethodName: "BindService",
+			Handler:    _BackendHost_BindService_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

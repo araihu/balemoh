@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ func notificationPackage(t *testing.T) *manifest.Package {
 	if err := os.WriteFile(filepath.Join(p.Root, "plugin.json"), data, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(p.Root, "schema.json"), []byte(`{"type":"object","properties":{"publish":{"type":"boolean"},"delayMs":{"type":"integer","minimum":0,"maximum":1000},"attempts":{"type":"integer","minimum":1,"maximum":4},"configureDelayMs":{"type":"integer","minimum":0,"maximum":1000},"requireNoPublisher":{"type":"boolean"}},"additionalProperties":false}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(p.Root, "schema.json"), []byte(`{"type":"object","properties":{"serviceId":{"type":"string","maxLength":64},"bindEventId":{"type":"string","maxLength":128},"publish":{"type":"boolean"},"delayMs":{"type":"integer","minimum":0,"maximum":1000},"attempts":{"type":"integer","minimum":1,"maximum":4},"configureDelayMs":{"type":"integer","minimum":0,"maximum":1000},"requireNoPublisher":{"type":"boolean"}},"additionalProperties":false}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	p, err = manifest.Load(p.Root)
@@ -273,5 +274,37 @@ func TestOldBackendCannotReceivePublisherGrant(t *testing.T) {
 	config := backend.Config{ConnectionID: "connection", Revision: "1", Config: []byte(`{}`), Secrets: map[string]string{"token": "declared-only"}}
 	if _, err := child.ConfigureWithNotifications(t.Context(), config, recorder); notifications.Code(err) != "permission_denied" {
 		t.Fatalf("old/ungranted backend accepted publisher: %v", err)
+	}
+}
+
+type bindingRecorder struct{ calls chan string }
+
+func (r *bindingRecorder) Publish(context.Context, notifications.Message) (notifications.Receipt, error) {
+	return notifications.Receipt{}, notifications.Fail("permission_denied")
+}
+func (r *bindingRecorder) BindService(_ context.Context, eventID, serviceID string) (notifications.Receipt, error) {
+	r.calls <- eventID + ":" + serviceID
+	return notifications.Receipt{ID: "existing-receipt", Created: false}, nil
+}
+func TestRealBackendServiceBindingDoesNotPublish(t *testing.T) {
+	p := notificationPackage(t)
+	child, err := pluginruntime.OpenBackend(t.Context(), p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer child.Close()
+	recorder := &bindingRecorder{calls: make(chan string, 1)}
+	id := strings.Repeat("a", 64)
+	config, _ := json.Marshal(map[string]any{"bindEventId": "existing-event", "serviceId": id})
+	if _, err = child.ConfigureWithNotifications(t.Context(), backend.Config{ConnectionID: "bound", Revision: "1", Config: config}, recorder); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case got := <-recorder.calls:
+		if got != "existing-event:"+id {
+			t.Fatal(got)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("binding callback missing")
 	}
 }

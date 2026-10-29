@@ -114,7 +114,7 @@ func notificationView(item api.Notification) view.Notification {
 	if item.Source.ConnectionId != nil {
 		source += " · " + *item.Source.ConnectionId
 	}
-	itemView := view.Notification{ProducerID: item.Source.Id, ProducerConnectionID: notificationString(item.Source.ConnectionId), SourceKind: string(item.Source.Kind), SourceLabel: item.Source.Id, ID: item.Id.String(), Title: item.Title, Body: item.Body, Severity: string(item.Severity), Source: source, ReceivedAt: item.ReceivedAt, Read: item.ReadAt != nil, HasDestination: item.Destination != nil, External: item.Destination != nil && string(item.Destination.Kind) == "external"}
+	itemView := view.Notification{ServiceID: notificationString(item.ServiceId), ProducerID: item.Source.Id, ProducerConnectionID: notificationString(item.Source.ConnectionId), SourceKind: string(item.Source.Kind), SourceLabel: item.Source.Id, ID: item.Id.String(), Title: item.Title, Body: item.Body, Severity: string(item.Severity), Source: source, ReceivedAt: item.ReceivedAt, Read: item.ReadAt != nil, HasDestination: item.Destination != nil, External: item.Destination != nil && string(item.Destination.Kind) == "external"}
 	if d := item.Destination; d != nil && string(d.Kind) == "plugin" && notificationString(d.PluginId) == item.Source.Id && notificationString(d.ConnectionId) == itemView.ProducerConnectionID {
 		itemView.ProducerPage = notificationString(d.Page)
 	}

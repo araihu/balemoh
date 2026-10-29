@@ -122,12 +122,8 @@ func (h scopedServices) ResolveServices(ctx context.Context, ids []string) ([]ui
 	if !h.entry.Package.Manifest.Declares(ui.ServiceCatalogCapability) || h.source.Services == nil {
 		return nil, backend.Fail("permission_denied")
 	}
-	allowed := map[string]bool{}
-	for _, id := range h.entry.Installation.ServiceIDs {
-		allowed[id] = true
-	}
 	for _, id := range ids {
-		if !allowed[id] {
+		if !h.entry.allowsServiceID(id) {
 			return nil, backend.Fail("permission_denied")
 		}
 	}

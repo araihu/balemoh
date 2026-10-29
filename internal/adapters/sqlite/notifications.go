@@ -43,6 +43,14 @@ func (s *NotificationStore) Publish(ctx context.Context, source notifications.So
 			if existing.PayloadJson != string(canonical) {
 				return notifications.Receipt{}, notifications.ErrConflict
 			}
+			if existing.ServiceID != "" && message.ServiceID != "" && existing.ServiceID != message.ServiceID {
+				return notifications.Receipt{}, notifications.ErrConflict
+			}
+			if existing.ServiceID == "" && message.ServiceID != "" {
+				if err := queries.FillNotificationService(ctx, sqlc.FillNotificationServiceParams{ServiceID: message.ServiceID, ID: existing.ID}); err != nil {
+					return notifications.Receipt{}, err
+				}
+			}
 			if err := tx.Commit(); err != nil {
 				return notifications.Receipt{}, fmt.Errorf("commit notification replay: %w", err)
 			}
@@ -96,6 +104,11 @@ func (s *NotificationStore) Publish(ctx context.Context, source notifications.So
 			return notifications.Receipt{}, err
 		}
 		return notifications.Receipt{}, fmt.Errorf("insert notification: %w", err)
+	}
+	if message.ServiceID != "" {
+		if err := queries.FillNotificationService(ctx, sqlc.FillNotificationServiceParams{ServiceID: message.ServiceID, ID: id}); err != nil {
+			return notifications.Receipt{}, err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return notifications.Receipt{}, fmt.Errorf("commit notification publish: %w", err)
@@ -227,9 +240,10 @@ func notificationFromRow(row sqlc.Notification) (notifications.Notification, err
 		readAt = &value
 	}
 	return notifications.Notification{
-		ID:      row.ID,
-		Source:  notifications.Source{Kind: row.SourceKind, ID: row.SourceID, ConnectionID: row.ConnectionID},
-		EventID: row.EventID, Severity: notifications.Severity(row.Severity), Title: row.Title, Body: row.Body,
+		ServiceID: row.ServiceID,
+		ID:        row.ID,
+		Source:    notifications.Source{Kind: row.SourceKind, ID: row.SourceID, ConnectionID: row.ConnectionID},
+		EventID:   row.EventID, Severity: notifications.Severity(row.Severity), Title: row.Title, Body: row.Body,
 		OccurredAt: occurredAt, ReceivedAt: receivedAt, Destination: destination, ReadAt: readAt,
 	}, nil
 }
@@ -249,3 +263,38 @@ func min(a, b int) int {
 }
 
 var _ notifications.Store = (*NotificationStore)(nil)
+
+func (s *NotificationStore) BindService(ctx context.Context, source notifications.Source, eventID, serviceID string, cutoff time.Time) (notifications.Receipt, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return notifications.Receipt{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	queries := s.queries.WithTx(tx)
+	existing, err := queries.GetNotificationByIdentity(ctx, sqlc.GetNotificationByIdentityParams{SourceKind: source.Kind, SourceID: source.ID, ConnectionID: source.ConnectionID, EventID: eventID})
+	if errors.Is(err, sql.ErrNoRows) {
+		return notifications.Receipt{}, notifications.ErrNotFound
+	}
+	if err != nil {
+		return notifications.Receipt{}, err
+	}
+	received, err := time.Parse(time.RFC3339Nano, existing.ReceivedAt)
+	if err != nil {
+		return notifications.Receipt{}, err
+	}
+	if received.Unix() < cutoff.Unix() {
+		return notifications.Receipt{}, notifications.ErrNotFound
+	}
+	if existing.ServiceID != "" && existing.ServiceID != serviceID {
+		return notifications.Receipt{}, notifications.ErrConflict
+	}
+	if existing.ServiceID == "" {
+		if err = queries.FillNotificationService(ctx, sqlc.FillNotificationServiceParams{ServiceID: serviceID, ID: existing.ID}); err != nil {
+			return notifications.Receipt{}, err
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return notifications.Receipt{}, err
+	}
+	return notifications.Receipt{ID: existing.ID, CreatedAt: received, Accepted: false}, nil
+}
