@@ -185,6 +185,11 @@ body {
 .balemoh-icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem}
 .balemoh-icon-more{grid-column:1/-1;text-align:center}
 .balemoh-footer-links{display:flex;flex-wrap:wrap;gap:1rem}
+.balemoh-attributions { display: grid; gap: 2rem; width: 100%; max-width: 64rem; margin-inline: auto; }
+.balemoh-attributions section { display: grid; gap: 1rem; min-width: 0; }
+.balemoh-attributions h2 { font-size: 1.25rem; font-weight: 600; }
+.balemoh-attributions p { max-width: 70ch; line-height: 1.6; }
+.balemoh-attribution-source { display: grid; gap: .25rem; }
 .balemoh-icon-tile{min-width:0;height:12rem;text-align:center;overflow-wrap:anywhere}
 .balemoh-icon-details-link{display:block;min-width:0;color:inherit;text-decoration:none}
 .balemoh-icon-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;line-height:1.25rem;min-height:2.5rem;max-width:100%}

@@ -1,0 +1,66 @@
+package view
+
+import (
+	"github.com/araihu/goshtoso/components/link"
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/table"
+)
+
+templ AttributionsContent() {
+	<div class="balemoh-attributions">
+		@pageheader.PageHeader(pageheader.Config{
+			Title: "Attributions",
+			Description: "The people and projects behind Balemoh's icons and artwork.",
+			HideSeparator: true,
+		})
+		<section aria-labelledby="attribution-icons">
+			<h2 id="attribution-icons">Icons</h2>
+			<p>These icon sets are packaged for Balemoh's service library and interface. Each retains its own license and notices.</p>
+			@table.Table(table.Config{
+				Caption: "Icon projects, licenses, and use in Balemoh",
+				Columns: []table.Column{
+					{Key: "project", Label: "Project"},
+					{Key: "license", Label: "License"},
+					{Key: "purpose", Label: "Used for"},
+				},
+				Rows: []table.Row{
+					{Cells: map[string]table.Cell{
+						"project": {Component: AttributionProject("Icons by selfh.st", "https://selfh.st/icons/")},
+						"license": {Component: AttributionProject("CC BY 4.0", "/ui/icon-library/selfhst/LICENSES/selfhst.txt")},
+						"purpose": {Component: AttributionSource("Self-hosted service icons", "https://github.com/selfhst/icons/tree/4798f7b385ce4d9b18520e4f2091635be6370bc4")},
+					}},
+					{Cells: map[string]table.Cell{
+						"project": {Component: AttributionProject("Devicon", "https://devicon.dev/")},
+						"license": {Component: AttributionProject("MIT", "/ui/icon-licenses/docker-LICENSE.txt")},
+						"purpose": {Component: AttributionSource("Docker and Kubernetes icons", "https://github.com/devicons/devicon/tree/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08")},
+					}},
+					{Cells: map[string]table.Cell{
+						"project": {Component: AttributionProject("Lucide", "https://lucide.dev/")},
+						"license": {Component: AttributionProject("ISC and retained notices", "/ui/icon-licenses/lucide-LICENSE.txt")},
+						"purpose": {Component: AttributionSource("Notification read-status icon", "https://github.com/lucide-icons/lucide/tree/03f11e2d6adc319ea21e9a1d5820a99cd3767257")},
+					}},
+				},
+			})
+		</section>
+		<section aria-labelledby="attribution-artwork">
+			<h2 id="attribution-artwork">Balemoh artwork</h2>
+			<p>Balemoh's logos, app icons, and social preview use artwork distributed through <span>@AttributionProject("Arai Hû Assets", "https://github.com/araihu/assets/releases/tag/v0.2.4")</span>.</p>
+		</section>
+		<section aria-labelledby="attribution-interface">
+			<h2 id="attribution-interface">Interface credits</h2>
+			<p>Credits for Goshtoso's components, bundled libraries, and icons are maintained on the <span>@AttributionProject("Goshtoso attributions page", "https://goshtoso.araihu.com/attributions")</span>.</p>
+		</section>
+		<p>Missing a credit? <span>@AttributionProject("Open an issue on Balemoh", "https://github.com/araihu/balemoh/issues")</span>.</p>
+	</div>
+}
+
+templ AttributionProject(label, href string) {
+	@link.Link(href) { { label } }
+}
+
+templ AttributionSource(purpose, href string) {
+	<div class="balemoh-attribution-source">
+		<span>{ purpose }</span>
+		@AttributionProject("Source", href)
+	</div>
+}

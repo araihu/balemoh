@@ -39,6 +39,7 @@ func addressMenuItems(addresses []string) []dropdown.Item {
 // PageData is the presentation model for the operator-facing catalog
 // pages. It deliberately contains no generated API types.
 type PageData struct {
+	Attributions       bool
 	Appearance         Appearance
 	Themes             ThemesPage
 	ThemeEditor        *ThemesPage

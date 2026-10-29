@@ -12,6 +12,7 @@ import (
 	"time"
 
 	api "github.com/araihu/balemoh/client"
+	"github.com/araihu/balemoh/client/iconassets"
 	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
 	uiassets "github.com/araihu/balemoh/ui"
 	"github.com/araihu/balemoh/ui/internal/plugins"
@@ -82,6 +83,9 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 		mux.Handle("POST /plugin-widgets/{placementID}/{action}", protection.Handler(http.HandlerFunc(server.pluginPlacementWrite)))
 	}
 	mux.Handle("GET /assets/", assets.Handler())
+	mux.HandleFunc("GET /attributions", server.attributions)
+	mux.Handle("GET /ui/icon-licenses/", http.StripPrefix("/ui/icon-licenses/", http.FileServerFS(uiassets.IconLicenses())))
+	mux.Handle("GET /ui/icon-library/selfhst/LICENSES/", http.StripPrefix("/ui/icon-library/", http.FileServerFS(iconassets.Files)))
 	mux.Handle("GET "+chartassets.Prefix, chartassets.Handler())
 	mux.Handle("GET /consoleshell/assets/", shellassets.Handler())
 	mux.HandleFunc("GET /ui/icons/sprite.svg", func(w http.ResponseWriter, r *http.Request) {

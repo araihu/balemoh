@@ -114,13 +114,16 @@ func TestCustomBrandHeadAndFixedProductFooter(t *testing.T) {
 		t.Fatal(err)
 	}
 	html = output.String()
-	for _, expected := range []string{"/ui/brand/logo-light.svg", "/ui/brand/logo-dark.svg", "is made by", "https://araihu.com/", "Arai Hû", "with", "https://goshtoso.araihu.com/", "Goshtoso", "selfh.st/icons"} {
+	for _, expected := range []string{"/ui/brand/logo-light.svg", "/ui/brand/logo-dark.svg", "is made by", "https://araihu.com/", "Arai Hû", "with", "https://goshtoso.araihu.com/", "Goshtoso", `href="/attributions"`} {
 		if !strings.Contains(html, expected) {
 			t.Fatal("fixed product credit missing", expected)
 		}
 	}
 	if strings.Contains(html, a.BrandIconID) {
 		t.Fatal("theme replaces product credit")
+	}
+	if strings.Contains(html, "selfh.st/icons") || strings.Contains(html, "Icon license") {
+		t.Fatal("icon credits belong on the attributions page")
 	}
 }
 

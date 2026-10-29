@@ -132,8 +132,8 @@ icon library; metadata edits remain available. Older clients omitting branding
 in replacement drafts preserve the saved references.
 
 The footer always renders the original Balemoh logo and the fixed credit
-"is made by Arai Hû with Goshtoso", with organization/library site links. Existing
-icon-license attribution remains. Recovery temporarily uses original branding.
+"is made by Arai Hû with Goshtoso", with organization/library site links and an
+Attributions link. Recovery temporarily uses original branding.
 
 Migration 14 adds an optional image reference to saved themes and an index.
 Migration 15 separates the logo reference and initializes it from the existing

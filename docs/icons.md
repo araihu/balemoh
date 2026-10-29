@@ -1,5 +1,10 @@
 # Icon library
 
+The footer links to `/attributions` for Balemoh-specific icon credits, pinned
+sources, and retained license texts. Notices are embedded and available even
+when the runtime icon cache or catalog API is unavailable. Goshtoso's existing
+credits are linked upstream rather than repeated on this page.
+
 Balemoh combines Goshtoso's bundled icons, the complete pinned selfh.st catalog,
 and user uploads. `/icons` provides name/tag search, source filters, pagination,
 uploads, and uploaded-icon management. Choose an icon in the Staging editor and
