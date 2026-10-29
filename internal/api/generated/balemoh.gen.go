@@ -769,7 +769,7 @@ type Notification struct {
 	ReadAt      *time.Time               `json:"readAt"`
 	ReceivedAt  time.Time                `json:"receivedAt"`
 
-	// ServiceId Optional affected service identity, independent from the navigation destination. The host resolves presentation only for granted, visible services.
+	// ServiceId Saved affected service identity. Notification views resolve the current icon only for visible services granted to this producer connection.
 	ServiceId *string              `json:"serviceId,omitempty"`
 	Severity  NotificationSeverity `json:"severity"`
 
@@ -811,7 +811,7 @@ type NotificationPublishRequest struct {
 	EventId     string                   `json:"eventId"`
 	OccurredAt  time.Time                `json:"occurredAt"`
 
-	// ServiceId Optional affected service identity, independent from the navigation destination. The host resolves presentation only for granted, visible services.
+	// ServiceId Optional producer-supplied service identity. The host may fill an empty presentation reference once without changing event identity.
 	ServiceId *string                            `json:"serviceId,omitempty"`
 	Severity  NotificationPublishRequestSeverity `json:"severity"`
 	Title     string                             `json:"title"`

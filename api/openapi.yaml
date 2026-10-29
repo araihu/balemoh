@@ -6485,7 +6485,7 @@ components:
         serviceId:
           type: string
           pattern: '^[a-f0-9]{64}$'
-          description: Optional affected service identity, independent from the navigation destination. The host resolves presentation only for granted, visible services.
+          description: Optional producer-supplied service identity. The host may fill an empty presentation reference once without changing event identity.
         eventId:
           type: string
           maxLength: 128
@@ -6546,7 +6546,7 @@ components:
         serviceId:
           type: string
           pattern: '^[a-f0-9]{64}$'
-          description: Optional affected service identity, independent from the navigation destination. The host resolves presentation only for granted, visible services.
+          description: Saved affected service identity. Notification views resolve the current icon only for visible services granted to this producer connection.
         id:
           type: string
           format: uuid
