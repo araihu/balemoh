@@ -155,6 +155,7 @@ templ ThemeEditorForm(d ThemesPage) {
 }
 
 templ AppearanceHead(a Appearance) {
+ <link rel="manifest" href="/manifest.webmanifest"/>
 	@BrandHead(a)
 	if len(a.FontWatch)>0 {
 		@templ.JSONScript("balemoh-font-watch", a.FontWatch)

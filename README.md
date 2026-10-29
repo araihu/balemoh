@@ -318,3 +318,61 @@ needs `BALEMOH_UI_API_BASE_URL` pointing to the API. Kubernetes discovery uses
 read-only RBAC on the API service account; the UI needs no Kubernetes token.
 
 Container checks: `bash hack/smoke-image.sh IMAGE` and `bash hack/smoke-demo.sh IMAGE`.
+
+## Web Push notifications
+
+Web Push lets browsers receive new inbox messages even when no Balemoh tab is
+open. It is disabled until the API has both settings below. No browser-side
+polling is required for delivery.
+
+```sh
+go run ./cmd/balemoh-webpush-keygen /secure/path/balemoh-vapid.key
+```
+
+The generator creates a new private-key file with mode 0600 and refuses to
+overwrite an existing key. Store it outside the repository, preserve it across
+restarts, back it up with the notification database, and mount it as a secret.
+Configure the API through its generated environment contract:
+
+```sh
+BALEMOH_WEB_PUSH_VAPID_KEY_FILE=/run/secrets/balemoh-vapid.key
+BALEMOH_WEB_PUSH_SUBJECT=mailto:operator@example.com
+BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE=/run/secrets/notification-operator
+```
+
+The existing UI notification operator credential must match the API. VAPID keys
+stay exclusively in the API. Browsers receive the public key through the BFF.
+Enable browser notifications from the bell tray or inbox. On iPhone/iPad, add
+Balemoh to the Home Screen before opting in. Balemoh serves a web app manifest.
+
+Subscriptions and pending sends use SQLite migration 17. Publication queues one
+job per subscribed browser in the same transaction, including plugin messages.
+Identical publisher retries do not queue another job. Subscribing never replays
+old inbox messages. The API checks jobs every two seconds in batches of up to 32,
+with a 10-second request timeout and a one-minute claim lease. Leases allow
+restart recovery and exclude simultaneous sends from other API replicas sharing
+the database. Transient failures retry up to eight attempts with exponential
+backoff; jobs expire after 24 hours. Accepted pushes have a 24-hour push-service
+TTL. Delivery is at least once; notification tags coalesce retries by message ID.
+Read or cleared messages are skipped before claiming. An in-flight send may
+already have reached the push service when a message is read or removed.
+
+Each browser owns its subscription through a random management token whose hash
+is stored on the server. No subscription list or private endpoint is exposed.
+There is a 128-subscription limit and a 90-day lease renewed on visits. HTTP
+404/410 responses remove expired subscriptions. VAPID key changes invalidate
+existing subscriptions and require browsers to opt in again. Disabling server
+push removes queued sends but retains subscriptions for the same key. Rolling
+back migration 17 removes push state; the existing notification inbox remains.
+
+The API needs outbound HTTPS and DNS access to browser push services. The
+transport rejects private/reserved destinations, validates resolved addresses at
+connection time, disables proxies and refuses redirects. No inbound connection
+from a push provider to Balemoh is needed. Push endpoints and encryption keys
+are private data and must not be logged. Notification titles and preview text
+are encrypted for the browser; the browser vendor's push service handles
+transport. Message text may appear on the OS lock screen.
+
+Keep the same VAPID configuration across replicas. OS/browser settings, device
+connectivity and push-service expiry affect delivery. Full notification text
+remains in the inbox; pushed previews are bounded to fit the protocol limit.

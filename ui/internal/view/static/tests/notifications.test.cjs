@@ -40,7 +40,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const runtime = fs.readFileSync(require.resolve('../notifications.js'), 'utf8');
 const preferenceKey = 'balemoh.notifications.unreadOnly';
-function browserHarness(storage) {
+function browserHarness(storage, browser) {
  const events = new Map(), requests = [], links = [{}, {}];
  let observe;
  function element() {
@@ -58,7 +58,7 @@ function browserHarness(storage) {
   querySelectorAll:selector=>selector==='[data-notification-inbox-link]'?inboxLinks:[],
   addEventListener(name,fn){if(!events.has(name))events.set(name,new Set());events.get(name).add(fn);},
   removeEventListener:(name,fn)=>events.get(name)?.delete(fn)};
- const context={document,location:{pathname:'/',search:''},URLSearchParams,
+ const context={document,BalemohBrowserNotifications:browser,location:{pathname:'/',search:''},URLSearchParams,
   setTimeout:()=>1,clearTimeout:()=>{},addEventListener:()=>{},
   MutationObserver:class {constructor(fn){observe=fn;}observe(){}disconnect(){}},
   htmx:{async ajax(method,url,{source}){
@@ -68,7 +68,7 @@ function browserHarness(storage) {
  Object.defineProperty(context,'localStorage',{get:()=>typeof storage==='function'?storage():storage});
  vm.runInNewContext(runtime,context);
  const settle=()=>new Promise(resolve=>setImmediate(resolve));
- return {filter,links,requests,async open(){trigger.setAttribute('aria-expanded','true');observe();await settle();},
+ return {filter,links,requests,async visibility(hidden){document.hidden=hidden;for(const fn of events.get('visibilitychange')||[])fn();await settle();},async open(){trigger.setAttribute('aria-expanded','true');observe();await settle();},
   async change(checked){filter.checked=checked;filter.change();await settle();}};
 }
 function memoryStorage(value) {

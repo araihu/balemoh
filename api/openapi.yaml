@@ -380,6 +380,72 @@ paths:
       description: |-
         Returns selected service and host widgets. A failed provider is listed in unavailable while other providers can still return items with HTTP 200. A widget can carry an error and an empty data object when its source is no longer available. Responses use Cache-Control: no-store.
 
+  /api/v1/notifications/push:
+    get:
+      operationId: GetWebPushSettings
+      summary: Get Web Push capability and this browser subscription state
+      description: Returns whether Web Push is configured and its public VAPID key. An optional private browser token checks only that browser's subscription. Endpoints and encryption secrets are never returned. Responses are not cached.
+      tags: [Notifications]
+      security:
+      - NotificationOperator: []
+      parameters:
+      - in: header
+        name: X-Push-Token
+        schema: {type: string, maxLength: 43, example: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}
+        description: Optional private browser management token. Never log or put in URLs.
+      responses:
+        '200':
+          description: Capability and subscription status, without private endpoint or keys
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WebPushSettings'}
+              example: {enabled: true, publicKey: BCPr_tS2j9fUo5L9V9E7n8jUyoMuhzh4o4Kg7KJVSnBVo-lHMht125tqFbP7SdGg_BgGRQ1FsAb4zykeSjAQYro, subscribed: false}
+        '400': {description: Browser status token has invalid encoding or length}
+        '401': {description: A notification operator credential is required to read push settings}
+        '503': {description: Subscription status storage could not be read}
+    post:
+      operationId: RegisterWebPush
+      summary: Create or renew this browser subscription without replaying the inbox
+      description: Stores a valid HTTPS push subscription under a private 32-byte browser token for 90 days. Repeating the same registration renews its lease. Only notifications inserted after registration are queued. Existing endpoint ownership cannot be replaced by another token.
+      tags: [Notifications]
+      security:
+      - NotificationOperator: []
+      requestBody:
+        description: Browser-owned subscription and its base64url management token
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WebPushRegistration'}
+            example:
+              token: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+              subscription:
+                endpoint: https://push.example.test/device
+                keys: {p256dh: BCPr_tS2j9fUo5L9V9E7n8jUyoMuhzh4o4Kg7KJVSnBVo-lHMht125tqFbP7SdGg_BgGRQ1FsAb4zykeSjAQYro, auth: AAAAAAAAAAAAAAAAAAAAAA}
+      responses:
+        '204': {description: Subscription saved for 90 days}
+        '400': {description: Registration endpoint or encryption keys are invalid}
+        '401': {description: A notification operator credential is required to register push}
+        '409': {description: Endpoint belongs to a different browser token}
+        '429': {description: Subscription capacity exceeded}
+        '503': {description: Push registration is disabled or its storage is unavailable}
+    delete:
+      operationId: DeleteWebPush
+      summary: Delete this browser subscription and pending deliveries
+      description: Removes the subscription identified by the private browser token and cascades removal of its pending deliveries. Repeating removal succeeds if the subscription is already absent. Other browser subscriptions and retained inbox messages remain.
+      tags: [Notifications]
+      security:
+      - NotificationOperator: []
+      parameters:
+      - in: header
+        name: X-Push-Token
+        required: true
+        schema: {type: string, minLength: 43, maxLength: 43, example: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}
+        description: Private browser management token identifying the subscription to remove. Never log or put in URLs.
+      responses:
+        '204': {description: Browser subscription and its queued jobs removed or already absent}
+        '400': {description: Subscription removal token has invalid encoding or length}
+        '401': {description: A notification operator credential is required to remove push}
+        '503': {description: Subscription removal storage could not be reached}
   /api/v1/notifications:
     delete:
       operationId: ClearNotifications
@@ -6473,6 +6539,36 @@ components:
       example:
         kind: external
         url: https://status.example.test/incidents/123
+    WebPushSettings:
+      description: Public push capability and subscription status for one browser token.
+      type: object
+      required: [enabled, publicKey, subscribed]
+      properties:
+        enabled: {type: boolean, example: true}
+        publicKey: {type: string, example: BCPr_tS2j9fUo5L9V9E7n8jUyoMuhzh4o4Kg7KJVSnBVo-lHMht125tqFbP7SdGg_BgGRQ1FsAb4zykeSjAQYro}
+        subscribed: {type: boolean, example: false}
+    WebPushSubscription:
+      description: Browser push endpoint and public encryption material from PushManager.
+      type: object
+      required: [endpoint, keys]
+      example:
+        endpoint: https://push.example.test/device
+        keys: {p256dh: BCPr_tS2j9fUo5L9V9E7n8jUyoMuhzh4o4Kg7KJVSnBVo-lHMht125tqFbP7SdGg_BgGRQ1FsAb4zykeSjAQYro, auth: AAAAAAAAAAAAAAAAAAAAAA}
+      properties:
+        endpoint: {type: string, maxLength: 2048, example: 'https://push.example.test/device'}
+        keys:
+          type: object
+          required: [p256dh, auth]
+          properties:
+            p256dh: {type: string, example: BCPr_tS2j9fUo5L9V9E7n8jUyoMuhzh4o4Kg7KJVSnBVo-lHMht125tqFbP7SdGg_BgGRQ1FsAb4zykeSjAQYro}
+            auth: {type: string, example: AAAAAAAAAAAAAAAAAAAAAA}
+    WebPushRegistration:
+      description: Subscription paired with its private browser ownership token.
+      type: object
+      required: [token, subscription]
+      properties:
+        token: {type: string, minLength: 43, maxLength: 43, example: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}
+        subscription: {$ref: '#/components/schemas/WebPushSubscription'}
     NotificationPublishRequest:
       type: object
       additionalProperties: false

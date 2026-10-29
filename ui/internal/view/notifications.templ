@@ -86,6 +86,7 @@ templ NotificationTray() {
 	<div class="balemoh-notification-footer">@link.Link("/notifications", link.WithAttrs(templ.Attributes{"data-notification-inbox-link": true})) {
 	View all notifications
 }</div>
+	@BrowserNotificationSettings("tray")
 }
 
 templ NotificationActionsTrigger() {
@@ -234,6 +235,7 @@ templ NotificationsContent(page NotificationsPage) {
 	} else {
 		<div id="notification-center" class="balemoh-notification-center" x-data="{}" x-on:notifications-cleared.window="$dispatch('modal:close', {id:'clear-notifications'})">
 			@panel.Panel(panel.Config{Header: NotificationCenterHeading(page), BodyClass: "balemoh-notification-center-body"}) {
+				@BrowserNotificationSettings("page")
 				<div id="notification-page-read-status" tabindex="-1">@NotificationReadAllError(page.BulkError)</div>
 				<div id="notification-inbox" tabindex="-1">@NotificationInbox(page, false)</div>
 			}

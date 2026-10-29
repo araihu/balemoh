@@ -4,6 +4,8 @@
 
 Options contains Balemoh's runtime environment configuration.
 
+ - `BALEMOH_WEB_PUSH_VAPID_KEY_FILE` - WebPushVAPIDKeyFile contains one base64url-encoded P-256 private scalar for Web Push. Empty disables push. Keep this file stable across restarts and mount it as a secret.
+ - `BALEMOH_WEB_PUSH_SUBJECT` - WebPushSubject is a mailto: or HTTPS contact URI for the VAPID subject. Required with the key file. Web Push also requires the notification operator credential.
  - `BALEMOH_READ_ONLY` (default: `false`) - ReadOnly rejects operator API writes, preserving authenticated federation imports and plugin queries.
  - `BALEMOH_DEMO_ENABLED` (default: `false`) - DemoEnabled seeds and refreshes a bounded synthetic scenario. Requires read-only mode and disables all real discovery and federation configuration.
  - `BALEMOH_DEMO_ALERTMANAGER_ADDR` (default: `127.0.0.1:9093`) - DemoAlertmanagerAddr serves the synthetic Alertmanager source on a loopback address when demo mode is enabled.

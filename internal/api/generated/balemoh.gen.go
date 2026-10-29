@@ -1299,6 +1299,29 @@ type UploadedIcon struct {
 	UsedBy []string `json:"usedBy"`
 }
 
+// WebPushRegistration Subscription paired with its private browser ownership token.
+type WebPushRegistration struct {
+	// Subscription Browser push endpoint and public encryption material from PushManager.
+	Subscription WebPushSubscription `json:"subscription"`
+	Token        string              `json:"token"`
+}
+
+// WebPushSettings Public push capability and subscription status for one browser token.
+type WebPushSettings struct {
+	Enabled    bool   `json:"enabled"`
+	PublicKey  string `json:"publicKey"`
+	Subscribed bool   `json:"subscribed"`
+}
+
+// WebPushSubscription Browser push endpoint and public encryption material from PushManager.
+type WebPushSubscription struct {
+	Endpoint string `json:"endpoint"`
+	Keys     struct {
+		Auth   string `json:"auth"`
+		P256dh string `json:"p256dh"`
+	} `json:"keys"`
+}
+
 // PresentationExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
 type PresentationExpectedRevision = PresentationRevision
 
@@ -1384,6 +1407,18 @@ type GetNotificationsParams struct {
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// DeleteWebPushParams defines parameters for DeleteWebPush.
+type DeleteWebPushParams struct {
+	// XPushToken Private browser management token identifying the subscription to remove. Never log or put in URLs.
+	XPushToken string `json:"X-Push-Token"`
+}
+
+// GetWebPushSettingsParams defines parameters for GetWebPushSettings.
+type GetWebPushSettingsParams struct {
+	// XPushToken Optional private browser management token. Never log or put in URLs.
+	XPushToken *string `json:"X-Push-Token,omitempty"`
+}
+
 // DeletePluginWidgetParams defines parameters for DeletePluginWidget.
 type DeletePluginWidgetParams struct {
 	// IfMatch Current quoted placement revision from ETag. Required to delete this placement.
@@ -1436,6 +1471,9 @@ type UpdateIconJSONRequestBody = IconUpload
 
 // PublishNotificationJSONRequestBody defines body for PublishNotification for application/json ContentType.
 type PublishNotificationJSONRequestBody = NotificationPublishRequest
+
+// RegisterWebPushJSONRequestBody defines body for RegisterWebPush for application/json ContentType.
+type RegisterWebPushJSONRequestBody = WebPushRegistration
 
 // PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
 type PutPluginWidgetJSONRequestBody = PluginPlacementBody
@@ -1523,6 +1561,15 @@ type ServerInterface interface {
 	// Publish an external notification
 	// (POST /api/v1/notifications)
 	PublishNotification(w http.ResponseWriter, r *http.Request)
+	// Delete this browser subscription and pending deliveries
+	// (DELETE /api/v1/notifications/push)
+	DeleteWebPush(w http.ResponseWriter, r *http.Request, params DeleteWebPushParams)
+	// Get Web Push capability and this browser subscription state
+	// (GET /api/v1/notifications/push)
+	GetWebPushSettings(w http.ResponseWriter, r *http.Request, params GetWebPushSettingsParams)
+	// Create or renew this browser subscription without replaying the inbox
+	// (POST /api/v1/notifications/push)
+	RegisterWebPush(w http.ResponseWriter, r *http.Request)
 	// Mark all notifications read
 	// (PUT /api/v1/notifications/read)
 	MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request)
@@ -2087,6 +2134,124 @@ func (siw *ServerInterfaceWrapper) PublishNotification(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PublishNotification(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteWebPush operation middleware
+func (siw *ServerInterfaceWrapper) DeleteWebPush(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteWebPushParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-Push-Token" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Push-Token")]; found {
+		var XPushToken string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Push-Token", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Push-Token", valueList[0], &XPushToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Push-Token", Err: err})
+			return
+		}
+
+		params.XPushToken = XPushToken
+
+	} else {
+		err := fmt.Errorf("Header parameter X-Push-Token is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Push-Token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteWebPush(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetWebPushSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetWebPushSettings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWebPushSettingsParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "X-Push-Token" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Push-Token")]; found {
+		var XPushToken string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Push-Token", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Push-Token", valueList[0], &XPushToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Push-Token", Err: err})
+			return
+		}
+
+		params.XPushToken = &XPushToken
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWebPushSettings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RegisterWebPush operation middleware
+func (siw *ServerInterfaceWrapper) RegisterWebPush(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RegisterWebPush(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2818,6 +2983,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notifications", wrapper.ClearNotifications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications", wrapper.GetNotifications)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notifications", wrapper.PublishNotification)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notifications/push", wrapper.DeleteWebPush)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications/push", wrapper.GetWebPushSettings)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notifications/push", wrapper.RegisterWebPush)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/notifications/read", wrapper.MarkAllNotificationsRead)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notifications/{notificationId}", wrapper.GetNotification)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)

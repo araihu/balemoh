@@ -141,7 +141,7 @@ func TestRunDiscoverySyncDoesNothingWhenDisabled(t *testing.T) {
 func TestConstructServerUsesConfiguredNotificationRetention(t *testing.T) {
 	for _, days := range []int{0, 7, 30} {
 		t.Run(fmt.Sprint(days), func(t *testing.T) {
-			_, db, _, service, err := constructServerWithCatalog(context.Background(), config.Options{HTTPAddr: "127.0.0.1:0", DatabasePath: t.TempDir() + "/balemoh.db", NotificationRetentionDays: days}, sqlite.RunMigrations)
+			_, db, _, service, _, err := constructServerWithCatalog(context.Background(), config.Options{HTTPAddr: "127.0.0.1:0", DatabasePath: t.TempDir() + "/balemoh.db", NotificationRetentionDays: days}, sqlite.RunMigrations)
 			if err != nil {
 				t.Fatal(err)
 			}

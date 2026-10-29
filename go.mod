@@ -3,6 +3,7 @@ module github.com/araihu/balemoh
 go 1.27.3
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/andybalholm/brotli v1.2.6
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
@@ -53,6 +54,7 @@ require (
 	github.com/go-openapi/swag/jsonname v0.26.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/cel-go v0.29.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
@@ -115,6 +117,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
