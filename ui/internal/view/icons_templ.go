@@ -18,7 +18,6 @@ import (
 	"github.com/araihu/goshtoso/components/link"
 	"github.com/araihu/goshtoso/components/tagslist"
 	"github.com/araihu/goshtoso/components/textinput"
-	"github.com/araihu/goshtoso/components/toolbar"
 	"strconv"
 	"strings"
 )
@@ -57,7 +56,7 @@ func LibraryImage(i LibraryIcon) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.URL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 22, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 21, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -93,12 +92,6 @@ func IconsContent(data IconPage) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if data.Editing == nil && data.Details == nil {
-			templ_7745c5c3_Err = toolbar.Toolbar(toolbar.Config{Label: "Icon actions", Actions: IconPageActions(data)}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
 		if (data.Editing != nil || data.Details != nil) && data.Error != "" {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<p role=\"alert\">")
 			if templ_7745c5c3_Err != nil {
@@ -107,7 +100,7 @@ func IconsContent(data IconPage) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 31, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 27, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -170,7 +163,7 @@ func IconSearch(data IconPage) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(iconSearchPath(data.Picker))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 44, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 40, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
@@ -183,7 +176,7 @@ func IconSearch(data IconPage) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(!data.Picker))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 44, Col: 277}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 40, Col: 277}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 		if templ_7745c5c3_Err != nil {
@@ -193,14 +186,20 @@ func IconSearch(data IconPage) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = textinput.TextInput(textinput.Config{ID: iconSearchID(data.Picker), Name: "q", Label: "Search icons", Type: textinput.TypeSearch, Value: data.Query, Placeholder: "Name or tag"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = textinput.TextInput(textinput.Config{ID: iconSearchID(data.Picker), Name: "q", Label: "Search icons", Type: textinput.TypeSearch, Value: data.Query, Placeholder: "Name or tag", InputAttrs: templ.Attributes{"style": "min-height:2.75rem"}}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		config := combobox.Config{ID: iconSearchID(data.Picker) + "-sources", Name: "source", Label: "Icon sources", Placeholder: "All sources", Mode: combobox.ModeMultiple, EnableClearAll: true, DisablePersistence: true, Selected: data.Sources, Source: combobox.Source{Static: []combobox.Option{{Value: "goshtoso", Label: "Goshtoso"}, {Value: "selfhst", Label: "selfh.st"}, {Value: "uploads", Label: "Uploads"}}}}
+		config := combobox.Config{ID: iconSearchID(data.Picker) + "-sources", Name: "source", Label: "Icon sources", Placeholder: "All sources", Mode: combobox.ModeMultiple, EnableClearAll: true, DisablePersistence: true, Selected: data.Sources, RootClass: "balemoh-icon-source-filter", TriggerAttrs: templ.Attributes{"style": "min-width:0;min-height:2.75rem"}, Source: combobox.Source{Static: []combobox.Option{{Value: "goshtoso", Label: "Goshtoso"}, {Value: "selfhst", Label: "selfh.st"}, {Value: "uploads", Label: "Uploads"}}}}
 		templ_7745c5c3_Err = combobox.Combobox(config, config.InitialState()).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
+		}
+		if !data.Picker {
+			templ_7745c5c3_Err = IconPageActions(data).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div>")
 		if templ_7745c5c3_Err != nil {
@@ -305,7 +304,7 @@ func IconUploadDrawerBody(i LibraryIcon, message string) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(message)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 65, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 64, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -356,7 +355,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 		var templ_7745c5c3_Var13 templ.SafeURL
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(iconSaveURL(i.ID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 72, Col: 104}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 71, Col: 104}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -374,7 +373,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + target)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 74, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 73, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
@@ -401,7 +400,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(iconUsageLabel(len(i.UsedBy)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 79, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 78, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -419,7 +418,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(i.UsedBy, ", "))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 81, Col: 35}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 80, Col: 35}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -438,7 +437,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.Digest)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 84, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 83, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 		if templ_7745c5c3_Err != nil {
@@ -549,7 +548,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 			var templ_7745c5c3_Var21 templ.SafeURL
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/icons/" + i.ID + "/delete"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 108, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 107, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -562,7 +561,7 @@ func IconUploadForm(i LibraryIcon, target string) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.Digest)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 109, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 108, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
 			if templ_7745c5c3_Err != nil {
@@ -643,7 +642,7 @@ func IconResults(data IconPage) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 123, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 122, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -661,7 +660,7 @@ func IconResults(data IconPage) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d icons", data.Total))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 125, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 124, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -876,7 +875,7 @@ func IconTileBody(i LibraryIcon, picker bool) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 164, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 163, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var34)
 		if templ_7745c5c3_Err != nil {
@@ -910,7 +909,7 @@ func IconTileBody(i LibraryIcon, picker bool) templ.Component {
 				var templ_7745c5c3_Var36 string
 				templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(i.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 168, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 167, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 				if templ_7745c5c3_Err != nil {
@@ -938,7 +937,7 @@ func IconTileBody(i LibraryIcon, picker bool) templ.Component {
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(i.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 172, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 171, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -951,7 +950,7 @@ func IconTileBody(i LibraryIcon, picker bool) templ.Component {
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(i.Source)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 173, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 172, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -1003,7 +1002,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 			var templ_7745c5c3_Var40 string
 			templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(message)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 182, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 181, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 			if templ_7745c5c3_Err != nil {
@@ -1026,7 +1025,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 			var templ_7745c5c3_Var41 string
 			templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(i.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 186, Col: 14}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 185, Col: 14}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 			if templ_7745c5c3_Err != nil {
@@ -1039,7 +1038,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 			var templ_7745c5c3_Var42 string
 			templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(i.Source)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 188, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 187, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 			if templ_7745c5c3_Err != nil {
@@ -1057,7 +1056,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 				var templ_7745c5c3_Var43 string
 				templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(i.Tags)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 190, Col: 29}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 189, Col: 29}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 				if templ_7745c5c3_Err != nil {
@@ -1076,7 +1075,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 				var templ_7745c5c3_Var44 string
 				templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(i.License)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 193, Col: 35}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 192, Col: 35}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 				if templ_7745c5c3_Err != nil {
@@ -1104,7 +1103,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 					var templ_7745c5c3_Var45 string
 					templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.LightURL)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 199, Col: 69}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 198, Col: 69}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var45)
 					if templ_7745c5c3_Err != nil {
@@ -1117,7 +1116,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 					var templ_7745c5c3_Var46 string
 					templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.Name + " light variant")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 199, Col: 122}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 198, Col: 122}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var46)
 					if templ_7745c5c3_Err != nil {
@@ -1136,7 +1135,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 					var templ_7745c5c3_Var47 string
 					templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.DarkURL)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 202, Col: 67}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 201, Col: 67}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 					if templ_7745c5c3_Err != nil {
@@ -1149,7 +1148,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 					var templ_7745c5c3_Var48 string
 					templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.ResolveAttributeValue(i.Name + " dark variant")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 202, Col: 119}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 201, Col: 119}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var48)
 					if templ_7745c5c3_Err != nil {
@@ -1177,7 +1176,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 				var templ_7745c5c3_Var49 string
 				templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(iconUsageLabel(len(i.UsedBy)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 207, Col: 37}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 206, Col: 37}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 				if templ_7745c5c3_Err != nil {
@@ -1195,7 +1194,7 @@ func IconDetails(i LibraryIcon, message string) templ.Component {
 					var templ_7745c5c3_Var50 string
 					templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(i.UsedBy, ", "))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 209, Col: 36}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/icons.templ`, Line: 208, Col: 36}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 					if templ_7745c5c3_Err != nil {
