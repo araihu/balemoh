@@ -158,7 +158,7 @@ templ NotificationList(page NotificationsPage, tray bool) {
 
 templ NotificationItem(item Notification, page NotificationsPage, tray bool) {
 	<li id={ notificationItemID(item.ID, tray) } class="balemoh-notification-tray-row">
-		@NotificationIdentityIcon(item)
+		@NotificationProducerIcon(item)
 		<div class="balemoh-notification-row-content">
 			<div class="balemoh-notification-row-title">
 				if item.HasDestination {
@@ -176,6 +176,7 @@ templ NotificationItem(item Notification, page NotificationsPage, tray bool) {
 				}
 			</div>
 			<div class="balemoh-notification-row-meta"><span>{ notificationCompactSource(item) }</span><time datetime={ item.ReceivedAt.UTC().Format(time.RFC3339Nano) } title={ item.ReceivedAt.UTC().Format(time.RFC1123) }>{ notificationAge(item.ReceivedAt) }</time></div>
+			@NotificationServiceContext(item)
 			if item.Body!="" {
 				if tray {
 					<p class="balemoh-notification-preview">{ item.Body }</p>
@@ -315,13 +316,16 @@ templ NotificationProducerIcon(item Notification) {
  </span>
 }
 
-// The affected service and the producing plugin are different identities.
-templ NotificationIdentityIcon(item Notification) {
- if item.ServiceIcon.URL!="" || item.ServiceIcon.Symbol!="" {
-  <span class="balemoh-notification-source-icon" data-service-id={item.ServiceID} title={item.ServiceName}>
-   @LibraryImage(item.ServiceIcon)
-  </span>
- } else {
-  @NotificationProducerIcon(item)
+// Service context supplements the producer identity only after host resolution.
+templ NotificationServiceContext(item Notification) {
+ if item.ServiceName!="" {
+  <div class="balemoh-notification-service" data-service-id={item.ServiceID} title={item.ServiceName}>
+   if item.ServiceIcon.URL!="" || item.ServiceIcon.Symbol!="" {
+    @LibraryImage(item.ServiceIcon)
+   } else {
+    @icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:heroicons.Icon16SolidCube,Decorative:true})
+   }
+   <span>{item.ServiceName}</span>
+  </div>
  }
 }
