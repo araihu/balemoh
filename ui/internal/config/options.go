@@ -14,6 +14,8 @@ import (
 
 // Options configures the Balemoh server-rendered UI BFF.
 type Options struct {
+	// PublicURL is the HTTPS origin used for canonical and social metadata. Empty omits canonical/social metadata in the public demo.
+	PublicURL string `env:"BALEMOH_UI_PUBLIC_URL"`
 	// ReadOnly requires a loopback synthetic API and serves a shared public demo with operator writes and SSE disabled, a 16-request concurrency budget and a global 20 requests/second rate with a 40-request burst.
 	ReadOnly bool `env:"BALEMOH_UI_READ_ONLY" envDefault:"false"`
 
@@ -80,6 +82,12 @@ func normalize(options Options) Options {
 // Validate rejects configuration that would make the UI unusable or send
 // requests to an ambiguous upstream URL.
 func (o Options) Validate() error {
+	if o.PublicURL != "" {
+		u, err := url.Parse(o.PublicURL)
+		if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+			return fmt.Errorf("public URL must be an HTTPS origin without credentials, query or fragment")
+		}
+	}
 	if o.Theme != "goshtoso" && o.Theme != "minimal" {
 		return fmt.Errorf("unsupported UI theme")
 	}

@@ -40,6 +40,7 @@ func addressMenuItems(addresses []string) []dropdown.Item {
 // pages. It deliberately contains no generated API types.
 type PageData struct {
 	ReadOnly           bool
+	PublicURL          string
 	Attributions       bool
 	Appearance         Appearance
 	Themes             ThemesPage

@@ -11,7 +11,7 @@ import (
 
 // PublicReadOnly applies a fixed global budget, independent of visitor identity.
 // It allocates no visitor sessions and never trusts client IP headers.
-func PublicReadOnly(next http.Handler) http.Handler {
+func PublicReadOnly(next http.Handler, publicURL string) http.Handler {
 	slots := make(chan struct{}, 16)
 	var mu sync.Mutex
 	tokens, last := 40.0, time.Now()
@@ -65,7 +65,7 @@ func PublicReadOnly(next http.Handler) http.Handler {
 		// TimeoutHandler can return while its child is still cancelling upstream work.
 		inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() { <-slots }()
-			next.ServeHTTP(w, r.WithContext(view.WithReadOnly(r.Context())))
+			next.ServeHTTP(w, r.WithContext(view.WithReadOnly(r.Context(), publicURL)))
 		})
 		cacheable := r.URL.RawQuery == "" && (strings.HasPrefix(p, "/assets/") || strings.HasPrefix(p, "/consoleshell/assets/") || (strings.HasPrefix(p, "/ui/") && (strings.HasSuffix(p, ".js") || p == "/ui/balemoh.css")))
 		http.TimeoutHandler(inner, 8*time.Second, "Demo request timed out. Please retry.").ServeHTTP(&demoResponse{ResponseWriter: w, cacheable: cacheable}, r)

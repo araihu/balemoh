@@ -41,6 +41,8 @@ The cheap health endpoint is separate from admission so overload does not trigge
 probe-driven restarts. Browser refreshes run once a minute, pause in hidden tabs
 and read retained observations. Navigation and filters are per browser; no
 server-side visitor sessions are created. Browser color preferences remain local.
+Set `BALEMOH_UI_PUBLIC_URL` to the demo HTTPS origin for canonical/social metadata; an unset demo origin omits these
+metadata fields and never points visitors at the private instance.
 
 The BFF must be the only public entry point. Keep API, synthetic source and all
 service credentials private. A dedicated `cloudflared` connector can target a

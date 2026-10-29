@@ -18,7 +18,7 @@ func TestPublicReadOnlyDeniesForgedActionsBeforeUpstream(t *testing.T) {
 		{"GET", "/dashboard/events"}, {"GET", "/hosts/a/events"},
 	} {
 		t.Run(request.method+request.path, func(t *testing.T) {
-			h := PublicReadOnly(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("blocked request reached upstream") }))
+			h := publicReadOnly(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("blocked request reached upstream") }))
 			response := httptest.NewRecorder()
 			h.ServeHTTP(response, httptest.NewRequest(request.method, request.path, nil))
 			if response.Code != 403 && response.Code != 404 {
@@ -32,7 +32,7 @@ func TestPublicReadOnlyRetainsBudgetUntilTimedOutWorkStops(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		started := make(chan struct{}, 16)
 		release := make(chan struct{})
-		h := PublicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { started <- struct{}{}; <-release; w.WriteHeader(200) }))
+		h := publicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { started <- struct{}{}; <-release; w.WriteHeader(200) }))
 		var callers sync.WaitGroup
 		for range 16 {
 			callers.Go(func() { h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil)) })
@@ -58,7 +58,7 @@ func TestPublicReadOnlyRetainsBudgetUntilTimedOutWorkStops(t *testing.T) {
 }
 
 func TestPublicReadOnlyGlobalRateAndIndependentHealth(t *testing.T) {
-	h := PublicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	h := publicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
 	limited := false
 	for range 100 {
 		response := httptest.NewRecorder()
@@ -86,7 +86,7 @@ func TestPublicReadOnlyCachesOnlySuccessfulStaticResponses(t *testing.T) {
 		{"/assets/styles.css?variant=anything", 200, false, false}, {"/", 200, false, false},
 	} {
 		t.Run(test.path, func(t *testing.T) {
-			h := PublicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := publicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if test.cookie {
 					w.Header().Set("Set-Cookie", "test=value")
 				}
@@ -104,7 +104,7 @@ func TestPublicReadOnlyCachesOnlySuccessfulStaticResponses(t *testing.T) {
 func TestPublicReadOnlyBoundsConcurrentWorkWithoutVisitorState(t *testing.T) {
 	started := make(chan struct{}, 16)
 	release := make(chan struct{})
-	h := PublicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := publicReadOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		started <- struct{}{}
 		select {
 		case <-release:
@@ -133,12 +133,28 @@ func TestPublicReadOnlyPageHasNoticeAndNoStream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := PublicReadOnly(inner)
+	h := publicReadOnly(inner)
 	for range 2 {
 		response := httptest.NewRecorder()
 		h.ServeHTTP(response, httptest.NewRequest("GET", "/", nil))
 		if response.Code != 200 || !strings.Contains(response.Body.String(), "Shared read-only demo") || strings.Contains(response.Body.String(), `hx-sse:connect=`) {
 			t.Fatalf("demo page=%d", response.Code)
+		}
+	}
+}
+
+func publicReadOnly(next http.Handler) http.Handler { return PublicReadOnly(next, "") }
+
+func TestPublicReadOnlyMetadataDoesNotReferencePrivateInstance(t *testing.T) {
+	for _, origin := range []string{"", "https://demo.example.test"} {
+		inner, err := New(&fakeCatalog{}, time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response := httptest.NewRecorder()
+		PublicReadOnly(inner, origin).ServeHTTP(response, httptest.NewRequest("GET", "/", nil))
+		if response.Code != 200 || strings.Contains(response.Body.String(), "balemoh.decastro.me") || (origin != "" && !strings.Contains(response.Body.String(), origin+"/ui/social-v2.png")) {
+			t.Fatalf("private or incorrect public metadata, status=%d", response.Code)
 		}
 	}
 }

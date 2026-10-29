@@ -90,7 +90,7 @@ func run(ctx context.Context) error {
 	}
 
 	if options.ReadOnly {
-		handler = bff.PublicReadOnly(handler)
+		handler = bff.PublicReadOnly(handler, options.PublicURL)
 	}
 	inner := handler
 	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

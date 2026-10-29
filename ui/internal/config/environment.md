@@ -4,6 +4,7 @@
 
 Options configures the Balemoh server-rendered UI BFF.
 
+ - `BALEMOH_UI_PUBLIC_URL` - PublicURL is the HTTPS origin used for canonical and social metadata. Empty omits canonical/social metadata in the public demo.
  - `BALEMOH_UI_READ_ONLY` (default: `false`) - ReadOnly requires a loopback synthetic API and serves a shared public demo with operator writes and SSE disabled, a 16-request concurrency budget and a global 20 requests/second rate with a 40-request burst.
  - `BALEMOH_UI_NOTIFICATION_OPERATOR_TOKEN_FILE` - NotificationOperatorTokenFile contains the private notification inbox credential. Empty leaves notification fragments unavailable without blocking base pages.
  - `BALEMOH_UI_THEME` (default: `goshtoso`) - Theme selects the shared visual profile theme, goshtoso or minimal.

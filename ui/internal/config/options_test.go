@@ -124,3 +124,14 @@ func TestReadOnlyRequiresLoopbackAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestPublicURLMustBeAnHTTPSOrigin(t *testing.T) {
+	for _, value := range []string{"http://example.test", "https://user:pass@example.test", "https://example.test/path", "https://example.test?query=value", "https://example.test#fragment"} {
+		if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_PUBLIC_URL": value}); err == nil {
+			t.Fatalf("accepted public URL %q", value)
+		}
+	}
+	if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_PUBLIC_URL": "https://demo.example.test"}); err != nil {
+		t.Fatal(err)
+	}
+}

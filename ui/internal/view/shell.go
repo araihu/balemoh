@@ -102,7 +102,7 @@ func ConsolePage(data PageData) templ.Component {
 			Active:        data.Active,
 			Content:       PageContent(data),
 			Head:          AppearanceHead(data.Appearance),
-			Metadata:      &head.MetadataConfig{Image: head.SocialImage{URL: "https://balemoh.decastro.me/ui/social-v2.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}},
+			Metadata:      socialMetadata(data),
 		},
 	)
 }
@@ -114,7 +114,32 @@ func pageURL(staging bool) string {
 	return "https://balemoh.decastro.me/"
 }
 
+func socialMetadata(data PageData) *head.MetadataConfig {
+	origin := "https://balemoh.decastro.me"
+	if data.ReadOnly {
+		origin = data.PublicURL
+		if origin == "" {
+			return nil
+		}
+	}
+	return &head.MetadataConfig{Image: head.SocialImage{URL: origin + "/ui/social-v2.png", MIMEType: "image/png", Width: 1280, Height: 640, Alt: "Balemoh, discover services and pin them to your homelab homepage."}}
+}
+
 func canonicalURL(data PageData) string {
+	if data.ReadOnly {
+		if data.PublicURL == "" {
+			return ""
+		}
+		path := data.Path
+		if path == "" {
+			path = "/"
+			if data.Staging {
+				path = "/staging"
+			}
+		}
+		return data.PublicURL + path
+	}
+
 	if data.Path != "" {
 		return "https://balemoh.decastro.me" + data.Path
 	}

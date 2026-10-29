@@ -360,6 +360,7 @@ func (s *server) serveCSS(w http.ResponseWriter, _ *http.Request) {
 
 func (s *server) render(w http.ResponseWriter, r *http.Request, data view.PageData, status int) {
 	data.ReadOnly = view.ReadOnly(r.Context())
+	data.PublicURL = view.PublicURL(r.Context())
 	display := pluginui.Display(r.Context())
 	data.Theme = display.Theme
 	data.ColorScheme = display.ColorScheme
