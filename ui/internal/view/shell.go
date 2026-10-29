@@ -37,6 +37,28 @@ func ConsolePage(data PageData) templ.Component {
 	if data.Dashboard != nil && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, "/ui/dashboard-layout.js")
 	}
+	navigation := []sidebar.Item{
+		{ID: "nav-home", Label: "Home", Href: "/", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHome, Decorative: true})},
+		{ID: "nav-staging", Label: "Staging", Href: "/staging", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidQueueList, Decorative: true})},
+		{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
+	}
+	config := sidebar.Item{
+		ID:    "nav-config",
+		Label: "Config",
+		Href:  "/presentation",
+		Icon:  icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
+		Items: []sidebar.Item{
+			{ID: "nav-presentation", Label: "Appearance", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
+		},
+	}
+	for _, item := range data.PluginNavigation {
+		if item.ID == "nav-plugin-widgets" {
+			config.Items = append(config.Items, item)
+		} else {
+			navigation = append(navigation, item)
+		}
+	}
+	navigation = append(navigation, config)
 	return consoleshell.Layout(
 		consoleshell.Config{
 			Brand: consoleshell.Brand{
@@ -50,20 +72,7 @@ func ConsolePage(data PageData) templ.Component {
 				Drawer:        true,
 				IconOnlyMenu:  true,
 				DisableSearch: true,
-				Items: append([]sidebar.Item{
-					{ID: "nav-home", Label: "Home", Href: "/", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHome, Decorative: true})},
-					{ID: "nav-staging", Label: "Staging", Href: "/staging", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidQueueList, Decorative: true})},
-					{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
-					{
-						ID:    "nav-config",
-						Label: "Config",
-						Href:  "/presentation",
-						Icon:  icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
-						Items: []sidebar.Item{
-							{ID: "nav-presentation", Label: "Appearance", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
-						},
-					},
-				}, data.PluginNavigation...),
+				Items:         navigation,
 			},
 			Appearance: consoleshell.AppearanceConfig{
 				DefaultTheme:       data.Appearance.Theme,

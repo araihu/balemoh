@@ -10,7 +10,6 @@ import (
  "github.com/araihu/goshtoso/components/fileinput"
  "github.com/araihu/goshtoso/components/icon"
  "github.com/araihu/goshtoso/components/link"
- "github.com/araihu/goshtoso/components/toolbar"
  "github.com/araihu/goshtoso/components/textinput"
  "github.com/araihu/goshtoso/components/tagslist"
 )
@@ -24,9 +23,6 @@ templ LibraryImage(i LibraryIcon) {
 }
 
 templ IconsContent(data IconPage) {
- if data.Editing == nil && data.Details == nil {
-  @toolbar.Toolbar(toolbar.Config{Label:"Icon actions",Actions:IconPageActions(data)})
- }
  if (data.Editing != nil || data.Details != nil) && data.Error != "" {
   <p role="alert">{data.Error}</p>
  }
@@ -42,9 +38,12 @@ templ IconsContent(data IconPage) {
 
 templ IconSearch(data IconPage) {
  <div class="balemoh-icon-search" hx-get={iconSearchPath(data.Picker)} hx-trigger="input delay:300ms, combobox:change" hx-target="#icon-picker-results" hx-swap="outerHTML" hx-sync="#icon-picker-results:replace" hx-include="this" hx-replace-url={strconv.FormatBool(!data.Picker)}>
-  @textinput.TextInput(textinput.Config{ID:iconSearchID(data.Picker),Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag"})
-  {{ config := combobox.Config{ID:iconSearchID(data.Picker)+"-sources",Name:"source",Label:"Icon sources",Placeholder:"All sources",Mode:combobox.ModeMultiple,EnableClearAll:true,DisablePersistence:true,Selected:data.Sources,Source:combobox.Source{Static:[]combobox.Option{{Value:"goshtoso",Label:"Goshtoso"},{Value:"selfhst",Label:"selfh.st"},{Value:"uploads",Label:"Uploads"}}}} }}
+  @textinput.TextInput(textinput.Config{ID:iconSearchID(data.Picker),Name:"q",Label:"Search icons",Type:textinput.TypeSearch,Value:data.Query,Placeholder:"Name or tag",InputAttrs:templ.Attributes{"style":"min-height:2.75rem"}})
+  {{ config := combobox.Config{ID:iconSearchID(data.Picker)+"-sources",Name:"source",Label:"Icon sources",Placeholder:"All sources",Mode:combobox.ModeMultiple,EnableClearAll:true,DisablePersistence:true,Selected:data.Sources,RootClass:"balemoh-icon-source-filter",TriggerAttrs:templ.Attributes{"style":"min-width:0;min-height:2.75rem"},Source:combobox.Source{Static:[]combobox.Option{{Value:"goshtoso",Label:"Goshtoso"},{Value:"selfhst",Label:"selfh.st"},{Value:"uploads",Label:"Uploads"}}}} }}
   @combobox.Combobox(config,config.InitialState())
+  if !data.Picker {
+   @IconPageActions(data)
+  }
  </div>
 }
 
