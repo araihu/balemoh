@@ -46,7 +46,7 @@ func (h Handler) RegisterWebPush(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-func (h Handler) DeleteWebPush(w http.ResponseWriter, r *http.Request) {
+func (h Handler) DeleteWebPush(w http.ResponseWriter, r *http.Request, params generated.DeleteWebPushParams) {
 	w.Header().Set("Cache-Control", "no-store")
 	if !h.notificationOperatorAuth(w, r) {
 		return
@@ -55,13 +55,7 @@ func (h Handler) DeleteWebPush(w http.ResponseWriter, r *http.Request) {
 		writeNotificationUnavailable(w)
 		return
 	}
-	var token struct {
-		Token string `json:"token"`
-	}
-	if !decodePushRequest(w, r, &token) {
-		return
-	}
-	if err := h.webPush.Delete(r.Context(), token.Token); err != nil {
+	if err := h.webPush.Delete(r.Context(), params.XPushToken); err != nil {
 		writePushError(w, err)
 		return
 	}

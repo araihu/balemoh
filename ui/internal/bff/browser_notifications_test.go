@@ -24,7 +24,7 @@ func (f *pushFixture) RegisterWebPush(context.Context, api.WebPushRegistration) 
 	f.saves++
 	return nil
 }
-func (f *pushFixture) DeleteWebPush(context.Context, api.WebPushToken) error { f.deletes++; return nil }
+func (f *pushFixture) DeleteWebPush(context.Context, webPushToken) error { f.deletes++; return nil }
 func TestWebPushBFFProtectionAndManifest(t *testing.T) {
 	f := &pushFixture{settings: api.WebPushSettings{Enabled: true, PublicKey: "public"}}
 	h, err := New(f, time.Second)
@@ -76,9 +76,13 @@ func TestWebPushClientUsesOnlyNotificationAuthority(t *testing.T) {
 		if r.URL.Path != "/api/v1/notifications/push" {
 			t.Error("wrong upstream route")
 		}
-		if r.Method == "GET" {
+		if r.Method == "GET" || r.Method == "DELETE" {
 			if r.Header.Get("X-Push-Token") != "device-private" {
 				t.Error("device token missing")
+			}
+			if r.Method == "DELETE" {
+				w.WriteHeader(204)
+				return
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"enabled":true,"publicKey":"public","subscribed":false}`))
@@ -101,7 +105,7 @@ func TestWebPushClientUsesOnlyNotificationAuthority(t *testing.T) {
 	if err = client.RegisterWebPush(t.Context(), api.WebPushRegistration{}); err != nil {
 		t.Fatal(err)
 	}
-	if err = client.DeleteWebPush(t.Context(), api.WebPushToken{Token: "device-private"}); err != nil {
+	if err = client.DeleteWebPush(t.Context(), webPushToken{Token: "device-private"}); err != nil {
 		t.Fatal(err)
 	}
 }

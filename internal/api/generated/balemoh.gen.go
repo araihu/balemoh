@@ -1299,31 +1299,27 @@ type UploadedIcon struct {
 	UsedBy []string `json:"usedBy"`
 }
 
-// WebPushRegistration defines model for WebPushRegistration.
+// WebPushRegistration Subscription paired with its private browser ownership token.
 type WebPushRegistration struct {
+	// Subscription Browser push endpoint and public encryption material from PushManager.
 	Subscription WebPushSubscription `json:"subscription"`
 	Token        string              `json:"token"`
 }
 
-// WebPushSettings defines model for WebPushSettings.
+// WebPushSettings Public push capability and subscription status for one browser token.
 type WebPushSettings struct {
 	Enabled    bool   `json:"enabled"`
 	PublicKey  string `json:"publicKey"`
 	Subscribed bool   `json:"subscribed"`
 }
 
-// WebPushSubscription defines model for WebPushSubscription.
+// WebPushSubscription Browser push endpoint and public encryption material from PushManager.
 type WebPushSubscription struct {
 	Endpoint string `json:"endpoint"`
 	Keys     struct {
 		Auth   string `json:"auth"`
 		P256dh string `json:"p256dh"`
 	} `json:"keys"`
-}
-
-// WebPushToken defines model for WebPushToken.
-type WebPushToken struct {
-	Token string `json:"token"`
 }
 
 // PresentationExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
@@ -1411,6 +1407,12 @@ type GetNotificationsParams struct {
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// DeleteWebPushParams defines parameters for DeleteWebPush.
+type DeleteWebPushParams struct {
+	// XPushToken Private browser management token identifying the subscription to remove. Never log or put in URLs.
+	XPushToken string `json:"X-Push-Token"`
+}
+
 // GetWebPushSettingsParams defines parameters for GetWebPushSettings.
 type GetWebPushSettingsParams struct {
 	// XPushToken Optional private browser management token. Never log or put in URLs.
@@ -1469,9 +1471,6 @@ type UpdateIconJSONRequestBody = IconUpload
 
 // PublishNotificationJSONRequestBody defines body for PublishNotification for application/json ContentType.
 type PublishNotificationJSONRequestBody = NotificationPublishRequest
-
-// DeleteWebPushJSONRequestBody defines body for DeleteWebPush for application/json ContentType.
-type DeleteWebPushJSONRequestBody = WebPushToken
 
 // RegisterWebPushJSONRequestBody defines body for RegisterWebPush for application/json ContentType.
 type RegisterWebPushJSONRequestBody = WebPushRegistration
@@ -1564,7 +1563,7 @@ type ServerInterface interface {
 	PublishNotification(w http.ResponseWriter, r *http.Request)
 	// Delete this browser subscription and pending deliveries
 	// (DELETE /api/v1/notifications/push)
-	DeleteWebPush(w http.ResponseWriter, r *http.Request)
+	DeleteWebPush(w http.ResponseWriter, r *http.Request, params DeleteWebPushParams)
 	// Get Web Push capability and this browser subscription state
 	// (GET /api/v1/notifications/push)
 	GetWebPushSettings(w http.ResponseWriter, r *http.Request, params GetWebPushSettingsParams)
@@ -2147,14 +2146,45 @@ func (siw *ServerInterfaceWrapper) PublishNotification(w http.ResponseWriter, r 
 // DeleteWebPush operation middleware
 func (siw *ServerInterfaceWrapper) DeleteWebPush(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
 	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, NotificationOperatorScopes, []string{})
 
 	r = r.WithContext(ctx)
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteWebPushParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-Push-Token" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Push-Token")]; found {
+		var XPushToken string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Push-Token", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Push-Token", valueList[0], &XPushToken, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Push-Token", Err: err})
+			return
+		}
+
+		params.XPushToken = XPushToken
+
+	} else {
+		err := fmt.Errorf("Header parameter X-Push-Token is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Push-Token", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteWebPush(w, r)
+		siw.Handler.DeleteWebPush(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {

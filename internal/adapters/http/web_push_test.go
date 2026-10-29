@@ -49,7 +49,7 @@ func TestWebPushAPIAuthenticationOwnershipValidationAndRemoval(t *testing.T) {
 	}
 	for _, method := range []string{"GET", "POST", "DELETE"} {
 		for _, credential := range []string{"", "publisher", "invalid"} {
-			if w := call(method, credential, "", `{}`); w.Code != 401 {
+			if w := call(method, credential, token, `{}`); w.Code != 401 {
 				t.Fatalf("%s accepted non-operator: %d", method, w.Code)
 			}
 		}
@@ -72,8 +72,7 @@ func TestWebPushAPIAuthenticationOwnershipValidationAndRemoval(t *testing.T) {
 	if w := call("POST", "operator", "", string(body)); w.Code != 409 {
 		t.Fatal("endpoint ownership bypass")
 	}
-	deletion, _ := json.Marshal(map[string]string{"token": token})
-	if w := call("DELETE", "operator", "", string(deletion)); w.Code != 204 {
+	if w := call("DELETE", "operator", token, ""); w.Code != 204 {
 		t.Fatal("unsubscribe failed")
 	}
 	exists, err := store.Exists(t.Context(), mustPushID(t, token), time.Now())

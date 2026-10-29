@@ -8,10 +8,14 @@ import (
 	"net/http"
 )
 
+type webPushToken struct {
+	Token string `json:"token"`
+}
+
 type WebPushCatalog interface {
 	WebPushSettings(context.Context, string) (api.WebPushSettings, error)
 	RegisterWebPush(context.Context, api.WebPushRegistration) error
-	DeleteWebPush(context.Context, api.WebPushToken) error
+	DeleteWebPush(context.Context, webPushToken) error
 }
 
 func (c *APIClient) WebPushSettings(ctx context.Context, token string) (api.WebPushSettings, error) {
@@ -46,12 +50,12 @@ func (c *APIClient) RegisterWebPush(ctx context.Context, registration api.WebPus
 	}
 	return nil
 }
-func (c *APIClient) DeleteWebPush(ctx context.Context, token api.WebPushToken) error {
+func (c *APIClient) DeleteWebPush(ctx context.Context, token webPushToken) error {
 	auth, err := c.notificationAuthority()
 	if err != nil {
 		return err
 	}
-	response, err := c.client.DeleteWebPushWithResponse(ctx, token, auth)
+	response, err := c.client.DeleteWebPushWithResponse(ctx, &api.DeleteWebPushParams{XPushToken: token.Token}, auth)
 	if err != nil {
 		return &upstreamError{operation: "Web Push", cause: err}
 	}
@@ -91,7 +95,7 @@ func (s *server) webPush(w http.ResponseWriter, r *http.Request) {
 		}
 		err = client.RegisterWebPush(ctx, registration)
 	case "DELETE":
-		var token api.WebPushToken
+		var token webPushToken
 		if !decodeWebPush(w, r, &token) {
 			return
 		}
