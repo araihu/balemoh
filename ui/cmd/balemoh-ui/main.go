@@ -42,6 +42,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	if options.ReadOnly {
+		if err := waitForDemoAPI(ctx, options.APIBaseURL, &http.Client{Timeout: options.RequestTimeout}); err != nil {
+			return err
+		}
+	}
 	apiClient, err := bff.NewAPIClient(options.APIBaseURL, &http.Client{Timeout: options.RequestTimeout})
 	if err != nil {
 		return err

@@ -113,3 +113,14 @@ func TestAppearanceEnvironment(t *testing.T) {
 		}
 	}
 }
+
+func TestReadOnlyRequiresLoopbackAPI(t *testing.T) {
+	for _, address := range []string{"https://private.example.test", "http://localhost:8080", "http://127.0.0.1:8080/private"} {
+		if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_READ_ONLY": "true", "BALEMOH_UI_API_BASE_URL": address}); err == nil {
+			t.Fatalf("accepted %s", address)
+		}
+	}
+	if _, err := ParseEnvironment(map[string]string{"BALEMOH_UI_READ_ONLY": "true"}); err != nil {
+		t.Fatal(err)
+	}
+}

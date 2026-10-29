@@ -24,10 +24,13 @@ credentials, Docker socket or production data are used.
 `BALEMOH_READ_ONLY=true` denies operator API writes while retaining authenticated
 federation imports and private retained plugin queries. It is an HTTP write
 policy, not a read-only SQLite file. `BALEMOH_DEMO_ENABLED=true` additionally
-requires explicit loopback API/source listeners, disables real collectors and
+requires explicit loopback API/source listeners, refuses existing databases without
+its synthetic ownership marker, restricts plugins to the synthetic source, disables real collectors and
 federation configuration, and initializes synthetic data internally. The initial
 plugin widgets are provisioned for the explicit `araihu.alertmanager/demo`
 connection only.
+
+The public BFF verifies the synthetic API profile before opening its listener.
 
 `BALEMOH_UI_READ_ONLY=true` denies public BFF writes and editing routes, disables
 mutation controls and SSE, and enables a global 16-request concurrency limit with
@@ -311,4 +314,4 @@ The image starts `/balemoh` by default. Set the container command to
 needs `BALEMOH_UI_API_BASE_URL` pointing to the API. Kubernetes discovery uses
 read-only RBAC on the API service account; the UI needs no Kubernetes token.
 
-Container check: `bash hack/smoke-image.sh IMAGE`.
+Container checks: `bash hack/smoke-image.sh IMAGE` and `bash hack/smoke-demo.sh IMAGE`.

@@ -81,3 +81,5 @@ jobs:
           cache-from: type=gha
       - name: Check API and UI
         run: bash hack/smoke-image.sh balemoh:check
+      - name: Check shared read-only synthetic demo
+        run: bash hack/smoke-demo.sh balemoh:check

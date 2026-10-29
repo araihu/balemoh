@@ -26,6 +26,9 @@ func pluginDeployment(options config.Options) (*pluginadapter.Deployment, string
 		return nil, "", errors.New("invalid plugin service credential file")
 	}
 	deployment, err := pluginadapter.Load(options.PluginConfig)
+	if err == nil && options.DemoEnabled {
+		err = deployment.ValidateDemo("http://" + options.DemoAlertmanagerAddr)
+	}
 	return deployment, token, err
 }
 func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployment *pluginadapter.Deployment, token string, catalogService *catalog.Service, notificationService *notifications.Service, demoEnabled bool) (func(), error) {
