@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -76,6 +77,8 @@ type Destination struct {
 
 // Message is the producer-supplied notification content.
 type Message struct {
+	// ServiceID is a presentation reference; it is not navigation or event content.
+	ServiceID   string      `json:"serviceId,omitempty"`
 	EventID     string      `json:"eventId"`
 	Severity    Severity    `json:"severity"`
 	Title       string      `json:"title"`
@@ -86,6 +89,7 @@ type Message struct {
 
 // Notification is the durable inbox projection.
 type Notification struct {
+	ServiceID   string      `json:"serviceId,omitempty"`
 	ID          string      `json:"id"`
 	Source      Source      `json:"source"`
 	EventID     string      `json:"eventId"`
@@ -174,6 +178,9 @@ func (s Source) Validate() error {
 
 func (m Message) Validate(now time.Time) error {
 	m = m.Normalize()
+	if err := validateServiceID(m.ServiceID); err != nil {
+		return err
+	}
 	if err := validateText(m.EventID, "event ID", MaxEventIDBytes, false); err != nil {
 		return err
 	}
@@ -338,6 +345,7 @@ func CanonicalMessageJSON(message Message) ([]byte, error) {
 		destination = &normalized
 	}
 	canonicalMessage := struct {
+		ServiceID   string       `json:"serviceId,omitempty"`
 		EventID     string       `json:"eventId"`
 		Severity    Severity     `json:"severity"`
 		Title       string       `json:"title"`
@@ -345,7 +353,7 @@ func CanonicalMessageJSON(message Message) ([]byte, error) {
 		OccurredAt  time.Time    `json:"occurredAt"`
 		Destination *Destination `json:"destination,omitempty"`
 	}{
-		EventID: message.EventID, Severity: message.Severity, Title: message.Title,
+		ServiceID: message.ServiceID, EventID: message.EventID, Severity: message.Severity, Title: message.Title,
 		Body: message.Body, OccurredAt: message.OccurredAt.UTC(), Destination: destination,
 	}
 	return json.Marshal(canonicalMessage)
@@ -364,6 +372,8 @@ func EnvelopeBytes(message Message) (int, error) {
 // replay and conflict detection. encoding/json sorts map keys, making this
 // stable. The source is deliberately excluded from EnvelopeBytes.
 func CanonicalPayload(source Source, message Message) ([]byte, error) {
+	// Presentation metadata may be filled once without changing immutable content.
+	message.ServiceID = ""
 	canonicalMessage, err := CanonicalMessageJSON(message)
 	if err != nil {
 		return nil, err
@@ -372,4 +382,13 @@ func CanonicalPayload(source Source, message Message) ([]byte, error) {
 		Source  Source          `json:"source"`
 		Message json.RawMessage `json:"message"`
 	}{Source: source.Normalize(), Message: canonicalMessage})
+}
+
+func validateServiceID(id string) error {
+	if id != "" {
+		if _, err := hex.DecodeString(id); err != nil || len(id) != 64 || id != strings.ToLower(id) {
+			return fmt.Errorf("%w: invalid service identity", ErrInvalid)
+		}
+	}
+	return nil
 }

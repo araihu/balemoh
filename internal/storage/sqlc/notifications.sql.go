@@ -41,9 +41,23 @@ func (q *Queries) CountUnreadNotifications(ctx context.Context, sinceEpoch int64
 	return count, err
 }
 
+const fillNotificationService = `-- name: FillNotificationService :exec
+UPDATE notifications SET service_id = ? WHERE id = ? AND service_id = ''
+`
+
+type FillNotificationServiceParams struct {
+	ServiceID string `json:"service_id"`
+	ID        string `json:"id"`
+}
+
+func (q *Queries) FillNotificationService(ctx context.Context, arg FillNotificationServiceParams) error {
+	_, err := q.db.ExecContext(ctx, fillNotificationService, arg.ServiceID, arg.ID)
+	return err
+}
+
 const getNotificationByID = `-- name: GetNotificationByID :one
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
-       title, body, occurred_at, received_at, destination_json, payload_json, read_at
+       title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id
 FROM notifications
 WHERE id = ?
 `
@@ -66,13 +80,14 @@ func (q *Queries) GetNotificationByID(ctx context.Context, id string) (Notificat
 		&i.DestinationJson,
 		&i.PayloadJson,
 		&i.ReadAt,
+		&i.ServiceID,
 	)
 	return i, err
 }
 
 const getNotificationByIdentity = `-- name: GetNotificationByIdentity :one
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
-       title, body, occurred_at, received_at, destination_json, payload_json, read_at
+       title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id
 FROM notifications
 WHERE source_kind = ? AND source_id = ? AND connection_id = ? AND event_id = ?
 `
@@ -107,6 +122,7 @@ func (q *Queries) GetNotificationByIdentity(ctx context.Context, arg GetNotifica
 		&i.DestinationJson,
 		&i.PayloadJson,
 		&i.ReadAt,
+		&i.ServiceID,
 	)
 	return i, err
 }
@@ -117,7 +133,7 @@ INSERT INTO notifications (
     occurred_at, received_at, destination_json, payload_json
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING sequence, id, source_kind, source_id, connection_id, event_id, severity,
-          title, body, occurred_at, received_at, destination_json, payload_json, read_at
+          title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id
 `
 
 type InsertNotificationParams struct {
@@ -166,13 +182,14 @@ func (q *Queries) InsertNotification(ctx context.Context, arg InsertNotification
 		&i.DestinationJson,
 		&i.PayloadJson,
 		&i.ReadAt,
+		&i.ServiceID,
 	)
 	return i, err
 }
 
 const listNotifications = `-- name: ListNotifications :many
 SELECT sequence, id, source_kind, source_id, connection_id, event_id, severity,
-       title, body, occurred_at, received_at, destination_json, payload_json, read_at
+       title, body, occurred_at, received_at, destination_json, payload_json, read_at, service_id
 FROM notifications
 WHERE (?1 IS NULL OR sequence < ?1)
   AND (CAST(?2 AS INTEGER) = 0 OR read_at IS NULL)
@@ -217,6 +234,7 @@ func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsPa
 			&i.DestinationJson,
 			&i.PayloadJson,
 			&i.ReadAt,
+			&i.ServiceID,
 		); err != nil {
 			return nil, err
 		}

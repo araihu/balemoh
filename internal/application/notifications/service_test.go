@@ -260,3 +260,7 @@ func TestCanonicalPayloadSortsMaps(t *testing.T) {
 		t.Fatalf("canonical payload differs for map order: %s != %s", first, second)
 	}
 }
+
+func (s *recordingStore) BindService(context.Context, Source, string, string, time.Time) (Receipt, error) {
+	return Receipt{}, ErrNotFound
+}

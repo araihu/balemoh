@@ -11,6 +11,8 @@ import (
 )
 
 type Notification struct {
+	ServiceID, ServiceName                         string
+	ServiceIcon                                    LibraryIcon
 	ID, Title, Body, Severity, Source              string
 	SourceKind, SourceLabel                        string
 	ProducerID, ProducerConnectionID, ProducerPage string

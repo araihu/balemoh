@@ -770,7 +770,10 @@ type Notification struct {
 	OccurredAt  time.Time                `json:"occurredAt"`
 	ReadAt      *time.Time               `json:"readAt"`
 	ReceivedAt  time.Time                `json:"receivedAt"`
-	Severity    NotificationSeverity     `json:"severity"`
+
+	// ServiceId Optional affected service identity, independent from the navigation destination. The host resolves presentation only for granted, visible services.
+	ServiceId *string              `json:"serviceId,omitempty"`
+	Severity  NotificationSeverity `json:"severity"`
 
 	// Source Producer identity assigned by the authenticated publisher or installed plugin connection.
 	Source NotificationSource `json:"source"`
@@ -805,12 +808,15 @@ type NotificationPage struct {
 
 // NotificationPublishRequest External publisher message. The credential determines source identity; eventId deduplicates within that source.
 type NotificationPublishRequest struct {
-	Body        *string                            `json:"body,omitempty"`
-	Destination *NotificationDestination           `json:"destination,omitempty"`
-	EventId     string                             `json:"eventId"`
-	OccurredAt  time.Time                          `json:"occurredAt"`
-	Severity    NotificationPublishRequestSeverity `json:"severity"`
-	Title       string                             `json:"title"`
+	Body        *string                  `json:"body,omitempty"`
+	Destination *NotificationDestination `json:"destination,omitempty"`
+	EventId     string                   `json:"eventId"`
+	OccurredAt  time.Time                `json:"occurredAt"`
+
+	// ServiceId Optional affected service identity, independent from the navigation destination. The host resolves presentation only for granted, visible services.
+	ServiceId *string                            `json:"serviceId,omitempty"`
+	Severity  NotificationPublishRequestSeverity `json:"severity"`
+	Title     string                             `json:"title"`
 }
 
 // NotificationPublishRequestSeverity defines model for NotificationPublishRequest.Severity.

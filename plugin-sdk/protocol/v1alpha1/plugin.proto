@@ -30,6 +30,7 @@ message ServiceIdentities { repeated ServiceIdentity services = 1; }
 // Connection-scoped backend callback. UI children never receive this broker.
 service BackendHost {
   rpc Publish(NotificationPublishRequest) returns (NotificationReceipt);
+ rpc BindService(NotificationServiceBinding) returns (NotificationReceipt);
 }
 message Description {
   string plugin_id = 1;
@@ -111,6 +112,7 @@ message NotificationPublishRequest {
   NotificationMessage message = 1;
 }
 message NotificationMessage {
+  string service_id = 7;
   string event_id = 1;
   string severity = 2;
   string title = 3;
@@ -132,3 +134,5 @@ message NotificationReceipt {
   string id = 1;
   bool created = 2;
 }
+
+message NotificationServiceBinding { string event_id = 1; string service_id = 2; }

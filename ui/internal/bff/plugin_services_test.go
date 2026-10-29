@@ -17,7 +17,7 @@ func TestPluginServicesFollowEffectiveCatalogPresentation(t *testing.T) {
 		{Id: hidden, DisplayName: "Hidden", Status: "hidden"},
 		{Id: missing, DisplayName: "Missing", Status: "live", Missing: true},
 	}}
-	resolver := PluginServiceCatalog{Catalog: catalog}
+	resolver := ServiceCatalog{Catalog: catalog}
 	result, err := resolver.ResolveServices(t.Context(), []string{id, hidden, missing, strings.Repeat("d", 64)})
 	if err != nil || len(result) != 1 || result[0].Name != "Pi-hole" || result[0].IconURL == "" {
 		t.Fatal(result, err)

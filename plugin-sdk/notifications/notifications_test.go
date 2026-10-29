@@ -102,3 +102,28 @@ func withOccurredAt(message notifications.Message, occurredAt time.Time) notific
 	message.OccurredAt = occurredAt
 	return message
 }
+
+func TestServiceReferenceValidationAndJSON(t *testing.T) {
+	validID := strings.Repeat("a", 64)
+	for _, id := range []string{validID, "", strings.Repeat("a", 63), strings.Repeat("A", 64), strings.Repeat("z", 64)} {
+		message := notifications.Message{EventID: "event", Severity: "warning", Title: "Title", OccurredAt: time.Now(), ServiceID: id}
+		err := message.Validate()
+		if (err == nil) != (id == "" || id == validID) {
+			t.Fatalf("message service reference accepted=%v for %q", err == nil, id)
+		}
+		err = notifications.ValidateServiceBinding("event", id)
+		if (err == nil) != (id == validID) {
+			t.Fatalf("binding service reference accepted=%v for %q", err == nil, id)
+		}
+	}
+	if err := notifications.ValidateServiceBinding(strings.Repeat("x", 129), validID); err == nil {
+		t.Fatal("oversized event identity accepted")
+	}
+	message := notifications.Message{EventID: "event", Severity: "warning", Title: "Title", OccurredAt: time.Now()}
+	before, _ := json.Marshal(message)
+	message.ServiceID = validID
+	after, _ := json.Marshal(message)
+	if len(after) <= len(before)+64 {
+		t.Fatal("service reference missing from envelope bound")
+	}
+}

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.1-alpha.3
+
+- Optional `notifications.Message.ServiceID` presentation reference and shared `services.ValidID` validator.
+- Optional `notifications.ServiceBinder` callback and additive `BackendHost.BindService` RPC enrich an existing event without publishing or changing its content or read state.
+- Existing publishers remain source compatible. Older hosts may omit binding support.
+
 ## v0.0.1-alpha.2
 
 - Optional `ui.ServiceCatalog` callback and additive `Host.ResolveServices` RPC.

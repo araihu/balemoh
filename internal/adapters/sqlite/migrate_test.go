@@ -36,8 +36,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := db.QueryRowContext(context.Background(), "SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 15 || dirty {
-		t.Fatalf("schema_migrations = (version %d, dirty %t), want (15, false)", version, dirty)
+	if version != 16 || dirty {
+		t.Fatalf("schema_migrations = (version %d, dirty %t), want (16, false)", version, dirty)
 	}
 }
 
@@ -131,5 +131,44 @@ func TestSeparateLogoMigrationPreservesLegacyBranding(t *testing.T) {
 	var logo, icon string
 	if err = db.QueryRow("SELECT brand_logo_id,brand_icon_id FROM presentation_themes WHERE id='legacy'").Scan(&logo, &icon); err != nil || logo != image.ID || icon != image.ID {
 		t.Fatal("migration changed branding", logo, icon, err)
+	}
+}
+
+func TestNotificationReferenceMigrationPreservesSchema15Inbox(t *testing.T) {
+	db, err := Open(t.Context(), t.TempDir()+"/previous.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	old := fstest.MapFS{}
+	entries, err := migrations.FS.ReadDir(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Name() >= "000016" {
+			continue
+		}
+		data, e := migrations.FS.ReadFile(entry.Name())
+		if e != nil {
+			t.Fatal(e)
+		}
+		old[entry.Name()] = &fstest.MapFile{Data: data}
+	}
+	if err = runMigrations(db, old); err != nil {
+		t.Fatal(err)
+	}
+	payload := `{"original":"unchanged"}`
+	_, err = db.ExecContext(t.Context(), `INSERT INTO notifications(id,source_kind,source_id,connection_id,event_id,severity,title,body,occurred_at,received_at,destination_json,payload_json,read_at) VALUES ('original-id','external','original-source','','event','warning','Keep title','Keep body','2026-10-29T00:00:00Z','2026-10-29T00:00:00Z','{}',?,'2026-10-29T00:01:00Z')`, payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+	var reference, body, title, stored, readAt string
+	err = db.QueryRowContext(t.Context(), `SELECT service_id,body,title,payload_json,read_at FROM notifications WHERE id='original-id'`).Scan(&reference, &body, &title, &stored, &readAt)
+	if err != nil || reference != "" || body != "Keep body" || title != "Keep title" || stored != payload || readAt != "2026-10-29T00:01:00Z" {
+		t.Fatal(reference, body, title, stored, readAt, err)
 	}
 }

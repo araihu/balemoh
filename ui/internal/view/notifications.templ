@@ -160,7 +160,7 @@ templ NotificationList(page NotificationsPage, tray bool) {
 
 templ NotificationItem(item Notification, page NotificationsPage, tray bool) {
 	<li id={ notificationItemID(item.ID, tray) } class="balemoh-notification-tray-row">
-		@NotificationProducerIcon(item)
+		@NotificationIdentityIcon(item)
 		<div class="balemoh-notification-row-content">
 			<div class="balemoh-notification-row-title">
 				if item.HasDestination {
@@ -315,4 +315,15 @@ templ NotificationProducerIcon(item Notification) {
   @icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: notificationIconSymbol(item), Decorative: true})
  }
  </span>
+}
+
+// The affected service and the producing plugin are different identities.
+templ NotificationIdentityIcon(item Notification) {
+ if item.ServiceIcon.URL!="" || item.ServiceIcon.Symbol!="" {
+  <span class="balemoh-notification-source-icon" data-service-id={item.ServiceID} title={item.ServiceName}>
+   @LibraryImage(item.ServiceIcon)
+  </span>
+ } else {
+  @NotificationProducerIcon(item)
+ }
 }

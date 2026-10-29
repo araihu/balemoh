@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -581,4 +582,17 @@ func (r Reference) Validate() error {
 		return fmt.Errorf("invalid plugin widget reference")
 	}
 	return nil
+}
+
+// AllowsServiceID consults installation metadata only. Retained notifications
+// must not depend on child processes or current source observations.
+func (r *Registry) AllowsServiceID(plugin, connection, id string) bool {
+	if r == nil {
+		return false
+	}
+	e := r.find(plugin, connection)
+	return e != nil && e.allowsServiceID(id)
+}
+func (e *Entry) allowsServiceID(id string) bool {
+	return e.Package != nil && e.Problem == nil && ui.ValidServiceID(id) && e.Package.Manifest.Declares(ui.ServiceCatalogCapability) && slices.Contains(e.Installation.ServiceIDs, id)
 }

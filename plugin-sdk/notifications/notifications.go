@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/araihu/balemoh/plugin-sdk/services"
 	"net/url"
 	"strconv"
 	"strings"
@@ -48,6 +49,8 @@ const (
 // Message is the source payload accepted by the host notification service.
 // Source identity is intentionally absent; the host owns it.
 type Message struct {
+	// ServiceID references the affected service, independently from navigation.
+	ServiceID   string       `json:"serviceId,omitempty"`
 	EventID     string       `json:"eventId"`
 	Severity    string       `json:"severity"`
 	Title       string       `json:"title"`
@@ -79,6 +82,20 @@ type Receipt struct {
 
 // Publisher is the backend-only host callback. Implementations must not add
 // source identity supplied by a child.
+// ServiceBinder attaches an affected-service reference to an existing event.
+// It never creates a notification, changes its content, or changes read state.
+// The source is the same host-bound source as Publisher. Binding is optional.
+type ServiceBinder interface {
+	BindService(context.Context, string, string) (Receipt, error)
+}
+
+func ValidateServiceBinding(eventID, serviceID string) error {
+	if !validText(eventID, "event ID", 128, false) || !services.ValidID(serviceID) {
+		return Fail("invalid_argument")
+	}
+	return nil
+}
+
 type Publisher interface {
 	Publish(context.Context, Message) (Receipt, error)
 }
@@ -94,6 +111,7 @@ type Error struct {
 func (e *Error) Error() string { return e.Code }
 
 var errorMessages = map[string]string{
+	"not_found":          "Notification event was not found.",
 	"invalid_argument":   "Notification publication input is invalid.",
 	"permission_denied":  "Notification publication is not granted.",
 	"conflict":           "Notification publication conflicts with an existing event.",
@@ -133,6 +151,9 @@ func Code(err error) string {
 // size. The host performs the authoritative source, timestamp and destination
 // policy checks as well.
 func (m Message) Validate() error {
+	if m.ServiceID != "" && !services.ValidID(m.ServiceID) {
+		return Fail("invalid_argument")
+	}
 	if !validText(m.EventID, "event ID", 128, false) || !validText(m.Title, "title", 0, false) || !validText(m.Body, "body", 0, true) || utf8.RuneCountInString(m.Title) > 200 || utf8.RuneCountInString(m.Body) > 4000 {
 		return Fail("invalid_argument")
 	}
@@ -157,6 +178,7 @@ func (m Message) Validate() error {
 }
 
 type canonicalMessage struct {
+	ServiceID   string       `json:"serviceId,omitempty"`
 	EventID     string       `json:"eventId"`
 	Severity    string       `json:"severity"`
 	Title       string       `json:"title"`
@@ -171,7 +193,7 @@ func canonicalMessageJSON(message Message) ([]byte, error) {
 		destination = nil
 	}
 	return json.Marshal(canonicalMessage{
-		EventID: message.EventID, Severity: message.Severity, Title: message.Title,
+		ServiceID: message.ServiceID, EventID: message.EventID, Severity: message.Severity, Title: message.Title,
 		Body: message.Body, OccurredAt: message.OccurredAt.UTC(), Destination: destination,
 	})
 }

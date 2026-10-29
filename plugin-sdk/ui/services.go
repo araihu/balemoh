@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"regexp"
 	"strings"
+
+	"github.com/araihu/balemoh/plugin-sdk/services"
 )
 
 const ServiceCatalogCapability = "catalog.services.read/v1"
@@ -27,9 +28,7 @@ type ServiceIdentity struct {
 	IconSymbol    string `json:"iconSymbol,omitempty"`
 }
 
-var serviceID = regexp.MustCompile(`^[a-f0-9]{64}$`)
-
-func ValidServiceID(id string) bool { return serviceID.MatchString(id) }
+func ValidServiceID(id string) bool { return services.ValidID(id) }
 
 func ValidateServiceIDs(ids []string) error {
 	if len(ids) == 0 || len(ids) > MaxServiceIDs {

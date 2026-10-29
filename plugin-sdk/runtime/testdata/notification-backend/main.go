@@ -17,11 +17,13 @@ import (
 )
 
 type config struct {
-	Publish            bool `json:"publish"`
-	DelayMS            int  `json:"delayMs"`
-	Attempts           int  `json:"attempts"`
-	ConfigureDelayMS   int  `json:"configureDelayMs"`
-	RequireNoPublisher bool `json:"requireNoPublisher"`
+	ServiceID          string `json:"serviceId"`
+	BindEventID        string `json:"bindEventId"`
+	Publish            bool   `json:"publish"`
+	DelayMS            int    `json:"delayMs"`
+	Attempts           int    `json:"attempts"`
+	ConfigureDelayMS   int    `json:"configureDelayMs"`
+	RequireNoPublisher bool   `json:"requireNoPublisher"`
 }
 
 type handler struct {
@@ -58,9 +60,17 @@ func (h *handler) Configure(_ context.Context, c backend.Config) (backend.Status
 		publisher := c.Notifications
 		go func() {
 			time.Sleep(delay)
-			message := notifications.Message{EventID: "fixture-event", Severity: "warning", Title: "Fixture notification", Body: "safe fixture body", OccurredAt: time.Now().UTC()}
+			message := notifications.Message{ServiceID: value.ServiceID, EventID: "fixture-event", Severity: "warning", Title: "Fixture notification", Body: "safe fixture body", OccurredAt: time.Now().UTC()}
 			for range attempts {
 				_, _ = publisher.Publish(context.Background(), message)
+			}
+		}()
+	}
+	if c.Notifications != nil && value.BindEventID != "" {
+		publisher := c.Notifications
+		go func() {
+			if binder, ok := publisher.(notifications.ServiceBinder); ok {
+				_, _ = binder.BindService(context.Background(), value.BindEventID, value.ServiceID)
 			}
 		}()
 	}
