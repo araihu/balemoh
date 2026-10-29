@@ -94,12 +94,10 @@ templ NotificationActionsTrigger() {
 	}
 }
 
-templ NotificationReadAllStatus(message string, failed, oob bool) {
-	if oob {
-		<div id="notification-read-all-status" hx-swap-oob="innerMorph">@NotificationReadAllStatus(message, failed, false)</div>
-	} else if message!="" {
-		<p class="balemoh-notification-status" role={ notificationStatusRole(failed) }>{ message }</p>
-	}
+templ NotificationReadAllError(message string) {
+ if message!="" {
+  <p role="alert">{ message }</p>
+ }
 }
 
 templ NotificationMarkAllForm(returnTo string) {
@@ -235,7 +233,7 @@ templ NotificationsContent(page NotificationsPage) {
 	} else {
 		<div id="notification-center" class="balemoh-notification-center" x-data="{}" x-on:notifications-cleared.window="$dispatch('modal:close', {id:'clear-notifications'})">
 			@panel.Panel(panel.Config{Header: NotificationCenterHeading(page), BodyClass: "balemoh-notification-center-body"}) {
-				<div id="notification-page-read-status" tabindex="-1">@NotificationReadAllStatus(page.BulkError, true, false)</div>
+				<div id="notification-page-read-status" tabindex="-1">@NotificationReadAllError(page.BulkError)</div>
 				<div id="notification-inbox" tabindex="-1">@NotificationInbox(page, false)</div>
 			}
 			@modal.Dialog(modal.DialogConfig{ID: "clear-notifications", Title: "Clear all notifications?", Content: NotificationClearDialog()})

@@ -17,6 +17,7 @@ import (
 	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
 	"github.com/araihu/balemoh/ui/internal/view"
 	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/toast"
 )
 
 // NotificationCatalog never invokes plugin discovery or rendering.
@@ -255,10 +256,10 @@ func (s *server) notificationReadAll(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if tray {
 			w.Header().Set("HX-Retarget", "#notification-read-all-status")
-			renderNotificationFragment(w, r, 503, view.NotificationReadAllStatus("Read state not confirmed. Refresh before trying again.", true, false))
+			renderNotificationFragment(w, r, 503, view.NotificationReadAllError("Read state not confirmed. Refresh before trying again."))
 		} else {
 			w.Header().Set("HX-Retarget", "#notification-page-read-status")
-			renderNotificationFragment(w, r, 503, view.NotificationReadAllStatus("Read state not confirmed. Refresh before trying again.", true, false))
+			renderNotificationFragment(w, r, 503, view.NotificationReadAllError("Read state not confirmed. Refresh before trying again."))
 		}
 		return
 	}
@@ -270,7 +271,7 @@ func (s *server) notificationReadAll(w http.ResponseWriter, r *http.Request) {
 	var component templ.Component
 	if tray {
 		w.Header().Set("HX-Retarget", "#notification-tray")
-		component = templ.Join(view.NotificationList(page, true), view.NotificationReadAllStatus("Notifications marked read.", false, true))
+		component = view.NotificationList(page, true)
 		if saved := r.PostForm.Get("returnPage"); strings.HasPrefix(saved, "/notifications") {
 			pageRequest := r.Clone(r.Context())
 			pageURL := *r.URL
@@ -284,7 +285,7 @@ func (s *server) notificationReadAll(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("HX-Retarget", "#notification-inbox")
 		component = view.NotificationInbox(page, false)
 	}
-	renderNotificationFragment(w, r, 200, templ.Join(component, view.NotificationSummaryOOB(page.UnreadCount, status == 200)))
+	renderNotificationFragment(w, r, 200, templ.Join(component, view.NotificationSummaryOOB(page.UnreadCount, status == 200), toast.OOBToast(toast.Config{Tone: toast.ToneSuccess, Message: "Notifications marked read.", DisplayDuration: 4000})))
 }
 
 func notificationReturnTo(value string) string {

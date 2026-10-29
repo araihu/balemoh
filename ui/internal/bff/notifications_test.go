@@ -203,9 +203,15 @@ func TestBulkNotificationReadIsSeparateProtectedAndScoped(t *testing.T) {
 	if w.Code != 200 || w.Header().Get("HX-Retarget") != "#notification-tray" || !strings.Contains(w.Body.String(), "After read") || !strings.Contains(w.Body.String(), "7 days") || !strings.Contains(w.Body.String(), `id="notification-inbox"`) || f.bulkReads.Load() != 1 || f.clears.Load() != 0 {
 		t.Fatalf("bulk scope/effects %d %s", w.Code, w.Body.String())
 	}
+	for _, returnTo := range []string{"tray", "%2Fnotifications%3Funread%3Dtrue"} {
+		w = post("", "returnTo="+returnTo, true)
+		if strings.Count(w.Body.String(), "Notifications marked read.") != 1 || !strings.Contains(w.Body.String(), `id="toast-container-oob" hx-swap-oob="beforeend"`) || strings.Contains(w.Body.String(), `id="notification-read-all-status"`) {
+			t.Fatal("bulk success must have one OOB toast and no inline success status")
+		}
+	}
 	f.failure = errors.New("timeout")
 	w = post("", "returnTo=tray", true)
-	if w.Code != 503 || !strings.Contains(w.Body.String(), "Read state not confirmed") || strings.Contains(w.Body.String(), "No notifications.") {
+	if w.Code != 503 || !strings.Contains(w.Body.String(), "Read state not confirmed") || strings.Contains(w.Body.String(), "No notifications.") || strings.Contains(w.Body.String(), "Notifications marked read.") {
 		t.Fatal("bulk failure claims success")
 	}
 	f.failure = nil
