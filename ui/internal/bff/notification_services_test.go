@@ -35,7 +35,7 @@ func TestNotificationIconsUseGrantedCatalogWithoutPluginCalls(t *testing.T) {
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest("GET", path, nil))
 		body := response.Body.String()
-		if response.Code != 200 || strings.Count(body, `data-service-id="`+id+`"`) != 1 || !strings.Contains(body, `title="Pi-hole"`) {
+		if response.Code != 200 || strings.Count(body, `data-service-id="`+id+`"`) != 1 || !strings.Contains(body, `<span>Pi-hole</span>`) || strings.Contains(body, `class="balemoh-notification-source-icon" data-service-id=`) {
 			t.Fatal("lost service identity or crossed connection grant", path, response.Code)
 		}
 	}
