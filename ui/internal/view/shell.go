@@ -25,6 +25,9 @@ func ConsolePage(data PageData) templ.Component {
 		}
 	}
 	runtimeScripts := []string{"/ui/plugin-runtime.js", "/ui/notifications.js"}
+	if data.ReadOnly {
+		runtimeScripts = append(runtimeScripts, "/ui/demo-refresh.js")
+	}
 	if data.IconPage != nil {
 		runtimeScripts = append(runtimeScripts, "/ui/theme-selection.js", "/ui/presentation-fonts.js")
 	}
@@ -32,7 +35,10 @@ func ConsolePage(data PageData) templ.Component {
 		runtimeScripts = append(runtimeScripts, "/ui/presentation.js")
 	}
 	if (data.HostDetail != nil || data.Dashboard != nil) && data.Error == "" {
-		runtimeScripts = append(runtimeScripts, assets.HTMXExtSSEURL, "/ui/host-live.js")
+		if !data.ReadOnly {
+			runtimeScripts = append(runtimeScripts, assets.HTMXExtSSEURL)
+		}
+		runtimeScripts = append(runtimeScripts, "/ui/host-live.js")
 	}
 	if data.Dashboard != nil && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, "/ui/dashboard-layout.js")
@@ -58,7 +64,9 @@ func ConsolePage(data PageData) templ.Component {
 			navigation = append(navigation, item)
 		}
 	}
-	navigation = append(navigation, config)
+	if !data.ReadOnly {
+		navigation = append(navigation, config)
+	}
 	return consoleshell.Layout(
 		consoleshell.Config{
 			Brand: consoleshell.Brand{
@@ -77,10 +85,10 @@ func ConsolePage(data PageData) templ.Component {
 			Appearance: consoleshell.AppearanceConfig{
 				DefaultTheme:       data.Appearance.Theme,
 				InitialColorScheme: consoleshell.ColorScheme(data.Appearance.Mode),
-				PersistPreferences: false,
+				PersistPreferences: data.ReadOnly,
 				ThemeStylesheets:   []string{"/ui/balemoh.css"},
 			},
-			HeaderActions: HeaderActions(false),
+			HeaderActions: HeaderActions(data.ReadOnly),
 			Interactions:  consoleshell.InteractionConfig{EnableHTMX: false, LocalRuntime: true, RuntimeScripts: runtimeScripts},
 			MainID:        "main-content",
 			ContentID:     "balemoh-content",

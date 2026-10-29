@@ -246,3 +246,26 @@ func TestNotificationRetentionConfiguration(t *testing.T) {
 		})
 	}
 }
+
+func TestDemoConfigurationFailsClosed(t *testing.T) {
+	base := map[string]string{"BALEMOH_READ_ONLY": "true", "BALEMOH_DEMO_ENABLED": "true", "BALEMOH_HTTP_ADDR": "127.0.0.1:8080"}
+	if _, err := ParseEnvironment(base); err != nil {
+		t.Fatal(err)
+	}
+	for _, change := range []map[string]string{
+		{"BALEMOH_READ_ONLY": "false"}, {"BALEMOH_HTTP_ADDR": ":8080"}, {"BALEMOH_DEMO_ALERTMANAGER_ADDR": "0.0.0.0:9093"},
+		{"BALEMOH_KUBERNETES_ENABLED": "true", "BALEMOH_KUBERNETES_SOURCE_ID": "real"},
+		{"BALEMOH_FEDERATION_ALLOWED_SOURCES": "container/real"},
+	} {
+		values := map[string]string{}
+		for k, v := range base {
+			values[k] = v
+		}
+		for k, v := range change {
+			values[k] = v
+		}
+		if _, err := ParseEnvironment(values); err == nil {
+			t.Fatalf("accepted unsafe demo configuration %v", change)
+		}
+	}
+}

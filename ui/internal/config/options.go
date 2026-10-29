@@ -13,6 +13,9 @@ import (
 
 // Options configures the Balemoh server-rendered UI BFF.
 type Options struct {
+	// ReadOnly serves a shared public demo with operator writes and SSE disabled, a 16-request concurrency budget and a global 20 requests/second rate with a 40-request burst.
+	ReadOnly bool `env:"BALEMOH_UI_READ_ONLY" envDefault:"false"`
+
 	// NotificationOperatorTokenFile contains the private notification inbox credential. Empty leaves notification fragments unavailable without blocking base pages.
 	NotificationOperatorTokenFile string `env:"BALEMOH_UI_NOTIFICATION_OPERATOR_TOKEN_FILE"`
 	// Theme selects the shared visual profile theme, goshtoso or minimal.

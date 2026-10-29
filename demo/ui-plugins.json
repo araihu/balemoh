@@ -1,0 +1,15 @@
+{
+  "installations": [
+    {
+      "package": "/plugins/alertmanager",
+      "manifestDigest": "e35d36d757fed90a47f4d8f6dfe313e5c330abf83668abafb74a2e78e37ffbee",
+      "packageDigest": "71c9b1e9c624a35f545de792a0b66fd93bcbba18dfb8c92107566b584c00bb47",
+      "connectionKey": "demo",
+      "serviceIDs": [
+        "132b8d68e4878dcf98370a50ef6beeabc2fc6381b3e5026cc2cb0822b6e75282",
+        "a2826c11ab6bec5655b4934704a464f85c5f2bf3e6d530d049b91e357998f2f8",
+        "2294543628d612ec6e6b51e7f64bfa18747f721b0146c0810203c0cb5c0ad7c6"
+      ]
+    }
+  ]
+}

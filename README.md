@@ -7,6 +7,43 @@ See [site build and Cloudflare deployment](site/README.md).
 Balemoh is a Go service. Local development uses Go 1.27.3 and the pinned
 dependencies and tools declared in `go.mod`.
 
+## Public read-only demo
+
+Run `bash hack/run-demo.sh` with Docker Compose available, then open
+`http://127.0.0.1:18081`. The script builds the host, installs a digest-pinned
+Alertmanager plugin and creates temporary, separate plugin/operator credentials.
+Ctrl-C removes the containers, credentials and disposable database.
+
+The demo has twelve fictional services, a three-node cluster and a Docker host,
+one hour of initial telemetry and a synthetic Alertmanager API. The generator
+runs inside the API process through catalog/telemetry application contracts.
+Samples advance once per minute independently of visitors. Plugin pages use the
+real backend/UI processes against the loopback synthetic source. No Kubernetes
+credentials, Docker socket or production data are used.
+
+`BALEMOH_READ_ONLY=true` denies operator API writes while retaining authenticated
+federation imports and private retained plugin queries. It is an HTTP write
+policy, not a read-only SQLite file. `BALEMOH_DEMO_ENABLED=true` additionally
+requires explicit loopback API/source listeners, disables real collectors and
+federation configuration, and initializes synthetic data internally. The initial
+plugin widgets are provisioned for the explicit `araihu.alertmanager/demo`
+connection only.
+
+`BALEMOH_UI_READ_ONLY=true` denies public BFF writes and editing routes, disables
+mutation controls and SSE, and enables a global 16-request concurrency limit with
+20 requests/second and a 40-request burst. Requests have an eight-second response
+deadline. Work retains its concurrency slot until its handler actually exits.
+The cheap health endpoint is separate from admission so overload does not trigger
+probe-driven restarts. Browser refreshes run once a minute, pause in hidden tabs
+and read retained observations. Navigation and filters are per browser; no
+server-side visitor sessions are created. Browser color preferences remain local.
+
+The BFF must be the only public entry point. Keep API, synthetic source and all
+service credentials private. A dedicated `cloudflared` connector can target a
+loopback BFF inside the same pod without an ingress gateway. This reduces direct
+origin exposure; it does not remove shared-uplink or application overload risk.
+Use fixed container/storage budgets and edge traffic controls before publishing.
+
 ## Development
 
 Run generation, tests, and static checks:

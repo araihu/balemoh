@@ -13,6 +13,13 @@ import (
 
 // Options contains Balemoh's runtime environment configuration.
 type Options struct {
+	// ReadOnly rejects operator API writes, preserving authenticated federation imports and plugin queries.
+	ReadOnly bool `env:"BALEMOH_READ_ONLY" envDefault:"false"`
+	// DemoEnabled seeds and refreshes a bounded synthetic scenario. Requires read-only mode and disables all real discovery and federation configuration.
+	DemoEnabled bool `env:"BALEMOH_DEMO_ENABLED" envDefault:"false"`
+	// DemoAlertmanagerAddr serves the synthetic Alertmanager source on a loopback address when demo mode is enabled.
+	DemoAlertmanagerAddr string `env:"BALEMOH_DEMO_ALERTMANAGER_ADDR" envDefault:"127.0.0.1:9093"`
+
 	// NotificationRetentionDays permanently expires read and unread notifications after this many 24-hour days from receipt. Range 1 to 3650; cleanup runs at startup and hourly, and reads immediately exclude expired messages.
 	NotificationRetentionDays int `env:"BALEMOH_NOTIFICATION_RETENTION_DAYS" envDefault:"30"`
 	// PluginConfig enables trusted local plugin installations and source connections from a JSON deployment file. Empty disables plugins.
@@ -78,6 +85,18 @@ func ParseEnvironment(environment map[string]string) (Options, error) {
 
 // Validate checks that required configuration values contain non-whitespace content.
 func (o Options) Validate() error {
+	if o.DemoEnabled {
+		if !o.ReadOnly || o.KubernetesEnabled || o.ContainerEnabled || o.TelemetryEnabled || o.FederationGatewayURL != "" || len(o.FederationAllowedSources) > 0 || len(o.FederationSourceTokens) > 0 || o.NotificationPublishersFile != "" {
+			return fmt.Errorf("demo requires read-only mode without real discovery, telemetry, federation or notification publishers")
+		}
+		for _, address := range []string{o.HTTPAddr, o.DemoAlertmanagerAddr} {
+			host, _, err := net.SplitHostPort(address)
+			if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
+				return fmt.Errorf("demo API and Alertmanager listeners must use explicit loopback IP addresses")
+			}
+		}
+	}
+
 	if o.NotificationRetentionDays < 1 || o.NotificationRetentionDays > 3650 {
 		return fmt.Errorf("notification retention days must be between 1 and 3650")
 	}

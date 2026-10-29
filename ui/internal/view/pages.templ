@@ -26,6 +26,10 @@ import (
 )
 
 templ PageContent(data PageData) {
+ if data.ReadOnly {
+  @alert.Alert(alert.Config{Title:"Shared read-only demo", Description:"All services, hosts and alerts are synthetic. Editing and shared notification changes are disabled. Your navigation and filters do not affect other visitors."})
+ }
+
  if data.PluginWarning {
   @alert.Alert(alert.Config{Title: "Plugin unavailable", Description: "An installed plugin is incompatible or could not start. Core pages remain available."})
  }
@@ -54,7 +58,7 @@ templ PageContent(data PageData) {
 				HideSeparator: true,
 				TitleSuffix: tooltip.Help("staging-help", "About Staging", data.Description),
 				TitleAttrs:  templ.Attributes{"id": "balemoh-page-heading"},
-				Actions:     StagingActions(),
+				Actions:     ReadOnlyStagingActions(data.ReadOnly),
 			})
 		}
 		if data.Error != "" {
@@ -103,11 +107,17 @@ templ PageContent(data PageData) {
  }
 }
 
+templ ReadOnlyStagingActions(readOnly bool) {
+ if !readOnly {
+ @StagingActions()
+ }
+}
+
 templ StagingActions() {
  @link.Link("/staging/services/new", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Add service }
-	<form method="post" action="/staging/sync">
+	<form method="post" action="/staging/sync"><fieldset disabled?={ ReadOnly(ctx) } style="display: contents">
 		@tooltip.Tooltip("sync-discovery-tooltip", "Sync discovery", tooltip.WithPosition(tooltip.PositionBottom), tooltip.WithTrigger(SyncButton()))
-	</form>
+	</fieldset></form>
 }
 
 templ SyncButton() {
@@ -119,9 +129,11 @@ templ SyncButton() {
 templ HomepageContent(data PageData) {
  if data.Dashboard != nil {
   <div { homepageAttrs(data.Services)... }>
+   if !data.ReadOnly {
    <div id="dashboard-live" data-dashboard-live hx-sse:connect="/dashboard/events" hx-target="#dashboard-live-status" hx-swap="innerMorph">
     <div id="dashboard-live-status" class="sr-only" role="status" tabindex="-1" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
    </div>
+   }
    <div id="dashboard-warnings">@DashboardWarnings(data.Dashboard.Unavailable)</div>
    <div id="dashboard-grid">@DashboardGrid(*data.Dashboard)</div>
    if len(data.Services)>0 {
@@ -200,11 +212,11 @@ func stagingTabs(data PageData) []tabs.Tab {
 }
 
 templ SyncAction() {
-	<form method="post" action="/staging/sync">
+	<form method="post" action="/staging/sync"><fieldset disabled?={ ReadOnly(ctx) } style="display: contents">
 		@button.Button(button.WithType("submit"), button.WithTone(button.TonePrimary)) {
 			Sync discovery
 		}
-	</form>
+	</fieldset></form>
 }
 
 templ ReviewStagingAction() {
@@ -259,7 +271,7 @@ templ ServiceSelection(service Service) {
 		hx-disable="find input"
 		hx-sync="this:drop"
 		hx-on::finally:request="if (event.detail.ctx.status.startsWith('error:') || event.detail.ctx.hx?.reswap === 'none') { queueMicrotask(() => { const input = this.querySelector('input'); input.checked = input.defaultChecked; input.disabled = true; this.querySelector('[data-pin-error]').hidden = false; }); }"
-	>
+	><fieldset disabled?={ ReadOnly(ctx) } style="display: contents">
 		@checkbox.Checkbox(checkbox.Config{
 			ID:         "select-" + service.ID,
 			Name:       "pinned",
@@ -281,7 +293,7 @@ templ ServiceSelection(service Service) {
 				Save
 			}
 		</noscript>
-	</form>
+	</fieldset></form>
 }
 
 templ GroupAddresses(service Service) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 
 	httpadapter "github.com/araihu/balemoh/internal/adapters/http"
@@ -27,7 +28,7 @@ func pluginDeployment(options config.Options) (*pluginadapter.Deployment, string
 	deployment, err := pluginadapter.Load(options.PluginConfig)
 	return deployment, token, err
 }
-func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployment *pluginadapter.Deployment, token string, catalogService *catalog.Service, notificationService *notifications.Service) (func(), error) {
+func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployment *pluginadapter.Deployment, token string, catalogService *catalog.Service, notificationService *notifications.Service, demoEnabled bool) (func(), error) {
 	store := sqlite.NewPluginStore(db)
 	records, err := store.Reconcile(ctx, deployment.Provisions())
 	if err != nil {
@@ -35,7 +36,22 @@ func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployme
 	}
 	runtime := pluginadapter.NewRuntime(ctx, deployment, records, notificationService)
 	if deployment != nil {
-		server.Handler = httpadapter.MountPlugins(server.Handler, plugins.New(store, runtime), token, dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: sqlite.NewTelemetryStore(db), Selections: sqlite.NewDashboardSelections(db)})
+		service := plugins.New(store, runtime)
+		if demoEnabled {
+			for _, record := range records {
+				if record.PluginID != "araihu.alertmanager" || record.Key != "demo" {
+					continue
+				}
+				for index, contribution := range []string{"summary", "active-list"} {
+					id := fmt.Sprintf("00000000-0000-4000-8000-%012d", index+1)
+					if _, _, err := service.PutPlacement(ctx, id, plugins.PlacementBody{PluginID: record.PluginID, ConnectionID: record.ID, ContributionID: contribution, Options: []byte("{}"), Enabled: true}, ""); err != nil {
+						runtime.Close()
+						return nil, fmt.Errorf("seed demo plugin widgets: %w", err)
+					}
+				}
+			}
+		}
+		server.Handler = httpadapter.MountPlugins(server.Handler, service, token, dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: sqlite.NewTelemetryStore(db), Selections: sqlite.NewDashboardSelections(db)})
 	}
 	return runtime.Close, nil
 }

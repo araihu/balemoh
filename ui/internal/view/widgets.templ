@@ -151,7 +151,7 @@ templ HostSelection(id string, selected, unavailable bool, window, message strin
 			hx-sync="this:drop"
 			x-data="{}"
 			x-on:htmx:error="$refs.choice.checked = $refs.choice.defaultChecked; $refs.failure.textContent = 'Connection failed. Try again.'"
-		>
+		><fieldset disabled?={ ReadOnly(ctx) } style="display: contents">
 			<input type="hidden" name="selection_form" value="host"/>
 			<input type="hidden" name="range" value={ window }/>
 			if list {
@@ -171,7 +171,7 @@ templ HostSelection(id string, selected, unavailable bool, window, message strin
 					<span>Save</span>
 				}
 			</noscript>
-		</form>
+		</fieldset></form>
 	</div>
 }
 

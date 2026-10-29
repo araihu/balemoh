@@ -1,0 +1,25 @@
+{
+  "installations": [
+    {
+      "package": "/plugins/alertmanager",
+      "manifestDigest": "e35d36d757fed90a47f4d8f6dfe313e5c330abf83668abafb74a2e78e37ffbee",
+      "packageDigest": "71c9b1e9c624a35f545de792a0b66fd93bcbba18dfb8c92107566b584c00bb47",
+      "connections": [
+        {
+          "key": "demo",
+          "name": "Synthetic homelab",
+          "config": {
+            "apiBaseURL": "http://127.0.0.1:9093",
+            "allowHTTP": true,
+            "intervalSeconds": 30
+          },
+          "secrets": {},
+          "grants": [
+            "alerts.list",
+            "alerts.get"
+          ]
+        }
+      ]
+    }
+  ]
+}

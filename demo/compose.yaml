@@ -1,0 +1,79 @@
+services:
+  plugins:
+    image: ghcr.io/araihu/balemoh-plugin-alertmanager@sha256:03d1a81ddd24ccd55eb45266bfb8e98178b1991133a91b51b0519f377bbbbf97
+    user: '0:0'
+    read_only: true
+    cap_drop: [ALL]
+    entrypoint: [sh, -ceu]
+    command: ['umask 022; cp -R /plugin/. /installed/']
+    volumes:
+      - plugins:/installed
+  api:
+    build:
+      context: ..
+    image: balemoh:public-demo
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      plugins:
+        condition: service_completed_successfully
+    environment:
+      BALEMOH_HTTP_ADDR: '127.0.0.1:8080'
+      BALEMOH_READ_ONLY: 'true'
+      BALEMOH_DEMO_ENABLED: 'true'
+      BALEMOH_DISCOVERY_SYNC_INTERVAL: '0'
+      BALEMOH_PLUGIN_CONFIG: /config/api-plugins.json
+      BALEMOH_PLUGIN_SERVICE_TOKEN_FILE: /credentials/plugin-token
+      BALEMOH_NOTIFICATION_OPERATOR_TOKEN_FILE: /credentials/operator-token
+    ports:
+      - '127.0.0.1:18081:8081'
+    volumes:
+      - data:/data
+      - plugins:/plugins/alertmanager:ro
+      - ./api-plugins.json:/config/api-plugins.json:ro
+      - '${BALEMOH_DEMO_CREDENTIAL_DIR:?Use hack/run-demo.sh}:/credentials:ro'
+    tmpfs:
+      - /tmp:uid=65532,gid=65532,size=67108864
+    healthcheck:
+      test: [CMD, /balemoh-probe, 'http://127.0.0.1:8080/healthz']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    mem_limit: 512m
+    cpus: 1
+  ui:
+    image: balemoh:public-demo
+    entrypoint: [/balemoh-ui]
+    network_mode: service:api
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BALEMOH_UI_HTTP_ADDR: '0.0.0.0:8081'
+      BALEMOH_UI_API_BASE_URL: 'http://127.0.0.1:8080'
+      BALEMOH_UI_READ_ONLY: 'true'
+      BALEMOH_UI_THEME: '${BALEMOH_DEMO_THEME:-goshtoso}'
+      BALEMOH_UI_COLOR_SCHEME: '${BALEMOH_DEMO_COLOR_SCHEME:-system}'
+      BALEMOH_UI_PLUGIN_CONFIG: /config/ui-plugins.json
+      BALEMOH_UI_PLUGIN_SERVICE_TOKEN_FILE: /credentials/plugin-token
+      BALEMOH_UI_NOTIFICATION_OPERATOR_TOKEN_FILE: /credentials/operator-token
+    volumes:
+      - plugins:/plugins/alertmanager:ro
+      - ./ui-plugins.json:/config/ui-plugins.json:ro
+      - '${BALEMOH_DEMO_CREDENTIAL_DIR:?Use hack/run-demo.sh}:/credentials:ro'
+    tmpfs:
+      - /tmp:uid=65532,gid=65532,size=67108864
+    healthcheck:
+      test: [CMD, /balemoh-probe, 'http://127.0.0.1:8081/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    mem_limit: 512m
+    cpus: 1
+volumes:
+  plugins:
+  data:
