@@ -186,7 +186,7 @@
         }
         if (status >= 200 && status < 300) {
           const target = document.querySelector(bulk.target);
-          if (target) { target.textContent = 'Notifications marked read.'; target.setAttribute('role','status'); }
+          if (target) { target.textContent = ''; target.removeAttribute('role'); }
           scheduler.refresh();
         }
         if (document.activeElement === document.body) {
