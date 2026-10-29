@@ -9,6 +9,7 @@ import (
  "github.com/araihu/goshtoso/components/combobox"
  "github.com/araihu/goshtoso/components/fileinput"
  "github.com/araihu/goshtoso/components/icon"
+ "github.com/araihu/goshtoso/components/icon/heroicons"
  "github.com/araihu/goshtoso/components/link"
  "github.com/araihu/goshtoso/components/textinput"
  "github.com/araihu/goshtoso/components/tagslist"
@@ -150,7 +151,7 @@ templ IconBatch(data IconPage) {
 
 templ AttributionLinks() {
  <nav class="balemoh-footer-links" aria-label="Attributions">
-  @link.Link("/attributions") {
+  @link.Link("/attributions", link.WithIcon(icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidHeart, Decorative: true})), link.WithIconPosition(link.IconLeading)) {
    Attributions
   }
  </nav>
