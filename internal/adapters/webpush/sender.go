@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"strings"
 	"time"
 
 	protocol "github.com/SherClockHolmes/webpush-go"
@@ -34,7 +35,8 @@ func New(privateKey, subject string) (*Sender, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil // Endpoints must never route through a proxy that bypasses address validation.
 	transport.DialContext = publicDial
-	return &Sender{privateKey: privateKey, publicKey: base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes()), subject: subject, client: &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	// webpush-go adds mailto: itself; configuration accepts the complete contact URI.
+	return &Sender{privateKey: privateKey, publicKey: base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes()), subject: strings.TrimPrefix(subject, "mailto:"), client: &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 func (s *Sender) PublicKey() string { return s.publicKey }
 

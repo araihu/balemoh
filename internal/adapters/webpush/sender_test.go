@@ -5,6 +5,7 @@ import (
 	"crypto/ecdh"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/netip"
@@ -22,40 +23,61 @@ type pushHTTP func(*http.Request) (*http.Response, error)
 
 func (f pushHTTP) Do(r *http.Request) (*http.Response, error) { return f(r) }
 func TestSenderEncryptsBoundsPayloadAndSignsVAPID(t *testing.T) {
-	private, public, err := protocol.GenerateVAPIDKeys()
-	if err != nil {
-		t.Fatal(err)
-	}
-	sender, err := New(private, "mailto:ops@example.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if sender.PublicKey() != public {
-		t.Fatal("derived public key mismatch")
-	}
-	key, err := ecdh.P256().GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	called := false
-	sender.client = pushHTTP(func(r *http.Request) (*http.Response, error) {
-		called = true
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(body) > 4096 || strings.Contains(string(body), "PRIVATE MESSAGE") {
-			t.Fatal("payload not encrypted or too large")
-		}
-		if r.Header.Get("Content-Encoding") != "aes128gcm" || !strings.Contains(r.Header.Get("Authorization"), "vapid ") || r.Header.Get("TTL") != "86400" {
-			t.Fatalf("protocol headers missing")
-		}
-		return &http.Response{StatusCode: 201, Body: io.NopCloser(strings.NewReader(""))}, nil
-	})
-	d := push.Delivery{NotificationID: "00000000-0000-4000-8000-000000000001", Title: strings.Repeat("<", 120), Body: strings.Repeat("PRIVATE MESSAGE<&", 1000), Subscription: push.Subscription{Endpoint: "https://push.example/device", Keys: push.Keys{P256dh: base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes()), Auth: base64.RawURLEncoding.EncodeToString(make([]byte, 16))}}}
-	status, err := sender.Send(t.Context(), d)
-	if err != nil || status != 201 || !called {
-		t.Fatalf("send: %d %v", status, err)
+	for _, subject := range []string{"mailto:ops@example.com", "https://example.com/push-contact"} {
+		t.Run(subject, func(t *testing.T) {
+			private, public, err := protocol.GenerateVAPIDKeys()
+			if err != nil {
+				t.Fatal(err)
+			}
+			sender, err := New(private, subject)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if sender.PublicKey() != public {
+				t.Fatal("derived public key mismatch")
+			}
+			key, err := ecdh.P256().GenerateKey(rand.Reader)
+			if err != nil {
+				t.Fatal(err)
+			}
+			called := false
+			sender.client = pushHTTP(func(r *http.Request) (*http.Response, error) {
+				called = true
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(body) > 4096 || strings.Contains(string(body), "PRIVATE MESSAGE") {
+					t.Fatal("payload not encrypted or too large")
+				}
+				if r.Header.Get("Content-Encoding") != "aes128gcm" || !strings.Contains(r.Header.Get("Authorization"), "vapid ") || r.Header.Get("TTL") != "86400" {
+					t.Fatalf("protocol headers missing")
+				}
+				authorization := strings.TrimPrefix(r.Header.Get("Authorization"), "vapid t=")
+				token, _, _ := strings.Cut(authorization, ",")
+				parts := strings.Split(token, ".")
+				if len(parts) != 3 {
+					t.Fatal("invalid VAPID JWT")
+				}
+				claimsJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
+				if err != nil {
+					t.Fatal(err)
+				}
+				var claims map[string]any
+				if err := json.Unmarshal(claimsJSON, &claims); err != nil {
+					t.Fatal(err)
+				}
+				if claims["sub"] != subject || claims["aud"] != "https://push.example" {
+					t.Fatalf("unexpected VAPID contact or audience: sub=%v aud=%v", claims["sub"], claims["aud"])
+				}
+				return &http.Response{StatusCode: 201, Body: io.NopCloser(strings.NewReader(""))}, nil
+			})
+			d := push.Delivery{NotificationID: "00000000-0000-4000-8000-000000000001", Title: strings.Repeat("<", 120), Body: strings.Repeat("PRIVATE MESSAGE<&", 1000), Subscription: push.Subscription{Endpoint: "https://push.example/device", Keys: push.Keys{P256dh: base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes()), Auth: base64.RawURLEncoding.EncodeToString(make([]byte, 16))}}}
+			status, err := sender.Send(t.Context(), d)
+			if err != nil || status != 201 || !called {
+				t.Fatalf("send: %d %v", status, err)
+			}
+		})
 	}
 }
 func TestPushTransportRejectsPrivateDestinationsAndRedirects(t *testing.T) {
