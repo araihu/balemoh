@@ -48,6 +48,12 @@ The generator deliberately refuses to overwrite different existing output.
 
 ## Runtime storage
 
+The shared read-only demo embeds only the twelve default service logos from the
+same locked selfh.st catalog, about 193 KiB of PNG data. Its existing image URLs
+work immediately without downloading or preparing the full library. Normal
+instances retain the complete background cache. Demo references use the Gitea,
+Paperless-ngx and PostgreSQL brands for `gitea-runner`, `paperless` and `postgres`.
+
 In the background after startup the UI calls Goshtoso `iconpack.Generate` to fetch and verify the
 pinned selfh.st source when its disk cache is missing or invalid. It does not use
 `Trust` at runtime. A valid cache is verified locally and reused without network

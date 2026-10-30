@@ -29,11 +29,16 @@ ready() {
 ready
 for visitor in first second; do
   curl --silent --fail --max-time 10 -H "Cookie: visitor=$visitor" "$origin/" > "$scratch/home.html"
-  python3 - "$scratch/home.html" <<'PY'
-import sys
+  python3 - "$scratch/home.html" "$origin" <<'PY'
+import re, sys, urllib.request
 body=open(sys.argv[1]).read()
 assert 'Shared read-only demo' in body and 'grafana' in body
 assert 'hx-sse:connect=' not in body
+images=set(re.findall(r'src="(/ui/icon-library/selfhst/images/[a-f0-9]+\.png)"', body))
+assert len(images) == 12, f'Expected twelve service logos, got {len(images)}'
+for path in images:
+    with urllib.request.urlopen(sys.argv[2] + path, timeout=5) as response:
+        assert response.status == 200 and response.read(8) == b'\x89PNG\r\n\x1a\n', path
 PY
   for action in /staging/sync /notifications/read-all /notifications/clear /presentation/save /icons/upload; do
     status=$(curl --silent --max-time 10 -o /dev/null -w '%{http_code}' -X POST -H "Cookie: visitor=$visitor" "$origin$action")

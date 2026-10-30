@@ -74,6 +74,8 @@ body {
 .balemoh-service-card-icon { display: flex; }
 .balemoh-service-card-icon svg,
 .balemoh-service-card-icon .balemoh-library-image { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
+/* Default brand artwork needs a light backing in both color modes. */
+.balemoh-service-card-icon .balemoh-library-image { background: #fff; padding: 2px; box-sizing: border-box; border-radius: .25rem; }
 .balemoh-card-addresses { display: flex; align-items: center; gap: .5rem; }
 /* Avoid the inline-button baseline adding a pixel to multi-address cards. */
 .balemoh-address-menu { display: flex; align-items: center; }

@@ -1,5 +1,11 @@
 # Goshtoso integration notes
 
+## Shared demo service logos, 2026-10-30
+
+- Reuse the locked selfh.st catalog and existing `LibraryImage`/`ServiceGlyph` rendering. No custom component, JavaScript or new image source is needed. Default brand PNGs use a small light backing on service cards so dark artwork stays readable in both color modes.
+- Full-library cold preparation exceeds the demo's small temporary-storage budget. Embed only its twelve existing default PNGs, verify bytes against catalog hashes, and serve them through the normal icon-library route. Attribution and licenses remain on the existing page.
+- Closing check requires twelve loaded brand images, preserved read-only actions and desktop/mobile light/dark inspection after publication.
+
 ## Host telemetry, 2026-10-07
 
 - Goshtoso Charts v0.0.3 line chart renders `figure role="img"`. Axe reports `aria-allowed-role`, minor severity. Its accessible name and adjacent exact-value table remain available. No public role override exists. Upstream correction remains pending; no consumer DOM rewrite added.

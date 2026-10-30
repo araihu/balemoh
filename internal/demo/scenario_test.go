@@ -1,8 +1,12 @@
 package demo_test
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
+	"io/fs"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,8 +39,18 @@ func TestScenarioRebuildReplayHistoryAndRetention(t *testing.T) {
 			t.Fatalf("homepage=%d err=%v", len(services), err)
 		}
 		for _, service := range services {
-			if !iconassets.Has(service.Icon) {
-				t.Fatalf("demo icon is not bundled: %s", service.Icon)
+			icon, ok := iconassets.Lookup(service.Icon)
+			if !ok || !strings.HasPrefix(service.Icon, "selfhst:") {
+				t.Fatalf("demo icon is not a bundled service brand: %s", service.Icon)
+			}
+			for _, variant := range icon.Variants {
+				if variant.Appearance != "default" {
+					continue
+				}
+				data, err := fs.ReadFile(iconassets.DemoFiles(), strings.TrimPrefix(variant.Path, "/ui/icon-library/selfhst/"))
+				if err != nil || fmt.Sprintf("%x", sha256.Sum256(data)) != variant.SHA256 {
+					t.Fatalf("demo image unavailable or differs from locked catalog: %s: %v", service.Icon, err)
+				}
 			}
 		}
 		roots, err := telemetry.List(ctx, now)
