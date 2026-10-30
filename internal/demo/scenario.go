@@ -64,8 +64,8 @@ func Seed(ctx context.Context, c Catalog, t Telemetry, selections Selections, no
 				return err
 			}
 			item := candidate(i, now)
-			icons := []string{"chart-bar", "chart-bar", "play", "squares-2x2", "code-bracket", "document-text", "lock-closed", "home", "heart", "code-bracket", "cube", "table-cells"}
-			icon := "goshtoso:ui-hi-16-solid-" + icons[i]
+			icons := []string{"grafana", "prometheus", "jellyfin", "immich", "forgejo", "paperless-ngx", "vaultwarden", "home-assistant", "uptime-kuma", "gitea", "minio", "postgresql"}
+			icon := "selfhst:" + icons[i]
 			if err := c.Edit(ctx, item.ID, catalog.Edit{DisplayName: item.DisplayName, Description: item.Description, Icon: &icon}); err != nil {
 				return err
 			}

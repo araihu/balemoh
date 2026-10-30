@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/araihu/balemoh/client/iconassets"
 	"github.com/araihu/balemoh/plugin-sdk/credential"
 	"github.com/araihu/balemoh/plugin-sdk/manifest"
 	pluginui "github.com/araihu/balemoh/plugin-sdk/ui"
@@ -60,7 +61,7 @@ func run(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	var icons http.Handler
+	var icons http.Handler = http.FileServer(http.FS(iconassets.DemoFiles()))
 	if !options.ReadOnly {
 		icons = startIconCache(ctx, options.IconCacheDir, options.IconStartupTimeout, selfhst.Ensure, slog.Default())
 	}
