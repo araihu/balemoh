@@ -578,3 +578,58 @@ func TestLayoutResponseLimitDoesNotReuseRequestByteLimitAfterHTMLEscaping(t *tes
 		t.Fatal("valid escaped response rejected", e)
 	}
 }
+
+func TestLayoutPreviewAcceptsExpandedResponseFor512ValidReferences(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var request api.LayoutPreviewRequest
+	_ = json.Unmarshal([]byte(`{"requestId":"11111111-1111-4111-8111-111111111111","draftGeneration":3,"expectedRevision":"0"}`), &request)
+	_ = json.Unmarshal(raw, &request.Document)
+	ids := []string{}
+	for i := 0; i < 512; i++ {
+		id := fmt.Sprintf("host-%03d-%s猫", i, strings.Repeat("<", 180))
+		ids = append(ids, id)
+		request.Document.Groups[0].Placements = append(request.Document.Groups[0].Placements, api.LayoutGroupPlacement{ItemId: id})
+	}
+	preview := emptyLayoutPreview(request, "0", false)
+	for _, id := range ids {
+		preview.ResolvedGroups[0].Members = append(preview.ResolvedGroups[0].Members, api.LayoutMember{ItemId: id, DisplayLabel: id, State: "dormant"})
+	}
+	var token bytes.Buffer
+	encoder := json.NewEncoder(&token)
+	encoder.SetEscapeHTML(false)
+	_ = encoder.Encode([]any{"layout-members-v1", "builtin:hosts", ids})
+	preview.MembershipTokens["builtin:hosts"] = fmt.Sprintf("members-%x", sha256.Sum256(bytes.TrimSuffix(token.Bytes(), []byte("\n"))))
+	var body bytes.Buffer
+	encoder = json.NewEncoder(&body)
+	encoder.SetEscapeHTML(false)
+	_ = encoder.Encode(request)
+	response, _ := json.Marshal(preview)
+	if body.Len() > 128<<10 || len(response) <= 1<<20 || !validLayoutPreview(preview) {
+		t.Fatal("fixture is not a valid expanded preview", body.Len(), len(response))
+	}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(response)
+	}))
+	t.Cleanup(upstream.Close)
+	client, e := NewAPIClient(upstream.URL, upstream.Client())
+	if e != nil {
+		t.Fatal(e)
+	}
+	got, e := client.PreviewLayout(t.Context(), body.Bytes())
+	if e != nil || len(got.ResolvedGroups[0].Members) != 512 {
+		t.Fatal("valid expanded preview rejected", e)
+	}
+}
+
+func TestLayoutPreviewReadBudgetRemainsBounded(t *testing.T) {
+	r := &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(strings.Repeat(" ", (16<<20)+1)))}
+	_, e := layoutResponse[api.LayoutPreview](r, nil)
+	var failure *layoutFailure
+	if !errors.As(e, &failure) || !failure.uncertain {
+		t.Fatal("oversized response accepted", e)
+	}
+}

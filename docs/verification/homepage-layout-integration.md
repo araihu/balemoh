@@ -32,6 +32,9 @@ because it can follow a COMMIT error; unreadable configuration is a definite rej
 preventing browsers from automatically retrying a 408 POST before JavaScript.
 Preview membership tokens use the same non-HTML-escaped UTF-8 bytes as the API;
 a real BFF regression includes an ID containing HTML-sensitive and Unicode text.
+A second full Preview test resolves 512 such dormant references from a request
+under 128 KiB and accepts the escaped response above 1 MiB. Expanded responses
+have a documented 16 MiB read budget; over-budget responses fail without truncation.
 
 ## Browser execution
 

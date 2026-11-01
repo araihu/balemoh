@@ -651,3 +651,18 @@ BFF /?layoutView=default retains this explicit mode in its single SSE URL. It sh
 a temporary-view notice; repair of saved configuration never changes mode silently.
 This additive request completes section 7 recovery without adding a reset command.
 Independent integration architecture review accepted this contract before implementation.
+
+### BFF response capacity
+
+The editor reads at most 1 MiB for configuration states and error bodies, and
+16 MiB for expanded Preview/dashboard responses. A full configuration request is
+at most 128 KiB; JSON HTML escaping can expand it by up to six times, which fits
+the configuration-state budget. Preview additionally repeats item IDs and labels.
+The expanded budget covers the 512 explicit-reference boundary with worst-case
+HTML escaping and leaves room for active default members.
+
+Active default membership has no API count limit, so no finite BFF read budget
+covers every possible catalog. Beyond 16 MiB the editor fails explicitly and keeps
+its draft; it never truncates members, resets configuration or writes implicitly.
+Operators can manage larger catalogs through the API. This is an editor capacity
+boundary, not a new API grouping or membership limit.

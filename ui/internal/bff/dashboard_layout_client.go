@@ -30,9 +30,17 @@ func layoutResponse[T any](r *http.Response, err error) (T, error) {
 		return out, &layoutFailure{status: 503, detail: api.ErrorResponse{Code: "unavailable", Message: "Result not confirmed. Preserve the draft and read the saved version."}, uncertain: true}
 	}
 	defer r.Body.Close()
-	raw, e := io.ReadAll(io.LimitReader(r.Body, (1<<20)+1))
-	if e != nil || len(raw) > 1<<20 {
+	limit := int64(1 << 20)
+	if _, state := any(out).(api.LayoutState); r.StatusCode == 200 && !state {
+		// Preview repeats IDs/labels and expands JSON escapes; active defaults add members.
+		limit = 16 << 20
+	}
+	raw, e := io.ReadAll(io.LimitReader(r.Body, limit+1))
+	if e != nil {
 		return out, &layoutFailure{status: 503, detail: api.ErrorResponse{Code: "unavailable", Message: "Upstream response was not confirmed."}, uncertain: true}
+	}
+	if int64(len(raw)) > limit {
+		return out, &layoutFailure{status: 503, detail: api.ErrorResponse{Code: "response_too_large", Message: "Layout response is too large for this editor. Preserve your draft and manage this catalog through the API."}, uncertain: true}
 	}
 	if r.StatusCode != 200 {
 		failure := &layoutFailure{status: r.StatusCode, detail: api.ErrorResponse{Code: "unavailable", Message: "Layout request could not be completed."}}
