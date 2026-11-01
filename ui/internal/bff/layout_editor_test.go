@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	api "github.com/araihu/balemoh/client"
 	"html"
 	"io"
@@ -234,7 +236,7 @@ func TestLayoutEditorRetriesStaleBootstrapBeforeEnablingDraft(t *testing.T) {
 			var request api.LayoutPreviewRequest
 			_ = json.NewDecoder(r.Body).Decode(&request)
 			stale := previews.Add(1) == 1
-			_ = json.NewEncoder(w).Encode(api.LayoutPreview{RequestId: request.RequestId, DraftGeneration: 0, LayoutRevision: "1", Document: doc, ResolvedGroups: []api.LayoutResolvedGroup{{GroupId: "builtin:hosts", Title: "Hosts", DisplayLabel: "Hosts", Members: []api.LayoutMember{}}}, MembershipTokens: map[string]string{}, Stale: stale})
+			_ = json.NewEncoder(w).Encode(emptyLayoutPreview(request, "1", stale))
 		case "/api/v1/dashboard":
 			_ = json.NewEncoder(w).Encode(api.DashboardSnapshot{Items: []api.DashboardWidget{}, Unavailable: []string{}})
 		default:
@@ -424,6 +426,75 @@ func TestLayoutStateValidationRejectsIncompleteAndInvalidDocuments(t *testing.T)
 			var failure *layoutFailure
 			if !errors.As(err, &failure) || !failure.uncertain {
 				t.Fatal("invalid state accepted", err)
+			}
+		})
+	}
+}
+
+func emptyLayoutPreview(request api.LayoutPreviewRequest, revision string, stale bool) api.LayoutPreview {
+	p := api.LayoutPreview{RequestId: request.RequestId, DraftGeneration: request.DraftGeneration, LayoutRevision: revision, Document: request.Document, ResolvedGroups: []api.LayoutResolvedGroup{}, MembershipTokens: map[string]string{}, Stale: stale}
+	for _, g := range request.Document.Groups {
+		p.ResolvedGroups = append(p.ResolvedGroups, api.LayoutResolvedGroup{GroupId: g.Id, Title: g.Title, DisplayLabel: g.Title, Members: []api.LayoutMember{}})
+		raw, _ := json.Marshal([]any{"layout-members-v1", g.Id, []string{}})
+		p.MembershipTokens[g.Id] = fmt.Sprintf("members-%x", sha256.Sum256(raw))
+	}
+	return p
+}
+func TestLayoutPreviewRejectsMalformedSuccessBeforeRendering(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var document api.LayoutDocument
+	if e = json.Unmarshal(raw, &document); e != nil {
+		t.Fatal(e)
+	}
+	var request api.LayoutPreviewRequest
+	_ = json.Unmarshal([]byte(`{"requestId":"11111111-1111-4111-8111-111111111111","draftGeneration":3,"expectedRevision":"0"}`), &request)
+	request.Document = document
+	preview := emptyLayoutPreview(request, "0", false)
+	encoded, _ := json.Marshal(preview)
+	cases := map[string]func(map[string]any){
+		"empty document":     func(p map[string]any) { p["document"] = map[string]any{} },
+		"null document":      func(p map[string]any) { p["document"] = nil },
+		"missing generation": func(p map[string]any) { delete(p, "draftGeneration") },
+		"wrong generation":   func(p map[string]any) { p["draftGeneration"] = 4 },
+		"wrong request":      func(p map[string]any) { p["requestId"] = "22222222-2222-4222-8222-222222222222" },
+		"wrong revision":     func(p map[string]any) { p["layoutRevision"] = "01" },
+		"wrong stale":        func(p map[string]any) { p["stale"] = true },
+		"missing groups":     func(p map[string]any) { p["resolvedGroups"] = []any{} },
+		"null members":       func(p map[string]any) { p["resolvedGroups"].([]any)[0].(map[string]any)["members"] = nil },
+		"wrong token":        func(p map[string]any) { p["membershipTokens"].(map[string]any)["builtin:hosts"] = "members-fake" },
+		"different draft": func(p map[string]any) {
+			p["document"].(map[string]any)["homepage"].(map[string]any)["width"] = "contained"
+		},
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			var invalid map[string]any
+			_ = json.Unmarshal(encoded, &invalid)
+			mutate(invalid)
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api/v1/dashboard/layout/preview" {
+					t.Errorf("invalid preview reached rendering: %s", r.URL.Path)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(invalid)
+			}))
+			t.Cleanup(upstream.Close)
+			client, e := NewAPIClient(upstream.URL, upstream.Client())
+			if e != nil {
+				t.Fatal(e)
+			}
+			handler, e := New(client, time.Second)
+			if e != nil {
+				t.Fatal(e)
+			}
+			body, _ := json.Marshal(map[string]any{"request": request, "selection": layoutSelection{GroupID: "builtin:hosts"}})
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, httptest.NewRequest("POST", "/settings/homepage/layout/preview", bytes.NewReader(body)))
+			if w.Code != 503 || strings.Contains(w.Body.String(), `"previewHtml"`) {
+				t.Fatal(w.Code, w.Body)
 			}
 		})
 	}

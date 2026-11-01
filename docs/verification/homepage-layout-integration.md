@@ -13,7 +13,7 @@ production smoke passed. Authored coverage was 94.2%; Codecov accepted the uploa
 `hack/check-plugin-modules.sh` passed with pinned protoc 33.0. It regenerated,
 tidied, tested and vetted all modules and checked generated output. Root, client,
 UI and plugin SDK race suites passed. OpenAPI lint scored 100/100. The editor has
-14 top-level Node tests, including ten malformed-confirmation subtests.
+16 top-level Node tests, including malformed-confirmation and preview subtests.
 
 API/storage execution covers virtual revision 0, restart, conditional writes,
 concurrent writers, cancellation, stale identical writes, membership tokens,
@@ -53,18 +53,30 @@ Seven post-commit response faults were exercised through the actual BFF/browser:
 502, 504 and malformed intermediary 503. Every case reported Saved layout confirmed
 after GET readback, retained its edited title and disabled Save. Seven attempted
 writes produced exactly seven revision increments, with no automatic repeat PUT.
+A separate unchanged-revision confirmation was rejected by the browser and recovered
+through canonical readback. A malformed current Preview retained the exact input,
+kept Save disabled and recovered through Retry.
 
 The matrix in homepage-layout-matrix.json records Goshtoso/Minimal, light/dark,
 and 390/1440 CSS pixels. All eight combinations had the expected theme/mode,
 page controls above preview, no horizontal overflow and no duplicate DOM IDs.
-No console errors appeared during the final browser checks.
+No application console errors appeared during the final browser checks. Twelve
+rendered text/control-label samples across all four theme/mode combinations passed
+4.5:1 contrast, with a minimum ratio of 7.15:1. This does not certify every border,
+focus indicator or embedded plugin color.
+
+A keyboard-driven workflow created a group, moved host/plugin components into it,
+reordered and reset alphabetical order, cancelled deletion, saved, inspected a
+concurrent conflict, cancelled discard, explicitly reloaded and left the editor.
+Focus returned to the logical movement handle, Delete trigger and Reload action.
+A later confirmed deletion rehomed the test group members and focused the surviving
+group heading.
 
 ## Independent review and limits
 
 API/storage review accepted at 8a123dc; BFF lifecycle review accepted at 4276380.
 Later reviews corrected complete comparison, UUID recovery, inspector ownership,
-collapsed-selection visibility and malformed Save confirmation. Final source review
-is pending after the Save boundary correction.
+collapsed-selection visibility and malformed Save confirmation. Final review receipts and exact accepted source commits are recorded in the PR.
 
 These are local validation results. No Balemoh deployment or production migration
 ran. Physical touch devices, real screen readers, Firefox and WebKit were not tested.

@@ -50,13 +50,24 @@ func layoutResponse[T any](r *http.Response, err error) (T, error) {
 	if state, ok := any(out).(api.LayoutState); ok && (!completeLayoutJSON(raw, reflect.TypeFor[api.LayoutState]()) || !validLayoutState(state)) {
 		return out, unconfirmedLayout()
 	}
+	if preview, ok := any(out).(api.LayoutPreview); ok && (!completeLayoutJSON(raw, reflect.TypeFor[api.LayoutPreview]()) || !validLayoutPreview(preview)) {
+		return out, unconfirmedLayout()
+	}
 	return out, nil
 }
 func (c *APIClient) DashboardLayout(ctx context.Context) (api.LayoutState, error) {
 	return layoutResponse[api.LayoutState](c.client.GetDashboardLayout(ctx))
 }
 func (c *APIClient) PreviewLayout(ctx context.Context, r json.RawMessage) (api.LayoutPreview, error) {
-	return layoutResponse[api.LayoutPreview](c.client.PreviewDashboardLayoutWithBody(ctx, "application/json", bytes.NewReader(r)))
+	preview, err := layoutResponse[api.LayoutPreview](c.client.PreviewDashboardLayoutWithBody(ctx, "application/json", bytes.NewReader(r)))
+	if err != nil {
+		return preview, err
+	}
+	var request api.LayoutPreviewRequest
+	if json.Unmarshal(r, &request) != nil || preview.RequestId != request.RequestId || preview.DraftGeneration != request.DraftGeneration || preview.Stale != (preview.LayoutRevision != request.ExpectedRevision) || !sameLayoutDocument(request.Document, preview.Document) {
+		return api.LayoutPreview{}, unconfirmedLayout()
+	}
+	return preview, nil
 }
 func (c *APIClient) SaveLayout(ctx context.Context, revision string, d json.RawMessage) (api.LayoutState, error) {
 	state, err := layoutResponse[api.LayoutState](c.client.PutDashboardLayoutWithBody(ctx, &api.PutDashboardLayoutParams{IfMatch: `"layout-` + revision + `"`}, "application/json", bytes.NewReader(d)))

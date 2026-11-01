@@ -82,3 +82,23 @@ test('invalid readback cannot replace an uncertain draft or its precondition',()
  const d=setup();d.change(doc=>{doc.homepage.width='contained';});const entry=d.begin('preview','digest');d.accept(entry,result(entry,d));const attempt=d.startSave();d.state='outcome_unknown';
  for(const state of [null,{}, {revision:'1',document:null},{revision:'-1',document:attempt.document}]){assert.equal(d.readback(state),false);assert.equal(d.state,'outcome_unknown');assert.equal(d.saveAttempt,attempt);assert.deepEqual(d.document,attempt.document);assert.equal(d.revision,'0');}
 });
+
+test('a dirty Save cannot be confirmed at its old revision but canonical readback may confirm later',()=>{
+ const d=setup();d.change(doc=>{doc.homepage.width='contained';});const p=d.begin('preview','digest');d.accept(p,result(p,d));const attempt=d.startSave();
+ assert.equal(d.savedResult(attempt,{revision:'0',document:structuredClone(attempt.document)}),false);assert.equal(d.state,'outcome_unknown');assert.equal(d.saveAttempt,attempt);assert.equal(d.revision,'0');assert.equal(d.dirty,true);
+ assert.equal(d.readback({revision:'1',document:structuredClone(attempt.document)}),true);assert.equal(d.state,'saved');assert.equal(d.revision,'1');
+});
+
+test('malformed current previews cannot clear ownership or replace the exact draft',async t=>{
+ for(const mode of ['null','empty document','null document','missing groups','null members','foreign draft'])await t.test(mode,()=>{
+  const d=setup();d.change(doc=>{doc.groups[0].title='Retain every character';});const entry=d.begin('current','digest'),before=JSON.stringify(d.document),selection=structuredClone(d.selection),lastPreview=d.preview;
+  let response=result(entry,d);
+  if(mode==='null')response=null;
+  if(mode==='empty document')response.document={};
+  if(mode==='null document')response.document=null;
+  if(mode==='missing groups')delete response.resolvedGroups;
+  if(mode==='null members')response.resolvedGroups[0].members=null;
+  if(mode==='foreign draft')response.document.groups[0].title='Unrequested replacement';
+  assert.equal(d.accept(entry,response),false);assert.equal(JSON.stringify(d.document),before);assert.deepEqual(d.selection,selection);assert.equal(d.preview,lastPreview);assert.equal(d.pending,entry);assert.equal(d.ready,false);
+ });
+});

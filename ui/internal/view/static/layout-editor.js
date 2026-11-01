@@ -46,10 +46,19 @@
     }
     owns(entry) { return this.pending === entry && entry.request.draftGeneration === this.generation && entry.request.expectedRevision === this.revision && entry.bytes === JSON.stringify(this.document); }
     accept(entry, result) {
-      if (!this.owns(entry) || result.requestId !== entry.request.requestId || result.draftGeneration !== entry.request.draftGeneration) return false;
-      if (result.stale || result.layoutRevision !== this.revision) { this.state = 'conflict'; return false; }
-      const oldMember=this.preview.resolvedGroups.flatMap(g=>g.members).find(m=>m.itemId===this.selection.itemId);const nextMember=result.resolvedGroups.flatMap(g=>g.members).find(m=>m.itemId===this.selection.itemId);if(oldMember?.state==='active'&&nextMember?.state!=='active')this.selection.itemId='';
-      this.document = clone(result.document); this.preview = clone(result); this.pending = null; this.state = 'preview_valid'; this.reconcileSelection(); return true;
+      if (!this.owns(entry)) return false;
+      try {
+        if (result?.requestId !== entry.request.requestId || result.draftGeneration !== entry.request.draftGeneration) throw Error();
+        if (!validRevision(result.layoutRevision) || typeof result.stale !== 'boolean' || !Array.isArray(result.resolvedGroups) || result.resolvedGroups.some(g => typeof g.groupId !== 'string' || !Array.isArray(g.members) || g.members.some(m => typeof m.itemId !== 'string' || !['active','dormant'].includes(m.state)))) throw Error();
+        const proposed = clone(entry.request.document); proposed.groups.forEach(g => { g.title = g.title.trim(); });
+        if (canonical(result.document) !== canonical(proposed)) throw Error();
+        if (result.stale || result.layoutRevision !== this.revision) { this.state = 'conflict'; return false; }
+        const staged = Object.assign(Object.create(Draft.prototype), {document:clone(result.document),preview:clone(result),selection:clone(this.selection)});
+        const oldMember=this.preview.resolvedGroups.flatMap(g=>g.members).find(m=>m.itemId===this.selection.itemId),nextMember=staged.preview.resolvedGroups.flatMap(g=>g.members).find(m=>m.itemId===this.selection.itemId);
+        if(oldMember?.state==='active'&&nextMember?.state!=='active')staged.selection.itemId='';
+        staged.reconcileSelection();
+        this.document=staged.document;this.preview=staged.preview;this.selection=staged.selection;this.pending=null;this.state='preview_valid';return true;
+      } catch (_) { this.fail(entry,503); return false; }
     }
     fail(entry, status) { if (!this.owns(entry)) return false; this.state = status === 412 ? 'conflict' : status === 422 || status === 400 || status === 404 || status === 409 ? 'preview_invalid' : 'preview_error'; return true; }
     orderGroups(ids) { return this.change(d => { d.homepage.ordering = { mode: 'custom', ids: clone(ids) }; }, true); }
@@ -76,7 +85,7 @@
       return this.change(d => { const source = this.group(groupId); const target = this.group(destination); target.placements.push(...source.placements); d.groups = d.groups.filter(g => g.id !== groupId); d.homepage.placements = d.homepage.placements.filter(p => p.groupId !== groupId); d.homepage.ordering.ids = d.homepage.ordering.ids.filter(id => id !== groupId); Object.keys(d.sourceGroups).forEach(kind => { if (d.sourceGroups[kind] === groupId) d.sourceGroups[kind] = destination; }); this.selection = { groupId: destination, itemId: '' }; }, true);
     }
     startSave() { if (!this.ready || !this.dirty) return null; this.saveAttempt = { expectedRevision: this.revision, document: clone(this.document), generation: this.generation }; this.state = 'saving'; return this.saveAttempt; }
-    savedResult(attempt, state, readback = false) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; try { if (!validRevision(state?.revision) || BigInt(state.revision) < BigInt(attempt.expectedRevision) || !readback && BigInt(state.revision) > BigInt(attempt.expectedRevision) + 1n || canonical(state.document) !== canonical(attempt.document)) throw Error(); } catch (_) { this.state = 'outcome_unknown'; return false; } this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null;this.provisionalGroups.clear();this.pending = null;this.state = 'saved'; return true; }
+    savedResult(attempt, state, readback = false) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; try { if (!validRevision(state?.revision) || BigInt(state.revision) < BigInt(attempt.expectedRevision) || !readback && BigInt(state.revision) !== BigInt(attempt.expectedRevision) + 1n || canonical(state.document) !== canonical(attempt.document)) throw Error(); } catch (_) { this.state = 'outcome_unknown'; return false; } this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null;this.provisionalGroups.clear();this.pending = null;this.state = 'saved'; return true; }
     readback(state) { if (!this.saveAttempt) return false; try { if (!validRevision(state?.revision)) throw Error(); if (canonical(state.document) === canonical(this.saveAttempt.document)) return this.savedResult(this.saveAttempt, state, true); this.state = 'conflict'; } catch (_) { this.state = 'outcome_unknown'; } return false; }
   }
   global.BalemohLayoutDraft = { Draft, canonical, key };
@@ -127,7 +136,7 @@
       if (!model.owns(entry)) return;
       if (pointer) { queuedPreview = [entry, result]; return; }
       if (typeof result.movementHtml!=='string'||typeof result.pageHtml!=='string'||typeof result.inspectorHtml!=='string'||typeof result.previewHtml!=='string'||typeof result.deleteHtml!=='string') {model.fail(entry,503);state('Preview response unavailable. Your draft is retained.');return;}
-      if (!model.accept(entry, result.preview)) { if (model.state === 'conflict') state('Saved layout changed. Your draft is retained.'); return; }
+      if (!model.accept(entry, result.preview)) { state(model.state === 'conflict' ? 'Saved layout changed. Your draft is retained.' : 'Preview response invalid. Your draft is retained. Retry preview.'); return; }
       if(JSON.stringify(entry.selection)!==JSON.stringify(model.selection)){afterPreviewFocus='editor-group-heading-'+key(model.selection.groupId);model.state='preview_pending';state('Selection changed with current membership. Updating preview…');preview();return;}
       try {
       const focus = document.activeElement; const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;

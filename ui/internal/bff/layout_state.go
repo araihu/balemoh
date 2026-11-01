@@ -2,7 +2,9 @@ package bff
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"slices"
 	"strconv"
@@ -19,7 +21,7 @@ func unconfirmedLayout() *layoutFailure {
 
 // Generated structs do not enforce required JSON fields when decoding responses.
 func completeLayoutJSON(raw []byte, t reflect.Type) bool {
-	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+	if !utf8.Valid(raw) || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return false
 	}
 	switch t.Kind() {
@@ -129,4 +131,44 @@ func sameLayoutDocument(a, b api.LayoutDocument) bool {
 		return raw
 	}
 	return bytes.Equal(normalize(a), normalize(b))
+}
+
+func validLayoutPreview(p api.LayoutPreview) bool {
+	if !validLayoutState(api.LayoutState{Document: p.Document, Revision: p.LayoutRevision}) || p.DraftGeneration < 0 || p.DraftGeneration > 9007199254740991 || len(p.ResolvedGroups) != len(p.Document.Groups) || len(p.MembershipTokens) != len(p.Document.Groups) {
+		return false
+	}
+	groups := map[string]api.LayoutGroup{}
+	for _, g := range p.Document.Groups {
+		groups[g.Id] = g
+	}
+	seenGroups, seenItems := map[string]bool{}, map[string]bool{}
+	for _, g := range p.ResolvedGroups {
+		config, ok := groups[g.GroupId]
+		if !ok || seenGroups[g.GroupId] || g.Title != config.Title || g.DisplayLabel == "" || g.Members == nil {
+			return false
+		}
+		seenGroups[g.GroupId] = true
+		ids := []string{}
+		members := map[string]bool{}
+		for _, m := range g.Members {
+			if m.ItemId == "" || len(m.ItemId) > 256 || m.DisplayLabel == "" || !m.State.Valid() || seenItems[m.ItemId] {
+				return false
+			}
+			seenItems[m.ItemId] = true
+			members[m.ItemId] = true
+			ids = append(ids, m.ItemId)
+		}
+		for _, placement := range config.Placements {
+			if !members[placement.ItemId] {
+				return false
+			}
+		}
+		slices.Sort(ids)
+		raw, _ := json.Marshal([]any{"layout-members-v1", g.GroupId, ids})
+		sum := sha256.Sum256(raw)
+		if p.MembershipTokens[g.GroupId] != fmt.Sprintf("members-%x", sum) {
+			return false
+		}
+	}
+	return true
 }
