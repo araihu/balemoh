@@ -41,12 +41,13 @@
     }
     begin(requestId, digest) {
       const request = { requestId, draftGeneration: this.generation, expectedRevision: this.revision, document: clone(this.document) };
-      const entry = { request, digest, bytes: JSON.stringify(this.document) }; this.pending = entry; this.state = 'preview_pending'; return entry;
+      const entry = { request, digest,selection:clone(this.selection),bytes: JSON.stringify(this.document) }; this.pending = entry; this.state = 'preview_pending'; return entry;
     }
     owns(entry) { return this.pending === entry && entry.request.draftGeneration === this.generation && entry.request.expectedRevision === this.revision && entry.bytes === JSON.stringify(this.document); }
     accept(entry, result) {
       if (!this.owns(entry) || result.requestId !== entry.request.requestId || result.draftGeneration !== entry.request.draftGeneration) return false;
       if (result.stale || result.layoutRevision !== this.revision) { this.state = 'conflict'; return false; }
+      const oldMember=this.preview.resolvedGroups.flatMap(g=>g.members).find(m=>m.itemId===this.selection.itemId);const nextMember=result.resolvedGroups.flatMap(g=>g.members).find(m=>m.itemId===this.selection.itemId);if(oldMember?.state==='active'&&nextMember?.state!=='active')this.selection.itemId='';
       this.document = clone(result.document); this.preview = clone(result); this.pending = null; this.state = 'preview_valid'; this.reconcileSelection(); return true;
     }
     fail(entry, status) { if (!this.owns(entry)) return false; this.state = status === 412 ? 'conflict' : status === 422 || status === 400 || status === 404 || status === 409 ? 'preview_invalid' : 'preview_error'; return true; }
@@ -85,6 +86,7 @@
     const root = document.querySelector('[data-layout-editor]'); if (!root || root.dataset.layoutInitialized) return; root.dataset.layoutInitialized = 'true';
     if (global.goshtosoDependencies?.ready) await global.goshtosoDependencies.ready;
     const model = new Draft(JSON.parse(root.dataset.layoutEditor));
+    global.htmx.registerExtension('balemoh-layout-editor-disclosure',{htmx_before_morph_attr(element,detail){if(element.matches('details[data-editor-collapse]')&&detail.attrName==='open')return false;}});
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
     let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, alive = true;
     const find = action => root.querySelector(`[data-layout-action="${action}"]`);
@@ -125,12 +127,14 @@
       if (pointer) { queuedPreview = [entry, result]; return; }
       if (typeof result.movementHtml!=='string'||typeof result.pageHtml!=='string'||typeof result.inspectorHtml!=='string'||typeof result.previewHtml!=='string'||typeof result.deleteHtml!=='string') {model.fail(entry,503);state('Preview response unavailable. Your draft is retained.');return;}
       if (!model.accept(entry, result.preview)) { if (model.state === 'conflict') state('Saved layout changed. Your draft is retained.'); return; }
+      if(JSON.stringify(entry.selection)!==JSON.stringify(model.selection)){afterPreviewFocus='editor-group-heading-'+key(model.selection.groupId);model.state='preview_pending';state('Selection changed with current membership. Updating preview…');preview();return;}
       try {
       const focus = document.activeElement; const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
       // Replace form controls without copying old attributes during HTMX settlement.
       await global.htmx.swap({sourceElement:frame,target:'#layout-editor-page-controls',swap:'innerHTML settle:0',text:result.pageHtml});
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML settle:0', text: result.inspectorHtml });
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-preview-body', swap: 'innerMorph', text: result.previewHtml });
+      frame.querySelectorAll('details[data-editor-collapse]').forEach(el=>{const group=model.resolved(el.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active'))el.open=true;});
       if(root.querySelector('#layout-selected-movement'))await global.htmx.swap({sourceElement:frame,target:'#layout-selected-movement',swap:'innerHTML settle:0',text:result.movementHtml});
       await global.htmx.swap({ sourceElement: root, target: '#layout-delete-destinations', swap: 'innerHTML settle:0', text: result.deleteHtml });
       if (!alive) return;
@@ -152,7 +156,7 @@
       const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bytes)))].map(v => v.toString(16).padStart(2, '0')).join('');
       if (generation !== model.generation || revision !== model.revision || bytes !== JSON.stringify(model.document) || ['saving', 'outcome_unknown', 'conflict'].includes(model.state)) return;
       const entry = model.begin(crypto.randomUUID(), digest); entry.targets = targets(); state('Updating preview…');
-      try { const { r, data } = await response('/settings/homepage/layout/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: entry.request, selection: clone(model.selection) }), signal: controller.signal });
+      try { const { r, data } = await response('/settings/homepage/layout/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: entry.request, selection: entry.selection }), signal: controller.signal });
         if (!model.owns(entry)) return;
         if (!r.ok) { if (model.fail(entry, r.status)) {rejectedGroupRow=r.status===422?model.rejectedGroup(entry,data):null;state(r.status === 412 ? 'Layout changed. Your draft is retained.' : 'Preview needs attention. Save remains disabled.'); showError(data, entry.targets); } return; }
         await apply(entry, data);
@@ -204,6 +208,7 @@
     root.querySelector('[data-layout-create-form]').addEventListener('submit', event => { event.preventDefault(); if (!model.ready || !event.target.reportValidity()) return; const title = event.target.elements.title.value.trim(); if (!title || [...title].length > 80) return; if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(createId) || model.group(createId)) {const error=root.querySelector('[data-layout-create-error]');error.textContent='This group ID is invalid or already used. Generate another ID; your title is retained.';error.hidden=false;find('regenerate').hidden=false;find('regenerate').focus({preventScroll:true});return;} if (model.create(createId, title)) { dispatchModal('close', 'create'); afterPreviewFocus = 'editor-group-heading-' + key(createId); status.focus({ preventScroll: true }); changed('Group created in draft. Updating preview…'); } });
     root.addEventListener('layout:before-move', event => { const d = event.detail; if (d && d.fromContainerId!=='layout-editor-groups') {const destination=model.document.groups.find(g=>'editor-items-'+key(g.id)===d.toContainerId);if(!destination||!model.fitsMove(d.itemId,destination.id)){event.preventDefault();announce('This move would exceed 512 explicit references.');return;}} if (!model.ready || model.pending || !d || !model.group() || d.fromContainerId === 'layout-editor-groups' && d.toContainerId !== 'layout-editor-groups') event.preventDefault(); });
     root.addEventListener('layout:move', event => { if (!model.ready) return; const d = event.detail; if (d.fromContainerId === 'layout-editor-groups') { const ids = model.preview.resolvedGroups.map(g => g.groupId).filter(id => id !== d.itemId); const at = d.beforeItemId === null ? ids.length : ids.indexOf(d.beforeItemId); if (at < 0) return; ids.splice(at, 0, d.itemId); if (model.orderGroups(ids)) {movedIdentity={kind:'group',id:d.itemId};changed('Group moved. Updating preview…');} } else { const destination = model.document.groups.find(g => 'editor-items-' + key(g.id) === d.toContainerId); if (destination && model.move(d.itemId, destination.id, d.beforeItemId)) {movedIdentity={kind:'item',id:d.itemId};changed('Item moved. Updating preview…');} } });
+    root.addEventListener('toggle',event=>{const disclosure=event.target;if(!disclosure.matches?.('[data-editor-collapse]')||disclosure.open)return;const group=model.resolved(disclosure.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active')){disclosure.open=true;announce('Selected item stays visible while editing. Saved collapse setting is unchanged.');}},true);
     root.addEventListener('pointerdown', event => { if (event.target.closest('[data-layout-preview]')) pointer = true; }, true);
     function releasePointer() { pointer = false; if (queuedLive) { const data = queuedLive; queuedLive = null; onLive(data); } if (queuedPreview) { const args = queuedPreview; queuedPreview = null; apply(...args); } }
     global.addEventListener('pointerup', releasePointer); global.addEventListener('pointercancel', releasePointer);

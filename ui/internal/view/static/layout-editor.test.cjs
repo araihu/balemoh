@@ -66,3 +66,6 @@ test('rejected provisional ID recovery rewrites every group reference and retain
 test('conflict stays frozen until explicit recovery even when draft equals old saved content', () => {
  const d=setup();d.state='conflict';assert.equal(d.dirty,false);assert.equal(d.followsLive,false);const entry=d.beginLive('1');const changed=structuredClone(d.document);changed.homepage.width='contained';assert.equal(d.applyLive(entry,{revision:'1',document:changed}),false);assert.equal(d.state,'conflict');assert.equal(d.revision,'0');
 });
+test('active item disappearance clears selection but preserves dormant membership and owning group', () => {
+ const d=setup();const pending=d.begin('membership','digest');const preview=result(pending,d);preview.resolvedGroups[0].members=preview.resolvedGroups[0].members.map(m=>m.itemId==='host-a'?{...m,state:'dormant'}:m);assert.equal(d.accept(pending,preview),true);assert.equal(d.selection.itemId,'');assert.equal(d.selection.groupId,'builtin:hosts');assert.ok(d.preview.resolvedGroups[0].members.some(m=>m.itemId==='host-a'&&m.state==='dormant'));
+});

@@ -149,3 +149,16 @@ func (f LayoutFrame) selectedItemDormant() bool {
 	}
 	return false
 }
+
+func (f LayoutFrame) selectedActiveGroup(id string) bool {
+	for _, g := range f.Groups {
+		if g.ID == id {
+			for _, m := range g.Members {
+				if m.ID == f.SelectedItem && m.State == "active" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

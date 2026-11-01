@@ -30,6 +30,19 @@ func TestLayoutMovementBelongsToSelectedContentAndDormantFallback(t *testing.T) 
 	if !strings.Contains(active, `data-layout-group-fields-owner="builtin:widgets"`) {
 		t.Fatal("group fields lost their stable owner")
 	}
+	frame.Groups[0].InitiallyCollapsed = true
+	collapsed := render()
+	detailsAt := strings.Index(collapsed, `<details data-editor-collapse=`)
+	if detailsAt < 0 {
+		t.Fatal("missing collapsed-group editor disclosure")
+	}
+	opening := collapsed[detailsAt : detailsAt+strings.Index(collapsed[detailsAt:], ">")+1]
+	if !strings.Contains(opening, " open") {
+		t.Fatal("selected active item became hidden inside closed disclosure", opening)
+	}
+	if !frame.Groups[0].InitiallyCollapsed {
+		t.Fatal("editor changed saved collapse preference")
+	}
 	frame.SelectedItem = "host-inactive"
 	dormant := render()
 	if strings.Count(dormant, `id="layout-selected-movement"`) != 1 || strings.Index(dormant, `id="layout-selected-movement"`) > strings.Index(dormant, `class="balemoh-layout-preview-column"`) {

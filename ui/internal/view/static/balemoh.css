@@ -428,3 +428,4 @@ body {
 .balemoh-layout-page-footer p { margin:0; flex:1 1 20rem; }
 .balemoh-layout-item-movement { margin-block:.75rem; padding:.75rem; border:1px solid var(--balemoh-border); border-radius:var(--radius-radius,.5rem); }
 .balemoh-layout-group-fields { display:contents; }
+.balemoh-dashboard-section summary h2 { display:inline; margin:0; }

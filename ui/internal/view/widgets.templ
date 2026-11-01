@@ -54,15 +54,10 @@ templ DashboardGrid(page Dashboard) {
 
 templ DashboardSection(section dashboardSection) {
  <section id={ "dashboard-section-"+section.ID } aria-label={section.Label} class="balemoh-dashboard-section">
-  if section.InitiallyCollapsed {
-   <details data-dashboard-disclosure={section.ID}>
-    <summary><span class={templ.KV("sr-only",!section.ShowHeading)}>{section.Label}</span></summary>
-    @layout.Container(groupContainer(section))
-   </details>
-  } else {
-   <h2 id={"dashboard-heading-"+section.ID} tabindex="-1" class={templ.KV("sr-only",!section.ShowHeading)}>{section.Label}</h2>
+  <details data-dashboard-disclosure={section.ID} open?={!section.InitiallyCollapsed}>
+   <summary><h2 id={"dashboard-heading-"+section.ID} tabindex="-1" class={templ.KV("sr-only",!section.ShowHeading)}>{section.Label}</h2></summary>
    @layout.Container(groupContainer(section))
-  }
+  </details>
  </section>
 }
 

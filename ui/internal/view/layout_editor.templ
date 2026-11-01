@@ -79,13 +79,10 @@ templ LayoutPreviewGroup(f LayoutFrame,g EditorGroup) {
   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithSize(button.SizeSmall),button.WithAttrs(templ.Attributes{"id":"edit-group-"+DOMKey(g.ID),"data-layout-select-group":g.ID,"aria-pressed":f.SelectedGroup==g.ID})) {
    <span>{"Edit group "+g.Label}</span>
   }
-  if g.InitiallyCollapsed {
-   <details data-editor-collapse={g.ID}><summary>Show items</summary>
-    @layout.Container(f.itemsContainer(g))
-   </details>
-  } else {
+  <details data-editor-collapse={g.ID} open?={!g.InitiallyCollapsed||f.selectedActiveGroup(g.ID)}>
+   <summary>Items</summary>
    @layout.Container(f.itemsContainer(g))
-  }
+  </details>
   <details><summary>Not currently on home</summary>
    for _,m:=range g.Members {
  if m.State=="dormant" {
@@ -247,6 +244,7 @@ templ LayoutComparison(rows []LayoutComparisonRow) {
 }
 
 templ LayoutItemMovement(f LayoutFrame) {
+ <p>Selected items stay visible while editing. Start collapsed applies on the homepage.</p>
     @form.FieldGroup(form.FieldGroupConfig{ID:"layout-destination-field",Select:&selectfield.Config{ID:"layout-destination",Label:"Destination group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-destination":"","data-layout-structural":""}}})
     <div class="balemoh-layout-actions">
      @LayoutAction("move-item","Move item to group")
