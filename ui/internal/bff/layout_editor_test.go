@@ -349,6 +349,11 @@ func TestLayoutSaveRejectsUnconfirmedResponsesAndAllowsReadback(t *testing.T) {
 		{"overflow revision", 200, state("9223372036854775808", document), true},
 		{"implausible revision", 200, state("2", document), true},
 		{"null document", 200, state("1", nil), true}, {"incomplete document", 200, state("1", map[string]any{}), true},
+		{"proxy timeout", 408, `Request timeout`, true},
+		{"malformed client error", 400, `<html>Bad request</html>`, true},
+		{"unknown conflict", 409, `{"code":"proxy_error","message":"Proxy failed."}`, true},
+		{"unknown error shape", 400, `{"code":"invalid_request","message":"Proxy failed.","gateway":true}`, true},
+		{"documented validation", 422, `{"code":"invalid_layout","message":"Fix draft.","fieldErrors":{"/document/homepage/layout/columns":"Choose 1 through 4."}}`, false},
 		{"bad gateway", 502, `Bad gateway`, true}, {"gateway timeout", 504, `{}`, true},
 		{"intermediary unavailable", 503, `<html>Unavailable</html>`, true},
 		{"unknown server error", 500, `{"code":"other","message":"Failure"}`, true},
@@ -381,7 +386,7 @@ func TestLayoutSaveRejectsUnconfirmedResponsesAndAllowsReadback(t *testing.T) {
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, httptest.NewRequest("POST", "/settings/homepage/layout", bytes.NewReader(body)))
 			if tc.uncertain {
-				if w.Code == 200 || !strings.Contains(w.Body.String(), `"uncertain":true`) {
+				if w.Code != 503 || !strings.Contains(w.Body.String(), `"uncertain":true`) {
 					t.Fatalf("unconfirmed Save accepted: %d %s", w.Code, w.Body)
 				}
 			} else if strings.Contains(w.Body.String(), `"uncertain":true`) {
@@ -497,5 +502,53 @@ func TestLayoutPreviewRejectsMalformedSuccessBeforeRendering(t *testing.T) {
 				t.Fatal(w.Code, w.Body)
 			}
 		})
+	}
+}
+
+func TestLayoutPreviewPreservesHTMLSensitiveAndUnicodeMembershipIDs(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var document api.LayoutDocument
+	_ = json.Unmarshal(raw, &document)
+	itemID := "host&<猫>"
+	document.Groups[0].Placements = []api.LayoutGroupPlacement{{ItemId: itemID}}
+	var request api.LayoutPreviewRequest
+	_ = json.Unmarshal([]byte(`{"requestId":"11111111-1111-4111-8111-111111111111","draftGeneration":3,"expectedRevision":"0"}`), &request)
+	request.Document = document
+	preview := emptyLayoutPreview(request, "0", false)
+	preview.ResolvedGroups[0].Members = []api.LayoutMember{{ItemId: itemID, DisplayLabel: "A host", State: "active"}}
+	// Literal wire bytes pin the owning API's non-HTML-escaped token algorithm.
+	token := fmt.Sprintf("members-%x", sha256.Sum256([]byte(`["layout-members-v1","builtin:hosts",["host&<猫>"]]`)))
+	preview.MembershipTokens["builtin:hosts"] = token
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/api/v1/dashboard/layout/preview" {
+			_ = json.NewEncoder(w).Encode(preview)
+		} else {
+			_ = json.NewEncoder(w).Encode(api.DashboardSnapshot{Items: []api.DashboardWidget{}, Unavailable: []string{}})
+		}
+	}))
+	t.Cleanup(upstream.Close)
+	client, e := NewAPIClient(upstream.URL, upstream.Client())
+	if e != nil {
+		t.Fatal(e)
+	}
+	handler, e := New(client, time.Second)
+	if e != nil {
+		t.Fatal(e)
+	}
+	body, _ := json.Marshal(map[string]any{"request": request, "selection": layoutSelection{GroupID: "builtin:hosts", ItemID: itemID}})
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, httptest.NewRequest("POST", "/settings/homepage/layout/preview", bytes.NewReader(body)))
+	var response struct {
+		Preview api.LayoutPreview `json:"preview"`
+	}
+	if e = json.Unmarshal(w.Body.Bytes(), &response); e != nil {
+		t.Fatal(e)
+	}
+	if w.Code != 200 || response.Preview.ResolvedGroups[0].Members[0].ItemId != itemID || response.Preview.MembershipTokens["builtin:hosts"] != token {
+		t.Fatal(w.Code, w.Body)
 	}
 }

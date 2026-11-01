@@ -164,11 +164,39 @@ func validLayoutPreview(p api.LayoutPreview) bool {
 			}
 		}
 		slices.Sort(ids)
-		raw, _ := json.Marshal([]any{"layout-members-v1", g.GroupId, ids})
-		sum := sha256.Sum256(raw)
+		var raw bytes.Buffer
+		encoder := json.NewEncoder(&raw)
+		encoder.SetEscapeHTML(false)
+		_ = encoder.Encode([]any{"layout-members-v1", g.GroupId, ids})
+		sum := sha256.Sum256(bytes.TrimSuffix(raw.Bytes(), []byte("\n")))
 		if p.MembershipTokens[g.GroupId] != fmt.Sprintf("members-%x", sum) {
 			return false
 		}
 	}
 	return true
+}
+
+func documentedLayoutFailure(status int, code string) bool {
+	switch status {
+	case 400:
+		return code == "invalid_request"
+	case 403:
+		return code == "read_only"
+	case 404:
+		return code == "not_found"
+	case 409:
+		return code == "limit_exceeded" || code == "membership_changed"
+	case 412:
+		return code == "revision_conflict"
+	case 413:
+		return code == "request_too_large"
+	case 422:
+		return code == "invalid_layout"
+	case 428:
+		return code == "precondition_required"
+	case 503:
+		return code == "unavailable" || code == "layout_unreadable"
+	default:
+		return false
+	}
 }

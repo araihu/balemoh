@@ -26,7 +26,11 @@ reverse live readbacks, complete comparison with zero writes, preview ownership,
 provisional UUID repair, active-to-dormant selection fallback and uncertain Save.
 Save responses require a complete valid configuration, a signed-64 revision and
 a plausible transition matching the attempted document. Invalid confirmations and
-ambiguous gateway responses preserve the attempt and trigger readback.
+ambiguous gateway responses preserve the attempt and trigger readback. Only documented
+application status/code errors are definite. Ambiguous results use BFF HTTP 503,
+preventing browsers from automatically retrying a 408 POST before JavaScript.
+Preview membership tokens use the same non-HTML-escaped UTF-8 bytes as the API;
+a real BFF regression includes an ID containing HTML-sensitive and Unicode text.
 
 ## Browser execution
 
@@ -55,7 +59,10 @@ after GET readback, retained its edited title and disabled Save. Seven attempted
 writes produced exactly seven revision increments, with no automatic repeat PUT.
 A separate unchanged-revision confirmation was rejected by the browser and recovered
 through canonical readback. A malformed current Preview retained the exact input,
-kept Save disabled and recovered through Retry.
+kept Save disabled and recovered through Retry. Four additional committed responses
+were replaced with 408 or malformed/unknown 400, 409 and 412. All four recovered
+through GET readback. An independent proxy counter recorded four PUT attempts and
+four revision increments, so none silently repeated Save.
 
 The matrix in homepage-layout-matrix.json records Goshtoso/Minimal, light/dark,
 and 390/1440 CSS pixels. All eight combinations had the expected theme/mode,

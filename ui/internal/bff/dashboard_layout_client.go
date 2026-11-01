@@ -37,11 +37,13 @@ func layoutResponse[T any](r *http.Response, err error) (T, error) {
 	if r.StatusCode != 200 {
 		failure := &layoutFailure{status: r.StatusCode, detail: api.ErrorResponse{Code: "unavailable", Message: "Layout request could not be completed."}}
 		var detail api.ErrorResponse
-		decoded := json.Unmarshal(raw, &detail) == nil && detail.Message != ""
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.DisallowUnknownFields()
+		decoded := decoder.Decode(&detail) == nil && decoder.Decode(new(any)) == io.EOF && detail.Message != "" && detail.Code != ""
 		if decoded {
 			failure.detail = detail
 		}
-		failure.uncertain = r.StatusCode >= 500 && !(r.StatusCode == 503 && decoded && (detail.Code == "unavailable" || detail.Code == "layout_unreadable"))
+		failure.uncertain = !decoded || !documentedLayoutFailure(r.StatusCode, detail.Code)
 		return out, failure
 	}
 	if json.Unmarshal(raw, &out) != nil {

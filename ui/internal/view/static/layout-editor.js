@@ -228,7 +228,7 @@
       try { const { r, data } = await response('/settings/homepage/layout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedRevision: attempt.expectedRevision, document: attempt.document }) });
         if (model.saveAttempt !== attempt) return;
         if (r.ok && model.savedResult(attempt, data)) { lastSaveMessage='Layout saved.';announce(lastSaveMessage);await preview(); }
-        else { model.state = r.status === 412 ? 'conflict' : r.ok || data.uncertain || r.status >= 500 ? 'outcome_unknown' : 'preview_invalid'; state('Save was not confirmed. Your draft is retained.'); showError(data, map); if (model.state === 'outcome_unknown') readback(); }
+        else { model.state = r.ok || data.uncertain ? 'outcome_unknown' : r.status === 412 ? 'conflict' : 'preview_invalid'; state('Save was not confirmed. Your draft is retained.'); showError(data, map); if (model.state === 'outcome_unknown') readback(); }
       } catch (_) { if (model.saveAttempt === attempt) { model.state = 'outcome_unknown'; state('Save outcome unknown. Checking the saved layout…'); readback(); } }
     }
     async function readback() { if (model.state !== 'outcome_unknown') return; try { const { r, data } = await response('/settings/homepage/layout/saved'); if (!r.ok) throw Error(); if (model.readback(data)) { lastSaveMessage='Saved layout confirmed.';announce(lastSaveMessage);await preview(); } else state('Saved layout differs. Your draft is retained. Inspect the saved version before discarding.'); } catch (_) { state('Unable to confirm Save. Your exact draft and original revision are retained.'); } }

@@ -33,7 +33,12 @@ func writeLayoutBFFError(w http.ResponseWriter, e error) {
 	if !errors.As(e, &v) {
 		v = &layoutFailure{status: 503, detail: api.ErrorResponse{Code: "unavailable", Message: "Layout request could not be completed."}}
 	}
-	w.WriteHeader(v.status)
+	status := v.status
+	if v.uncertain {
+		// Browsers can retry a 408 POST before JavaScript receives the response.
+		status = http.StatusServiceUnavailable
+	}
+	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(struct {
 		api.ErrorResponse
 		Uncertain bool `json:"uncertain"`
