@@ -303,6 +303,7 @@ const (
 	Backend_Configure_FullMethodName       = "/balemoh.plugins.v1alpha1.Backend/Configure"
 	Backend_Status_FullMethodName          = "/balemoh.plugins.v1alpha1.Backend/Status"
 	Backend_Query_FullMethodName           = "/balemoh.plugins.v1alpha1.Backend/Query"
+	Backend_Action_FullMethodName          = "/balemoh.plugins.v1alpha1.Backend/Action"
 	Backend_CloseConnection_FullMethodName = "/balemoh.plugins.v1alpha1.Backend/CloseConnection"
 )
 
@@ -313,6 +314,7 @@ type BackendClient interface {
 	Configure(ctx context.Context, in *ConnectionConfig, opts ...grpc.CallOption) (*ConnectionStatus, error)
 	Status(ctx context.Context, in *ConnectionID, opts ...grpc.CallOption) (*ConnectionStatus, error)
 	Query(ctx context.Context, in *BackendQueryRequest, opts ...grpc.CallOption) (*QueryResult, error)
+	Action(ctx context.Context, in *BackendQueryRequest, opts ...grpc.CallOption) (*ActionResult, error)
 	CloseConnection(ctx context.Context, in *ConnectionID, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -354,6 +356,16 @@ func (c *backendClient) Query(ctx context.Context, in *BackendQueryRequest, opts
 	return out, nil
 }
 
+func (c *backendClient) Action(ctx context.Context, in *BackendQueryRequest, opts ...grpc.CallOption) (*ActionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionResult)
+	err := c.cc.Invoke(ctx, Backend_Action_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *backendClient) CloseConnection(ctx context.Context, in *ConnectionID, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -371,6 +383,7 @@ type BackendServer interface {
 	Configure(context.Context, *ConnectionConfig) (*ConnectionStatus, error)
 	Status(context.Context, *ConnectionID) (*ConnectionStatus, error)
 	Query(context.Context, *BackendQueryRequest) (*QueryResult, error)
+	Action(context.Context, *BackendQueryRequest) (*ActionResult, error)
 	CloseConnection(context.Context, *ConnectionID) (*emptypb.Empty, error)
 	mustEmbedUnimplementedBackendServer()
 }
@@ -390,6 +403,9 @@ func (UnimplementedBackendServer) Status(context.Context, *ConnectionID) (*Conne
 }
 func (UnimplementedBackendServer) Query(context.Context, *BackendQueryRequest) (*QueryResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method Query not implemented")
+}
+func (UnimplementedBackendServer) Action(context.Context, *BackendQueryRequest) (*ActionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method Action not implemented")
 }
 func (UnimplementedBackendServer) CloseConnection(context.Context, *ConnectionID) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseConnection not implemented")
@@ -469,6 +485,24 @@ func _Backend_Query_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Backend_Action_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackendQueryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BackendServer).Action(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Backend_Action_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BackendServer).Action(ctx, req.(*BackendQueryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Backend_CloseConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ConnectionID)
 	if err := dec(in); err != nil {
@@ -507,6 +541,10 @@ var Backend_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Backend_Query_Handler,
 		},
 		{
+			MethodName: "Action",
+			Handler:    _Backend_Action_Handler,
+		},
+		{
 			MethodName: "CloseConnection",
 			Handler:    _Backend_CloseConnection_Handler,
 		},
@@ -517,6 +555,7 @@ var Backend_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	Host_Query_FullMethodName           = "/balemoh.plugins.v1alpha1.Host/Query"
+	Host_Action_FullMethodName          = "/balemoh.plugins.v1alpha1.Host/Action"
 	Host_Placement_FullMethodName       = "/balemoh.plugins.v1alpha1.Host/Placement"
 	Host_ResolveServices_FullMethodName = "/balemoh.plugins.v1alpha1.Host/ResolveServices"
 )
@@ -528,6 +567,7 @@ const (
 // Invocation-scoped callback, registered only for the current UI call.
 type HostClient interface {
 	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResult, error)
+	Action(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*ActionResult, error)
 	Placement(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PlacementResult, error)
 	ResolveServices(ctx context.Context, in *ServiceIDs, opts ...grpc.CallOption) (*ServiceIdentities, error)
 }
@@ -544,6 +584,16 @@ func (c *hostClient) Query(ctx context.Context, in *QueryRequest, opts ...grpc.C
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(QueryResult)
 	err := c.cc.Invoke(ctx, Host_Query_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hostClient) Action(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*ActionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionResult)
+	err := c.cc.Invoke(ctx, Host_Action_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -577,6 +627,7 @@ func (c *hostClient) ResolveServices(ctx context.Context, in *ServiceIDs, opts .
 // Invocation-scoped callback, registered only for the current UI call.
 type HostServer interface {
 	Query(context.Context, *QueryRequest) (*QueryResult, error)
+	Action(context.Context, *QueryRequest) (*ActionResult, error)
 	Placement(context.Context, *emptypb.Empty) (*PlacementResult, error)
 	ResolveServices(context.Context, *ServiceIDs) (*ServiceIdentities, error)
 	mustEmbedUnimplementedHostServer()
@@ -591,6 +642,9 @@ type UnimplementedHostServer struct{}
 
 func (UnimplementedHostServer) Query(context.Context, *QueryRequest) (*QueryResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method Query not implemented")
+}
+func (UnimplementedHostServer) Action(context.Context, *QueryRequest) (*ActionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method Action not implemented")
 }
 func (UnimplementedHostServer) Placement(context.Context, *emptypb.Empty) (*PlacementResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method Placement not implemented")
@@ -633,6 +687,24 @@ func _Host_Query_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(HostServer).Query(ctx, req.(*QueryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Host_Action_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostServer).Action(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Host_Action_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostServer).Action(ctx, req.(*QueryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -683,6 +755,10 @@ var Host_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Query",
 			Handler:    _Host_Query_Handler,
+		},
+		{
+			MethodName: "Action",
+			Handler:    _Host_Action_Handler,
 		},
 		{
 			MethodName: "Placement",

@@ -45,6 +45,7 @@ type Manifest struct {
 	ConnectionSchema string            `json:"connectionSchema"`
 	Secrets          []Secret          `json:"secrets"`
 	Queries          []Query           `json:"queries"`
+	Actions          []Query           `json:"actions,omitempty"`
 	Pages            []Page            `json:"pages"`
 	Navigation       []Navigation      `json:"navigation"`
 	Widgets          []Widget          `json:"widgets"`
@@ -159,7 +160,7 @@ func (m Manifest) Validate() error {
 		return errors.New("invalid connection schema path")
 	}
 	for platform, t := range m.Targets {
-		if !regexp.MustCompile(`^[a-z0-9]+/[a-z0-9]+$`).MatchString(platform) || !safePath(t.UI) || (t.Backend != "" && !safePath(t.Backend)) || (len(m.Queries) > 0 && t.Backend == "") {
+		if !regexp.MustCompile(`^[a-z0-9]+/[a-z0-9]+$`).MatchString(platform) || !safePath(t.UI) || (t.Backend != "" && !safePath(t.Backend)) || (len(m.Queries)+len(m.Actions) > 0 && t.Backend == "") {
 			return errors.New("invalid executable target")
 		}
 	}
@@ -241,6 +242,15 @@ func (m Manifest) Validate() error {
 		}
 		seen[q.ID] = true
 	}
+	if len(m.Actions) > 32 {
+		return errors.New("too many actions")
+	}
+	for _, a := range m.Actions {
+		if !queryID.MatchString(a.ID) || len(a.ID) > 64 || seen[a.ID] || !safePath(a.InputSchema) || !safePath(a.OutputSchema) || a.Capability != "data.action/v1" || !caps[a.Capability] {
+			return errors.New("invalid action declaration")
+		}
+		seen[a.ID] = true
+	}
 	seen = map[string]bool{}
 	for _, s := range m.Secrets {
 		if !validLocal(s.ID) || seen[s.ID] {
@@ -301,6 +311,9 @@ func Load(root string) (*Package, error) {
 	}
 	for _, q := range m.Queries {
 		files = append(files, q.InputSchema, q.OutputSchema)
+	}
+	for _, a := range m.Actions {
+		files = append(files, a.InputSchema, a.OutputSchema)
 	}
 	for _, a := range m.Assets {
 		files = append(files, a.File)
@@ -373,6 +386,15 @@ func (p Package) ExecutableFor(role string) (string, error) {
 		return "", errors.New("plugin UI file is not executable")
 	}
 	return p.Root + string(os.PathSeparator) + name, nil
+}
+
+func (m Manifest) Action(id string) (Query, bool) {
+	for _, a := range m.Actions {
+		if a.ID == id {
+			return a, true
+		}
+	}
+	return Query{}, false
 }
 
 func (m Manifest) Query(id string) (Query, bool) {

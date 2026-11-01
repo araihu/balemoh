@@ -18,7 +18,9 @@ import (
 const MaxHTML = 1 << 20
 
 type Request struct {
-	RequestID        string
+	RequestID string
+	// ActionGrants describes currently available actions; execution is still authorized by the host.
+	ActionGrants     []string
 	ConnectionID     string
 	PlacementID      string
 	ContributionType string
@@ -62,6 +64,11 @@ type Placement struct {
 type HostServices interface {
 	Query(context.Context, string, json.RawMessage) (QueryResult, error)
 	Placement(context.Context) (Placement, error)
+}
+
+// ActionServices is available only during authorized POST page invocations.
+type ActionServices interface {
+	Action(context.Context, string, json.RawMessage) (backend.ActionResult, error)
 }
 type Handler interface {
 	Handle(context.Context, Request, HostServices) (Response, error)
