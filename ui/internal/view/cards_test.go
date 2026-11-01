@@ -109,6 +109,19 @@ func TestHomepageSearchIsScopedToServices(t *testing.T) {
 		if strings.Contains(html.String(), `id="home-search"`) != (len(services) > 0) {
 			t.Fatal("search requires service cards")
 		}
+		if strings.Contains(html.String(), `id="home-search-trigger"`) != (len(services) > 0) {
+			t.Fatal("search trigger requires service cards")
+		}
+		if len(services) > 0 {
+			for _, want := range []string{`aria-haspopup="dialog"`, `aria-controls="home-search-modal"`} {
+				if !strings.Contains(html.String(), want) {
+					t.Errorf("search trigger missing %s", want)
+				}
+			}
+			if strings.Index(html.String(), `id="home-search-trigger"`) > strings.Index(html.String(), `id="dashboard-grid"`) {
+				t.Fatal("search trigger must precede dashboard widgets")
+			}
+		}
 		if len(services) > 0 && (!strings.Contains(html.String(), "app.example") || !strings.Contains(html.String(), `id="home-search-modal"`) || !strings.Contains(html.String(), `x-on:keydown.arrow-down.prevent`)) {
 			t.Fatal("missing search data or shortcut")
 		}

@@ -312,7 +312,7 @@ func PluginWidgetSelection(item PluginWidgetRow, list, focus bool) templ.Compone
 		if list {
 			label = ""
 		}
-		templ_7745c5c3_Err = checkbox.Checkbox(checkbox.Config{ID: "plugin-selection-action-" + item.ID, Name: "enabled", Value: "true", Label: label, Checked: item.Enabled, Disabled: item.Disabled, InputAttrs: templ.Attributes{"aria-label": "Show " + item.Title + " on home", "onchange": templ.JSUnsafeFuncCall("this.form.requestSubmit()"), "aria-describedby": "plugin-selection-feedback-" + item.ID, "style": "border-color: var(--balemoh-muted)"}}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = checkbox.Checkbox(checkbox.Config{ID: "plugin-selection-action-" + item.ID, Name: "enabled", Value: "true", Label: label, Checked: item.Enabled, Disabled: item.Disabled, InputAttrs: templ.Attributes{"aria-label": "Show " + item.Title + " on home", "onchange": templ.JSFuncCall("this.form.requestSubmit"), "aria-describedby": "plugin-selection-feedback-" + item.ID, "style": "border-color: var(--balemoh-muted)"}}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

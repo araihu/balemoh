@@ -835,7 +835,7 @@ func HostSelection(id string, selected, unavailable bool, window, message string
 		}
 		templ_7745c5c3_Err = checkbox.Checkbox(checkbox.Config{
 			ID: "host-selection-action-" + id, Name: "enabled", Value: "true", Label: label, Checked: selected, Disabled: unavailable,
-			InputAttrs: templ.Attributes{"aria-label": "Show on home", "x-ref": "choice", "onchange": templ.JSUnsafeFuncCall("this.form.requestSubmit()"), "aria-describedby": "host-selection-feedback-" + id, "style": "border-color: var(--balemoh-muted)"},
+			InputAttrs: templ.Attributes{"aria-label": "Show on home", "x-ref": "choice", "onchange": templ.JSFuncCall("this.form.requestSubmit"), "aria-describedby": "host-selection-feedback-" + id, "style": "border-color: var(--balemoh-muted)"},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

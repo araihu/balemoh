@@ -17,6 +17,7 @@ import (
 	"github.com/araihu/goshtoso/components/dropdown"
 	"github.com/araihu/goshtoso/components/icon"
 	"github.com/araihu/goshtoso/components/icon/heroicons"
+	"github.com/araihu/goshtoso/components/kbd"
 	"github.com/araihu/goshtoso/components/link"
 	"github.com/araihu/goshtoso/components/pageheader"
 	"github.com/araihu/goshtoso/components/table"
@@ -137,6 +138,13 @@ templ HomepageContent(data PageData) {
    </div>
    }
    <div id="dashboard-warnings">@DashboardWarnings(data.Dashboard.Unavailable)</div>
+   if len(data.Services)>0 {
+    @button.Button(button.WithID("home-search-trigger"), button.WithType("button"), button.WithTone(button.ToneAlternate), button.WithRootClass("balemoh-home-search"), button.WithAttrs(templ.Attributes{"aria-haspopup":"dialog","aria-controls":"home-search-modal","x-on:click":"query = ''; $dispatch('modal:open', {id:'home-search-modal'})"})) {
+     @icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:heroicons.Icon16SolidMagnifyingGlass,Decorative:true})
+     <span>Search services…</span>
+     @kbd.Kbd("⌘ / Ctrl K", kbd.WithSize(kbd.SizeSM), kbd.WithRootClass("ml-auto shrink-0"), kbd.WithLabel("Command or Control plus K"))
+    }
+   }
    <div id="dashboard-grid">@DashboardGrid(*data.Dashboard)</div>
    if len(data.Services)>0 {
  @modal.Dialog(modal.DialogConfig{ID:"home-search-modal",Title:"Search services",Compact:true,Content:HomeSearchResults(data.Services)})
@@ -287,7 +295,7 @@ templ ServiceSelection(service Service) {
 			Name:       "pinned",
 			Value:      "true",
 			Checked:    service.Pinned,
-			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": templ.JSUnsafeFuncCall("this.form.requestSubmit()"), "style": "border-color: var(--balemoh-muted)"},
+			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": templ.JSFuncCall("this.form.requestSubmit"), "style": "border-color: var(--balemoh-muted)"},
 		})
 		if service.PinError != "" {
 			<small role="alert">{ service.PinError }</small>
