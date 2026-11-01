@@ -13,7 +13,7 @@ production smoke passed. Authored coverage was 94.2%; Codecov accepted the uploa
 `hack/check-plugin-modules.sh` passed with pinned protoc 33.0. It regenerated,
 tidied, tested and vetted all modules and checked generated output. Root, client,
 UI and plugin SDK race suites passed. OpenAPI lint scored 100/100. The editor has
-16 top-level Node tests, including malformed-confirmation and preview subtests.
+17 top-level Node tests, including malformed-confirmation and preview subtests.
 
 API/storage execution covers virtual revision 0, restart, conditional writes,
 concurrent writers, cancellation, stale identical writes, membership tokens,

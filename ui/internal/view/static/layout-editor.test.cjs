@@ -102,3 +102,8 @@ test('malformed current previews cannot clear ownership or replace the exact dra
   assert.equal(d.accept(entry,response),false);assert.equal(JSON.stringify(d.document),before);assert.deepEqual(d.selection,selection);assert.equal(d.preview,lastPreview);assert.equal(d.pending,entry);assert.equal(d.ready,false);
  });
 });
+
+test('preview title normalization matches Go Unicode White_Space rather than JS trim',()=>{
+ const d=setup();d.change(doc=>{doc.groups[0].title='\u0085Host title\u0085';});const entry=d.begin('unicode-title','digest'),preview=result(entry,d);preview.document.groups[0].title='Host title';assert.equal(d.accept(entry,preview),true);assert.equal(d.group().title,'Host title');
+ const other=setup();other.change(doc=>{doc.groups[0].title='\uFEFFRetain BOM\uFEFF';});const request=other.begin('bom-title','digest');assert.equal(other.accept(request,result(request,other)),true);assert.equal(other.group().title,'\uFEFFRetain BOM\uFEFF');
+});
