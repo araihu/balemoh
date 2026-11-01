@@ -6,10 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	api "github.com/araihu/balemoh/client"
+	"html"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -205,5 +207,62 @@ func TestLayoutSSEReconcilesRevisionAndPreservesContentOnlyUpdates(t *testing.T)
 	case <-done:
 	case <-time.After(time.Second):
 		t.Fatal("SSE cancellation leaked")
+	}
+}
+
+func TestLayoutEditorRetriesStaleBootstrapBeforeEnablingDraft(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var doc api.LayoutDocument
+	if e = json.Unmarshal(raw, &doc); e != nil {
+		t.Fatal(e)
+	}
+	var reads, previews atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/dashboard/layout":
+			revision := "0"
+			if reads.Add(1) > 1 {
+				revision = "1"
+			}
+			_ = json.NewEncoder(w).Encode(api.LayoutState{Revision: revision, Document: doc})
+		case "/api/v1/dashboard/layout/preview":
+			var request api.LayoutPreviewRequest
+			_ = json.NewDecoder(r.Body).Decode(&request)
+			stale := previews.Add(1) == 1
+			_ = json.NewEncoder(w).Encode(api.LayoutPreview{RequestId: request.RequestId, DraftGeneration: 0, LayoutRevision: "1", Document: doc, ResolvedGroups: []api.LayoutResolvedGroup{{GroupId: "builtin:hosts", Title: "Hosts", DisplayLabel: "Hosts", Members: []api.LayoutMember{}}}, MembershipTokens: map[string]string{}, Stale: stale})
+		case "/api/v1/dashboard":
+			_ = json.NewEncoder(w).Encode(api.DashboardSnapshot{Items: []api.DashboardWidget{}, Unavailable: []string{}})
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	t.Cleanup(upstream.Close)
+	client, e := NewAPIClient(upstream.URL, upstream.Client())
+	if e != nil {
+		t.Fatal(e)
+	}
+	h, e := New(client, time.Second)
+	if e != nil {
+		t.Fatal(e)
+	}
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/settings/homepage/layout", nil))
+	match := regexp.MustCompile(`data-layout-editor="([^"]*)"`).FindStringSubmatch(w.Body.String())
+	if w.Code != 200 || len(match) != 2 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var bootstrap struct {
+		State   api.LayoutState   `json:"state"`
+		Preview api.LayoutPreview `json:"preview"`
+	}
+	if e = json.Unmarshal([]byte(html.UnescapeString(match[1])), &bootstrap); e != nil {
+		t.Fatal(e)
+	}
+	if reads.Load() != 2 || previews.Load() != 2 || bootstrap.State.Revision != "1" || bootstrap.Preview.Stale || bootstrap.Preview.LayoutRevision != "1" {
+		t.Fatal("stale bootstrap escaped bounded retry", reads.Load(), previews.Load(), bootstrap)
 	}
 }

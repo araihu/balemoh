@@ -68,19 +68,33 @@ func (s *server) layoutEditor(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
-	state, e := c.DashboardLayout(ctx)
-	if e != nil {
-		data.Error = e.Error()
-		s.render(w, r, data, 503)
-		return
+	var state api.LayoutState
+	var preview api.LayoutPreview
+	for attempt := 0; attempt < 2; attempt++ {
+		var e error
+		state, e = c.DashboardLayout(ctx)
+		if e != nil {
+			data.Error = e.Error()
+			s.render(w, r, data, 503)
+			return
+		}
+		raw, _ := json.Marshal(map[string]any{"requestId": uuid.NewV4().String(), "draftGeneration": 0, "expectedRevision": state.Revision, "document": state.Document})
+		preview, e = c.PreviewLayout(ctx, raw)
+		if e != nil {
+			data.Error = e.Error()
+			s.render(w, r, data, 503)
+			return
+		}
+		if !preview.Stale && preview.LayoutRevision == state.Revision {
+			break
+		}
+		if attempt == 1 {
+			data.Error = "Layout changed while loading. Refresh to read the saved version."
+			s.render(w, r, data, 503)
+			return
+		}
 	}
-	raw, _ := json.Marshal(map[string]any{"requestId": uuid.NewV4().String(), "draftGeneration": 0, "expectedRevision": state.Revision, "document": state.Document})
-	preview, e := c.PreviewLayout(ctx, raw)
-	if e != nil {
-		data.Error = e.Error()
-		s.render(w, r, data, 503)
-		return
-	}
+
 	selection := layoutSelection{}
 	if len(preview.ResolvedGroups) > 0 {
 		selection.GroupID = preview.ResolvedGroups[0].GroupId

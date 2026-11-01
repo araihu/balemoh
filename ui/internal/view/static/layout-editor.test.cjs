@@ -39,3 +39,20 @@ test('uncertain Save confirms configuration only and never silently retries a ne
 test('canonical equality sorts configuration arrays and preserves custom sequence', () => {
  const a = structuredClone(initial), b = structuredClone(initial); b.groups.reverse(); b.homepage.placements.reverse(); assert.equal(canonical(a), canonical(b)); a.homepage.ordering = { mode: 'custom', ids: ['builtin:hosts', 'builtin:widgets'] }; b.homepage.ordering = { mode: 'custom', ids: ['builtin:widgets', 'builtin:hosts'] }; assert.notEqual(canonical(a), canonical(b));
 });
+test('capacity rejects materialization while retaining selected default members', () => {
+ const d = setup(); d.preview.resolvedGroups[0].members = Array.from({ length: 513 }, (_, i) => ({ itemId: 'host-' + i, state: 'active' }));
+ assert.equal(d.fitsOrder('builtin:hosts'), false); assert.equal(d.orderItems('builtin:hosts', d.preview.resolvedGroups[0].members.map(m => m.itemId)), false);
+ assert.equal(d.document.groups[0].placements.length, 1); assert.equal(d.ready, true);
+ assert.equal(d.move('host-0', 'builtin:widgets', null), true, 'one member can still move to a smaller group');
+});
+test('stale or revision-mismatched bootstrap is never ready', () => {
+ const d=setup();const data={state:{revision:'0',document:d.saved},preview:{...d.preview,stale:true,layoutRevision:'1'},selection:d.selection};const stale=new Draft(data);assert.equal(stale.state,'conflict');assert.equal(stale.ready,false);
+ data.preview.stale=false;const mismatch=new Draft(data);assert.equal(mismatch.ready,false);assert.equal(mismatch.startSave(),null);
+});
+test('overlapping live readbacks cannot regress a ready editor', async () => {
+ const d=setup();let resolveFirst,resolveSecond;const firstResult=new Promise(resolve=>{resolveFirst=resolve;});const secondResult=new Promise(resolve=>{resolveSecond=resolve;});
+ const first=d.beginLive('1');const firstApply=firstResult.then(state=>d.applyLive(first,state));const second=d.beginLive('2');const secondApply=secondResult.then(state=>d.applyLive(second,state));
+ const one=structuredClone(d.document);one.groups[0].title='Revision one';const two=structuredClone(d.document);two.groups[0].title='Revision two';
+ resolveSecond({revision:'2',document:two});assert.equal(await secondApply,true);const p=d.begin('live-two','digest');const current=result(p,d);current.layoutRevision='2';assert.equal(d.accept(p,current),true);assert.equal(d.ready,true);
+ resolveFirst({revision:'1',document:one});assert.equal(await firstApply,false);assert.equal(d.revision,'2');assert.equal(d.group().title,'Revision two');assert.equal(d.ready,true);assert.equal(d.beginLive('1'),null);
+});

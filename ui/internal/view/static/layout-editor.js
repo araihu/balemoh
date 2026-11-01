@@ -14,9 +14,12 @@
   class Draft {
     constructor(data) {
       this.revision = data.state.revision; this.saved = clone(data.state.document); this.document = clone(data.preview.document);
-      this.preview = clone(data.preview); this.selection = clone(data.selection); this.generation = 0; this.state = 'preview_valid'; this.pending = null; this.saveAttempt = null;
+      this.preview = clone(data.preview); this.selection = clone(data.selection); this.generation = 0; this.state = data.preview.stale || data.preview.layoutRevision !== data.state.revision ? 'conflict' : 'preview_valid';this.liveSequence=0;this.liveRevision=this.revision; this.pending = null; this.saveAttempt = null;
       this.reconcileSelection();
     }
+    beginLive(revision) { if (!/^(0|[1-9][0-9]*)$/.test(revision)||BigInt(revision)<BigInt(this.revision)||BigInt(revision)<BigInt(this.liveRevision)) return null;this.liveRevision=revision;return {sequence:++this.liveSequence,revision,generation:this.generation}; }
+    ownsLive(entry) {return !!entry&&entry.sequence===this.liveSequence&&entry.revision===this.liveRevision;}
+    applyLive(entry,state) {if(!this.ownsLive(entry)||state.revision!==entry.revision||entry.generation!==this.generation||this.dirty||this.saveAttempt||['saving','outcome_unknown','conflict'].includes(this.state))return false;this.saved=clone(state.document);this.document=clone(state.document);this.revision=state.revision;this.generation++;this.pending=null;this.state='preview_pending';return true;}
     referenceCount() { return this.document.groups.reduce((n,g)=>n+g.placements.length,0); }
     fitsOrder(groupId) { const g=this.group(groupId),r=this.resolved(groupId);return !!g&&!!r&&this.referenceCount()-g.placements.length+r.members.length<=512; }
     fitsMove(itemId,groupId) { const g=this.group(groupId),r=this.resolved(groupId);if(!g||!r)return false;const outside=this.document.groups.some(v=>v.id!==groupId&&v.placements.some(p=>p.itemId===itemId));const count=r.members.some(m=>m.itemId===itemId)?r.members.length:r.members.length+1;return this.referenceCount()-g.placements.length-(outside?1:0)+count<=512; }
@@ -75,7 +78,7 @@
     if (global.goshtosoDependencies?.ready) await global.goshtosoDependencies.ready;
     const model = new Draft(JSON.parse(root.dataset.layoutEditor));
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
-    let timer, controller, restoreId, movedIdentity, lastSaveMessage, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, alive = true;
+    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, alive = true;
     const find = action => root.querySelector(`[data-layout-action="${action}"]`);
     const dispatchModal = (name, id) => global.dispatchEvent(new CustomEvent(`modal:${name}`, { detail: { id: `layout-${id}` } }));
     const announce = text => { status.textContent = text; };
@@ -84,7 +87,7 @@
       const frozen = ['saving', 'outcome_unknown', 'conflict'].includes(model.state);
       const focused = document.activeElement;
       const focusedStructural=[...frame.querySelectorAll('[data-layout-structural]')].some(el=>el===focused||el.contains(focused)||el.hidden&&document.getElementById(el.dataset.layoutFocus||el.id+'-trigger')===focused);
-      if (!model.ready && frame.contains(focused) && (frozen || focused.closest('[data-layout-preview]') || focusedStructural)) { restoreId = focused.id; status.focus({ preventScroll: true }); }
+      if (!model.ready && frame.contains(focused) && (frozen || focused.closest('[data-layout-preview]') || focusedStructural)) { restoreId = focused.id;restoreElement=focused;status.focus({ preventScroll: true }); }
       frame.setAttribute('aria-busy', String(model.state === 'preview_pending' || model.state === 'saving'));
       frame.querySelector('[data-layout-preview]').disabled = !model.ready;
       frame.querySelectorAll('[data-layout-structural]').forEach(el => { const capacityBlocked = ['item-earlier','item-later'].includes(el.dataset.layoutAction)&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.ready || el.dataset.layoutAction === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-earlier', 'item-later'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
@@ -94,7 +97,7 @@
       find('readback').hidden = model.state !== 'outcome_unknown';
       find('view-saved').hidden = model.state !== 'conflict'; find('reload').hidden = model.state !== 'conflict';
       root.querySelectorAll('[data-layout-create-form] button[type=submit]').forEach(el => { el.disabled = !model.ready; });
-      if (model.ready && restoreId && document.activeElement === status) { document.getElementById(restoreId)?.focus({ preventScroll: true }); restoreId = null; }
+      if (model.ready && !afterPreviewFocus && document.activeElement === status) {const control=restoreElement?.isConnected?restoreElement:restoreId?document.getElementById(restoreId):null;control?.focus({preventScroll:true});restoreId=null;restoreElement=null;}
     }
     function disable(el, value) { el.disabled = value; if (el.hidden) { const target = el.dataset.layoutFocus || el.id + '-trigger'; const control = document.getElementById(target); if (control) control.disabled = value; } }
     function clearErrors() { errors.replaceChildren(); errors.hidden = true; root.querySelectorAll('[data-layout-inline-error]').forEach(el => el.remove()); root.querySelectorAll('[aria-invalid="true"]').forEach(el => { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); }); }
@@ -128,7 +131,7 @@
       state(outcome);
       if (id && document.activeElement === document.body) { const next = document.getElementById(id); next?.focus({ preventScroll: true }); if (next?.setSelectionRange && start !== null) { try { next.setSelectionRange(start, end); } catch (_) {} } }
       if (afterPreviewFocus && (document.activeElement === status || document.activeElement === document.body)) document.getElementById(afterPreviewFocus)?.focus({ preventScroll: true });
-      afterPreviewFocus = null;
+      afterPreviewFocus = null;restoreId=null;restoreElement=null;
       } catch (_) {model.state='preview_error';state('Preview could not be displayed. Your draft is retained. Retry preview.');}
     }
     async function preview() {
@@ -207,17 +210,29 @@
     const live = new EventSource('/dashboard/events?layoutEditor=true');
     async function onLive(data) {
       if (pointer) { queuedLive = data; return; }
+      const entry=model.beginLive(data.revision);if(!entry)return;
       if (data.revision !== model.revision && !['saving', 'outcome_unknown'].includes(model.state)) {
         if (model.dirty) { controller?.abort(); model.pending = null; model.state = 'conflict'; state('Another client saved a layout. Your draft is retained.'); }
-        else { try { const saved = await response('/settings/homepage/layout/saved'); if (saved.r.ok && !model.dirty && !model.saveAttempt) { model.saved = clone(saved.data.document); model.document = clone(saved.data.document); model.revision = saved.data.revision; model.generation++; model.state = 'preview_pending'; await preview(); } } catch (_) { announce('Saved layout changed. Refresh to load it.'); } }
+        else {
+          liveController?.abort();liveController=new AbortController();controller?.abort();model.pending=null;model.state='preview_pending';state('Loading the saved layout…');
+          try {
+            const saved=await response('/settings/homepage/layout/saved',{signal:liveController.signal});
+            if(!model.ownsLive(entry))return;
+            if(saved.r.ok&&model.applyLive(entry,saved.data))await preview();
+            else if(model.dirty){model.state='conflict';state('Saved layout changed while you edited. Your draft is retained.');}
+            else if(!saved.r.ok){model.state='preview_error';state('Saved layout unavailable. Retry preview or inspect the saved version.');}
+          } catch(error) {if(error.name!=='AbortError'&&model.ownsLive(entry)){model.state='preview_error';state('Saved layout unavailable. Your local values are retained.');}}
+        }
       }
+      if(!model.ownsLive(entry))return;
       if (data.identity !== latestLiveIdentity) { const initial = latestLiveIdentity === undefined; latestLiveIdentity = data.identity; if (!initial && !['conflict', 'saving', 'outcome_unknown'].includes(model.state)) preview(); }
       if (data.html && !pointer) await global.htmx.swap({ sourceElement: root, target: '#layout-editor-live', swap: 'none', text: data.html });
     }
+
     live.onmessage = event => { try { onLive(JSON.parse(event.data)).catch(()=>announce('Live update unavailable. Your draft is retained.')); } catch (_) { announce('Live updates could not be read.'); } };
-    global.addEventListener('pagehide', () => { alive = false; controller?.abort(); clearTimeout(timer); live.close(); global.removeEventListener('pointerup', releasePointer); global.removeEventListener('pointercancel', releasePointer); }, { once: true });
+    global.addEventListener('pagehide', () => { alive = false;controller?.abort();liveController?.abort();clearTimeout(timer);live.close(); global.removeEventListener('pointerup', releasePointer); global.removeEventListener('pointercancel', releasePointer); }, { once: true });
     root.querySelector('[data-layout-controls]').disabled=false;
-    state('Layout matches the saved version.');
+    state(model.ready?'Layout matches the saved version.':'Saved layout changed while loading. Your draft is retained.');
     root.balemohLayout = model;
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();
