@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
+	"golang.org/x/net/html"
 )
 
 func TestMobileTablesReuseCellsAndPreserveHeaderAssociations(t *testing.T) {
@@ -52,5 +53,53 @@ func TestMobileTableConfigurationCoversProductLists(t *testing.T) {
 				t.Fatal("workload evidence must have one shared representation")
 			}
 		})
+	}
+}
+
+func TestServiceNameOwnsNavigation(t *testing.T) {
+	for _, readonly := range []bool{false, true} {
+		var output bytes.Buffer
+		service := Service{ID: "app", DisplayName: "Application", Status: "live"}
+		if err := ServiceTable(PageData{Status: "live", Staging: true, ReadOnly: readonly, Services: []Service{service}}).Render(context.Background(), &output); err != nil {
+			t.Fatal(err)
+		}
+		document, err := html.Parse(strings.NewReader(output.String()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		links := 0
+		var visit func(*html.Node)
+		visit = func(node *html.Node) {
+			for _, attr := range node.Attr {
+				if node.Data == "a" && attr.Key == "href" && attr.Val == EditURL(service.ID) {
+					links++
+					var name string
+					var text func(*html.Node)
+					text = func(child *html.Node) {
+						if child.Type == html.TextNode {
+							name += child.Data
+						}
+						for next := child.FirstChild; next != nil; next = next.NextSibling {
+							text(next)
+						}
+					}
+					text(node)
+					if strings.TrimSpace(name) != service.DisplayName {
+						t.Errorf("edit link must name the service, got %q", name)
+					}
+				}
+			}
+			for child := node.FirstChild; child != nil; child = child.NextSibling {
+				visit(child)
+			}
+		}
+		visit(document)
+		want := 1
+		if readonly {
+			want = 0
+		}
+		if links != want {
+			t.Errorf("readonly=%t: got %d edit links, want %d", readonly, links, want)
+		}
 	}
 }
