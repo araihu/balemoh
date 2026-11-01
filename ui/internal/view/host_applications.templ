@@ -121,10 +121,7 @@ templ HostApplicationRow(app HostApplication,kind string,oob bool) {
     } else if len(app.Workloads)==0 {
      <p class="balemoh-muted">No associated workloads in the received inventory. Runtime state is unknown.</p>
     } else {
-     @HostApplicationWorkloadsMobile(app,kind)
-     <div class="balemoh-table-scroll balemoh-workloads-table" tabindex="0" role="region" aria-label={ app.Service.DisplayName+" workloads" }>
-      @table.Table(table.Config{ID:"application-workloads-"+app.Service.ID,Caption:app.Service.DisplayName+" reported workloads",Columns:applicationWorkloadColumns(kind),Rows:applicationWorkloadRows(app.Workloads)})
-     </div>
+     @HostApplicationWorkloads(app,kind)
      if kind!="Docker host" {
       <p class="balemoh-muted">Restarts are cumulative for each pod, including init containers. They do not indicate when a restart occurred.</p>
      }
@@ -134,59 +131,12 @@ templ HostApplicationRow(app HostApplication,kind string,oob bool) {
  </article>
 }
 
-// The pinned Table has no responsive field-label contract. Keep its desktop
-// representation and compose read-only semantic workload evidence for mobile.
-templ HostApplicationWorkloadsMobile(app HostApplication,kind string) {
- <ul class="balemoh-workloads-mobile" role="list" aria-label={ app.Service.DisplayName+" reported workloads" }>
-  for _,w:=range app.Workloads {
-   <li>
-    <div class="balemoh-workload-identity">
-     <span class="balemoh-application-name">{ w.Name }</span>
-     if w.Namespace!="" {
-      <small class="balemoh-muted">{ w.Namespace }</small>
-     }
-    </div>
-    <dl class="balemoh-workload-fields">
-     <div><dt>State</dt><dd>{ w.State }</dd></div>
-     if kind!="Docker host" {
-      <div><dt>Readiness</dt><dd>{ w.Readiness() }</dd></div>
-     }
-     <div>
-      <dt>Location</dt>
-      <dd>
-       if w.Node!="" {
-        { w.Node }
-       } else {
-        Not reported
-       }
-      </dd>
-     </div>
-     if kind!="Docker host" {
-      <div><dt>Total restarts</dt><dd>{ strconv.Itoa(w.Restarts) }</dd></div>
-     }
-     if w.Reason!="" {
-      <div class="balemoh-workload-wide"><dt>Reason</dt><dd>{ w.Reason }</dd></div>
-     }
-     if len(w.Images)>0 {
-      <div class="balemoh-workload-wide">
-       <dt>Images</dt>
-       <dd>
-        <ul role="list">
-         for _,image:=range w.Images {
-          <li>{ image }</li>
-         }
-        </ul>
-       </dd>
-      </div>
-     }
-    </dl>
-   </li>
-  }
- </ul>
+templ HostApplicationWorkloads(app HostApplication,kind string) {
+ @table.Table(table.Config{ID:"application-workloads-"+app.Service.ID,Caption:app.Service.DisplayName+" reported workloads",Mobile:&table.MobileConfig{PrimaryColumn:"name",Expandable:true},Columns:applicationWorkloadColumns(kind),Rows:applicationWorkloadRows(app.Workloads)})
 }
 
 func applicationWorkloadColumns(kind string) []table.Column {
- columns:=[]table.Column{{Key:"name",Label:"Workload"},{Key:"state",Label:"State"},{Key:"node",Label:"Location"}}
+ columns:=[]table.Column{{Key:"name",Label:"Workload"},{Key:"state",Label:"State"},{Key:"node",Label:"Location",MobileSecondary:true}}
  if kind!="Docker host" {columns=append(columns,table.Column{Key:"ready",Label:"Readiness"},table.Column{Key:"restarts",Label:"Total restarts"})}
  return columns
 }

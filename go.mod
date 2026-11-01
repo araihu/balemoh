@@ -4,10 +4,10 @@ go 1.27.3
 
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
-	github.com/andybalholm/brotli v1.2.6
+	github.com/andybalholm/brotli v1.2.7
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
-	github.com/araihu/goshtoso v0.4.6-0.20261030033019-a2d38bfbfc74
+	github.com/araihu/goshtoso v0.4.7-0.20261101031046-84d1dcb13029
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
@@ -25,7 +25,7 @@ require (
 	cel.dev/expr v0.25.2 // indirect
 	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/a-h/templ v0.3.1070 // indirect
+	github.com/a-h/templ v0.3.1100 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

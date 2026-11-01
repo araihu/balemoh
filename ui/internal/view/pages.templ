@@ -233,6 +233,7 @@ templ ServiceTable(data PageData) {
 			@table.Table(table.Config{
 				ID:        "balemoh-services-" + data.Status,
 				Caption:   "Balemoh services",
+				Mobile:    &table.MobileConfig{PrimaryColumn: "service"},
 				Columns:   serviceTableColumns(data.Staging && data.Status != "missing" && data.Status != "hidden"),
 				Rows:      serviceTableRows(data),
 				RootClass: "balemoh-service-table",
@@ -279,7 +280,7 @@ templ ServiceSelection(service Service) {
 			Name:       "pinned",
 			Value:      "true",
 			Checked:    service.Pinned,
-			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
+			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": templ.JSUnsafeFuncCall("this.form.requestSubmit()"), "style": "border-color: var(--balemoh-muted)"},
 		})
 		if service.PinError != "" {
 			<small role="alert">{ service.PinError }</small>
@@ -313,7 +314,7 @@ templ GroupAddresses(service Service) {
 }
 
 templ StagingRow(service Service) {
-	@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
+	@table.TableRow(table.Config{ID: "balemoh-services-" + service.State(), Mobile: &table.MobileConfig{PrimaryColumn: "service"}, Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
 }
 
 const homeSearchState = `{query: '', move(step) {

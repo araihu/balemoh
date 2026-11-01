@@ -3,12 +3,12 @@ module github.com/araihu/balemoh/ui
 go 1.27.3
 
 require (
-	github.com/a-h/templ v0.3.1070
+	github.com/a-h/templ v0.3.1100
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
-	github.com/araihu/goshtoso v0.4.6-0.20261030033019-a2d38bfbfc74
-	github.com/araihu/goshtoso-app-shells v0.1.9-0.20261027184700-9420d58a27d9
-	github.com/araihu/goshtoso-charts v0.0.4
+	github.com/araihu/goshtoso v0.4.7-0.20261101031046-84d1dcb13029
+	github.com/araihu/goshtoso-app-shells v0.1.9
+	github.com/araihu/goshtoso-charts v0.0.5
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/gofrs/flock v0.13.1
 	github.com/google/uuid v1.6.0
@@ -19,7 +19,7 @@ require (
 require (
 	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
-	github.com/andybalholm/brotli v1.2.6 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/araihu/muamba v0.0.6 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -41,11 +41,11 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/image v0.47.0 // indirect
-	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
-	golang.org/x/tools v0.51.0 // indirect
+	golang.org/x/tools v0.52.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
