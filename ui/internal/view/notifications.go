@@ -1,14 +1,31 @@
 package view
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso/components/badge"
+	"github.com/araihu/goshtoso/components/dropdown"
 	"github.com/araihu/goshtoso/components/icon"
 	"github.com/araihu/goshtoso/components/icon/heroicons"
 )
+
+func notificationActionItems(ctx context.Context) []dropdown.Item {
+	items := []dropdown.Item{
+		{ID: "notification-mark-all", Disabled: ReadOnly(ctx), Label: "Mark all as read", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconLucideCheckCheck, Decorative: true}), HTMX: &dropdown.HTMXConfig{Post: "/notifications/read-all", Target: "#notification-read-all-status", Swap: "innerMorph", Vals: `{"returnTo":"tray"}`}},
+		{Label: "Refresh notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true}), OnClick: "window.dispatchEvent(new CustomEvent('notifications:refresh'))"},
+	}
+	if ReadOnly(ctx) {
+		return items
+	}
+	return append(items,
+		dropdown.Item{ID: "notification-browser-toggle", Label: "Enable browser notifications", OnClick: "window.dispatchEvent(new CustomEvent('notifications:browser-toggle'))", Tooltip: "Message text may appear on your lock screen."},
+		dropdown.Item{Label: "Notification settings", Href: "/settings/notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true})},
+	)
+}
 
 type Notification struct {
 	ServiceID, ServiceName                         string

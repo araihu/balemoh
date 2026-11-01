@@ -4,7 +4,7 @@ const {create}=require('../browser-notifications.js');
 const fs=require('node:fs'),vm=require('node:vm');
 const tokenKey='balemoh.notifications.pushToken';
 function harness({permission='granted',enabled=true,storage=new Map(),subscription=null,subscribed=false}={}){
- const events={},requests=[],status={},button={setAttribute(name,value){this[name]=value;}};
+ const events={},requests=[],status={},button={setAttribute(name,value){this[name]=value;}},menu={id:'notification-browser-toggle',setAttribute(name,value){this[name]=value;}},feedback={};
  let asks=0,subscribes=0,unsubscribes=0,serverSubscribed=subscribed,failPost=false,failDelete=false;
  const key=Uint8Array.from([4,1,2,3]);const publicKey=Buffer.from(key).toString('base64url');
  function makeSubscription(){return {options:{applicationServerKey:key.buffer},toJSON:()=>({endpoint:'https://push.example/device',expirationTime:null,keys:{p256dh:'key',auth:'auth'}}),async unsubscribe(){unsubscribes++;subscription=null;return true;}};}
@@ -15,7 +15,7 @@ function harness({permission='granted',enabled=true,storage=new Map(),subscripti
   Notification:{permission,async requestPermission(){asks++;return this.permission;}},
   navigator:{serviceWorker:{async register(){},ready:Promise.resolve(worker)}},
   localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},
-  document:{querySelectorAll:()=>[{querySelector:selector=>selector.endsWith('toggle]')?button:status}],addEventListener(name,fn){events[name]=fn;}},
+  document:{querySelectorAll:selector=>selector==='[data-browser-notifications]'?[{querySelector:()=>status}]:selector==='[data-browser-notifications-feedback]'?[feedback]:[button,menu],addEventListener(name,fn){events[name]=fn;}},
   addEventListener(name,fn){events[name]=fn;},
   async fetch(url,options){requests.push({url,...options});const method=options.method;
    if(method==='POST'){if(failPost)return {ok:false};serverSubscribed=true;}
@@ -23,7 +23,7 @@ function harness({permission='granted',enabled=true,storage=new Map(),subscripti
    return {ok:true,json:async()=>({enabled,publicKey,subscribed:serverSubscribed})};
   }};
  const controller=create(env);
- return {env,controller,storage,requests,status,button,events,worker,counts:()=>({asks,subscribes,unsubscribes}),failPost(value){failPost=value;},failDelete(value){failDelete=value;}};
+ return {env,controller,storage,requests,status,button,menu,feedback,events,worker,counts:()=>({asks,subscribes,unsubscribes}),failPost(value){failPost=value;},failDelete(value){failDelete=value;}};
 }
 test('explicit opt-in subscribes and persists; reopening renews without asking again',async()=>{
  const h=harness();await h.controller.ready;assert.equal(h.controller.active(),false);assert.equal(h.counts().asks,0);
@@ -55,6 +55,19 @@ test('failed server persistence unsubscribes; failed cleanup can retry without r
 test('revoked permission still permits removing the registered subscription',async()=>{
  const h=harness();await h.controller.ready;await h.controller.toggle();h.env.Notification.permission='denied';h.controller.sync();
  assert.equal(h.button.disabled,false);await h.controller.toggle();assert.equal(h.counts().unsubscribes,1);
+});
+test('menu action shares settings state, pending protection and visible failure feedback',async()=>{
+ const h=harness();assert.equal(h.menu.disabled,true);await h.controller.ready;
+ assert.equal(h.menu.textContent,'Enable browser notifications');assert.equal(h.feedback.hidden,true);
+ assert.match(h.menu.title,/lock screen/);assert.equal('aria-pressed' in h.menu,false);
+ const enabling=h.events['notifications:browser-toggle']();
+ assert.equal(h.menu.disabled,true);assert.equal(h.button.disabled,true);
+ await enabling;
+ assert.equal(h.menu.textContent,'Disable browser notifications');assert.equal(h.button['aria-pressed'],'true');
+ h.failDelete(true);await h.controller.toggle();
+ assert.equal(h.feedback.hidden,false);assert.match(h.feedback.textContent,/Server cleanup failed/);
+ assert.equal(h.menu.textContent,'Retry disabling notifications');
+ h.failDelete(false);await h.controller.toggle();assert.equal(h.feedback.hidden,true);
 });
 test('push displays without any tab; malformed payload remains user-visible',async()=>{
  const handlers={},shown=[];

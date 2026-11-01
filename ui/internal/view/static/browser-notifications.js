@@ -16,11 +16,17 @@
       if (failure) status = failure;
       env.document.querySelectorAll('[data-browser-notifications]').forEach(section => {
         section.hidden = false;
-        const button = section.querySelector('[data-browser-notifications-toggle]');
+        section.querySelector('[data-browser-notifications-status]').textContent = status;
+      });
+      env.document.querySelectorAll('[data-browser-notifications-toggle], #notification-browser-toggle').forEach(button => {
         button.textContent = cleanup ? 'Retry disabling notifications' : registered() ? 'Disable browser notifications' : 'Enable browser notifications';
         button.disabled = pending || (!registered() && !cleanup && (!supported() || !settings?.enabled || env.Notification.permission === 'denied'));
-        button.setAttribute('aria-pressed', String(active()));
-        section.querySelector('[data-browser-notifications-status]').textContent = status;
+        if (button.id === 'notification-browser-toggle') button.setAttribute('title', status + ' Message text may appear on your lock screen.');
+        else button.setAttribute('aria-pressed', String(active()));
+      });
+      env.document.querySelectorAll('[data-browser-notifications-feedback]').forEach(feedback => {
+        feedback.hidden = !failure;
+        feedback.textContent = failure;
       });
     }
     async function request(method, body) {
@@ -114,6 +120,7 @@
       finally { pending=false;sync(); }
     }
     env.document.addEventListener('click',event=>{if(event.target.closest('[data-browser-notifications-toggle]'))toggle();});
+    env.addEventListener('notifications:browser-toggle',()=>toggle());
     env.addEventListener('focus',()=>{if(!pending){pending=true;sync();locked(restore);}});
     env.addEventListener('storage',event=>{if((event.key===tokenKey||event.key==='balemoh.notifications.pushChanged')&&!pending){pending=true;sync();locked(restore);}});
     sync();const ready=locked(restore);

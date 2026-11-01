@@ -75,18 +75,17 @@ templ NotificationTray() {
 			@icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowTopRightOnSquare, Decorative: true})
 		}
 		<div hx-sync:inherited="#balemoh-notifications:queue last" hx-request:inherited="timeout:4s" hx-disable:inherited="#notification-mark-all, #notification-actions-trigger" hx-include:inherited="#notification-filter">
-			@dropdown.Dropdown(dropdown.Config{ID: "notification-actions", Label: "Notification actions", Trigger: NotificationActionsTrigger(), MenuAlign: dropdown.AlignEnd, Sections: []dropdown.Section{{Items: []dropdown.Item{
-				{ID: "notification-mark-all", Disabled:ReadOnly(ctx), Label: "Mark all as read", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconLucideCheckCheck, Decorative: true}), HTMX: &dropdown.HTMXConfig{Post: "/notifications/read-all", Target: "#notification-read-all-status", Swap: "innerMorph", Vals: `{"returnTo":"tray"}`}},
-				{Label: "Refresh notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidArrowPath, Decorative: true}), OnClick: "window.dispatchEvent(new CustomEvent('notifications:refresh'))"},
-			}}}})
+			@dropdown.Dropdown(dropdown.Config{ID: "notification-actions", Label: "Notification actions", Trigger: NotificationActionsTrigger(), MenuAlign: dropdown.AlignEnd, Sections: []dropdown.Section{{Items: notificationActionItems(ctx)}}})
 		</div>
 	</div>
 	<div id="notification-read-all-status" tabindex="-1" aria-live="polite"></div>
+	if !ReadOnly(ctx) {
+		<p class="balemoh-notification-message" data-browser-notifications-feedback role="status" hidden></p>
+	}
 	<div id="notification-tray" data-notification-tray tabindex="-1" hx-sync="#balemoh-notifications:queue all" hx-request="timeout:4s" aria-live="polite"><p class="balemoh-muted balemoh-notification-message">Loading notifications…</p></div>
 	<div class="balemoh-notification-footer">@link.Link("/notifications", link.WithAttrs(templ.Attributes{"data-notification-inbox-link": true})) {
 	View all notifications
 }</div>
-	@BrowserNotificationSettings("tray")
 }
 
 templ NotificationActionsTrigger() {
@@ -235,7 +234,6 @@ templ NotificationsContent(page NotificationsPage) {
 	} else {
 		<div id="notification-center" class="balemoh-notification-center" x-data="{}" x-on:notifications-cleared.window="$dispatch('modal:close', {id:'clear-notifications'})">
 			@panel.Panel(panel.Config{Header: NotificationCenterHeading(page), BodyClass: "balemoh-notification-center-body"}) {
-				@BrowserNotificationSettings("page")
 				<div id="notification-page-read-status" tabindex="-1">@NotificationReadAllError(page.BulkError)</div>
 				<div id="notification-inbox" tabindex="-1">@NotificationInbox(page, false)</div>
 			}

@@ -25,6 +25,41 @@ func (f *pushFixture) RegisterWebPush(context.Context, api.WebPushRegistration) 
 	return nil
 }
 func (f *pushFixture) DeleteWebPush(context.Context, webPushToken) error { f.deletes++; return nil }
+
+func TestBrowserNotificationSettingsLocation(t *testing.T) {
+	f := &pushFixture{}
+	h, err := New(f, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/", "/notifications", "/settings/notifications"} {
+		t.Run(path, func(t *testing.T) {
+			w := request(t, h, "GET", path, "")
+			body := w.Body.String()
+			if path == "/settings/notifications" {
+				if w.Code != 200 || w.Header().Get("Cache-Control") != "no-store" {
+					t.Fatalf("settings response: status=%d, cache=%q", w.Code, w.Header().Get("Cache-Control"))
+				}
+				for _, want := range []string{`data-browser-notifications-status`, `data-browser-notifications-toggle`, "Message text may appear on your lock screen.", `aria-current="page"`} {
+					if !strings.Contains(body, want) {
+						t.Errorf("settings missing %q", want)
+					}
+				}
+			} else if strings.Contains(body, `data-browser-notifications-status`) || strings.Contains(body, "New messages arrive even with the tab closed.") {
+				t.Fatal("notification preferences still embedded in the tray or inbox")
+			}
+			for _, want := range []string{`id="notification-browser-toggle"`, `notifications:browser-toggle`, `href="/settings/notifications"`, `data-consoleshell-nav-id="nav-notification-settings"`} {
+				if !strings.Contains(body, want) {
+					t.Errorf("missing browser notification entry point %q", want)
+				}
+			}
+		})
+	}
+	if f.saves != 0 || f.deletes != 0 {
+		t.Fatal("navigation changed a browser subscription")
+	}
+}
+
 func TestWebPushBFFProtectionAndManifest(t *testing.T) {
 	f := &pushFixture{settings: api.WebPushSettings{Enabled: true, PublicKey: "public"}}
 	h, err := New(f, time.Second)

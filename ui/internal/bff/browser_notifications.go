@@ -4,9 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	api "github.com/araihu/balemoh/client"
+	"github.com/araihu/balemoh/ui/internal/view"
 	"io"
 	"net/http"
 )
+
+func (s *server) notificationSettings(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, view.PageData{Title: "Notification settings", Description: "Manage browser notifications on this device.", Path: "/settings/notifications", Active: "nav-notification-settings", NotificationSettings: true}, http.StatusOK)
+}
 
 type webPushToken struct {
 	Token string `json:"token"`

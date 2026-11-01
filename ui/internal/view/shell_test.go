@@ -53,6 +53,10 @@ func TestConfigIsLastAndContainsPluginManagement(t *testing.T) {
 		if !slices.Equal(topLevel, want) {
 			t.Fatalf("withPlugins=%v: top-level items = %v, want %v", withPlugins, topLevel, want)
 		}
+		settings := nodes["nav-notification-settings"]
+		if settings == nil || settings.Parent != nodes["nav-presentation"].Parent {
+			t.Fatal("notification settings must be a Config child alongside Appearance")
+		}
 		if withPlugins {
 			widget := nodes["nav-plugin-widgets"]
 			if widget == nil || widget.Parent != nodes["nav-presentation"].Parent || widget.Parent.Parent != nodes["nav-config"].Parent {

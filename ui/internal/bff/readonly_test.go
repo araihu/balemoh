@@ -15,6 +15,7 @@ func TestPublicReadOnlyDeniesForgedActionsBeforeUpstream(t *testing.T) {
 		{"POST", "/staging/sync"}, {"POST", "/staging/services/a/pin"}, {"POST", "/presentation/save"}, {"POST", "/icons/upload"},
 		{"POST", "/notifications/read-all"}, {"POST", "/notifications/clear"}, {"POST", "/plugins/p/connections/c/pages/action"},
 		{"GET", "/staging/services/new"}, {"GET", "/staging/services/a/edit"}, {"GET", "/notifications/clear"},
+		{"GET", "/settings/notifications"},
 		{"GET", "/dashboard/events"}, {"GET", "/hosts/a/events"},
 	} {
 		t.Run(request.method+request.path, func(t *testing.T) {
@@ -139,6 +140,9 @@ func TestPublicReadOnlyPageHasNoticeAndNoStream(t *testing.T) {
 		h.ServeHTTP(response, httptest.NewRequest("GET", "/", nil))
 		if response.Code != 200 || !strings.Contains(response.Body.String(), "Shared read-only demo") || strings.Contains(response.Body.String(), `hx-sse:connect=`) || strings.Contains(response.Body.String(), `data-browser-notifications`) || strings.Contains(response.Body.String(), `/ui/browser-notifications.js`) {
 			t.Fatalf("demo page=%d", response.Code)
+		}
+		if strings.Contains(response.Body.String(), `id="notification-browser-toggle"`) || strings.Contains(response.Body.String(), `href="/settings/notifications"`) {
+			t.Fatal("browser notification configuration exposed in the shared demo")
 		}
 	}
 }

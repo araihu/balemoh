@@ -55,6 +55,7 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 	server.icons, _ = catalog.(IconCatalog)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /notifications", server.notificationPage)
+	mux.HandleFunc("GET /settings/notifications", server.notificationSettings)
 	mux.Handle("POST /notifications/read-all", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationReadAll)))
 	mux.HandleFunc("GET /notifications/clear", server.notificationClearPage)
 	mux.Handle("POST /notifications/clear", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.notificationClear)))

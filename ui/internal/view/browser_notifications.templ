@@ -1,15 +1,24 @@
 package view
 
-import "github.com/araihu/goshtoso/components/button"
+import (
+ "github.com/araihu/goshtoso/components/button"
+ "github.com/araihu/goshtoso/components/pageheader"
+ "github.com/araihu/goshtoso/components/panel"
+)
 
-templ BrowserNotificationSettings(location string) {
+templ BrowserNotificationSettings() {
+ @pageheader.PageHeader(pageheader.Config{Title: "Notification settings", HideSeparator: true})
+ @panel.Panel(panel.Config{BodyClass: "space-y-4"}) {
+  <h2 class="text-lg font-semibold">Browser notifications</h2>
+  <p class="balemoh-muted">New messages arrive even with the tab closed. Message text may appear on your lock screen.</p>
  if !ReadOnly(ctx) {
-	<div class="balemoh-notification-message" data-browser-notifications hidden>
-		@button.Button(button.WithType("button"), button.WithSize(button.SizeSmall), button.WithAppearance(button.AppearancePlain), button.WithAttrs(templ.Attributes{"data-browser-notifications-toggle": true, "aria-describedby": "browser-notifications-status-" + location})) {
+	<div class="space-y-4" data-browser-notifications hidden>
+		<p id="browser-notifications-status" data-browser-notifications-status role="status">Checking browser notifications…</p>
+		@button.Button(button.WithType("button"), button.Disabled(), button.WithAttrs(templ.Attributes{"data-browser-notifications-toggle": true, "aria-describedby": "browser-notifications-status"})) {
 			Enable browser notifications
 		}
-		<p id={ "browser-notifications-status-" + location } data-browser-notifications-status role="status">Browser notifications are off.</p>
-		<p class="balemoh-muted">New messages arrive even with the tab closed. Message text may appear on your lock screen.</p>
 	</div>
+  <noscript><p>JavaScript is required to manage browser notifications.</p></noscript>
+ }
 }
 }
