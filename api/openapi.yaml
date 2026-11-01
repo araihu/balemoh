@@ -307,6 +307,87 @@ paths:
       description: Run a declared query for one enabled connection with its configured grants. Queries read the
         cached observation and do not start collection. Input is limited to 64 KiB and host deadlines bound the
         call.
+  /api/v1/plugins/{pluginId}/connections/{connectionId}/actions/{actionId}:
+    post:
+      operationId: ActionPlugin
+      security:
+      - PluginService: []
+      parameters:
+      - name: pluginId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Installed plugin identifier returned by the plugin catalog.
+        example: example.status
+      - name: connectionId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Configured connection ID returned by the plugin catalog.
+        example: 00000000-0000-4000-8000-000000000001
+      - name: actionId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Declared action identifier returned by the connection descriptor.
+        example: list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - input
+              additionalProperties: false
+              properties:
+                input:
+                  type: object
+                  additionalProperties: true
+                  example: {}
+            example:
+              input: {}
+        description: Declared action input object.
+      responses:
+        '200':
+          description: Validated durable action receipt; never waits for source execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginActionResult'
+              example:
+                data:
+                  count: 2
+        '400':
+          description: Invalid action input
+        '401':
+          description: A valid BFF service credential is required to execute a plugin action.
+        '403':
+          description: Connection disabled or operation not granted
+        '404':
+          description: Unknown plugin, connection or operation
+        '409':
+          description: Observation revision changed
+        '413':
+          description: Query input exceeds limit
+        '429':
+          description: Plugin query capacity exceeded
+        '502':
+          description: Invalid plugin output
+        '503':
+          description: The service cannot execute a plugin action because required storage or plugin metadata
+            is unavailable.
+        '504':
+          description: Plugin query exceeded the host deadline
+      tags:
+      - Plugins
+      summary: Query a plugin observation
+      description: Run a declared query for one enabled connection with its configured grants. Queries read the
+        cached observation and do not start collection. Input is limited to 64 KiB and host deadlines bound the
+        call.
   /api/v1/dashboard:
     get:
       operationId: GetDashboard
@@ -5724,6 +5805,10 @@ components:
           $ref: '#/components/schemas/PluginFailure'
         configurationError:
           $ref: '#/components/schemas/PluginFailure'
+        actions:
+          type: array
+          items:
+            type: string
         queries:
           type: array
           items:
@@ -5769,6 +5854,14 @@ components:
         code: unavailable
         message: Source unavailable
         retryable: true
+    PluginActionResult:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
     PluginQueryResult:
       type: object
       additionalProperties: false

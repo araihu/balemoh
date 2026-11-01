@@ -108,11 +108,12 @@ func (s *Source) query(ctx context.Context, plugin, connection, operation string
 }
 
 type scopedServices struct {
-	source    *Source
-	entry     *Entry
-	placement ui.Placement
-	grants    map[string]bool
-	requestID string
+	source       *Source
+	entry        *Entry
+	placement    ui.Placement
+	grants       map[string]bool
+	requestID    string
+	allowActions bool
 }
 
 func (h scopedServices) ResolveServices(ctx context.Context, ids []string) ([]ui.ServiceIdentity, error) {
@@ -173,6 +174,11 @@ func (s *Source) granted(ctx context.Context, e *Entry) (map[string]bool, api.Pl
 		for _, connection := range descriptor.Connections {
 			if connection.Id != e.Installation.ConnectionID || !connection.Enabled || !connection.Ready || connection.AppliedRevision == nil || *connection.AppliedRevision != connection.Revision {
 				continue
+			}
+			if connection.Actions != nil {
+				for _, action := range *connection.Actions {
+					result[action] = true
+				}
 			}
 			for _, query := range connection.Queries {
 				result[query] = true

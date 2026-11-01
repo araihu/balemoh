@@ -837,6 +837,11 @@ type NotificationSource struct {
 // NotificationSourceKind defines model for NotificationSource.Kind.
 type NotificationSourceKind string
 
+// PluginActionResult defines model for PluginActionResult.
+type PluginActionResult struct {
+	Data map[string]interface{} `json:"data"`
+}
+
 // PluginCatalog Installed plugin descriptors and safe installation failures, without executable paths or credentials.
 type PluginCatalog struct {
 	Plugins  []PluginDescriptor          `json:"plugins"`
@@ -845,7 +850,8 @@ type PluginCatalog struct {
 
 // PluginConnection Connection identity, applied configuration revision, collection state and available query identifiers.
 type PluginConnection struct {
-	AppliedRevision *string `json:"appliedRevision"`
+	Actions         *[]string `json:"actions,omitempty"`
+	AppliedRevision *string   `json:"appliedRevision"`
 
 	// ConfigurationError Safe error code and message, with a retryability hint and no source credentials.
 	ConfigurationError     *PluginFailure `json:"configurationError,omitempty"`
@@ -1431,6 +1437,11 @@ type PutPluginWidgetParams struct {
 	IfMatch *string `json:"If-Match,omitempty"`
 }
 
+// ActionPluginJSONBody defines parameters for ActionPlugin.
+type ActionPluginJSONBody struct {
+	Input map[string]interface{} `json:"input"`
+}
+
 // QueryPluginJSONBody defines parameters for QueryPlugin.
 type QueryPluginJSONBody struct {
 	Input map[string]interface{} `json:"input"`
@@ -1477,6 +1488,9 @@ type RegisterWebPushJSONRequestBody = WebPushRegistration
 
 // PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
 type PutPluginWidgetJSONRequestBody = PluginPlacementBody
+
+// ActionPluginJSONRequestBody defines body for ActionPlugin for application/json ContentType.
+type ActionPluginJSONRequestBody ActionPluginJSONBody
 
 // QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
 type QueryPluginJSONRequestBody QueryPluginJSONBody
@@ -1591,6 +1605,9 @@ type ServerInterface interface {
 	// List installed plugins
 	// (GET /api/v1/plugins)
 	GetPlugins(w http.ResponseWriter, r *http.Request)
+	// Query a plugin observation
+	// (POST /api/v1/plugins/{pluginId}/connections/{connectionId}/actions/{actionId})
+	ActionPlugin(w http.ResponseWriter, r *http.Request, pluginId string, connectionId string, actionId string)
 	// Query a plugin observation
 	// (POST /api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId})
 	QueryPlugin(w http.ResponseWriter, r *http.Request, pluginId string, connectionId string, queryId string)
@@ -2497,6 +2514,56 @@ func (siw *ServerInterfaceWrapper) GetPlugins(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ActionPlugin operation middleware
+func (siw *ServerInterfaceWrapper) ActionPlugin(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "pluginId" -------------
+	var pluginId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pluginId", r.PathValue("pluginId"), &pluginId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pluginId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connectionId" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connectionId", r.PathValue("connectionId"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connectionId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "actionId" -------------
+	var actionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "actionId", r.PathValue("actionId"), &actionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "actionId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, PluginServiceScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ActionPlugin(w, r, pluginId, connectionId, actionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // QueryPlugin operation middleware
 func (siw *ServerInterfaceWrapper) QueryPlugin(w http.ResponseWriter, r *http.Request) {
 
@@ -2993,6 +3060,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.DeletePluginWidget)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/plugin-widgets/{placementId}", wrapper.PutPluginWidget)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/plugins", wrapper.GetPlugins)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/plugins/{pluginId}/connections/{connectionId}/actions/{actionId}", wrapper.ActionPlugin)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/plugins/{pluginId}/connections/{connectionId}/queries/{queryId}", wrapper.QueryPlugin)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/presentation", wrapper.GetPresentation)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/presentation", wrapper.SavePresentation)

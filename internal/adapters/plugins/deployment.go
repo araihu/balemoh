@@ -162,14 +162,15 @@ func prepareConnection(p *manifest.Package, digest string, c Connection, resolve
 	sort.Strings(grants)
 	for i, grant := range grants {
 		query, ok := p.Manifest.Query(grant)
-		if !ok || query.Capability != "data.query/v1" || i > 0 && grants[i-1] == grant {
+		action, actionOK := p.Manifest.Action(grant)
+		if !(ok && query.Capability == "data.query/v1" || actionOK && action.Capability == "data.action/v1") || i > 0 && grants[i-1] == grant {
 			return invalid()
 		}
 	}
 	capabilityGrants := append([]string{}, c.CapabilityGrants...)
 	sort.Strings(capabilityGrants)
 	for i, capability := range capabilityGrants {
-		if capability != notificationPublishCapability || !p.Manifest.Declares(capability) || i > 0 && capabilityGrants[i-1] == capability {
+		if (capability != notificationPublishCapability && capability != "data.action/v1") || !p.Manifest.Declares(capability) || i > 0 && capabilityGrants[i-1] == capability {
 			return invalid()
 		}
 	}

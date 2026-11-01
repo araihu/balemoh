@@ -262,6 +262,30 @@ func (s *server) pluginPagePost(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
 	response, err := s.plugins.PageRequest(ctx, r.PathValue("pluginID"), r.PathValue("connectionID"), "/"+r.PathValue("pluginPath"), "POST", r.URL.Query(), form, body)
+	// Native validation failures retain navigation and page metadata, just like GET pages.
+	_, _, active, _ := s.plugins.ResolvePage(r.PathValue("pluginID"), r.PathValue("connectionID"), "/"+r.PathValue("pluginPath"), r.URL.Query())
+	if r.Header.Get("HX-Request") != "true" && (err != nil || response.Kind == "content") {
+		if err != nil {
+			s.render(w, r, view.PageData{Title: "Plugin action unavailable", Active: active, Description: "The action could not be confirmed. Check its current status before retrying.", Path: r.URL.Path, PluginContent: view.PluginSlotFailure(r.URL.RequestURI())}, 503)
+			return
+		}
+		assets, assetErr := s.plugins.ResponseAssets(r.PathValue("pluginID"), r.PathValue("connectionID"), response.AssetIDs)
+		if assetErr != nil {
+			s.pluginContent(w, r, response, assetErr)
+			return
+		}
+		raw, _ := json.Marshal(assets)
+		title := response.Title
+		if title == "" {
+			title = "Plugin content"
+		}
+		description := response.Description
+		if description == "" {
+			description = "Content from an explicitly installed Balemoh application plugin."
+		}
+		s.render(w, r, view.PageData{Title: title, Active: active, Description: description, Path: r.URL.Path, PluginContent: view.PluginMount(r.URL.Path, string(raw), response.HTML)}, response.Status)
+		return
+	}
 	s.pluginContent(w, r, response, err)
 }
 

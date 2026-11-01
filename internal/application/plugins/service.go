@@ -63,6 +63,7 @@ type ConnectionDescriptor struct {
 	Connection
 	Status
 	Queries []string `json:"queries"`
+	Actions []string `json:"actions,omitempty"`
 }
 type Descriptor struct {
 	ID             string                 `json:"id"`
@@ -137,7 +138,11 @@ func (s *Service) Descriptors(ctx context.Context) ([]Descriptor, error) {
 		if !state.Ready {
 			queries = []string{}
 		}
-		result[i].Connections = append(result[i].Connections, ConnectionDescriptor{c, state, queries})
+		actions := []string{}
+		if runtime, ok := s.runtime.(ActionRuntime); ok && c.Enabled && state.Ready {
+			actions = runtime.GrantedActions(c.PluginID, c.ID)
+		}
+		result[i].Connections = append(result[i].Connections, ConnectionDescriptor{Connection: c, Status: state, Queries: queries, Actions: actions})
 	}
 	return result, nil
 }
