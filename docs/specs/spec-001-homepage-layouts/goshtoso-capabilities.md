@@ -1,7 +1,7 @@
 # Goshtoso capability assessment
 
-Checked 2026-11-01. Decision applies to the selected public dependency APIs, not
-the standalone HTML study. No library implementation was changed in this task.
+Original research checked 2026-11-01 before implementation. Decision applies to the selected public dependency APIs, not
+the standalone HTML study. The assessment below records that original baseline.
 
 ## Inspected versions and evidence
 
@@ -79,3 +79,18 @@ app-specific measurement runtime once integration is proven. Do not duplicate it
 Specs and independent design reviews come first in this task. The upstream component,
 demos, generated assets/catalog and browser tests remain implementation work, not
 capabilities assumed available from main or an unreleased pseudo-version.
+
+## Verified upstream prerequisite and integration
+
+PR araihu/goshtoso#363 merged as c4bbff5b89274d31432d6e0a154093ce2e7f8eaa.
+Release v0.5.0 passed full verification and publication before consumer changes.
+Public CSS matches the tag, the external no-replace module consumer passes, and
+main documentation deployment passed. Root and UI now select v0.5.0; the client
+retains its existing theme dependency. Public layout.Container owns page and group
+geometry, DOM order and optional movement. Balemoh retains drafts and persistence.
+
+Controls compose form.FieldGroup, Select, TextInput, Checkbox, Button and
+modal.Dialog. Inspector fragments replace their form controls when choices change;
+preview fragments morph stable library item roots. This avoids preserving stale
+Select choices while keeping widget content and movement identities stable.
+App-owned coordination uses public Layout events and native disabled fieldsets.

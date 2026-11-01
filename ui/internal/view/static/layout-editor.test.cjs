@@ -1,0 +1,41 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const path = require('node:path');
+const { Draft, canonical } = require('./layout-editor.js');
+const initial = JSON.parse(readFileSync(path.resolve(__dirname, '../../../../docs/specs/spec-001-homepage-layouts/example-layout.json')));
+function setup() {
+ const document = structuredClone(initial);
+ document.groups[0].placements = [{ itemId: 'host-dormant' }];
+ const preview = { document, requestId: 'initial', draftGeneration: 0, layoutRevision: '0', stale: false, resolvedGroups: document.groups.map(g => ({ groupId: g.id, title: g.title, displayLabel: g.title, members: g.id === 'builtin:hosts' ? [{ itemId: 'host-a', state: 'active' }, { itemId: 'host-dormant', state: 'dormant' }, { itemId: 'host-z', state: 'active' }] : [] })) };
+ return new Draft({ state: { revision: '0', document }, preview, selection: { groupId: 'builtin:hosts', itemId: 'host-a' } });
+}
+function result(entry, model) { return { ...structuredClone(model.preview), requestId: entry.request.requestId, draftGeneration: entry.request.draftGeneration, document: structuredClone(model.document) }; }
+test('late success and failure cannot replace a newer draft or enable Save', () => {
+ const d = setup(); d.change(doc => { doc.homepage.width = 'contained'; }); const old = d.begin('old', 'old-digest');
+ d.change(doc => { doc.groups[0].title = 'Latest input'; }); const latest = d.begin('latest', 'latest-digest');
+ assert.equal(d.accept(old, result(old, d)), false); assert.equal(d.fail(old, 503), false); assert.equal(d.ready, false);
+ assert.equal(d.accept(latest, result(latest, d)), true); assert.equal(d.group().title, 'Latest input'); assert.equal(d.ready, true);
+});
+test('movement includes dormant positions and changes only destination policy', () => {
+ const d = setup(); assert.equal(d.orderItems('builtin:hosts', ['host-z', 'host-dormant', 'host-a']), true);
+ assert.deepEqual(d.group().ordering.ids, ['host-z', 'host-dormant', 'host-a']); assert.equal(d.document.homepage.ordering.mode, 'alphabetical');
+ assert.equal(d.move('host-a', 'builtin:widgets', null), false, 'pending retained preview must be inert');
+ const p = d.begin('ordered', 'digest'); const response = result(p, d); response.resolvedGroups[0].members.reverse(); d.accept(p, response);
+ assert.equal(d.move('host-a', 'builtin:widgets', null), true); assert.deepEqual(d.group('builtin:hosts').ordering.ids, ['host-z', 'host-dormant']); assert.equal(d.selection.groupId, 'builtin:widgets');
+ assert.deepEqual(d.group('builtin:widgets').ordering.ids, ['host-a']); assert.equal(d.group('builtin:services').ordering.mode, 'alphabetical');
+});
+test('group deletion rehomes dormant overrides and source defaults without copying ranks', () => {
+ const d = setup(); assert.equal(d.remove('builtin:hosts', 'builtin:services'), true); assert.equal(d.document.sourceGroups.host, 'builtin:services'); assert.deepEqual(d.group('builtin:services').placements, [{ itemId: 'host-dormant' }]); assert.equal(d.group('builtin:services').ordering.mode, 'alphabetical'); assert.equal(d.selection.groupId, 'builtin:services');
+});
+test('creating a group preserves page policy and uses reviewed defaults', () => {
+ const d = setup(); assert.equal(d.create('11111111-1111-4111-8111-111111111111', 'Media'), true); const g = d.group(); assert.equal(d.document.homepage.ordering.mode, 'alphabetical'); assert.deepEqual(g.layout, { type: 'grid', columns: 2, gapPx: 16 }); assert.equal(g.showHeading, true); assert.equal(g.initiallyCollapsed, false);
+});
+test('uncertain Save confirms configuration only and never silently retries a newer revision', () => {
+ const d = setup(); d.change(doc => { doc.homepage.width = 'contained'; }); const p = d.begin('preview', 'digest'); d.accept(p, result(p, d)); const attempt = d.startSave(); assert.ok(attempt); assert.equal(d.startSave(), null);
+ d.state = 'outcome_unknown'; assert.equal(d.readback({ revision: '1', document: structuredClone(attempt.document) }), true); assert.equal(d.dirty, false); assert.equal(d.revision, '1');
+ const other = setup(); other.change(doc => { doc.homepage.width = 'contained'; }); const e = other.begin('preview', 'digest'); other.accept(e, result(e, other)); other.startSave(); other.state = 'outcome_unknown'; assert.equal(other.readback({ revision: '9', document: initial }), false); assert.equal(other.state, 'conflict'); assert.equal(other.revision, '0'); assert.equal(other.document.homepage.width, 'contained');
+});
+test('canonical equality sorts configuration arrays and preserves custom sequence', () => {
+ const a = structuredClone(initial), b = structuredClone(initial); b.groups.reverse(); b.homepage.placements.reverse(); assert.equal(canonical(a), canonical(b)); a.homepage.ordering = { mode: 'custom', ids: ['builtin:hosts', 'builtin:widgets'] }; b.homepage.ordering = { mode: 'custom', ids: ['builtin:widgets', 'builtin:hosts'] }; assert.notEqual(canonical(a), canonical(b));
+});

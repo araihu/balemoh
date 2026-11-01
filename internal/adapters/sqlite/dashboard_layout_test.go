@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/araihu/balemoh/internal/application/dashboard"
+	"github.com/araihu/balemoh/internal/application/plugins"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -176,5 +177,93 @@ func TestLayoutDeletedBuiltinIdentityCannotBeResurrected(t *testing.T) {
 	state, e := s.Get(t.Context())
 	if e != nil || state.Revision != "1" || len(state.Document.Groups) != 2 {
 		t.Fatal(state, e)
+	}
+}
+
+type layoutFailedProvider string
+
+func (p layoutFailedProvider) Kind() string { return string(p) }
+func (layoutFailedProvider) Selected(context.Context) ([]dashboard.Widget, error) {
+	return nil, errors.New("observation unavailable")
+}
+func (layoutFailedProvider) SetSelected(context.Context, string, bool) error { return nil }
+func TestLayoutLocalEligibilityAndColdProviderOutage(t *testing.T) {
+	db := newCatalogTestDatabase(t)
+	ctx := t.Context()
+	catalogStore := NewCatalogStore(db)
+	ids := []string{}
+	for _, name := range []string{"live-layout", "hidden-layout", "missing-layout"} {
+		c := catalogTestCandidate(name, time.Now().UTC())
+		if e := catalogStore.Upsert(ctx, c); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := catalogStore.SetPinned(ctx, c.ID, true); e != nil {
+			t.Fatal(e)
+		}
+		ids = append(ids, c.ID)
+	}
+	if e := NewDashboardSelections(db).Set(ctx, "host", "cold-host", true); e != nil {
+		t.Fatal(e)
+	}
+	pluginsStore := NewPluginStore(db)
+	connections, e := pluginsStore.Reconcile(ctx, []plugins.Provision{{PluginID: "test.fixture", Key: "main", Name: "Fixture", Digest: "hash", ManifestDigest: "m", Version: "0.0.1"}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	placementID := "11111111-1111-4111-8111-111111111111"
+	if _, _, e = pluginsStore.PutPlacement(ctx, placementID, plugins.PlacementBody{PluginID: "test.fixture", ConnectionID: connections[0].ID, ContributionID: "summary", Options: []byte("{}"), Enabled: true}, ""); e != nil {
+		t.Fatal(e)
+	}
+	service := &dashboard.Layouts{Store: NewLayoutStore(db)}
+	document := dashboard.DefaultLayout()
+	for _, id := range ids {
+		document.Groups[1].Placements = append(document.Groups[1].Placements, dashboard.GroupPlacement{ItemID: "service-" + id})
+	}
+	saved, e := service.Replace(ctx, "0", document)
+	if e != nil {
+		t.Fatal(e)
+	}
+	before, _ := json.Marshal(saved)
+	if _, e = db.Exec(`UPDATE discovered_services SET hidden=1 WHERE id=?`, ids[1]); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = db.Exec(`UPDATE discovered_services SET missing=1 WHERE id=?`, ids[2]); e != nil {
+		t.Fatal(e)
+	}
+	snapshot := dashboard.New(layoutFailedProvider("service"), layoutFailedProvider("host"), layoutFailedProvider("plugin")).WithLayouts(service).Snapshot(ctx)
+	if snapshot.LayoutError != nil || len(snapshot.Items) != 3 || len(snapshot.Unavailable) != 3 {
+		t.Fatalf("cold outage lost eligible identities: %+v", snapshot)
+	}
+	active := map[string]bool{}
+	for _, w := range snapshot.Items {
+		active[w.ID] = true
+		if w.Error == "" || w.Data != nil {
+			t.Fatal("cold outage missing placeholder", w)
+		}
+	}
+	for _, id := range []string{"service-" + ids[0], "host-cold-host", "plugin-" + placementID} {
+		if !active[id] {
+			t.Fatal("missing active identity", id)
+		}
+	}
+	again, e := service.Get(ctx)
+	after, _ := json.Marshal(again)
+	if e != nil || string(before) != string(after) {
+		t.Fatal("selection/lifecycle changed configuration or revision", e)
+	}
+	preview, e := service.Preview(ctx, dashboard.LayoutPreviewRequest{RequestID: "22222222-2222-4222-8222-222222222222", ExpectedRevision: saved.Revision, Document: saved.Document})
+	if e != nil {
+		t.Fatal(e)
+	}
+	dormant := 0
+	for _, g := range preview.ResolvedGroups {
+		for _, m := range g.Members {
+			if m.State == "dormant" {
+				dormant++
+			}
+		}
+	}
+	if dormant != 2 {
+		t.Fatal("hidden/missing pinned services must be dormant", dormant)
 	}
 }

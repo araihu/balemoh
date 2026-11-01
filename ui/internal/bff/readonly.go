@@ -30,6 +30,10 @@ func PublicReadOnly(next http.Handler, publicURL string) http.Handler {
 			return
 		}
 		p := r.URL.Path
+		if strings.HasPrefix(p, "/settings/homepage/layout") {
+			http.Error(w, "This shared demo is read-only.", http.StatusForbidden)
+			return
+		}
 		if p == "/dashboard/events" || strings.HasSuffix(p, "/events") {
 			http.Error(w, "Live streams are disabled in this demo.", http.StatusNotFound)
 			return

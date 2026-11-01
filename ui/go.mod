@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1100
 	github.com/araihu/balemoh/client v0.0.0
 	github.com/araihu/balemoh/plugin-sdk v0.0.1-alpha.1
-	github.com/araihu/goshtoso v0.4.8-0.20261101060924-c5f68d0bb167
+	github.com/araihu/goshtoso v0.5.0
 	github.com/araihu/goshtoso-app-shells v0.1.9
 	github.com/araihu/goshtoso-charts v0.0.5
 	github.com/caarlos0/env/v11 v11.4.1
@@ -37,6 +37,7 @@ require (
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
+	github.com/oapi-codegen/nullable v1.1.0 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
