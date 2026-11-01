@@ -56,6 +56,7 @@ func NewWithPlugins(catalog Catalog, requestTimeout time.Duration, icons http.Ha
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /settings/homepage/layout", server.layoutEditor)
 	mux.HandleFunc("GET /settings/homepage/layout/saved", server.layoutSaved)
+	mux.Handle("POST /settings/homepage/layout/compare", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.layoutCompare)))
 	mux.Handle("POST /settings/homepage/layout/preview", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.layoutPreview)))
 	mux.Handle("POST /settings/homepage/layout", http.NewCrossOriginProtection().Handler(http.HandlerFunc(server.layoutSave)))
 	mux.HandleFunc("GET /ui/layout-editor.js", func(w http.ResponseWriter, r *http.Request) {

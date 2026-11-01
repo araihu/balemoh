@@ -56,3 +56,10 @@ test('overlapping live readbacks cannot regress a ready editor', async () => {
  resolveSecond({revision:'2',document:two});assert.equal(await secondApply,true);const p=d.begin('live-two','digest');const current=result(p,d);current.layoutRevision='2';assert.equal(d.accept(p,current),true);assert.equal(d.ready,true);
  resolveFirst({revision:'1',document:one});assert.equal(await firstApply,false);assert.equal(d.revision,'2');assert.equal(d.group().title,'Revision two');assert.equal(d.ready,true);assert.equal(d.beginLive('1'),null);
 });
+test('rejected provisional ID recovery rewrites every group reference and retains draft fields', () => {
+ const d=setup(),oldId='11111111-1111-4111-8111-111111111111',newId='22222222-2222-4222-8222-222222222222';assert.equal(d.create(oldId,'Keep this title'),true);
+ const p=d.begin('created','digest');assert.equal(d.accept(p,result(p,d)),true);
+ d.change(doc=>{doc.homepage.width='contained';doc.homepage.ordering={mode:'custom',ids:doc.groups.map(g=>g.id)};doc.sourceGroups.other=oldId;});const rejected=d.begin('rejected','digest');
+ const at=rejected.request.document.groups.findIndex(g=>g.id===oldId),detail={fieldErrors:{['/document/groups/'+at+'/id']:'Use another UUID.'}};assert.equal(d.fail(rejected,422),true);const row=d.rejectedGroup(rejected,detail);assert.ok(row);
+ assert.equal(d.regenerateGroup(row,newId),true);assert.equal(d.selection.groupId,newId);assert.equal(d.group().title,'Keep this title');assert.equal(d.document.homepage.width,'contained');assert.equal(d.document.sourceGroups.other,newId);assert.ok(d.document.homepage.ordering.ids.includes(newId));assert.ok(d.document.homepage.placements.some(p=>p.groupId===newId));assert.equal(JSON.stringify(d.document).includes(oldId),false);assert.equal(d.saved.groups.length,3);assert.equal(d.state,'preview_pending');
+});

@@ -14,7 +14,7 @@
   class Draft {
     constructor(data) {
       this.revision = data.state.revision; this.saved = clone(data.state.document); this.document = clone(data.preview.document);
-      this.preview = clone(data.preview); this.selection = clone(data.selection); this.generation = 0; this.state = data.preview.stale || data.preview.layoutRevision !== data.state.revision ? 'conflict' : 'preview_valid';this.liveSequence=0;this.liveRevision=this.revision; this.pending = null; this.saveAttempt = null;
+      this.preview = clone(data.preview); this.selection = clone(data.selection); this.generation = 0; this.state = data.preview.stale || data.preview.layoutRevision !== data.state.revision ? 'conflict' : 'preview_valid';this.liveSequence=0;this.liveRevision=this.revision; this.pending = null;this.saveAttempt = null;this.provisionalGroups=new Map();this.nextGroupRow=0;
       this.reconcileSelection();
     }
     beginLive(revision) { if (!/^(0|[1-9][0-9]*)$/.test(revision)||BigInt(revision)<BigInt(this.revision)||BigInt(revision)<BigInt(this.liveRevision)) return null;this.liveRevision=revision;return {sequence:++this.liveSequence,revision,generation:this.generation}; }
@@ -60,13 +60,20 @@
         this.selection = { groupId, itemId };
       }, true);
     }
-    create(id, title) { if (this.document.groups.length >= 32) return false; return this.change(d => { d.groups.push({ id, title, layout: { type: 'grid', columns: 2, gapPx: 16 }, ordering: { mode: 'alphabetical', ids: [] }, showHeading: true, initiallyCollapsed: false, placements: [] }); d.homepage.placements.push({ groupId: id, span: 'auto' }); this.selection = { groupId: id, itemId: '' }; }, true); }
+    regenerateGroup(rowKey,newId) {
+      const record=this.provisionalGroups.get(rowKey);if(this.state!=='preview_invalid'||!record||!this.group(record.id)||this.group(newId)||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(newId))return false;
+      return this.change(d=>{const old=record.id;this.group(old).id=newId;d.homepage.placements.forEach(p=>{if(p.groupId===old)p.groupId=newId;});d.homepage.ordering.ids=d.homepage.ordering.ids.map(id=>id===old?newId:id);Object.keys(d.sourceGroups).forEach(k=>{if(d.sourceGroups[k]===old)d.sourceGroups[k]=newId;});if(this.selection.groupId===old)this.selection.groupId=newId;record.id=newId;});
+    }
+    rejectedGroup(entry,detail) {
+      for(const pointer of Object.keys(detail.fieldErrors||{})){const match=pointer.match(/^\/document\/groups\/(\d+)\/id$/);if(!match)continue;const id=entry.request.document.groups[Number(match[1])]?.id;for(const [rowKey,record] of this.provisionalGroups)if(record.id===id&&this.group(id))return rowKey;}return null;
+    }
+    create(id, title) { if (this.document.groups.length >= 32) return false; return this.change(d => { d.groups.push({ id, title, layout: { type: 'grid', columns: 2, gapPx: 16 }, ordering: { mode: 'alphabetical', ids: [] }, showHeading: true, initiallyCollapsed: false, placements: [] }); d.homepage.placements.push({ groupId: id, span: 'auto' });this.provisionalGroups.set('local-group-'+(++this.nextGroupRow),{id});this.selection = { groupId: id, itemId: '' }; }, true); }
     remove(groupId, destination) {
       if (!this.ready || this.document.groups.length < 2 || destination === groupId || !this.group(destination)) return false;
       return this.change(d => { const source = this.group(groupId); const target = this.group(destination); target.placements.push(...source.placements); d.groups = d.groups.filter(g => g.id !== groupId); d.homepage.placements = d.homepage.placements.filter(p => p.groupId !== groupId); d.homepage.ordering.ids = d.homepage.ordering.ids.filter(id => id !== groupId); Object.keys(d.sourceGroups).forEach(kind => { if (d.sourceGroups[kind] === groupId) d.sourceGroups[kind] = destination; }); this.selection = { groupId: destination, itemId: '' }; }, true);
     }
     startSave() { if (!this.ready || !this.dirty) return null; this.saveAttempt = { expectedRevision: this.revision, document: clone(this.document), generation: this.generation }; this.state = 'saving'; return this.saveAttempt; }
-    savedResult(attempt, state) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null; this.pending = null; this.state = 'saved'; return true; }
+    savedResult(attempt, state) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null;this.provisionalGroups.clear();this.pending = null;this.state = 'saved'; return true; }
     readback(state) { if (!this.saveAttempt) return false; if (canonical(state.document) === canonical(this.saveAttempt.document)) return this.savedResult(this.saveAttempt, state); this.state = 'conflict'; return false; }
   }
   global.BalemohLayoutDraft = { Draft, canonical, key };
@@ -78,7 +85,7 @@
     if (global.goshtosoDependencies?.ready) await global.goshtosoDependencies.ready;
     const model = new Draft(JSON.parse(root.dataset.layoutEditor));
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
-    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, alive = true;
+    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, alive = true;
     const find = action => root.querySelector(`[data-layout-action="${action}"]`);
     const dispatchModal = (name, id) => global.dispatchEvent(new CustomEvent(`modal:${name}`, { detail: { id: `layout-${id}` } }));
     const announce = text => { status.textContent = text; };
@@ -93,6 +100,7 @@
       frame.querySelectorAll('[data-layout-structural]').forEach(el => { const capacityBlocked = ['item-earlier','item-later'].includes(el.dataset.layoutAction)&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.ready || el.dataset.layoutAction === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-earlier', 'item-later'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
       frame.querySelectorAll('[data-layout-field]').forEach(el => { if (!el.hasAttribute('data-layout-structural')) disable(el, frozen || el.hasAttribute('data-layout-span') && model.document.homepage.layout.type === 'stack'); });
       find('save').disabled = !model.ready || !model.dirty;
+      find('regenerate-provisional').hidden=model.state!=='preview_invalid'||!rejectedGroupRow;
       find('retry').hidden = model.state !== 'preview_error' && model.state !== 'preview_invalid';
       find('readback').hidden = model.state !== 'outcome_unknown';
       find('view-saved').hidden = model.state !== 'conflict'; find('reload').hidden = model.state !== 'conflict';
@@ -114,13 +122,15 @@
     async function apply(entry, result) {
       if (!model.owns(entry)) return;
       if (pointer) { queuedPreview = [entry, result]; return; }
-      if (typeof result.inspectorHtml!=='string'||typeof result.previewHtml!=='string'||typeof result.deleteHtml!=='string') {model.fail(entry,503);state('Preview response unavailable. Your draft is retained.');return;}
+      if (typeof result.pageHtml!=='string'||typeof result.inspectorHtml!=='string'||typeof result.previewHtml!=='string'||typeof result.deleteHtml!=='string') {model.fail(entry,503);state('Preview response unavailable. Your draft is retained.');return;}
       if (!model.accept(entry, result.preview)) { if (model.state === 'conflict') state('Saved layout changed. Your draft is retained.'); return; }
       try {
       const focus = document.activeElement; const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
-      await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML', text: result.inspectorHtml });
+      // Replace form controls without copying old attributes during HTMX settlement.
+      await global.htmx.swap({sourceElement:frame,target:'#layout-editor-page-controls',swap:'innerHTML settle:0',text:result.pageHtml});
+      await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML settle:0', text: result.inspectorHtml });
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-preview-body', swap: 'innerMorph', text: result.previewHtml });
-      await global.htmx.swap({ sourceElement: root, target: '#layout-delete-destinations', swap: 'innerMorph', text: result.deleteHtml });
+      await global.htmx.swap({ sourceElement: root, target: '#layout-delete-destinations', swap: 'innerHTML settle:0', text: result.deleteHtml });
       if (!alive) return;
       clearErrors(); let outcome = model.dirty ? 'Preview ready. Changes are unsaved.' : lastSaveMessage || 'Layout matches the saved version.';
       if (movedIdentity) {
@@ -142,7 +152,7 @@
       const entry = model.begin(crypto.randomUUID(), digest); entry.targets = targets(); state('Updating preview…');
       try { const { r, data } = await response('/settings/homepage/layout/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: entry.request, selection: clone(model.selection) }), signal: controller.signal });
         if (!model.owns(entry)) return;
-        if (!r.ok) { if (model.fail(entry, r.status)) { state(r.status === 412 ? 'Layout changed. Your draft is retained.' : 'Preview needs attention. Save remains disabled.'); showError(data, entry.targets); } return; }
+        if (!r.ok) { if (model.fail(entry, r.status)) {rejectedGroupRow=r.status===422?model.rejectedGroup(entry,data):null;state(r.status === 412 ? 'Layout changed. Your draft is retained.' : 'Preview needs attention. Save remains disabled.'); showError(data, entry.targets); } return; }
         await apply(entry, data);
       } catch (error) { if (error.name !== 'AbortError' && model.fail(entry, 503)) { state('Preview unavailable. Your draft is retained.'); showError({ message: 'Preview unavailable. Retry when the connection returns.' }); } }
     }
@@ -176,6 +186,7 @@
       if (['group-earlier', 'group-later', 'item-earlier', 'item-later'].includes(action)) return movement(action);
       if (action === 'move-item') { const destination = root.querySelector('[data-layout-destination]').value; if (model.move(model.selection.itemId, destination, null)) {movedIdentity={kind:'item',id:model.selection.itemId};changed('Item moved. Updating preview…');} }
       else if (action === 'create' && model.ready) { createId = crypto.randomUUID(); root.querySelector('[data-layout-create-form]').reset(); root.querySelector('[data-layout-create-error]').hidden=true;find('regenerate').hidden=true; dispatchModal('open', 'create'); }
+      else if(action==='regenerate-provisional'){const next=crypto.randomUUID();if(model.regenerateGroup(rejectedGroupRow,next)){rejectedGroupRow=null;afterPreviewFocus='editor-group-heading-'+key(next);status.focus({preventScroll:true});changed('Group ID replaced in draft. Updating preview…');}}
       else if (action === 'regenerate') {createId=crypto.randomUUID();root.querySelector('[data-layout-create-error]').hidden=true;find('regenerate').hidden=true;document.getElementById('layout-create-title').focus({preventScroll:true});}
       else if (action === 'delete' && model.ready && model.document.groups.length > 1) dispatchModal('open', 'delete');
       else if (action === 'confirm-delete') { const destination = document.getElementById('layout-delete-destination').value; if (model.remove(model.selection.groupId, destination)) { dispatchModal('close', 'delete'); afterPreviewFocus = 'editor-group-heading-' + key(destination); status.focus({ preventScroll: true }); changed('Group deleted in draft. Updating preview…'); } else announce('Choose a different surviving group.'); }
@@ -204,7 +215,14 @@
       } catch (_) { if (model.saveAttempt === attempt) { model.state = 'outcome_unknown'; state('Save outcome unknown. Checking the saved layout…'); readback(); } }
     }
     async function readback() { if (model.state !== 'outcome_unknown') return; try { const { r, data } = await response('/settings/homepage/layout/saved'); if (!r.ok) throw Error(); if (model.readback(data)) { lastSaveMessage='Saved layout confirmed.';announce(lastSaveMessage);await preview(); } else state('Saved layout differs. Your draft is retained. Inspect the saved version before discarding.'); } catch (_) { state('Unable to confirm Save. Your exact draft and original revision are retained.'); } }
-    async function viewSaved() { try { const { r, data } = await response('/settings/homepage/layout/saved'); if (!r.ok) throw Error(); const target = root.querySelector('[data-layout-saved-summary]'); target.replaceChildren(); const heading = document.createElement('h3'); heading.textContent = 'Saved page uses ' + data.document.homepage.layout.type; target.append(heading); data.document.groups.forEach(g => { const row = document.createElement('p'); row.textContent = g.title + ' · ' + g.layout.type + ' · ' + g.placements.length + ' explicit references'; target.append(row); }); dispatchModal('open', 'saved'); } catch (_) { announce('Unable to read the saved version. Your draft is retained.'); } }
+    async function viewSaved() {
+      try {
+        const {r,data}=await response('/settings/homepage/layout/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({document:clone(model.document)})});
+        if(!r.ok||typeof data.html!=='string')throw Error();
+        await global.htmx.swap({sourceElement:root,target:'[data-layout-saved-summary]',swap:'innerHTML settle:0',text:data.html});dispatchModal('open','saved');
+      } catch(_){announce('Unable to compare with the saved version. Your draft is retained.');}
+    }
+
     document.addEventListener('click', event => { const link = event.target.closest('a[href]'); if (!model.dirty || !link || event.defaultPrevented || link.target || event.metaKey || event.ctrlKey || link.href.startsWith(location.href.split('#')[0] + '#') || link.closest('dialog') || link.closest('#layout-editor-errors')) return; if (new URL(link.href).origin === location.origin) { event.preventDefault(); navigation = link.href; dispatchModal('open', 'discard'); } });
     global.addEventListener('beforeunload', event => { if (alive && model.dirty) { event.preventDefault(); event.returnValue = ''; } });
     const live = new EventSource('/dashboard/events?layoutEditor=true');

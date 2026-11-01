@@ -27,3 +27,25 @@ plugin widgets, draft group creation, named item movement, independent page geom
 Save and discard-dialog cancellation. Further keyboard, responsive, theme and
 conflict checks remain part of UI acceptance. These notes describe local validation;
 no Balemoh deployment or production migration has run.
+
+## Integration architecture and UI review progress
+
+BFF architecture accepted at 42763806018ece50d65f2dfa4155a70f6baf7e79,
+review identity 10875775dbc4f6ee59e531edf1659cd9c332f98fdb7a830f9dea81a92e76780d.
+It corrected stale bootstrap and overlapping live-readback interleavings. Independent
+UI module tests, focused race tests, vet and nine Node tests passed at that target.
+
+UI review subsequently requested a complete draft/saved comparison, regeneration
+of server-rejected provisional group IDs, and page arrangement above the workspace.
+Those changes now have focused tests and local browser proof. Injected 422 recovery
+preserved the group title and unrelated page-width change, replaced the UUID and
+persisted exactly once. Width and membership/default conflicts showed both values;
+comparison and cancelled discard wrote nothing. Inspector replacement uses the
+supported HTMX `settle:0` option to avoid copying old input attributes during swap.
+Current UI acceptance remains under independent review.
+
+The full module generation/tidy/test/vet gate passed with the repository-pinned
+protoc 33.0 and generator versions. Root, client, UI and plugin SDK race suites
+passed before the latest comparison/presentation changes. No live-system state
+was used; browser fixtures run on loopback with synthetic data and the real
+Alertmanager plugin package.

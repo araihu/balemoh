@@ -266,3 +266,56 @@ func TestLayoutEditorRetriesStaleBootstrapBeforeEnablingDraft(t *testing.T) {
 		t.Fatal("stale bootstrap escaped bounded retry", reads.Load(), previews.Load(), bootstrap)
 	}
 }
+
+func TestLayoutComparisonCoversDraftSavedAndStableMembershipWithoutWrites(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var saved, draft api.LayoutDocument
+	if e = json.Unmarshal(raw, &saved); e != nil {
+		t.Fatal(e)
+	}
+	if e = json.Unmarshal(raw, &draft); e != nil {
+		t.Fatal(e)
+	}
+	draft.Homepage.Width = "contained"
+	draft.SourceGroups.Other = "builtin:hosts"
+	draft.Groups[0].Placements = []api.LayoutGroupPlacement{{ItemId: "host-test"}}
+	draft.Groups[0].InitiallyCollapsed = true
+	var writes atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			writes.Add(1)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(api.LayoutState{Revision: "4", Document: saved})
+	}))
+	t.Cleanup(upstream.Close)
+	client, e := NewAPIClient(upstream.URL, upstream.Client())
+	if e != nil {
+		t.Fatal(e)
+	}
+	h, e := New(client, time.Second)
+	if e != nil {
+		t.Fatal(e)
+	}
+	body, _ := json.Marshal(map[string]any{"document": draft})
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("POST", "/settings/homepage/layout/compare", bytes.NewReader(body)))
+	var response struct {
+		Revision string `json:"revision"`
+		HTML     string `json:"html"`
+	}
+	if e = json.Unmarshal(w.Body.Bytes(), &response); e != nil {
+		t.Fatal(e)
+	}
+	if w.Code != 200 || response.Revision != "4" || writes.Load() != 0 {
+		t.Fatal(w.Code, w.Body.String(), writes.Load())
+	}
+	for _, want := range []string{"Your draft", "Saved version", "contained", "full", "Default groups / Other items", "builtin:hosts", "host-test", "Start collapsed", "Spacing", "All layout settings and identities"} {
+		if !strings.Contains(response.HTML, want) {
+			t.Errorf("comparison missing %q", want)
+		}
+	}
+}

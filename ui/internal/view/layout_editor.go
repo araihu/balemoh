@@ -6,6 +6,7 @@ import (
 	"github.com/araihu/goshtoso/components/form"
 	"github.com/araihu/goshtoso/components/layout"
 	selectfield "github.com/araihu/goshtoso/components/select"
+	"github.com/araihu/goshtoso/components/table"
 	"strconv"
 )
 
@@ -116,4 +117,24 @@ func layoutCapacity(f LayoutFrame) string {
 		explicit += g.ExplicitCount
 	}
 	return strconv.Itoa(len(f.Groups)) + " of 32 groups. " + strconv.Itoa(count) + " complete members. " + strconv.Itoa(explicit) + " of 512 explicit references. Larger default groups remain visible; complete custom ordering must fit this limit."
+}
+
+type LayoutComparisonRow struct {
+	ID, Setting, Draft, Saved string
+	Changed                   bool
+}
+
+func layoutComparisonTable(rows []LayoutComparisonRow, changedOnly bool) table.Config {
+	config := table.Config{ID: "layout-comparison-all", Caption: "All layout settings", Columns: []table.Column{{Key: "setting", Label: "Setting"}, {Key: "draft", Label: "Your draft"}, {Key: "saved", Label: "Saved version"}}, Mobile: &table.MobileConfig{PrimaryColumn: "setting"}, Rows: []table.Row{}}
+	if changedOnly {
+		config.ID = "layout-comparison-differences"
+		config.Caption = "Draft and saved layout differences"
+	}
+	for _, r := range rows {
+		if changedOnly && !r.Changed {
+			continue
+		}
+		config.Rows = append(config.Rows, table.Row{ID: config.ID + "-" + DOMKey(r.ID), Cells: map[string]table.Cell{"setting": {Text: r.Setting}, "draft": {Text: r.Draft}, "saved": {Text: r.Saved}}})
+	}
+	return config
 }
