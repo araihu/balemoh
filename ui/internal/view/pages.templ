@@ -287,7 +287,7 @@ templ ServiceSelection(service Service) {
 			Name:       "pinned",
 			Value:      "true",
 			Checked:    service.Pinned,
-			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": "this.form.requestSubmit()", "style": "border-color: var(--balemoh-muted)"},
+			InputAttrs: templ.Attributes{"autofocus": service.PinAutofocus, "aria-label": selectionLabel(service), "onchange": templ.JSFuncCall("this.form.requestSubmit"), "style": "border-color: var(--balemoh-muted)"},
 		})
 		if service.PinError != "" {
 			<small role="alert">{ service.PinError }</small>

@@ -1,6 +1,8 @@
 package view
 
 import (
+	"slices"
+
 	"github.com/a-h/templ"
 	"github.com/araihu/balemoh/ui/internal/appicons"
 	"github.com/araihu/goshtoso-app-shells/consoleshell"
@@ -53,10 +55,11 @@ func ConsolePage(data PageData) templ.Component {
 		{ID: "nav-hosts", Label: "Hosts", Href: "/hosts", Icon: appicons.Icon(appicons.Config{Symbol: appicons.IconHeroiconsServer, Decorative: true})},
 	}
 	config := sidebar.Item{
-		ID:    "nav-config",
-		Label: "Config",
-		Href:  "/presentation",
-		Icon:  icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
+		Collapsible: true,
+		ID:          "nav-config",
+		Label:       "Config",
+		Href:        "/presentation",
+		Icon:        icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
 		Items: []sidebar.Item{
 			{ID: "nav-presentation", Label: "Appearance", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
 			{ID: "nav-notification-settings", Label: "Notifications", Href: "/settings/notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidBell, Decorative: true})},
@@ -69,6 +72,7 @@ func ConsolePage(data PageData) templ.Component {
 			navigation = append(navigation, item)
 		}
 	}
+	config.Open = slices.ContainsFunc(config.Items, func(item sidebar.Item) bool { return item.ID == data.Active })
 	if !data.ReadOnly {
 		navigation = append(navigation, config)
 	}
