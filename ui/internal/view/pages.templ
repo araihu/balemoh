@@ -241,6 +241,7 @@ templ ServiceTable(data PageData) {
 			@table.Table(table.Config{
 				ID:        "balemoh-services-" + data.Status,
 				Caption:   "Balemoh services",
+				Mobile:    &table.MobileConfig{PrimaryColumn: "service"},
 				Columns:   serviceTableColumns(data.Staging && data.Status != "missing" && data.Status != "hidden"),
 				Rows:      serviceTableRows(data),
 				RootClass: "balemoh-service-table",
@@ -251,12 +252,19 @@ templ ServiceTable(data PageData) {
 	}
 }
 
-templ ServiceIdentity(service Service) {
+templ ServiceIdentity(service Service, editable bool) {
 	<div class="balemoh-service-identity">
-		<div class="balemoh-service-name">
-			@ServiceCardIcon(service)
-			<strong>{ service.DisplayName }</strong>
-		</div>
+		if editable {
+			@link.Link(EditURL(service.ID), link.WithRootClass("balemoh-service-name")) {
+				@ServiceCardIcon(service)
+				<strong>{ service.DisplayName }</strong>
+			}
+		} else {
+			<div class="balemoh-service-name">
+				@ServiceCardIcon(service)
+				<strong>{ service.DisplayName }</strong>
+			</div>
+		}
 		<small class="balemoh-muted">
  if service.IsManual() {
  <span>Manual</span>
@@ -321,7 +329,7 @@ templ GroupAddresses(service Service) {
 }
 
 templ StagingRow(service Service) {
-	@table.TableRow(table.Config{ID: "balemoh-services", Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
+	@table.TableRow(table.Config{ID: "balemoh-services-" + service.State(), Mobile: &table.MobileConfig{PrimaryColumn: "service"}, Columns: serviceTableColumns(true)}, serviceTableRows(PageData{Staging: true, Services: []Service{service}})[0])
 }
 
 const homeSearchState = `{query: '', move(step) {

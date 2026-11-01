@@ -57,7 +57,10 @@ func TestServicePageKeepsDraftAndSaves(t *testing.T) {
 			t.Errorf("staging retains %s", unwanted)
 		}
 	}
-	if !strings.Contains(w.Body.String(), `data-table-row-link="/staging/services/one/edit"`) || !strings.Contains(w.Body.String(), `name="pinned"`) {
-		t.Fatal("linked rows or pin checkbox missing")
+	if !strings.Contains(w.Body.String(), `href="/staging/services/one/edit"`) || !strings.Contains(w.Body.String(), `name="pinned"`) {
+		t.Fatal("native service link or pin checkbox missing")
+	}
+	if strings.Contains(w.Body.String(), `data-table-row-link`) {
+		t.Fatal("responsive rows must leave navigation and pinning as independent native controls")
 	}
 }

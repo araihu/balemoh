@@ -79,6 +79,7 @@ templ ResourceData(member Service, index int) {
 			@table.Table(table.Config{
 				ID:      fmt.Sprintf("resource-%d-endpoints", index),
 				Caption: "Endpoints for " + resourceLabel(member),
+				Mobile:  &table.MobileConfig{PrimaryColumn: "endpoint"},
 				Columns: []table.Column{{Key: "endpoint", Label: "Endpoints"}},
 				Rows:    resourceEndpointRows(member.Endpoints),
 			})

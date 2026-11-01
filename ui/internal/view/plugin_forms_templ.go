@@ -25,7 +25,7 @@ import (
 )
 
 func pluginWidgetColumns() []table.Column {
-	return []table.Column{{Key: "home", Label: "Pinned", HeaderSuffix: tooltip.Help("widget-pinning-help", "How pinning works", "Check to show a widget on your homepage. Uncheck to remove it while keeping its configuration.")}, {Key: "widget", Label: "Widget"}, {Key: "plugin", Label: "Plugin"}, {Key: "connection", Label: "Connection"}}
+	return []table.Column{{Key: "home", Label: "Pinned", HeaderSuffix: tooltip.Help("widget-pinning-help", "How pinning works", "Check to show a widget on your homepage. Uncheck to remove it while keeping its configuration.")}, {Key: "widget", Label: "Widget"}, {Key: "plugin", Label: "Plugin", MobileSecondary: true}, {Key: "connection", Label: "Connection", MobileSecondary: true}}
 }
 func pluginWidgetRows(items []PluginWidgetRow) []table.Row {
 	rows := make([]table.Row, 0, len(items))
@@ -557,7 +557,7 @@ func PluginWidgetsIndex(page PluginWidgetList) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = table.Table(table.Config{ID: "plugin-widgets-table", Caption: "Plugin widgets and homepage selection", Columns: pluginWidgetColumns(), Rows: pluginWidgetRows(page.Rows)}).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = table.Table(table.Config{ID: "plugin-widgets-table", Caption: "Plugin widgets and homepage selection", Mobile: &table.MobileConfig{PrimaryColumn: "widget", Expandable: true}, Columns: pluginWidgetColumns(), Rows: pluginWidgetRows(page.Rows)}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

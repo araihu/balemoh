@@ -119,13 +119,9 @@ func serviceTableRows(data PageData) []table.Row {
 			AlpineAttrs: map[string]string{"id": "service-row-" + service.ID},
 			Cells: map[string]table.Cell{
 				"select":   {Component: ServiceSelection(service)},
-				"service":  {Component: ServiceIdentity(service)},
+				"service":  {Component: ServiceIdentity(service, data.Staging && !data.ReadOnly)},
 				"endpoint": {Component: GroupAddresses(service)},
 			},
-		}
-		if data.Staging && !data.ReadOnly {
-			row.Link = EditURL(service.ID)
-			row.LinkMode = table.LinkFull
 		}
 		rows = append(rows, row)
 	}

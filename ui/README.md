@@ -12,12 +12,13 @@ later becomes a gateway for other clusters and Docker hosts.
 The Hosts sidebar item opens `/hosts`, listing each discovered Kubernetes cluster
 and Docker host once by source kind and ID. It uses the full catalog, including
 pinned, hidden, and missing entries. Sources without catalog observations do not
-appear. The page is read-only and uses the existing console shell and table.
+appear. The page uses the existing console shell, table, and homepage pinning
+controls.
 Rows show Kubernetes or Docker avatars. Unrecognized source kinds appear as
 "Unknown host" with a Heroicons server avatar.
-Expand a host row to see its type, catalog service count, and latest observation
-time. Counts include pinned, hidden, and missing services; timestamps do not
-indicate current host health.
+Rows show host identity, telemetry state, CPU, and memory. On narrow containers,
+Additional details reveals architecture. Telemetry values describe the latest
+report; the freshness state does not verify application availability.
 
 ## Local run
 
@@ -35,7 +36,7 @@ Configuration is documented in
 - `BALEMOH_UI_API_BASE_URL` defaults to `http://127.0.0.1:8080`.
 - request and shutdown timeouts default to `5s`.
 
-The UI pins Goshtoso v0.4.5 with HTMX 4.0.0 and Alpine.js 3.17.2. Runtime
+The UI uses Goshtoso with HTMX 4.0.0 and Alpine.js 3.17.2. Runtime
 assets are served locally through Goshtoso and the compatible App Shells module.
 Navigation and service editing use native links and POST/Redirect/GET. Pin
 checkboxes, icon search, details, and uploads use HTMX fragments identified by
@@ -56,6 +57,15 @@ list inside a responsive Goshtoso console shell, with this information order:
 The visual direction is restrained and operational: semantic Goshtoso states,
 neutral panels and dividers, no metric-card gallery, and reduced motion. Empty,
 success, and upstream-error states are rendered explicitly.
+
+Tables reuse the same cells and controls across screen sizes. Below 48rem of
+container width, Goshtoso presents labelled fields with the record identity
+first. Services, endpoints, and attributions show every field. Hosts can expand
+architecture, plugin widgets can expand plugin and connection metadata, and
+workloads can expand location. Runtime state, readiness, restart counts, images,
+and failure reasons remain available. Without JavaScript, every field is shown.
+Desktop tables always show all columns. Workload evidence no longer has a
+separate mobile-only renderer.
 
 ## Notification producer icons
 

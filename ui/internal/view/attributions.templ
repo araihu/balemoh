@@ -17,6 +17,8 @@ templ AttributionsContent() {
 			<h2 id="attribution-icons">Icons</h2>
 			<p>These icon sets are packaged for Balemoh's service library and interface. Each retains its own license and notices.</p>
 			@table.Table(table.Config{
+				ID: "icon-attributions",
+				Mobile: &table.MobileConfig{PrimaryColumn: "project"},
 				Caption: "Icon projects, licenses, and use in Balemoh",
 				Columns: []table.Column{
 					{Key: "project", Label: "Project"},

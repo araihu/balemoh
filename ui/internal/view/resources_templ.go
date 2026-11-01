@@ -318,6 +318,7 @@ func ResourceData(member Service, index int) templ.Component {
 			templ_7745c5c3_Err = table.Table(table.Config{
 				ID:      fmt.Sprintf("resource-%d-endpoints", index),
 				Caption: "Endpoints for " + resourceLabel(member),
+				Mobile:  &table.MobileConfig{PrimaryColumn: "endpoint"},
 				Columns: []table.Column{{Key: "endpoint", Label: "Endpoints"}},
 				Rows:    resourceEndpointRows(member.Endpoints),
 			}).Render(ctx, templ_7745c5c3_Buffer)

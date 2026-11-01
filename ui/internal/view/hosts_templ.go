@@ -315,7 +315,7 @@ func hostColumns(selection *HostsPage) []table.Column {
 	if selection != nil {
 		columns = append(columns, table.Column{Key: "select", Label: "Pinned", HeaderSuffix: tooltip.Help("host-pinning-help", "How pinning works", "Check to show a host on your homepage. Uncheck to remove it. Changes save immediately."), Width: "balemoh-col-select"})
 	}
-	return append(columns, []table.Column{{Key: "host", Label: "Host"}, {Key: "architecture", Label: "Architecture"}, {Key: "status", Label: "Telemetry"}, {Key: "cpu", Label: "CPU"}, {Key: "memory", Label: "Memory"}}...)
+	return append(columns, []table.Column{{Key: "host", Label: "Host"}, {Key: "architecture", Label: "Architecture", MobileSecondary: true}, {Key: "status", Label: "Telemetry"}, {Key: "cpu", Label: "CPU"}, {Key: "memory", Label: "Memory"}}...)
 }
 
 func HostTable(hosts []Host, selection *HostsPage) templ.Component {
@@ -339,7 +339,7 @@ func HostTable(hosts []Host, selection *HostsPage) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = table.Table(table.Config{ID: "hosts-table", RootClass: "balemoh-host-list", Caption: "Hosts and latest reported usage", Columns: hostColumns(selection), Rows: hostRows(hosts, selection)}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = table.Table(table.Config{ID: "hosts-table", RootClass: "balemoh-host-list", Caption: "Hosts and latest reported usage", Mobile: &table.MobileConfig{PrimaryColumn: "host", Expandable: true}, Columns: hostColumns(selection), Rows: hostRows(hosts, selection)}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

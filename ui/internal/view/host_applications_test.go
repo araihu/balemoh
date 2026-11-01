@@ -108,7 +108,7 @@ func TestMobileWorkloadEvidencePreservesRuntimeFields(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var output bytes.Buffer
 			app := HostApplication{Service: Service{DisplayName: "Example"}, Workloads: []HostWorkload{tc.workload}}
-			if err := HostApplicationWorkloadsMobile(app, tc.kind).Render(context.Background(), &output); err != nil {
+			if err := HostApplicationWorkloads(app, tc.kind).Render(context.Background(), &output); err != nil {
 				t.Fatal(err)
 			}
 			body := output.String()
