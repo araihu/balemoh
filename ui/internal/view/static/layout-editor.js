@@ -11,6 +11,7 @@
     function stable(v) { return Array.isArray(v) ? v.map(stable) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, stable(v[k])])) : v; }
     return JSON.stringify(stable(d));
   }
+  const validRevision = value => typeof value === 'string' && /^(0|[1-9][0-9]*)$/.test(value) && BigInt(value) <= 9223372036854775807n;
   class Draft {
     constructor(data) {
       this.revision = data.state.revision; this.saved = clone(data.state.document); this.document = clone(data.preview.document);
@@ -75,8 +76,8 @@
       return this.change(d => { const source = this.group(groupId); const target = this.group(destination); target.placements.push(...source.placements); d.groups = d.groups.filter(g => g.id !== groupId); d.homepage.placements = d.homepage.placements.filter(p => p.groupId !== groupId); d.homepage.ordering.ids = d.homepage.ordering.ids.filter(id => id !== groupId); Object.keys(d.sourceGroups).forEach(kind => { if (d.sourceGroups[kind] === groupId) d.sourceGroups[kind] = destination; }); this.selection = { groupId: destination, itemId: '' }; }, true);
     }
     startSave() { if (!this.ready || !this.dirty) return null; this.saveAttempt = { expectedRevision: this.revision, document: clone(this.document), generation: this.generation }; this.state = 'saving'; return this.saveAttempt; }
-    savedResult(attempt, state) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null;this.provisionalGroups.clear();this.pending = null;this.state = 'saved'; return true; }
-    readback(state) { if (!this.saveAttempt) return false; if (canonical(state.document) === canonical(this.saveAttempt.document)) return this.savedResult(this.saveAttempt, state); this.state = 'conflict'; return false; }
+    savedResult(attempt, state, readback = false) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; try { if (!validRevision(state?.revision) || BigInt(state.revision) < BigInt(attempt.expectedRevision) || !readback && BigInt(state.revision) > BigInt(attempt.expectedRevision) + 1n || canonical(state.document) !== canonical(attempt.document)) throw Error(); } catch (_) { this.state = 'outcome_unknown'; return false; } this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null;this.provisionalGroups.clear();this.pending = null;this.state = 'saved'; return true; }
+    readback(state) { if (!this.saveAttempt) return false; try { if (!validRevision(state?.revision)) throw Error(); if (canonical(state.document) === canonical(this.saveAttempt.document)) return this.savedResult(this.saveAttempt, state, true); this.state = 'conflict'; } catch (_) { this.state = 'outcome_unknown'; } return false; }
   }
   global.BalemohLayoutDraft = { Draft, canonical, key };
   if (typeof module !== 'undefined') module.exports = global.BalemohLayoutDraft;
@@ -218,7 +219,7 @@
       try { const { r, data } = await response('/settings/homepage/layout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedRevision: attempt.expectedRevision, document: attempt.document }) });
         if (model.saveAttempt !== attempt) return;
         if (r.ok && model.savedResult(attempt, data)) { lastSaveMessage='Layout saved.';announce(lastSaveMessage);await preview(); }
-        else { model.state = r.status === 412 ? 'conflict' : data.uncertain ? 'outcome_unknown' : 'preview_invalid'; state('Save was not confirmed. Your draft is retained.'); showError(data, map); if (model.state === 'outcome_unknown') readback(); }
+        else { model.state = r.status === 412 ? 'conflict' : r.ok || data.uncertain || r.status >= 500 ? 'outcome_unknown' : 'preview_invalid'; state('Save was not confirmed. Your draft is retained.'); showError(data, map); if (model.state === 'outcome_unknown') readback(); }
       } catch (_) { if (model.saveAttempt === attempt) { model.state = 'outcome_unknown'; state('Save outcome unknown. Checking the saved layout…'); readback(); } }
     }
     async function readback() { if (model.state !== 'outcome_unknown') return; try { const { r, data } = await response('/settings/homepage/layout/saved'); if (!r.ok) throw Error(); if (model.readback(data)) { lastSaveMessage='Saved layout confirmed.';announce(lastSaveMessage);await preview(); } else state('Saved layout differs. Your draft is retained. Inspect the saved version before discarding.'); } catch (_) { state('Unable to confirm Save. Your exact draft and original revision are retained.'); } }

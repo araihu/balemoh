@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	api "github.com/araihu/balemoh/client"
 	"html"
 	"io"
@@ -317,5 +318,113 @@ func TestLayoutComparisonCoversDraftSavedAndStableMembershipWithoutWrites(t *tes
 		if !strings.Contains(response.HTML, want) {
 			t.Errorf("comparison missing %q", want)
 		}
+	}
+}
+
+func TestLayoutSaveRejectsUnconfirmedResponsesAndAllowsReadback(t *testing.T) {
+	raw, err := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document any
+	if err = json.Unmarshal(raw, &document); err != nil {
+		t.Fatal(err)
+	}
+	state := func(revision any, doc any) string {
+		b, _ := json.Marshal(map[string]any{"revision": revision, "document": doc})
+		return string(b)
+	}
+	cases := []struct {
+		name      string
+		status    int
+		body      string
+		uncertain bool
+	}{
+		{"empty", 200, `{}`, true}, {"null", 200, `null`, true},
+		{"missing revision", 200, `{"document":` + string(raw) + `}`, true},
+		{"missing document", 200, `{"revision":"1"}`, true},
+		{"empty revision", 200, state("", document), true}, {"noncanonical revision", 200, state("01", document), true},
+		{"overflow revision", 200, state("9223372036854775808", document), true},
+		{"implausible revision", 200, state("2", document), true},
+		{"null document", 200, state("1", nil), true}, {"incomplete document", 200, state("1", map[string]any{}), true},
+		{"bad gateway", 502, `Bad gateway`, true}, {"gateway timeout", 504, `{}`, true},
+		{"intermediary unavailable", 503, `<html>Unavailable</html>`, true},
+		{"unknown server error", 500, `{"code":"other","message":"Failure"}`, true},
+		{"documented no write", 503, `{"code":"unavailable","message":"Storage unavailable."}`, false},
+		{"valid changed", 200, state("1", document), false}, {"valid no op", 200, state("0", document), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var writes atomic.Int32
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == "PUT" {
+					writes.Add(1)
+					w.WriteHeader(tc.status)
+					_, _ = io.WriteString(w, tc.body)
+					return
+				}
+				_, _ = io.WriteString(w, state("1", document))
+			}))
+			t.Cleanup(upstream.Close)
+			client, e := NewAPIClient(upstream.URL, upstream.Client())
+			if e != nil {
+				t.Fatal(e)
+			}
+			handler, e := New(client, time.Second)
+			if e != nil {
+				t.Fatal(e)
+			}
+			body, _ := json.Marshal(map[string]any{"expectedRevision": "0", "document": document})
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, httptest.NewRequest("POST", "/settings/homepage/layout", bytes.NewReader(body)))
+			if tc.uncertain {
+				if w.Code == 200 || !strings.Contains(w.Body.String(), `"uncertain":true`) {
+					t.Fatalf("unconfirmed Save accepted: %d %s", w.Code, w.Body)
+				}
+			} else if strings.Contains(w.Body.String(), `"uncertain":true`) {
+				t.Fatal(w.Body)
+			}
+			if strings.HasPrefix(tc.name, "valid") && w.Code != 200 {
+				t.Fatal(w.Code, w.Body)
+			}
+			w = httptest.NewRecorder()
+			handler.ServeHTTP(w, httptest.NewRequest("GET", "/settings/homepage/layout/saved", nil))
+			if w.Code != 200 || !strings.Contains(w.Body.String(), `"revision":"1"`) || writes.Load() != 1 {
+				t.Fatal(w.Code, w.Body, writes.Load())
+			}
+		})
+	}
+}
+
+func TestLayoutStateValidationRejectsIncompleteAndInvalidDocuments(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	cases := map[string]func(map[string]any){
+		"missing bool":     func(d map[string]any) { delete(d["groups"].([]any)[0].(map[string]any), "showHeading") },
+		"null bool":        func(d map[string]any) { d["groups"].([]any)[0].(map[string]any)["showHeading"] = nil },
+		"invalid geometry": func(d map[string]any) { d["homepage"].(map[string]any)["layout"].(map[string]any)["columns"] = 8 },
+		"invalid defaults": func(d map[string]any) { d["sourceGroups"].(map[string]any)["host"] = "unknown" },
+		"duplicate group":  func(d map[string]any) { g := d["groups"].([]any); d["groups"] = append(g, g[0]) },
+		"foreign rank": func(d map[string]any) {
+			d["homepage"].(map[string]any)["ordering"] = map[string]any{"mode": "custom", "ids": []string{"unknown"}}
+		},
+		"invalid title": func(d map[string]any) { d["groups"].([]any)[0].(map[string]any)["title"] = strings.Repeat("x", 81) },
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			var document map[string]any
+			_ = json.Unmarshal(raw, &document)
+			mutate(document)
+			body, _ := json.Marshal(map[string]any{"revision": "1", "document": document})
+			r := &http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(body))}
+			_, err := layoutResponse[api.LayoutState](r, nil)
+			var failure *layoutFailure
+			if !errors.As(err, &failure) || !failure.uncertain {
+				t.Fatal("invalid state accepted", err)
+			}
+		})
 	}
 }

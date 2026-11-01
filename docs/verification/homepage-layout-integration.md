@@ -1,51 +1,72 @@
 # Homepage layout integration verification
 
-Upstream prerequisite: Goshtoso v0.5.0, commit
-c4bbff5b89274d31432d6e0a154093ce2e7f8eaa, PR araihu/goshtoso#363.
-The authorized organization-admin merge preceded tag publication. Release workflow
-41350776824 passed full verification and publication. Published styles.css and
-goshtoso-theme.css match the tag byte-for-byte. The isolated external consumer
-passed with GOWORK=off and no replace; documentation deployment passed. Authored
-coverage reported 94.2%, and Codecov accepted the upload for processing.
+## Upstream release
 
-Balemoh API review accepted at 8a123dc2209c2e7b4e5b6965db4399694ce95b70,
-review identity 4629856f9e6927713cd7911698933e6922fb24429812c0162b688f7d5547f7ef.
-Three review rounds corrected typed omitted/null/string move serialization,
-targeted error pointers, reserved builtin identity reuse and generated-file drift.
-The reviewer independently passed root/client suites, generation/tidy checks and
-OpenAPI lint, which scored 100/100. UI review is a separate pending gate.
+Goshtoso v0.5.0 uses commit c4bbff5b89274d31432d6e0a154093ce2e7f8eaa.
+PR araihu/goshtoso#363 merged with the explicitly authorized organization-admin
+bypass. Release workflow 41350776824 passed. Published CSS matches the tag bytes.
+The external consumer passed with GOWORK=off and no replacement. Documentation
+production smoke passed. Authored coverage was 94.2%; Codecov accepted the upload.
 
-Implementation tests cover strict JSON and preconditions, SQLite CAS races and
-cancellation, stale identical writes, membership-token changes, dormant references,
-corrupt-layout recovery, local source eligibility during cold provider outages,
-generated SDK move effects, BFF raw forwarding and cross-origin/read-only denial,
-ambiguous committed writes and read-back, and SSE structure versus content updates.
-Node tests cover late previews, dormant ordering, creation/deletion and Save state.
+## Automated validation
 
-Local browser checks have exercised populated hosts/services, real Alertmanager
-plugin widgets, draft group creation, named item movement, independent page geometry,
-Save and discard-dialog cancellation. Further keyboard, responsive, theme and
-conflict checks remain part of UI acceptance. These notes describe local validation;
-no Balemoh deployment or production migration has run.
+`hack/check-plugin-modules.sh` passed with pinned protoc 33.0. It regenerated,
+tidied, tested and vetted all modules and checked generated output. Root, client,
+UI and plugin SDK race suites passed. OpenAPI lint scored 100/100. The editor has
+14 top-level Node tests, including ten malformed-confirmation subtests.
 
-## Integration architecture and UI review progress
+API/storage execution covers virtual revision 0, restart, conditional writes,
+concurrent writers, cancellation, stale identical writes, membership tokens,
+dormant references, invalid fields/relations, deletion invariants, read-only
+routes and corrupt-layout default-view recovery. Local selection eligibility is
+tested independently of runtime telemetry, plugin availability and cold providers.
 
-BFF architecture accepted at 42763806018ece50d65f2dfa4155a70f6baf7e79,
-review identity 10875775dbc4f6ee59e531edf1659cd9c332f98fdb7a830f9dea81a92e76780d.
-It corrected stale bootstrap and overlapping live-readback interleavings. Independent
-UI module tests, focused race tests, vet and nine Node tests passed at that target.
+BFF/Node execution covers strict forwarding, cross-origin denial, stale bootstrap,
+reverse live readbacks, complete comparison with zero writes, preview ownership,
+provisional UUID repair, active-to-dormant selection fallback and uncertain Save.
+Save responses require a complete valid configuration, a signed-64 revision and
+a plausible transition matching the attempted document. Invalid confirmations and
+ambiguous gateway responses preserve the attempt and trigger readback.
 
-UI review subsequently requested a complete draft/saved comparison, regeneration
-of server-rejected provisional group IDs, and page arrangement above the workspace.
-Those changes now have focused tests and local browser proof. Injected 422 recovery
-preserved the group title and unrelated page-width change, replaced the UUID and
-persisted exactly once. Width and membership/default conflicts showed both values;
-comparison and cancelled discard wrote nothing. Inspector replacement uses the
-supported HTMX `settle:0` option to avoid copying old input attributes during swap.
-Current UI acceptance remains under independent review.
+## Browser execution
 
-The full module generation/tidy/test/vet gate passed with the repository-pinned
-protoc 33.0 and generator versions. Root, client, UI and plugin SDK race suites
-passed before the latest comparison/presentation changes. No live-system state
-was used; browser fixtures run on loopback with synthetic data and the real
-Alertmanager plugin package.
+Tests used loopback-only synthetic catalog/telemetry and the real Alertmanager
+plugin package. Hosts, services and arbitrary plugin content rendered in one group.
+Named cross-group movement, actual pointer dragging, keyboard reorder/reset and
+focus restoration worked. Creation, deletion cancellation and dirty-discard dialogs
+preserved draft values and returned focus. A provisional UUID rejection exposed
+regeneration, preserved the title and unrelated width change, then saved once.
+
+Two independent browser clients exercised concurrent Save. The dirty client kept
+its draft and disabled Save. Width and membership/default conflicts showed both
+saved and draft values. Comparison and cancelled discard wrote nothing. Explicit
+reload recovered the saved version. Input value and defaultValue remained aligned
+after inspector replacement with HTMX settle:0.
+
+Moving a selected active item into a collapsed group opened that group and retained
+one visible movement toolbar with focus on Move item to group. Inspector selection
+opened it too. Closing the selected disclosure kept the item visible. Its saved
+Start collapsed flag stayed true. Normal homepage disclosure honored the flag.
+
+Seven post-commit response faults were exercised through the actual BFF/browser:
+200 empty object, 200 null, missing document, empty revision/incomplete document,
+502, 504 and malformed intermediary 503. Every case reported Saved layout confirmed
+after GET readback, retained its edited title and disabled Save. Seven attempted
+writes produced exactly seven revision increments, with no automatic repeat PUT.
+
+The matrix in homepage-layout-matrix.json records Goshtoso/Minimal, light/dark,
+and 390/1440 CSS pixels. All eight combinations had the expected theme/mode,
+page controls above preview, no horizontal overflow and no duplicate DOM IDs.
+No console errors appeared during the final browser checks.
+
+## Independent review and limits
+
+API/storage review accepted at 8a123dc; BFF lifecycle review accepted at 4276380.
+Later reviews corrected complete comparison, UUID recovery, inspector ownership,
+collapsed-selection visibility and malformed Save confirmation. Final source review
+is pending after the Save boundary correction.
+
+These are local validation results. No Balemoh deployment or production migration
+ran. Physical touch devices, real screen readers, Firefox and WebKit were not tested.
+Automated state/API tests complement browser checks; they do not claim a manual
+browser replay of every row in the design ledger or full accessibility certification.

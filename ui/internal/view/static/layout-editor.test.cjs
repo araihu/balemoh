@@ -69,3 +69,16 @@ test('conflict stays frozen until explicit recovery even when draft equals old s
 test('active item disappearance clears selection but preserves dormant membership and owning group', () => {
  const d=setup();const pending=d.begin('membership','digest');const preview=result(pending,d);preview.resolvedGroups[0].members=preview.resolvedGroups[0].members.map(m=>m.itemId==='host-a'?{...m,state:'dormant'}:m);assert.equal(d.accept(pending,preview),true);assert.equal(d.selection.itemId,'');assert.equal(d.selection.groupId,'builtin:hosts');assert.ok(d.preview.resolvedGroups[0].members.some(m=>m.itemId==='host-a'&&m.state==='dormant'));
 });
+
+test('malformed Save confirmations preserve the exact attempt until canonical readback', async t => {
+ const cases=[null,{}, {revision:'1'}, {revision:'',document:initial}, {revision:'01',document:initial}, {revision:'9223372036854775808',document:initial}, {revision:'2',document:initial}, {revision:'1',document:null}, {revision:'1',document:{}}, {revision:'1',document:{...initial,schemaVersion:99}}];
+ for (const [i,invalid] of cases.entries()) await t.test(String(i),()=>{
+  const d=setup();d.change(doc=>{doc.homepage.width='contained';});const entry=d.begin('preview','digest');d.accept(entry,result(entry,d));const attempt=d.startSave(),bytes=JSON.stringify(attempt);
+  assert.equal(d.savedResult(attempt,invalid),false);assert.equal(d.state,'outcome_unknown');assert.equal(JSON.stringify(d.saveAttempt),bytes);assert.deepEqual(d.document,attempt.document);assert.equal(d.revision,'0');
+  assert.equal(d.readback({revision:'1',document:structuredClone(attempt.document)}),true);assert.equal(d.state,'saved');assert.equal(d.saveAttempt,null);
+ });
+});
+test('invalid readback cannot replace an uncertain draft or its precondition',()=>{
+ const d=setup();d.change(doc=>{doc.homepage.width='contained';});const entry=d.begin('preview','digest');d.accept(entry,result(entry,d));const attempt=d.startSave();d.state='outcome_unknown';
+ for(const state of [null,{}, {revision:'1',document:null},{revision:'-1',document:attempt.document}]){assert.equal(d.readback(state),false);assert.equal(d.state,'outcome_unknown');assert.equal(d.saveAttempt,attempt);assert.deepEqual(d.document,attempt.document);assert.equal(d.revision,'0');}
+});

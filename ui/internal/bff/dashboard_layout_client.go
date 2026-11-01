@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	api "github.com/araihu/balemoh/client"
 	"io"
+	"math"
 	"net/http"
+	"reflect"
+	"strconv"
 )
 
 type LayoutCatalog interface {
@@ -33,11 +36,19 @@ func layoutResponse[T any](r *http.Response, err error) (T, error) {
 	}
 	if r.StatusCode != 200 {
 		failure := &layoutFailure{status: r.StatusCode, detail: api.ErrorResponse{Code: "unavailable", Message: "Layout request could not be completed."}}
-		_ = json.Unmarshal(raw, &failure.detail)
+		var detail api.ErrorResponse
+		decoded := json.Unmarshal(raw, &detail) == nil && detail.Message != ""
+		if decoded {
+			failure.detail = detail
+		}
+		failure.uncertain = r.StatusCode >= 500 && !(r.StatusCode == 503 && decoded && (detail.Code == "unavailable" || detail.Code == "layout_unreadable"))
 		return out, failure
 	}
 	if json.Unmarshal(raw, &out) != nil {
 		return out, &layoutFailure{status: 503, detail: api.ErrorResponse{Code: "unavailable", Message: "Invalid upstream layout response."}, uncertain: true}
+	}
+	if state, ok := any(out).(api.LayoutState); ok && (!completeLayoutJSON(raw, reflect.TypeFor[api.LayoutState]()) || !validLayoutState(state)) {
+		return out, unconfirmedLayout()
 	}
 	return out, nil
 }
@@ -48,7 +59,17 @@ func (c *APIClient) PreviewLayout(ctx context.Context, r json.RawMessage) (api.L
 	return layoutResponse[api.LayoutPreview](c.client.PreviewDashboardLayoutWithBody(ctx, "application/json", bytes.NewReader(r)))
 }
 func (c *APIClient) SaveLayout(ctx context.Context, revision string, d json.RawMessage) (api.LayoutState, error) {
-	return layoutResponse[api.LayoutState](c.client.PutDashboardLayoutWithBody(ctx, &api.PutDashboardLayoutParams{IfMatch: `"layout-` + revision + `"`}, "application/json", bytes.NewReader(d)))
+	state, err := layoutResponse[api.LayoutState](c.client.PutDashboardLayoutWithBody(ctx, &api.PutDashboardLayoutParams{IfMatch: `"layout-` + revision + `"`}, "application/json", bytes.NewReader(d)))
+	if err != nil {
+		return state, err
+	}
+	before, e := strconv.ParseInt(revision, 10, 64)
+	after, _ := strconv.ParseInt(state.Revision, 10, 64)
+	var submitted api.LayoutDocument
+	if e != nil || (after != before && (before == math.MaxInt64 || after != before+1)) || json.Unmarshal(d, &submitted) != nil || !sameLayoutDocument(submitted, state.Document) {
+		return api.LayoutState{}, unconfirmedLayout()
+	}
+	return state, nil
 }
 func (c *APIClient) DashboardView(ctx context.Context, defaults bool) (api.DashboardSnapshot, error) {
 	var params *api.GetDashboardParams
