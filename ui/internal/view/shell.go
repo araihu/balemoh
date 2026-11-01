@@ -59,6 +59,7 @@ func ConsolePage(data PageData) templ.Component {
 		Icon:  icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
 		Items: []sidebar.Item{
 			{ID: "nav-presentation", Label: "Appearance", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
+			{ID: "nav-notification-settings", Label: "Notifications", Href: "/settings/notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidBell, Decorative: true})},
 		},
 	}
 	for _, item := range data.PluginNavigation {

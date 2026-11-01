@@ -35,7 +35,7 @@ func PublicReadOnly(next http.Handler, publicURL string) http.Handler {
 			return
 		}
 		if p == "/staging/services/new" || strings.HasSuffix(p, "/edit") ||
-			p == "/notifications/clear" || p == "/presentation" || p == "/icons" || p == "/plugins/widgets" || strings.HasPrefix(p, "/presentation/themes/editor") ||
+			p == "/settings/notifications" || p == "/notifications/clear" || p == "/presentation" || p == "/icons" || p == "/plugins/widgets" || strings.HasPrefix(p, "/presentation/themes/editor") ||
 			strings.HasSuffix(p, "/new") {
 			http.Error(w, "Editing is disabled in this shared demo.", http.StatusForbidden)
 			return

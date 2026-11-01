@@ -68,6 +68,8 @@ templ PageContent(data PageData) {
 		}
 		if data.Attributions {
  @AttributionsContent()
+ } else if data.NotificationSettings {
+ @BrowserNotificationSettings()
  } else if data.NotificationsPage != nil {
  @NotificationsContent(*data.NotificationsPage)
  } else if data.PluginContent != nil {
