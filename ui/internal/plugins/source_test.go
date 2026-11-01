@@ -162,4 +162,16 @@ func TestNavigationNamesEachConnectionAndKeepsScopedLinks(t *testing.T) {
 	if len(navigation) != 3 || navigation[2].Title != "Plugins/Widgets" || navigation[2].Href != "/plugins/widgets" || navigation[2].Icon != "hi-16-solid-cog-6-tooth" || len(navigation[0].Children) != 1 || len(navigation[1].Children) != 1 {
 		t.Fatal("widget management must have one host-owned global navigation item")
 	}
+	other := m
+	other.ID = "example.upgrades"
+	other.Navigation = []manifest.Navigation{{ID: "images", Title: "Image upgrades", Icon: "hi-16-solid-arrow-path", Page: "current"}}
+	registry.entries[1].Package = &manifest.Package{Manifest: other}
+	navigation = registry.Navigation()
+	if len(navigation) != 3 || navigation[0].Title != "Alerts" || navigation[1].Title != "Image upgrades" || len(navigation[0].Children) != 0 || len(navigation[1].Children) != 0 {
+		t.Fatal("different plugins with one connection each must retain direct navigation links")
+	}
+	if navigation[0].ID != NavID(m.ID, first, "alerts") || navigation[1].ID != NavID(other.ID, second, "images") || !strings.Contains(navigation[0].Href, first) || !strings.Contains(navigation[1].Href, second) || navigation[1].Icon != "hi-16-solid-arrow-path" {
+		t.Fatal("direct plugin links lost scoped identity or their own icon")
+	}
+
 }

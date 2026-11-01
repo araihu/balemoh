@@ -375,6 +375,12 @@ func (r *Registry) Navigation() []Navigation {
 		return items
 	}
 	entries := r.Entries()
+	connections := map[string]int{}
+	for _, e := range entries {
+		if e.Compatible && e.Package != nil {
+			connections[e.Package.Manifest.ID]++
+		}
+	}
 	for _, e := range entries {
 		if !e.Compatible || e.Package == nil {
 			continue
@@ -408,7 +414,7 @@ func (r *Registry) Navigation() []Navigation {
 		if len(group) == 0 {
 			continue
 		}
-		if len(entries) > 1 {
+		if connections[e.Package.Manifest.ID] > 1 {
 			items = append(items, Navigation{ID: NavID(e.Package.Manifest.ID, e.Installation.ConnectionID, "connection"), Title: e.ConnectionName, Children: group})
 		} else {
 			items = append(items, group...)
