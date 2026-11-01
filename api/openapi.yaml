@@ -6759,6 +6759,9 @@ components:
           description: "Destination group ID."
           example: "builtin:widgets"
         beforeItemId:
+          x-go-type: nullable.Nullable[string]
+          x-go-type-skip-optional-pointer: true
+          x-omitempty: true
           type: "string"
           description: "Destination member before which to insert; null explicitly appends."
           nullable: true

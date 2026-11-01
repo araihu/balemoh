@@ -13,8 +13,10 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.5.1
+	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/runtime v1.7.0
 	golang.org/x/image v0.47.0
+	golang.org/x/text v0.43.0
 	k8s.io/api v0.35.6
 	k8s.io/apimachinery v0.35.6
 	k8s.io/client-go v0.35.6
@@ -125,7 +127,6 @@ require (
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d // indirect

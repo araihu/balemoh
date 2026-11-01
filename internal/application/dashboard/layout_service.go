@@ -3,6 +3,7 @@ package dashboard
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"slices"
 )
@@ -47,29 +48,55 @@ func (s *Layouts) Replace(ctx context.Context, revision string, d LayoutDocument
 	return s.change(ctx, revision, func(LayoutDocument, []Widget) (LayoutDocument, error) { return CloneLayout(d), nil })
 }
 func completeOrder(o Ordering, ids []string) error {
-	if o.Mode != "alphabetical" && o.Mode != "custom" || o.IDs == nil || o.Mode == "alphabetical" && len(o.IDs) > 0 {
-		return LayoutFailure(422, "invalid_layout", "Invalid ordering rule.")
+	fields := map[string]string{}
+	if o.Mode != "alphabetical" && o.Mode != "custom" {
+		fields["/mode"] = "Choose Alphabetical or Custom."
+	}
+	if o.IDs == nil || o.Mode == "alphabetical" && len(o.IDs) > 0 {
+		fields["/ids"] = "Alphabetical order requires an empty array."
+	}
+	seen := map[string]int{}
+	for i, id := range o.IDs {
+		if old, ok := seen[id]; ok {
+			fields[fmt.Sprintf("/ids/%d", old)] = "Repeated ordering ID."
+			fields[fmt.Sprintf("/ids/%d", i)] = "Repeated ordering ID."
+		}
+		seen[id] = i
+	}
+	if len(fields) > 0 {
+		return targetedLayoutError(fields)
 	}
 	if o.Mode == "alphabetical" {
 		return nil
-	}
-	seen := map[string]bool{}
-	for _, id := range o.IDs {
-		if seen[id] {
-			return LayoutFailure(422, "invalid_layout", "Repeated ordering ID.")
-		}
-		seen[id] = true
 	}
 	if len(seen) != len(ids) {
 		return LayoutFailure(409, "membership_changed", "Submit every current member exactly once.")
 	}
 	for _, id := range ids {
-		if !seen[id] {
+		if _, ok := seen[id]; !ok {
 			return LayoutFailure(409, "membership_changed", "Submit every current member exactly once.")
 		}
 	}
 	return nil
 }
+func targetedLayoutError(fields map[string]string) error {
+	keys := make([]string, 0, len(fields))
+	for k := range fields {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	message := "Layout needs corrections."
+	if len(keys) > 32 {
+		keys = keys[:32]
+		message += " Additional field errors were omitted."
+	}
+	bounded := map[string]string{}
+	for _, k := range keys {
+		bounded[k] = fields[k]
+	}
+	return &LayoutError{Status: 422, Code: "invalid_layout", Message: message, FieldErrors: bounded}
+}
+
 func (s *Layouts) OrderGroups(ctx context.Context, revision string, o Ordering) (LayoutState, error) {
 	return s.change(ctx, revision, func(d LayoutDocument, _ []Widget) (LayoutDocument, error) {
 		ids := []string{}
@@ -159,7 +186,7 @@ func (s *Layouts) Move(ctx context.Context, revision, item string, m LayoutMove)
 		if before != nil {
 			at = slices.Index(destIDs, *before)
 			if at < 0 {
-				return d, LayoutFailure(422, "invalid_layout", "beforeItemId must name another destination member.")
+				return d, targetedLayoutError(map[string]string{"/beforeItemId": "Choose another member of the destination group."})
 			}
 		}
 		for i := range d.Groups {

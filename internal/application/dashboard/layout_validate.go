@@ -52,6 +52,10 @@ func ValidateLayout(d *LayoutDocument, previous LayoutDocument, active []Widget)
 			}
 		}
 	}
+	previousGroups := map[string]bool{}
+	for _, g := range previous.Groups {
+		previousGroups[g.ID] = true
+	}
 	groups := map[string]bool{}
 	firstGroup := map[string]int{}
 	oldRefs := map[string]bool{}
@@ -78,6 +82,9 @@ func ValidateLayout(d *LayoutDocument, previous LayoutDocument, active []Widget)
 		}
 		firstGroup[g.ID] = i
 		groups[g.ID] = true
+		if slices.Contains([]string{"builtin:hosts", "builtin:services", "builtin:widgets"}, g.ID) && !previousGroups[g.ID] {
+			add(p+"/id", "A removed builtin identity cannot be recreated.")
+		}
 		if !slices.Contains([]string{"builtin:hosts", "builtin:services", "builtin:widgets"}, g.ID) {
 			id, e := uuid.Parse(g.ID)
 			if e != nil || id.String() != g.ID {

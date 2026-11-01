@@ -81,3 +81,18 @@ func TestLayoutValidationRetainsSubmittedPointersAndDeletedDormantMembers(t *tes
 		t.Fatal(e)
 	}
 }
+
+func TestRemovedBuiltinGroupCannotBeRecreated(t *testing.T) {
+	previous := DefaultLayout()
+	removed := CloneLayout(previous)
+	removed.Groups = removed.Groups[1:]
+	removed.Homepage.Placements = removed.Homepage.Placements[1:]
+	removed.SourceGroups.Host = "builtin:services"
+	if e := ValidateLayout(&removed, previous, nil); e != nil {
+		t.Fatal(e)
+	}
+	recreated := DefaultLayout()
+	if e := ValidateLayout(&recreated, removed, nil); e == nil {
+		t.Fatal("removed builtin ID was accepted as a new group")
+	}
+}

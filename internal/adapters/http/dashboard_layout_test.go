@@ -3,11 +3,14 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	sdkclient "github.com/araihu/balemoh/client"
 	"github.com/araihu/balemoh/internal/adapters/sqlite"
 	"github.com/araihu/balemoh/internal/api/generated"
 	"github.com/araihu/balemoh/internal/application/dashboard"
+	"github.com/oapi-codegen/nullable"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -128,6 +131,70 @@ func TestLayoutPreviewTargetedAndReadOnlyContract(t *testing.T) {
 	}
 	w = layoutRequest(h, "GET", "/api/v1/dashboard?layoutView=default", nil, nil)
 	if w.Code != 200 || strings.Contains(w.Body.String(), "layoutRevision") {
+		t.Fatal(w.Code, w.Body.String())
+	}
+}
+
+func TestLayoutGeneratedClientPreservesMoveTriState(t *testing.T) {
+	db, e := sqlite.Open(t.Context(), t.TempDir()+"/sdk.db")
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { db.Close() })
+	if e = sqlite.RunMigrations(db); e != nil {
+		t.Fatal(e)
+	}
+	selections := sqlite.NewDashboardSelections(db)
+	for _, id := range []string{"a", "b"} {
+		if e = selections.Set(t.Context(), "host", id, true); e != nil {
+			t.Fatal(e)
+		}
+	}
+	service := &dashboard.Layouts{Store: sqlite.NewLayoutStore(db)}
+	h := generated.HandlerWithOptions(Handler{}.WithLayouts(service), generated.StdHTTPServerOptions{BaseRouter: http.NewServeMux(), ErrorHandlerFunc: RequestError})
+	server := httptest.NewServer(h)
+	t.Cleanup(server.Close)
+	sdk, e := sdkclient.NewClientWithResponses(server.URL)
+	if e != nil {
+		t.Fatal(e)
+	}
+	cases := []struct {
+		id     string
+		anchor nullable.Nullable[string]
+		mode   string
+		ids    []string
+	}{{"host-a", nil, "alphabetical", []string{}}, {"host-b", nullable.NewNullNullable[string](), "custom", []string{"host-a", "host-b"}}, {"host-b", nullable.NewNullableWithValue("host-a"), "custom", []string{"host-b", "host-a"}}}
+	revision := "0"
+	for _, tc := range cases {
+		response, e := sdk.MoveDashboardItemWithResponse(t.Context(), tc.id, &sdkclient.MoveDashboardItemParams{IfMatch: `"layout-` + revision + `"`}, sdkclient.LayoutMove{GroupId: "builtin:widgets", BeforeItemId: tc.anchor})
+		if e != nil || response.JSON200 == nil {
+			t.Fatalf("SDK move: %v %#v", e, response)
+		}
+		revision = response.JSON200.Revision
+		var group sdkclient.LayoutGroup
+		for _, g := range response.JSON200.Document.Groups {
+			if g.Id == "builtin:widgets" {
+				group = g
+			}
+		}
+		if string(group.Ordering.Mode) != tc.mode || !slices.Equal(group.Ordering.Ids, tc.ids) {
+			t.Fatalf("mode/order lost through generated SDK: %+v", group.Ordering)
+		}
+	}
+	invalid := layoutRequest(h, "PUT", "/api/v1/dashboard/layout/items/host-a/placement", map[string]any{"groupId": "builtin:widgets", "beforeItemId": "missing"}, map[string]string{"If-Match": `"layout-` + revision + `"`})
+	var failure dashboard.LayoutError
+	_ = json.Unmarshal(invalid.Body.Bytes(), &failure)
+	if invalid.Code != 422 || failure.FieldErrors["/beforeItemId"] == "" {
+		t.Fatal(invalid.Code, invalid.Body.String())
+	}
+
+}
+func TestLayoutTargetedErrorsIdentifySubmittedFields(t *testing.T) {
+	h, _ := layoutHandler(t)
+	w := layoutRequest(h, "PUT", "/api/v1/dashboard/layout/order", dashboard.Ordering{Mode: "custom", IDs: []string{"builtin:hosts", "builtin:hosts"}}, map[string]string{"If-Match": `"layout-0"`})
+	var failure dashboard.LayoutError
+	_ = json.Unmarshal(w.Body.Bytes(), &failure)
+	if w.Code != 422 || failure.FieldErrors["/ids/0"] == "" || failure.FieldErrors["/ids/1"] == "" {
 		t.Fatal(w.Code, w.Body.String())
 	}
 }

@@ -159,3 +159,22 @@ func TestLayoutMembershipTokenComparedInsideTransaction(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestLayoutDeletedBuiltinIdentityCannotBeResurrected(t *testing.T) {
+	db := newCatalogTestDatabase(t)
+	s := &dashboard.Layouts{Store: NewLayoutStore(db)}
+	d := dashboard.DefaultLayout()
+	d.Groups = d.Groups[1:]
+	d.Homepage.Placements = d.Homepage.Placements[1:]
+	d.SourceGroups.Host = "builtin:services"
+	first, e := s.Replace(t.Context(), "0", d)
+	if e != nil || first.Revision != "1" {
+		t.Fatal(first, e)
+	}
+	_, e = s.Replace(t.Context(), "1", dashboard.DefaultLayout())
+	layoutCode(t, e, "invalid_layout")
+	state, e := s.Get(t.Context())
+	if e != nil || state.Revision != "1" || len(state.Document.Groups) != 2 {
+		t.Fatal(state, e)
+	}
+}
