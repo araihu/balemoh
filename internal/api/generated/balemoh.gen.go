@@ -13,6 +13,7 @@ import (
 	"time"
 
 	themes "github.com/araihu/goshtoso/themes"
+	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -1020,7 +1021,7 @@ type LayoutMemberState string
 // LayoutMove Move an item without changing selection or renderer. Omitted anchor preserves destination order and joins its unranked tail. Null appends and establishes complete Custom order.
 type LayoutMove struct {
 	// BeforeItemId Destination member before which to insert; null explicitly appends.
-	BeforeItemId *string `json:"beforeItemId,omitempty"`
+	BeforeItemId nullable.Nullable[string] `json:"beforeItemId,omitempty"`
 
 	// GroupId Destination group ID.
 	GroupId string `json:"groupId"`
