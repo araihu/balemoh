@@ -139,13 +139,18 @@ func (s *server) layoutPreview(w http.ResponseWriter, r *http.Request) {
 		writeLayoutBFFError(w, e)
 		return
 	}
+	var movementMarkup bytes.Buffer
+	if e = view.LayoutItemMovement(frame).Render(r.Context(), &movementMarkup); e != nil {
+		writeLayoutBFFError(w, e)
+		return
+	}
 	var previewMarkup bytes.Buffer
 	if e = view.LayoutPreview(frame).Render(r.Context(), &previewMarkup); e != nil {
 		writeLayoutBFFError(w, e)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"preview": preview, "pageHtml": pageMarkup.String(), "inspectorHtml": markup.String(), "previewHtml": previewMarkup.String(), "deleteHtml": deleteChoices.String()})
+	_ = json.NewEncoder(w).Encode(map[string]any{"preview": preview, "pageHtml": pageMarkup.String(), "movementHtml": movementMarkup.String(), "inspectorHtml": markup.String(), "previewHtml": previewMarkup.String(), "deleteHtml": deleteChoices.String()})
 }
 func (s *server) layoutSave(w http.ResponseWriter, r *http.Request) {
 	c, ok := s.layoutClient(w)

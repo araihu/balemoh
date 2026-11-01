@@ -103,6 +103,9 @@ templ LayoutPreviewItem(f LayoutFrame,m EditorMember) {
   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithSize(button.SizeSmall),button.WithAttrs(templ.Attributes{"id":"edit-item-"+DOMKey(m.ID),"data-layout-select-item":m.ID,"aria-pressed":f.SelectedItem==m.ID})) {
    <span>{"Edit item "+m.Label}</span>
   }
+  if f.SelectedItem==m.ID {
+   <div id="layout-selected-movement" class="balemoh-layout-item-movement">@LayoutItemMovement(f)</div>
+  }
   @WidgetContent(m.Widget)
  </div>
 }
@@ -169,6 +172,7 @@ templ LayoutInspector(f LayoutFrame) {
    @form.Section(form.SectionConfig{Title:"Selected group",Columns:"1"}) {
     @form.FieldGroup(form.FieldGroupConfig{ID:"layout-group-choice-field",Select:&selectfield.Config{ID:"layout-group-choice",Label:"Group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-action":"select-group","data-layout-structural":""}}})
     {{g:=f.group();key:="layout-group-"+DOMKey(g.ID)}}
+    <div data-layout-group-fields-owner={g.ID} class="balemoh-layout-group-fields">
     @form.FieldGroup(form.FieldGroupConfig{ID:key+"-title-field",Label:"Group title",Required:true,Input:&textinput.Config{ID:key+"-title",Value:g.Title,MaxLength:80,InputAttrs:templ.Attributes{"data-layout-field":"/group/title"}}})
     for _,field:=range geometryChoice(key,"/group/layout",g.Arrangement) {
      @form.FieldGroup(field)
@@ -186,6 +190,7 @@ templ LayoutInspector(f LayoutFrame) {
      @LayoutAction("delete","Delete group")
     </div>
     <details><summary>Identity</summary><code>{g.ID}</code></details>
+    </div>
    }
  if f.SelectedItem=="" {
   @LayoutItemInspector(f)
@@ -224,13 +229,10 @@ templ LayoutPageArrangement(f LayoutFrame) {
 templ LayoutItemInspector(f LayoutFrame) {
    @form.Section(form.SectionConfig{Title:"Selected item",Columns:"1"}) {
     @form.FieldGroup(form.FieldGroupConfig{ID:"layout-item-choice-field",Select:&selectfield.Config{ID:"layout-item-choice",Label:"Item",Options:f.itemOptions(),InputAttrs:templ.Attributes{"data-layout-action":"select-item","data-layout-structural":""}}})
-    @form.FieldGroup(form.FieldGroupConfig{ID:"layout-destination-field",Select:&selectfield.Config{ID:"layout-destination",Label:"Destination group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-destination":"","data-layout-structural":""}}})
-    <div class="balemoh-layout-actions">
-     @LayoutAction("move-item","Move item to group")
-     @LayoutAction("item-earlier","Move item earlier")
-     @LayoutAction("item-later","Move item later")
-    </div>
-    <p>Drag or use the named movement controls. Dormant items keep their saved position.</p>
+    if f.selectedItemDormant() {
+     <div id="layout-selected-movement">@LayoutItemMovement(f)</div>
+    }
+
    }
 
 }
@@ -242,4 +244,14 @@ templ LayoutComparison(rows []LayoutComparisonRow) {
  <details><summary>All layout settings and identities</summary>
   @table.Table(layoutComparisonTable(rows,false))
  </details>
+}
+
+templ LayoutItemMovement(f LayoutFrame) {
+    @form.FieldGroup(form.FieldGroupConfig{ID:"layout-destination-field",Select:&selectfield.Config{ID:"layout-destination",Label:"Destination group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-destination":"","data-layout-structural":""}}})
+    <div class="balemoh-layout-actions">
+     @LayoutAction("move-item","Move item to group")
+     @LayoutAction("item-earlier","Move item earlier")
+     @LayoutAction("item-later","Move item later")
+    </div>
+    <p>Drag or use the named movement controls. Dormant items keep their saved position.</p>
 }

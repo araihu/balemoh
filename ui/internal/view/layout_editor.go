@@ -138,3 +138,14 @@ func layoutComparisonTable(rows []LayoutComparisonRow, changedOnly bool) table.C
 	}
 	return config
 }
+
+func (f LayoutFrame) selectedItemDormant() bool {
+	for _, g := range f.Groups {
+		for _, m := range g.Members {
+			if m.ID == f.SelectedItem {
+				return m.State == "dormant"
+			}
+		}
+	}
+	return false
+}

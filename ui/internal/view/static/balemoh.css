@@ -426,3 +426,5 @@ body {
 @media (min-width:800px) { .balemoh-layout-page-fields { grid-template-columns:repeat(5,minmax(0,1fr)); } }
 .balemoh-layout-page-footer { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; }
 .balemoh-layout-page-footer p { margin:0; flex:1 1 20rem; }
+.balemoh-layout-item-movement { margin-block:.75rem; padding:.75rem; border:1px solid var(--balemoh-border); border-radius:var(--radius-radius,.5rem); }
+.balemoh-layout-group-fields { display:contents; }

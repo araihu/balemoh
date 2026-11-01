@@ -19,7 +19,7 @@
     }
     beginLive(revision) { if (!/^(0|[1-9][0-9]*)$/.test(revision)||BigInt(revision)<BigInt(this.revision)||BigInt(revision)<BigInt(this.liveRevision)) return null;this.liveRevision=revision;return {sequence:++this.liveSequence,revision,generation:this.generation}; }
     ownsLive(entry) {return !!entry&&entry.sequence===this.liveSequence&&entry.revision===this.liveRevision;}
-    applyLive(entry,state) {if(!this.ownsLive(entry)||state.revision!==entry.revision||entry.generation!==this.generation||this.dirty||this.saveAttempt||['saving','outcome_unknown','conflict'].includes(this.state))return false;this.saved=clone(state.document);this.document=clone(state.document);this.revision=state.revision;this.generation++;this.pending=null;this.state='preview_pending';return true;}
+    applyLive(entry,state) {if(!this.ownsLive(entry)||state.revision!==entry.revision||entry.generation!==this.generation||this.dirty||this.saveAttempt||['saving','outcome_unknown','conflict'].includes(this.state))return false;this.saved=clone(state.document);this.document=clone(state.document);this.revision=state.revision;this.generation++;this.pending=null;this.reconcileSelection();this.state='preview_pending';return true;}
     referenceCount() { return this.document.groups.reduce((n,g)=>n+g.placements.length,0); }
     fitsOrder(groupId) { const g=this.group(groupId),r=this.resolved(groupId);return !!g&&!!r&&this.referenceCount()-g.placements.length+r.members.length<=512; }
     fitsMove(itemId,groupId) { const g=this.group(groupId),r=this.resolved(groupId);if(!g||!r)return false;const outside=this.document.groups.some(v=>v.id!==groupId&&v.placements.some(p=>p.itemId===itemId));const count=r.members.some(m=>m.itemId===itemId)?r.members.length:r.members.length+1;return this.referenceCount()-g.placements.length-(outside?1:0)+count<=512; }
@@ -98,7 +98,7 @@
       frame.setAttribute('aria-busy', String(model.state === 'preview_pending' || model.state === 'saving'));
       frame.querySelector('[data-layout-preview]').disabled = !model.ready;
       frame.querySelectorAll('[data-layout-structural]').forEach(el => { const capacityBlocked = ['item-earlier','item-later'].includes(el.dataset.layoutAction)&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.ready || el.dataset.layoutAction === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-earlier', 'item-later'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
-      frame.querySelectorAll('[data-layout-field]').forEach(el => { if (!el.hasAttribute('data-layout-structural')) disable(el, frozen || el.hasAttribute('data-layout-span') && model.document.homepage.layout.type === 'stack'); });
+      frame.querySelectorAll('[data-layout-field]').forEach(el => { if (!el.hasAttribute('data-layout-structural')) disable(el, frozen || el.closest('[data-layout-group-fields-owner]')&&el.closest('[data-layout-group-fields-owner]').dataset.layoutGroupFieldsOwner!==model.selection.groupId || el.hasAttribute('data-layout-span') && model.document.homepage.layout.type === 'stack'); });
       find('save').disabled = !model.ready || !model.dirty;
       find('regenerate-provisional').hidden=model.state!=='preview_invalid'||!rejectedGroupRow;
       find('retry').hidden = model.state !== 'preview_error' && model.state !== 'preview_invalid';
@@ -122,7 +122,7 @@
     async function apply(entry, result) {
       if (!model.owns(entry)) return;
       if (pointer) { queuedPreview = [entry, result]; return; }
-      if (typeof result.pageHtml!=='string'||typeof result.inspectorHtml!=='string'||typeof result.previewHtml!=='string'||typeof result.deleteHtml!=='string') {model.fail(entry,503);state('Preview response unavailable. Your draft is retained.');return;}
+      if (typeof result.movementHtml!=='string'||typeof result.pageHtml!=='string'||typeof result.inspectorHtml!=='string'||typeof result.previewHtml!=='string'||typeof result.deleteHtml!=='string') {model.fail(entry,503);state('Preview response unavailable. Your draft is retained.');return;}
       if (!model.accept(entry, result.preview)) { if (model.state === 'conflict') state('Saved layout changed. Your draft is retained.'); return; }
       try {
       const focus = document.activeElement; const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
@@ -130,6 +130,7 @@
       await global.htmx.swap({sourceElement:frame,target:'#layout-editor-page-controls',swap:'innerHTML settle:0',text:result.pageHtml});
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML settle:0', text: result.inspectorHtml });
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-preview-body', swap: 'innerMorph', text: result.previewHtml });
+      if(root.querySelector('#layout-selected-movement'))await global.htmx.swap({sourceElement:frame,target:'#layout-selected-movement',swap:'innerHTML settle:0',text:result.movementHtml});
       await global.htmx.swap({ sourceElement: root, target: '#layout-delete-destinations', swap: 'innerHTML settle:0', text: result.deleteHtml });
       if (!alive) return;
       clearErrors(); let outcome = model.dirty ? 'Preview ready. Changes are unsaved.' : lastSaveMessage || 'Layout matches the saved version.';
@@ -175,7 +176,7 @@
       if (el.hasAttribute('data-layout-field') && el.tagName !== 'TEXTAREA' && !(el.tagName === 'INPUT' && el.type === 'text' && !el.hidden)) editField(el);
     });
     function editField(el) {
-      const path = el.dataset.layoutField; if (!path) return; const structural = el.hasAttribute('data-layout-structural'); const value = el.type === 'checkbox' ? el.checked : el.hasAttribute('data-layout-number') ? Number(el.value) : el.value;
+      const path = el.dataset.layoutField; if (!path) return;const owner=el.closest('[data-layout-group-fields-owner]')?.dataset.layoutGroupFieldsOwner;if(path.startsWith('/group/')&&owner!==model.selection.groupId)return; const structural = el.hasAttribute('data-layout-structural'); const value = el.type === 'checkbox' ? el.checked : el.hasAttribute('data-layout-number') ? Number(el.value) : el.value;
       if (model.change(d => { if (path === '/group/span') { d.homepage.placements.find(p => p.groupId === model.selection.groupId).span = value; return; } const parts = path.split('/').slice(1); let target = parts[0] === 'group' ? model.group() : d; if (parts[0] === 'group') parts.shift(); const last = parts.pop(); parts.forEach(p => { target = target[p]; }); target[last] = value; }, structural)) changed();
     }
     root.addEventListener('input', event => { if (event.target.type === 'text' && !event.target.hidden && event.target.hasAttribute('data-layout-field')) editField(event.target); });
