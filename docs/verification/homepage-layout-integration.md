@@ -24,7 +24,9 @@ tested independently of runtime telemetry, plugin availability and cold provider
 BFF/Node execution covers strict forwarding, cross-origin denial, stale bootstrap,
 reverse live readbacks, complete comparison with zero writes, preview ownership,
 provisional UUID repair, active-to-dormant selection fallback and uncertain Save.
-Save responses require a complete valid configuration, a signed-64 revision and
+Every success/error response first passes a UTF-8, single-value, recursive unique-key
+JSON scan. Repeated revisions, nested fields and error codes/messages are rejected
+as uncertain. Save responses require a complete valid configuration, a signed-64 revision and
 a plausible transition matching the attempted document. Invalid confirmations and
 ambiguous gateway responses preserve the attempt and trigger readback. Only documented
 application status/code errors are definite. Storage unavailable remains ambiguous

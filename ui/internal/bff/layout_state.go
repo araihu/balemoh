@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"reflect"
 	"slices"
 	"strconv"
@@ -199,4 +200,56 @@ func documentedLayoutFailure(status int, code string) bool {
 	default:
 		return false
 	}
+}
+
+func uniqueLayoutResponseJSON(raw []byte) bool {
+	if !utf8.Valid(raw) {
+		return false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var value func() bool
+	value = func() bool {
+		token, e := decoder.Token()
+		if e != nil {
+			return false
+		}
+		delimiter, container := token.(json.Delim)
+		if !container {
+			return true
+		}
+		switch delimiter {
+		case '{':
+			keys := map[string]bool{}
+			for decoder.More() {
+				key, e := decoder.Token()
+				if e != nil {
+					return false
+				}
+				name, ok := key.(string)
+				if !ok || keys[name] {
+					return false
+				}
+				keys[name] = true
+				if !value() {
+					return false
+				}
+			}
+		case '[':
+			for decoder.More() {
+				if !value() {
+					return false
+				}
+			}
+		default:
+			return false
+		}
+		end, e := decoder.Token()
+		return e == nil && (delimiter == '{' && end == json.Delim('}') || delimiter == '[' && end == json.Delim(']'))
+	}
+	if !value() {
+		return false
+	}
+	_, e := decoder.Token()
+	return e == io.EOF
 }

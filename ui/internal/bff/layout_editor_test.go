@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -342,7 +343,11 @@ func TestLayoutSaveRejectsUnconfirmedResponsesAndAllowsReadback(t *testing.T) {
 		body      string
 		uncertain bool
 	}{
-		{"empty", 200, `{}`, true}, {"null", 200, `null`, true},
+		{"empty", 200, `{}`, true},
+		{"duplicate revision", 200, strings.Replace(state("1", document), `"revision":"1"`, `"revision":"999","revision":"1"`, 1), true},
+		{"duplicate nested field", 200, strings.Replace(state("1", document), `"showHeading":true`, `"showHeading":false,"showHeading":true`, 1), true},
+		{"duplicate error code", 503, `{"code":"unavailable","code":"layout_unreadable","message":"Unreadable."}`, true},
+		{"duplicate error message", 422, `{"code":"invalid_layout","message":"One","message":"Two"}`, true}, {"null", 200, `null`, true},
 		{"missing revision", 200, `{"document":` + string(raw) + `}`, true},
 		{"missing document", 200, `{"revision":"1"}`, true},
 		{"empty revision", 200, state("", document), true}, {"noncanonical revision", 200, state("01", document), true},
@@ -631,5 +636,35 @@ func TestLayoutPreviewReadBudgetRemainsBounded(t *testing.T) {
 	var failure *layoutFailure
 	if !errors.As(e, &failure) || !failure.uncertain {
 		t.Fatal("oversized response accepted", e)
+	}
+}
+
+func TestLayoutPreviewRejectsDuplicateResponseKeys(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var request api.LayoutPreviewRequest
+	_ = json.Unmarshal([]byte(`{"requestId":"11111111-1111-4111-8111-111111111111","draftGeneration":3,"expectedRevision":"0"}`), &request)
+	_ = json.Unmarshal(raw, &request.Document)
+	response, _ := json.Marshal(emptyLayoutPreview(request, "0", false))
+	body, _ := json.Marshal(request)
+	for _, wire := range []string{strings.Replace(string(response), `"layoutRevision":"0"`, `"layoutRevision":"999","layoutRevision":"0"`, 1), strings.Replace(string(response), `"showHeading":true`, `"showHeading":false,"showHeading":true`, 1)} {
+		t.Run(strconv.Itoa(len(wire)), func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = io.WriteString(w, wire)
+			}))
+			t.Cleanup(upstream.Close)
+			client, e := NewAPIClient(upstream.URL, upstream.Client())
+			if e != nil {
+				t.Fatal(e)
+			}
+			_, e = client.PreviewLayout(t.Context(), body)
+			var failure *layoutFailure
+			if !errors.As(e, &failure) || !failure.uncertain {
+				t.Fatal("duplicate-key preview accepted", e)
+			}
+		})
 	}
 }
