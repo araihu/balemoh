@@ -48,7 +48,7 @@ templ PluginWidgetSelection(item PluginWidgetRow, list, focus bool) {
    <input type="hidden" name="revision" value={ item.Revision }/>
    <input type="hidden" name="previous" value={ pluginSelectionValue(item.Enabled) }/>
    {{ label := "Show on home"; if list { label = "" } }}
-   @checkbox.Checkbox(checkbox.Config{ID:"plugin-selection-action-"+item.ID,Name:"enabled",Value:"true",Label:label,Checked:item.Enabled,Disabled:item.Disabled,InputAttrs:templ.Attributes{"aria-label":"Show "+item.Title+" on home","onchange":"this.form.requestSubmit()","aria-describedby":"plugin-selection-feedback-"+item.ID,"style":"border-color: var(--balemoh-muted)"}})
+   @checkbox.Checkbox(checkbox.Config{ID:"plugin-selection-action-"+item.ID,Name:"enabled",Value:"true",Label:label,Checked:item.Enabled,Disabled:item.Disabled,InputAttrs:templ.Attributes{"aria-label":"Show "+item.Title+" on home","onchange":templ.JSFuncCall("this.form.requestSubmit"),"aria-describedby":"plugin-selection-feedback-"+item.ID,"style":"border-color: var(--balemoh-muted)"}})
    if focus {
     <span hidden x-data="{}" x-init="$nextTick(() => { const root = $el.parentElement; if (document.activeElement !== document.body && !root.contains(document.activeElement)) return; const input = root.querySelector('input[type=checkbox]'); const target = input?.disabled ? root.querySelector('[data-selection-error]') : input; target?.focus({preventScroll:true}); })"></span>
    }

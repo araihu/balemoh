@@ -46,7 +46,7 @@ func TestConfigIsLastAndContainsPluginManagement(t *testing.T) {
 		}
 		var topLevel []string
 		for _, id := range order {
-			if nodes[id].Parent == nodes["nav-home"].Parent {
+			if nodes[id].Parent == nodes["nav-home"].Parent || id == "nav-config" && nodes[id].Parent.Parent == nodes["nav-home"].Parent {
 				topLevel = append(topLevel, id)
 			}
 		}
@@ -63,6 +63,56 @@ func TestConfigIsLastAndContainsPluginManagement(t *testing.T) {
 				t.Fatal("plugin management must be a sibling of Appearance inside Config")
 			}
 		}
+	}
+}
+
+func TestConfigDisclosureOpensForActiveChildren(t *testing.T) {
+	for _, active := range []string{"nav-home", "nav-hosts", "nav-alerts", "nav-presentation", "nav-notification-settings", "nav-plugin-widgets"} {
+		t.Run(active, func(t *testing.T) {
+			data := PageData{Title: "Navigation", Description: "Sidebar navigation", Active: active, PluginNavigation: []sidebar.Item{{ID: "nav-plugin-widgets", Label: "Plugins/Widgets", Href: "/plugins/widgets"}, {ID: "nav-alerts", Label: "Alerts", Href: "/plugins/alerts"}}}
+			var body bytes.Buffer
+			if err := ConsolePage(data).Render(t.Context(), &body); err != nil {
+				t.Fatal(err)
+			}
+			doc, err := html.Parse(&body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var control, children *html.Node
+			for node := range doc.Descendants() {
+				for _, attr := range node.Attr {
+					if attr.Key == "data-consoleshell-nav-id" && attr.Val == "nav-config" {
+						control = node
+					}
+					if attr.Key == "id" && attr.Val == "nav-config-children" {
+						children = node
+					}
+				}
+			}
+			if control == nil || control.Data != "button" || children == nil {
+				t.Fatal("Config must expose a disclosure button and controlled children")
+			}
+			want := "false"
+			if active == "nav-presentation" || active == "nav-notification-settings" || active == "nav-plugin-widgets" {
+				want = "true"
+			}
+			expanded := ""
+			for _, attr := range control.Attr {
+				if attr.Key == "aria-expanded" {
+					expanded = attr.Val
+				}
+			}
+			if expanded != want {
+				t.Fatalf("Config expanded=%q, want %q", expanded, want)
+			}
+			hidden := false
+			for _, attr := range children.Attr {
+				hidden = hidden || attr.Key == "style" && strings.Contains(attr.Val, "display: none")
+			}
+			if hidden != (want == "false") {
+				t.Fatal("initial child visibility must match the active page")
+			}
+		})
 	}
 }
 
