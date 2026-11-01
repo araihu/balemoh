@@ -15,8 +15,8 @@ layout:
 Balemoh discovers your Kubernetes, Docker, and Podman services.
 Choose what belongs on your homepage, then keep an eye on the hosts behind it.
 
+- [Try the live demo](https://demo-balemoh.araihu.com/)
 - [Set up Balemoh](getting-started/index.md)
-- [How discovery works](guides/discovery/index.md)
 
 ![Balemoh running locally with synthetic hosts atlas and pico and sample service cards for Grafana, Jellyfin, Immich, and other apps.](media/homepage-synthetic.jpg)
 
