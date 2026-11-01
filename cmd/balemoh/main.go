@@ -175,6 +175,7 @@ func constructServerWithCatalog(ctx context.Context, options config.Options, mig
 	}
 	handler = handler.WithTelemetry(telemetryStore)
 	handler = handler.WithDashboard(dashboard.New(dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: telemetryStore, Selections: sqlite.NewDashboardSelections(db)}))
+	handler = handler.WithLayouts(&dashboard.Layouts{Store: sqlite.NewLayoutStore(db)})
 	httpHandler := generated.HandlerWithOptions(handler, generated.StdHTTPServerOptions{BaseRouter: http.NewServeMux(), ErrorHandlerFunc: httpadapter.RequestError})
 	return &http.Server{Addr: options.HTTPAddr, Handler: httpHandler}, db, catalogService, notificationService, pushService, nil
 }

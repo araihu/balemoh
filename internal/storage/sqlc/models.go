@@ -8,6 +8,14 @@ import (
 	"database/sql"
 )
 
+type DashboardLayout struct {
+	ID            int64  `json:"id"`
+	SchemaVersion int64  `json:"schema_version"`
+	Revision      int64  `json:"revision"`
+	Document      string `json:"document"`
+	UpdatedAt     string `json:"updated_at"`
+}
+
 type DashboardSelection struct {
 	SourceKind string `json:"source_kind"`
 	SourceID   string `json:"source_id"`

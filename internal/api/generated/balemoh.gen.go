@@ -105,6 +105,135 @@ func (e HostDetailRange) Valid() bool {
 	}
 }
 
+// Defines values for LayoutContainerGapPx.
+const (
+	N12 LayoutContainerGapPx = 12
+	N16 LayoutContainerGapPx = 16
+	N24 LayoutContainerGapPx = 24
+)
+
+// Valid indicates whether the value is a known member of the LayoutContainerGapPx enum.
+func (e LayoutContainerGapPx) Valid() bool {
+	switch e {
+	case N12:
+		return true
+	case N16:
+		return true
+	case N24:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutContainerType.
+const (
+	Grid    LayoutContainerType = "grid"
+	Masonry LayoutContainerType = "masonry"
+	Stack   LayoutContainerType = "stack"
+)
+
+// Valid indicates whether the value is a known member of the LayoutContainerType enum.
+func (e LayoutContainerType) Valid() bool {
+	switch e {
+	case Grid:
+		return true
+	case Masonry:
+		return true
+	case Stack:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutDocumentSchemaVersion.
+const (
+	N1 LayoutDocumentSchemaVersion = 1
+)
+
+// Valid indicates whether the value is a known member of the LayoutDocumentSchemaVersion enum.
+func (e LayoutDocumentSchemaVersion) Valid() bool {
+	switch e {
+	case N1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutHomepageWidth.
+const (
+	LayoutHomepageWidthContained LayoutHomepageWidth = "contained"
+	LayoutHomepageWidthFull      LayoutHomepageWidth = "full"
+)
+
+// Valid indicates whether the value is a known member of the LayoutHomepageWidth enum.
+func (e LayoutHomepageWidth) Valid() bool {
+	switch e {
+	case LayoutHomepageWidthContained:
+		return true
+	case LayoutHomepageWidthFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutHomepagePlacementSpan.
+const (
+	LayoutHomepagePlacementSpanAuto LayoutHomepagePlacementSpan = "auto"
+	LayoutHomepagePlacementSpanFull LayoutHomepagePlacementSpan = "full"
+)
+
+// Valid indicates whether the value is a known member of the LayoutHomepagePlacementSpan enum.
+func (e LayoutHomepagePlacementSpan) Valid() bool {
+	switch e {
+	case LayoutHomepagePlacementSpanAuto:
+		return true
+	case LayoutHomepagePlacementSpanFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutMemberState.
+const (
+	Active  LayoutMemberState = "active"
+	Dormant LayoutMemberState = "dormant"
+)
+
+// Valid indicates whether the value is a known member of the LayoutMemberState enum.
+func (e LayoutMemberState) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Dormant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutOrderingMode.
+const (
+	LayoutOrderingModeAlphabetical LayoutOrderingMode = "alphabetical"
+	LayoutOrderingModeCustom       LayoutOrderingMode = "custom"
+)
+
+// Valid indicates whether the value is a known member of the LayoutOrderingMode enum.
+func (e LayoutOrderingMode) Valid() bool {
+	switch e {
+	case LayoutOrderingModeAlphabetical:
+		return true
+	case LayoutOrderingModeCustom:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NotificationSeverity.
 const (
 	NotificationSeverityCritical NotificationSeverity = "critical"
@@ -293,19 +422,19 @@ func (e PresentationSaveColorMode) Valid() bool {
 
 // Defines values for PresentationSelectionKind.
 const (
-	Builtin   PresentationSelectionKind = "builtin"
-	Custom    PresentationSelectionKind = "custom"
-	NewCustom PresentationSelectionKind = "newCustom"
+	PresentationSelectionKindBuiltin   PresentationSelectionKind = "builtin"
+	PresentationSelectionKindCustom    PresentationSelectionKind = "custom"
+	PresentationSelectionKindNewCustom PresentationSelectionKind = "newCustom"
 )
 
 // Valid indicates whether the value is a known member of the PresentationSelectionKind enum.
 func (e PresentationSelectionKind) Valid() bool {
 	switch e {
-	case Builtin:
+	case PresentationSelectionKindBuiltin:
 		return true
-	case Custom:
+	case PresentationSelectionKindCustom:
 		return true
-	case NewCustom:
+	case PresentationSelectionKindNewCustom:
 		return true
 	default:
 		return false
@@ -396,6 +525,21 @@ func (e ThemeFontRefSource) Valid() bool {
 	}
 }
 
+// Defines values for GetDashboardParamsLayoutView.
+const (
+	Default GetDashboardParamsLayoutView = "default"
+)
+
+// Valid indicates whether the value is a known member of the GetDashboardParamsLayoutView enum.
+func (e GetDashboardParamsLayoutView) Valid() bool {
+	switch e {
+	case Default:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetHostParamsRange.
 const (
 	GetHostParamsRangeN1h  GetHostParamsRange = "1h"
@@ -460,10 +604,31 @@ type CustomTheme struct {
 	Revision PresentationRevision `json:"revision"`
 }
 
+// DashboardGroup Active resolved group; empty active groups omitted.
+type DashboardGroup struct {
+	// DisplayLabel Shared disambiguated group label. Applies to DashboardGroup properties displayLabel.
+	DisplayLabel string `json:"displayLabel"`
+
+	// GroupId Configured group ID. Applies to DashboardGroup properties groupId.
+	GroupId string `json:"groupId"`
+
+	// ItemIds Active members in effective order.
+	ItemIds []string `json:"itemIds"`
+
+	// Title Configured title. Applies to DashboardGroup properties title.
+	Title string `json:"title"`
+}
+
 // DashboardSnapshot Homepage widgets from the registered providers. A provider may fail independently; inspect unavailable even when the HTTP status is 200.
 type DashboardSnapshot struct {
+	// Groups Active groups in effective page order, with active member IDs. Empty groups omitted.
+	Groups *[]DashboardGroup `json:"groups,omitempty"`
+
 	// Items Selected widgets in provider order.
 	Items []DashboardWidget `json:"items"`
+
+	// LayoutRevision Independent canonical layout revision within signed 64-bit range.
+	LayoutRevision *LayoutRevision `json:"layoutRevision,omitempty"`
 
 	// Unavailable Source kinds whose providers failed while building this snapshot; an empty list means all providers responded.
 	Unavailable []string `json:"unavailable"`
@@ -739,6 +904,216 @@ type IconUpload struct {
 
 	// Tags Icon search tags, at most 1000 Unicode code points.
 	Tags string `json:"tags"`
+}
+
+// LayoutContainer Independent page or group geometry.
+type LayoutContainer struct {
+	// Columns Maximum responsive column count.
+	Columns int `json:"columns"`
+
+	// GapPx Spacing in CSS pixels.
+	GapPx LayoutContainerGapPx `json:"gapPx"`
+
+	// Type Natural-height arrangement.
+	Type LayoutContainerType `json:"type"`
+}
+
+// LayoutContainerGapPx Spacing in CSS pixels.
+type LayoutContainerGapPx int
+
+// LayoutContainerType Natural-height arrangement.
+type LayoutContainerType string
+
+// LayoutDocument Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+type LayoutDocument struct {
+	// Groups Configured groups. Canonical configuration sorts by exact ID. At most 512 explicit widget references across all groups.
+	Groups []LayoutGroup `json:"groups"`
+
+	// Homepage Homepage container settings.
+	Homepage LayoutHomepage `json:"homepage"`
+
+	// SchemaVersion Layout document schema.
+	SchemaVersion LayoutDocumentSchemaVersion `json:"schemaVersion"`
+
+	// SourceGroups Defaults apply to selected items without explicit memberships.
+	SourceGroups LayoutSourceGroups `json:"sourceGroups"`
+}
+
+// LayoutDocumentSchemaVersion Layout document schema.
+type LayoutDocumentSchemaVersion int
+
+// LayoutGroup Named container, independent of widget kind or renderer.
+type LayoutGroup struct {
+	// Id Canonical UUID for user groups, or one of the reserved builtin group IDs.
+	Id string `json:"id"`
+
+	// InitiallyCollapsed Initial disclosure state. Runtime disclosure changes are transient.
+	InitiallyCollapsed bool `json:"initiallyCollapsed"`
+
+	// Layout Independent page or group geometry.
+	Layout LayoutContainer `json:"layout"`
+
+	// Ordering Parent-scoped order.
+	Ordering LayoutOrdering `json:"ordering"`
+
+	// Placements Explicit memberships, including dormant references. Canonical configuration sorts by item ID.
+	Placements []LayoutGroupPlacement `json:"placements"`
+
+	// ShowHeading Show the group heading while retaining its accessible name.
+	ShowHeading bool `json:"showHeading"`
+
+	// Title Trimmed display title. Duplicate titles are allowed.
+	Title string `json:"title"`
+}
+
+// LayoutGroupPlacement Optional explicit membership override, retained while dormant.
+type LayoutGroupPlacement struct {
+	// ItemId Exact existing widget ID, at most 256 UTF-8 bytes.
+	ItemId string `json:"itemId"`
+}
+
+// LayoutHomepage Homepage container settings.
+type LayoutHomepage struct {
+	// Layout Independent page or group geometry.
+	Layout LayoutContainer `json:"layout"`
+
+	// Ordering Parent-scoped order.
+	Ordering LayoutOrdering `json:"ordering"`
+
+	// Placements Every configured group exactly once. Canonical configuration sorts by group ID.
+	Placements []LayoutHomepagePlacement `json:"placements"`
+
+	// Width Contained limits the page to 72rem.
+	Width LayoutHomepageWidth `json:"width"`
+}
+
+// LayoutHomepageWidth Contained limits the page to 72rem.
+type LayoutHomepageWidth string
+
+// LayoutHomepagePlacement Page-owned group placement.
+type LayoutHomepagePlacement struct {
+	// GroupId Configured group ID.
+	GroupId string `json:"groupId"`
+
+	// Span Width in the parent layout.
+	Span LayoutHomepagePlacementSpan `json:"span"`
+}
+
+// LayoutHomepagePlacementSpan Width in the parent layout.
+type LayoutHomepagePlacementSpan string
+
+// LayoutMember Resolved membership, including retained dormant references.
+type LayoutMember struct {
+	// DisplayLabel Shared disambiguated accessible name.
+	DisplayLabel string `json:"displayLabel"`
+
+	// ItemId Exact widget ID.
+	ItemId string `json:"itemId"`
+
+	// State Only active members render on the homepage.
+	State LayoutMemberState `json:"state"`
+}
+
+// LayoutMemberState Only active members render on the homepage.
+type LayoutMemberState string
+
+// LayoutMove Move an item without changing selection or renderer. Omitted anchor preserves destination order and joins its unranked tail. Null appends and establishes complete Custom order.
+type LayoutMove struct {
+	// BeforeItemId Destination member before which to insert; null explicitly appends.
+	BeforeItemId *string `json:"beforeItemId,omitempty"`
+
+	// GroupId Destination group ID.
+	GroupId string `json:"groupId"`
+}
+
+// LayoutOrdering Parent-scoped order.
+type LayoutOrdering struct {
+	// Ids Ranked IDs, empty for alphabetical. Targeted custom commands require the complete current member set.
+	Ids []string `json:"ids"`
+
+	// Mode Alphabetical sorts NFKC then Unicode default case fold, with exact ID ties. Custom ranks a prefix then that alphabetical tail.
+	Mode LayoutOrderingMode `json:"mode"`
+}
+
+// LayoutOrderingMode Alphabetical sorts NFKC then Unicode default case fold, with exact ID ties. Custom ranks a prefix then that alphabetical tail.
+type LayoutOrderingMode string
+
+// LayoutPreview Canonical draft resolution without persistence.
+type LayoutPreview struct {
+	// Document Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+	Document LayoutDocument `json:"document"`
+
+	// DraftGeneration Echoed generation.
+	DraftGeneration int64 `json:"draftGeneration"`
+
+	// LayoutRevision Independent canonical layout revision within signed 64-bit range.
+	LayoutRevision LayoutRevision `json:"layoutRevision"`
+
+	// MembershipTokens Each submitted group maps to members- plus SHA-256 of compact UTF-8 JSON ["layout-members-v1", groupId, sortedExactCompleteMemberIds]. Includes dormant explicit references and active default members; excludes labels.
+	MembershipTokens map[string]string `json:"membershipTokens"`
+
+	// RequestId Echoed attempt UUID.
+	RequestId openapi_types.UUID `json:"requestId"`
+
+	// ResolvedGroups Every configured group in effective page order.
+	ResolvedGroups []LayoutResolvedGroup `json:"resolvedGroups"`
+
+	// Stale Expected revision differs from current saved revision. Preview never authorizes a stale write.
+	Stale bool `json:"stale"`
+}
+
+// LayoutPreviewRequest Read-only draft validation, at most 128 KiB.
+type LayoutPreviewRequest struct {
+	// Document Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+	Document LayoutDocument `json:"document"`
+
+	// DraftGeneration Local draft generation echoed by preview.
+	DraftGeneration int64 `json:"draftGeneration"`
+
+	// ExpectedRevision Independent canonical layout revision within signed 64-bit range.
+	ExpectedRevision LayoutRevision `json:"expectedRevision"`
+
+	// RequestId Per-attempt UUID echoed by preview.
+	RequestId openapi_types.UUID `json:"requestId"`
+}
+
+// LayoutResolvedGroup Preview group, including empty configured groups.
+type LayoutResolvedGroup struct {
+	// DisplayLabel Shared disambiguated group label.
+	DisplayLabel string `json:"displayLabel"`
+
+	// GroupId Configured group ID. Applies to LayoutResolvedGroup properties groupId.
+	GroupId string `json:"groupId"`
+
+	// Members Complete effective ordered membership.
+	Members []LayoutMember `json:"members"`
+
+	// Title Configured title.
+	Title string `json:"title"`
+}
+
+// LayoutRevision Independent canonical layout revision within signed 64-bit range.
+type LayoutRevision = string
+
+// LayoutSourceGroups Defaults apply to selected items without explicit memberships.
+type LayoutSourceGroups struct {
+	// Host Default group for host items.
+	Host string `json:"host"`
+
+	// Other Default group for other items.
+	Other string `json:"other"`
+
+	// Service Default group for service items.
+	Service string `json:"service"`
+}
+
+// LayoutState Configuration-only state. Virtual revision 0 does not write storage. An identical normalized current write preserves revision; stale identical writes still fail.
+type LayoutState struct {
+	// Document Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+	Document LayoutDocument `json:"document"`
+
+	// Revision Independent canonical layout revision within signed 64-bit range.
+	Revision LayoutRevision `json:"revision"`
 }
 
 // ManualServiceCreate Idempotent creation input for an application outside automated discovery. The generated catalog identity does not depend on the supplied name or URL. New records are live and unpinned.
@@ -1322,6 +1697,12 @@ type WebPushSubscription struct {
 	} `json:"keys"`
 }
 
+// LayoutIfMatch One exact strong layout ETag.
+type LayoutIfMatch = string
+
+// LayoutMembershipMatch Exact quoted complete-membership token.
+type LayoutMembershipMatch = string
+
 // PresentationExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
 type PresentationExpectedRevision = PresentationRevision
 
@@ -1330,6 +1711,33 @@ type PresentationFontID = string
 
 // PresentationThemeID defines model for PresentationThemeID.
 type PresentationThemeID = string
+
+// Layout400 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout400 = ErrorResponse
+
+// Layout403 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout403 = ErrorResponse
+
+// Layout404 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout404 = ErrorResponse
+
+// Layout409 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout409 = ErrorResponse
+
+// Layout412 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout412 = ErrorResponse
+
+// Layout413 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout413 = ErrorResponse
+
+// Layout422 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout422 = ErrorResponse
+
+// Layout428 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout428 = ErrorResponse
+
+// Layout503 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout503 = ErrorResponse
 
 // PresentationInvalid Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
 type PresentationInvalid = ErrorResponse
@@ -1360,6 +1768,42 @@ type notificationPublisherContextKey string
 
 // pluginServiceContextKey is the context key for PluginService security scheme
 type pluginServiceContextKey string
+
+// GetDashboardParams defines parameters for GetDashboard.
+type GetDashboardParams struct {
+	// LayoutView Explicit temporary default view ignores saved layout without changing it. Normal unreadable layout returns 503. Default view omits layoutRevision.
+	LayoutView *GetDashboardParamsLayoutView `form:"layoutView,omitempty" json:"layoutView,omitempty"`
+}
+
+// GetDashboardParamsLayoutView defines parameters for GetDashboard.
+type GetDashboardParamsLayoutView string
+
+// PutDashboardLayoutParams defines parameters for PutDashboardLayout.
+type PutDashboardLayoutParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+}
+
+// OrderDashboardItemsParams defines parameters for OrderDashboardItems.
+type OrderDashboardItemsParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+
+	// IfDashboardMembershipMatch Compared with persisted document and local eligibility inside the write transaction, for both Custom and Alphabetical commands.
+	IfDashboardMembershipMatch LayoutMembershipMatch `json:"If-Dashboard-Membership-Match"`
+}
+
+// MoveDashboardItemParams defines parameters for MoveDashboardItem.
+type MoveDashboardItemParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+}
+
+// OrderDashboardGroupsParams defines parameters for OrderDashboardGroups.
+type OrderDashboardGroupsParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+}
 
 // SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
 type SetDashboardSelectionJSONBody struct {
@@ -1451,6 +1895,21 @@ type DeleteThemeParams struct {
 	ExpectedRevision PresentationExpectedRevision `form:"expectedRevision" json:"expectedRevision"`
 }
 
+// PutDashboardLayoutJSONRequestBody defines body for PutDashboardLayout for application/json ContentType.
+type PutDashboardLayoutJSONRequestBody = LayoutDocument
+
+// OrderDashboardItemsJSONRequestBody defines body for OrderDashboardItems for application/json ContentType.
+type OrderDashboardItemsJSONRequestBody = LayoutOrdering
+
+// MoveDashboardItemJSONRequestBody defines body for MoveDashboardItem for application/json ContentType.
+type MoveDashboardItemJSONRequestBody = LayoutMove
+
+// OrderDashboardGroupsJSONRequestBody defines body for OrderDashboardGroups for application/json ContentType.
+type OrderDashboardGroupsJSONRequestBody = LayoutOrdering
+
+// PreviewDashboardLayoutJSONRequestBody defines body for PreviewDashboardLayout for application/json ContentType.
+type PreviewDashboardLayoutJSONRequestBody = LayoutPreviewRequest
+
 // SetDashboardSelectionJSONRequestBody defines body for SetDashboardSelection for application/json ContentType.
 type SetDashboardSelectionJSONRequestBody SetDashboardSelectionJSONBody
 
@@ -1503,7 +1962,25 @@ type RenameThemeJSONRequestBody = ThemeRename
 type ServerInterface interface {
 	// Read the selected homepage widgets
 	// (GET /api/v1/dashboard)
-	GetDashboard(w http.ResponseWriter, r *http.Request)
+	GetDashboard(w http.ResponseWriter, r *http.Request, params GetDashboardParams)
+	// Read the instance layout without reading provider data
+	// (GET /api/v1/dashboard/layout)
+	GetDashboardLayout(w http.ResponseWriter, r *http.Request)
+	// Replace the complete instance layout
+	// (PUT /api/v1/dashboard/layout)
+	PutDashboardLayout(w http.ResponseWriter, r *http.Request, params PutDashboardLayoutParams)
+	// Set complete group member order or reset alphabetical
+	// (PUT /api/v1/dashboard/layout/groups/{groupId}/order)
+	OrderDashboardItems(w http.ResponseWriter, r *http.Request, groupId string, params OrderDashboardItemsParams)
+	// Move a widget to a group or anchored position
+	// (PUT /api/v1/dashboard/layout/items/{itemId}/placement)
+	MoveDashboardItem(w http.ResponseWriter, r *http.Request, itemId string, params MoveDashboardItemParams)
+	// Set complete page group order or reset alphabetical
+	// (PUT /api/v1/dashboard/layout/order)
+	OrderDashboardGroups(w http.ResponseWriter, r *http.Request, params OrderDashboardGroupsParams)
+	// Validate and resolve a draft without saving
+	// (POST /api/v1/dashboard/layout/preview)
+	PreviewDashboardLayout(w http.ResponseWriter, r *http.Request)
 	// Set a widget selection
 	// (PUT /api/v1/dashboard/widgets/{sourceKind}/{sourceId})
 	SetDashboardSelection(w http.ResponseWriter, r *http.Request, sourceKind string, sourceId string)
@@ -1650,8 +2127,276 @@ type MiddlewareFunc func(http.Handler) http.Handler
 // GetDashboard operation middleware
 func (siw *ServerInterfaceWrapper) GetDashboard(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetDashboardParams
+
+	// ------------- Optional query parameter "layoutView" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "layoutView", r.URL.Query(), &params.LayoutView, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "layoutView"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "layoutView", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDashboard(w, r)
+		siw.Handler.GetDashboard(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDashboardLayout operation middleware
+func (siw *ServerInterfaceWrapper) GetDashboardLayout(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDashboardLayout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutDashboardLayout operation middleware
+func (siw *ServerInterfaceWrapper) PutDashboardLayout(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PutDashboardLayoutParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch LayoutIfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutDashboardLayout(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OrderDashboardItems operation middleware
+func (siw *ServerInterfaceWrapper) OrderDashboardItems(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params OrderDashboardItemsParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch LayoutIfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Dashboard-Membership-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Dashboard-Membership-Match")]; found {
+		var IfDashboardMembershipMatch LayoutMembershipMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Dashboard-Membership-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Dashboard-Membership-Match", valueList[0], &IfDashboardMembershipMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Dashboard-Membership-Match", Err: err})
+			return
+		}
+
+		params.IfDashboardMembershipMatch = IfDashboardMembershipMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Dashboard-Membership-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Dashboard-Membership-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OrderDashboardItems(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MoveDashboardItem operation middleware
+func (siw *ServerInterfaceWrapper) MoveDashboardItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", r.PathValue("itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params MoveDashboardItemParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch LayoutIfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MoveDashboardItem(w, r, itemId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OrderDashboardGroups operation middleware
+func (siw *ServerInterfaceWrapper) OrderDashboardGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params OrderDashboardGroupsParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch LayoutIfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OrderDashboardGroups(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PreviewDashboardLayout operation middleware
+func (siw *ServerInterfaceWrapper) PreviewDashboardLayout(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PreviewDashboardLayout(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2964,6 +3709,12 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/dashboard", wrapper.GetDashboard)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/dashboard/layout", wrapper.GetDashboardLayout)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/dashboard/layout", wrapper.PutDashboardLayout)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/dashboard/layout/groups/{groupId}/order", wrapper.OrderDashboardItems)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/dashboard/layout/items/{itemId}/placement", wrapper.MoveDashboardItem)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/dashboard/layout/order", wrapper.OrderDashboardGroups)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/dashboard/layout/preview", wrapper.PreviewDashboardLayout)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/dashboard/widgets/{sourceKind}/{sourceId}", wrapper.SetDashboardSelection)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/discovery/sync", wrapper.SyncDiscovery)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/federation/snapshots", wrapper.ImportFederationSnapshot)

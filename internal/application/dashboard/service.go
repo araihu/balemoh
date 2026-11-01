@@ -24,15 +24,21 @@ type Widget struct {
 	Error        string
 }
 type Snapshot struct {
-	Items       []Widget
-	Unavailable []string
+	Items          []Widget
+	Unavailable    []string
+	LayoutRevision string
+	Groups         []DashboardGroup
+	LayoutError    error
 }
 type Provider interface {
 	Kind() string
 	Selected(context.Context) ([]Widget, error)
 	SetSelected(context.Context, string, bool) error
 }
-type Service struct{ providers []Provider }
+type Service struct {
+	providers []Provider
+	layouts   *Layouts
+}
 
 func New(providers ...Provider) *Service {
 	seen := map[string]bool{}
@@ -44,7 +50,23 @@ func New(providers ...Provider) *Service {
 	}
 	return &Service{providers: append([]Provider(nil), providers...)}
 }
-func (s *Service) Snapshot(ctx context.Context) Snapshot {
+func (s *Service) WithLayouts(layouts *Layouts) *Service { s.layouts = layouts; return s }
+func (s *Service) Snapshot(ctx context.Context) Snapshot { return s.SnapshotView(ctx, false) }
+func (s *Service) SnapshotView(ctx context.Context, defaults bool) Snapshot {
+	var state LayoutState
+	var eligible []Widget
+	if s.layouts != nil {
+		var err error
+		if defaults {
+			state.Document = DefaultLayout()
+			eligible, err = s.layouts.Store.ReadDefault(ctx)
+		} else {
+			state, eligible, err = s.layouts.Store.Read(ctx, true)
+		}
+		if err != nil {
+			return Snapshot{LayoutError: err}
+		}
+	}
 	result := Snapshot{Items: []Widget{}, Unavailable: []string{}}
 	for _, p := range s.providers {
 		items, err := p.Selected(ctx)
@@ -59,6 +81,27 @@ func (s *Service) Snapshot(ctx context.Context) Snapshot {
 				item.Presentation = "card"
 			}
 			result.Items = append(result.Items, item)
+		}
+	}
+	if s.layouts != nil {
+		observed := map[string]Widget{}
+		for _, w := range result.Items {
+			observed[w.ID] = w
+		}
+		result.Items = []Widget{}
+		for _, w := range eligible {
+			if data, ok := observed[w.ID]; ok {
+				w.Data = data.Data
+				w.Error = data.Error
+			} else {
+				w.Error = "Source data is unavailable."
+			}
+			result.Items = append(result.Items, w)
+		}
+		resolved, _ := ResolveLayout(state.Document, eligible)
+		result.Groups = ActiveLayoutGroups(resolved)
+		if !defaults {
+			result.LayoutRevision = state.Revision
 		}
 	}
 	return result

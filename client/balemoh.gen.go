@@ -107,6 +107,135 @@ func (e HostDetailRange) Valid() bool {
 	}
 }
 
+// Defines values for LayoutContainerGapPx.
+const (
+	N12 LayoutContainerGapPx = 12
+	N16 LayoutContainerGapPx = 16
+	N24 LayoutContainerGapPx = 24
+)
+
+// Valid indicates whether the value is a known member of the LayoutContainerGapPx enum.
+func (e LayoutContainerGapPx) Valid() bool {
+	switch e {
+	case N12:
+		return true
+	case N16:
+		return true
+	case N24:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutContainerType.
+const (
+	Grid    LayoutContainerType = "grid"
+	Masonry LayoutContainerType = "masonry"
+	Stack   LayoutContainerType = "stack"
+)
+
+// Valid indicates whether the value is a known member of the LayoutContainerType enum.
+func (e LayoutContainerType) Valid() bool {
+	switch e {
+	case Grid:
+		return true
+	case Masonry:
+		return true
+	case Stack:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutDocumentSchemaVersion.
+const (
+	N1 LayoutDocumentSchemaVersion = 1
+)
+
+// Valid indicates whether the value is a known member of the LayoutDocumentSchemaVersion enum.
+func (e LayoutDocumentSchemaVersion) Valid() bool {
+	switch e {
+	case N1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutHomepageWidth.
+const (
+	LayoutHomepageWidthContained LayoutHomepageWidth = "contained"
+	LayoutHomepageWidthFull      LayoutHomepageWidth = "full"
+)
+
+// Valid indicates whether the value is a known member of the LayoutHomepageWidth enum.
+func (e LayoutHomepageWidth) Valid() bool {
+	switch e {
+	case LayoutHomepageWidthContained:
+		return true
+	case LayoutHomepageWidthFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutHomepagePlacementSpan.
+const (
+	LayoutHomepagePlacementSpanAuto LayoutHomepagePlacementSpan = "auto"
+	LayoutHomepagePlacementSpanFull LayoutHomepagePlacementSpan = "full"
+)
+
+// Valid indicates whether the value is a known member of the LayoutHomepagePlacementSpan enum.
+func (e LayoutHomepagePlacementSpan) Valid() bool {
+	switch e {
+	case LayoutHomepagePlacementSpanAuto:
+		return true
+	case LayoutHomepagePlacementSpanFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutMemberState.
+const (
+	Active  LayoutMemberState = "active"
+	Dormant LayoutMemberState = "dormant"
+)
+
+// Valid indicates whether the value is a known member of the LayoutMemberState enum.
+func (e LayoutMemberState) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Dormant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LayoutOrderingMode.
+const (
+	LayoutOrderingModeAlphabetical LayoutOrderingMode = "alphabetical"
+	LayoutOrderingModeCustom       LayoutOrderingMode = "custom"
+)
+
+// Valid indicates whether the value is a known member of the LayoutOrderingMode enum.
+func (e LayoutOrderingMode) Valid() bool {
+	switch e {
+	case LayoutOrderingModeAlphabetical:
+		return true
+	case LayoutOrderingModeCustom:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NotificationSeverity.
 const (
 	NotificationSeverityCritical NotificationSeverity = "critical"
@@ -295,19 +424,19 @@ func (e PresentationSaveColorMode) Valid() bool {
 
 // Defines values for PresentationSelectionKind.
 const (
-	Builtin   PresentationSelectionKind = "builtin"
-	Custom    PresentationSelectionKind = "custom"
-	NewCustom PresentationSelectionKind = "newCustom"
+	PresentationSelectionKindBuiltin   PresentationSelectionKind = "builtin"
+	PresentationSelectionKindCustom    PresentationSelectionKind = "custom"
+	PresentationSelectionKindNewCustom PresentationSelectionKind = "newCustom"
 )
 
 // Valid indicates whether the value is a known member of the PresentationSelectionKind enum.
 func (e PresentationSelectionKind) Valid() bool {
 	switch e {
-	case Builtin:
+	case PresentationSelectionKindBuiltin:
 		return true
-	case Custom:
+	case PresentationSelectionKindCustom:
 		return true
-	case NewCustom:
+	case PresentationSelectionKindNewCustom:
 		return true
 	default:
 		return false
@@ -398,6 +527,21 @@ func (e ThemeFontRefSource) Valid() bool {
 	}
 }
 
+// Defines values for GetDashboardParamsLayoutView.
+const (
+	Default GetDashboardParamsLayoutView = "default"
+)
+
+// Valid indicates whether the value is a known member of the GetDashboardParamsLayoutView enum.
+func (e GetDashboardParamsLayoutView) Valid() bool {
+	switch e {
+	case Default:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetHostParamsRange.
 const (
 	GetHostParamsRangeN1h  GetHostParamsRange = "1h"
@@ -462,10 +606,31 @@ type CustomTheme struct {
 	Revision PresentationRevision `json:"revision"`
 }
 
+// DashboardGroup Active resolved group; empty active groups omitted.
+type DashboardGroup struct {
+	// DisplayLabel Shared disambiguated group label. Applies to DashboardGroup properties displayLabel.
+	DisplayLabel string `json:"displayLabel"`
+
+	// GroupId Configured group ID. Applies to DashboardGroup properties groupId.
+	GroupId string `json:"groupId"`
+
+	// ItemIds Active members in effective order.
+	ItemIds []string `json:"itemIds"`
+
+	// Title Configured title. Applies to DashboardGroup properties title.
+	Title string `json:"title"`
+}
+
 // DashboardSnapshot Homepage widgets from the registered providers. A provider may fail independently; inspect unavailable even when the HTTP status is 200.
 type DashboardSnapshot struct {
+	// Groups Active groups in effective page order, with active member IDs. Empty groups omitted.
+	Groups *[]DashboardGroup `json:"groups,omitempty"`
+
 	// Items Selected widgets in provider order.
 	Items []DashboardWidget `json:"items"`
+
+	// LayoutRevision Independent canonical layout revision within signed 64-bit range.
+	LayoutRevision *LayoutRevision `json:"layoutRevision,omitempty"`
 
 	// Unavailable Source kinds whose providers failed while building this snapshot; an empty list means all providers responded.
 	Unavailable []string `json:"unavailable"`
@@ -741,6 +906,216 @@ type IconUpload struct {
 
 	// Tags Icon search tags, at most 1000 Unicode code points.
 	Tags string `json:"tags"`
+}
+
+// LayoutContainer Independent page or group geometry.
+type LayoutContainer struct {
+	// Columns Maximum responsive column count.
+	Columns int `json:"columns"`
+
+	// GapPx Spacing in CSS pixels.
+	GapPx LayoutContainerGapPx `json:"gapPx"`
+
+	// Type Natural-height arrangement.
+	Type LayoutContainerType `json:"type"`
+}
+
+// LayoutContainerGapPx Spacing in CSS pixels.
+type LayoutContainerGapPx int
+
+// LayoutContainerType Natural-height arrangement.
+type LayoutContainerType string
+
+// LayoutDocument Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+type LayoutDocument struct {
+	// Groups Configured groups. Canonical configuration sorts by exact ID. At most 512 explicit widget references across all groups.
+	Groups []LayoutGroup `json:"groups"`
+
+	// Homepage Homepage container settings.
+	Homepage LayoutHomepage `json:"homepage"`
+
+	// SchemaVersion Layout document schema.
+	SchemaVersion LayoutDocumentSchemaVersion `json:"schemaVersion"`
+
+	// SourceGroups Defaults apply to selected items without explicit memberships.
+	SourceGroups LayoutSourceGroups `json:"sourceGroups"`
+}
+
+// LayoutDocumentSchemaVersion Layout document schema.
+type LayoutDocumentSchemaVersion int
+
+// LayoutGroup Named container, independent of widget kind or renderer.
+type LayoutGroup struct {
+	// Id Canonical UUID for user groups, or one of the reserved builtin group IDs.
+	Id string `json:"id"`
+
+	// InitiallyCollapsed Initial disclosure state. Runtime disclosure changes are transient.
+	InitiallyCollapsed bool `json:"initiallyCollapsed"`
+
+	// Layout Independent page or group geometry.
+	Layout LayoutContainer `json:"layout"`
+
+	// Ordering Parent-scoped order.
+	Ordering LayoutOrdering `json:"ordering"`
+
+	// Placements Explicit memberships, including dormant references. Canonical configuration sorts by item ID.
+	Placements []LayoutGroupPlacement `json:"placements"`
+
+	// ShowHeading Show the group heading while retaining its accessible name.
+	ShowHeading bool `json:"showHeading"`
+
+	// Title Trimmed display title. Duplicate titles are allowed.
+	Title string `json:"title"`
+}
+
+// LayoutGroupPlacement Optional explicit membership override, retained while dormant.
+type LayoutGroupPlacement struct {
+	// ItemId Exact existing widget ID, at most 256 UTF-8 bytes.
+	ItemId string `json:"itemId"`
+}
+
+// LayoutHomepage Homepage container settings.
+type LayoutHomepage struct {
+	// Layout Independent page or group geometry.
+	Layout LayoutContainer `json:"layout"`
+
+	// Ordering Parent-scoped order.
+	Ordering LayoutOrdering `json:"ordering"`
+
+	// Placements Every configured group exactly once. Canonical configuration sorts by group ID.
+	Placements []LayoutHomepagePlacement `json:"placements"`
+
+	// Width Contained limits the page to 72rem.
+	Width LayoutHomepageWidth `json:"width"`
+}
+
+// LayoutHomepageWidth Contained limits the page to 72rem.
+type LayoutHomepageWidth string
+
+// LayoutHomepagePlacement Page-owned group placement.
+type LayoutHomepagePlacement struct {
+	// GroupId Configured group ID.
+	GroupId string `json:"groupId"`
+
+	// Span Width in the parent layout.
+	Span LayoutHomepagePlacementSpan `json:"span"`
+}
+
+// LayoutHomepagePlacementSpan Width in the parent layout.
+type LayoutHomepagePlacementSpan string
+
+// LayoutMember Resolved membership, including retained dormant references.
+type LayoutMember struct {
+	// DisplayLabel Shared disambiguated accessible name.
+	DisplayLabel string `json:"displayLabel"`
+
+	// ItemId Exact widget ID.
+	ItemId string `json:"itemId"`
+
+	// State Only active members render on the homepage.
+	State LayoutMemberState `json:"state"`
+}
+
+// LayoutMemberState Only active members render on the homepage.
+type LayoutMemberState string
+
+// LayoutMove Move an item without changing selection or renderer. Omitted anchor preserves destination order and joins its unranked tail. Null appends and establishes complete Custom order.
+type LayoutMove struct {
+	// BeforeItemId Destination member before which to insert; null explicitly appends.
+	BeforeItemId *string `json:"beforeItemId,omitempty"`
+
+	// GroupId Destination group ID.
+	GroupId string `json:"groupId"`
+}
+
+// LayoutOrdering Parent-scoped order.
+type LayoutOrdering struct {
+	// Ids Ranked IDs, empty for alphabetical. Targeted custom commands require the complete current member set.
+	Ids []string `json:"ids"`
+
+	// Mode Alphabetical sorts NFKC then Unicode default case fold, with exact ID ties. Custom ranks a prefix then that alphabetical tail.
+	Mode LayoutOrderingMode `json:"mode"`
+}
+
+// LayoutOrderingMode Alphabetical sorts NFKC then Unicode default case fold, with exact ID ties. Custom ranks a prefix then that alphabetical tail.
+type LayoutOrderingMode string
+
+// LayoutPreview Canonical draft resolution without persistence.
+type LayoutPreview struct {
+	// Document Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+	Document LayoutDocument `json:"document"`
+
+	// DraftGeneration Echoed generation.
+	DraftGeneration int64 `json:"draftGeneration"`
+
+	// LayoutRevision Independent canonical layout revision within signed 64-bit range.
+	LayoutRevision LayoutRevision `json:"layoutRevision"`
+
+	// MembershipTokens Each submitted group maps to members- plus SHA-256 of compact UTF-8 JSON ["layout-members-v1", groupId, sortedExactCompleteMemberIds]. Includes dormant explicit references and active default members; excludes labels.
+	MembershipTokens map[string]string `json:"membershipTokens"`
+
+	// RequestId Echoed attempt UUID.
+	RequestId openapi_types.UUID `json:"requestId"`
+
+	// ResolvedGroups Every configured group in effective page order.
+	ResolvedGroups []LayoutResolvedGroup `json:"resolvedGroups"`
+
+	// Stale Expected revision differs from current saved revision. Preview never authorizes a stale write.
+	Stale bool `json:"stale"`
+}
+
+// LayoutPreviewRequest Read-only draft validation, at most 128 KiB.
+type LayoutPreviewRequest struct {
+	// Document Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+	Document LayoutDocument `json:"document"`
+
+	// DraftGeneration Local draft generation echoed by preview.
+	DraftGeneration int64 `json:"draftGeneration"`
+
+	// ExpectedRevision Independent canonical layout revision within signed 64-bit range.
+	ExpectedRevision LayoutRevision `json:"expectedRevision"`
+
+	// RequestId Per-attempt UUID echoed by preview.
+	RequestId openapi_types.UUID `json:"requestId"`
+}
+
+// LayoutResolvedGroup Preview group, including empty configured groups.
+type LayoutResolvedGroup struct {
+	// DisplayLabel Shared disambiguated group label.
+	DisplayLabel string `json:"displayLabel"`
+
+	// GroupId Configured group ID. Applies to LayoutResolvedGroup properties groupId.
+	GroupId string `json:"groupId"`
+
+	// Members Complete effective ordered membership.
+	Members []LayoutMember `json:"members"`
+
+	// Title Configured title.
+	Title string `json:"title"`
+}
+
+// LayoutRevision Independent canonical layout revision within signed 64-bit range.
+type LayoutRevision = string
+
+// LayoutSourceGroups Defaults apply to selected items without explicit memberships.
+type LayoutSourceGroups struct {
+	// Host Default group for host items.
+	Host string `json:"host"`
+
+	// Other Default group for other items.
+	Other string `json:"other"`
+
+	// Service Default group for service items.
+	Service string `json:"service"`
+}
+
+// LayoutState Configuration-only state. Virtual revision 0 does not write storage. An identical normalized current write preserves revision; stale identical writes still fail.
+type LayoutState struct {
+	// Document Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults.
+	Document LayoutDocument `json:"document"`
+
+	// Revision Independent canonical layout revision within signed 64-bit range.
+	Revision LayoutRevision `json:"revision"`
 }
 
 // ManualServiceCreate Idempotent creation input for an application outside automated discovery. The generated catalog identity does not depend on the supplied name or URL. New records are live and unpinned.
@@ -1324,6 +1699,12 @@ type WebPushSubscription struct {
 	} `json:"keys"`
 }
 
+// LayoutIfMatch One exact strong layout ETag.
+type LayoutIfMatch = string
+
+// LayoutMembershipMatch Exact quoted complete-membership token.
+type LayoutMembershipMatch = string
+
 // PresentationExpectedRevision Decimal optimistic revision. Copy it from the corresponding read response. Missing revisions never mean overwrite.
 type PresentationExpectedRevision = PresentationRevision
 
@@ -1332,6 +1713,33 @@ type PresentationFontID = string
 
 // PresentationThemeID defines model for PresentationThemeID.
 type PresentationThemeID = string
+
+// Layout400 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout400 = ErrorResponse
+
+// Layout403 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout403 = ErrorResponse
+
+// Layout404 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout404 = ErrorResponse
+
+// Layout409 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout409 = ErrorResponse
+
+// Layout412 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout412 = ErrorResponse
+
+// Layout413 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout413 = ErrorResponse
+
+// Layout422 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout422 = ErrorResponse
+
+// Layout428 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout428 = ErrorResponse
+
+// Layout503 Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
+type Layout503 = ErrorResponse
 
 // PresentationInvalid Structured API error with a stable code and a readable message. Not every endpoint uses this envelope: plain-text errors are documented on their specific responses.
 type PresentationInvalid = ErrorResponse
@@ -1362,6 +1770,42 @@ type notificationPublisherContextKey string
 
 // pluginServiceContextKey is the context key for PluginService security scheme
 type pluginServiceContextKey string
+
+// GetDashboardParams defines parameters for GetDashboard.
+type GetDashboardParams struct {
+	// LayoutView Explicit temporary default view ignores saved layout without changing it. Normal unreadable layout returns 503. Default view omits layoutRevision.
+	LayoutView *GetDashboardParamsLayoutView `form:"layoutView,omitempty" json:"layoutView,omitempty"`
+}
+
+// GetDashboardParamsLayoutView defines parameters for GetDashboard.
+type GetDashboardParamsLayoutView string
+
+// PutDashboardLayoutParams defines parameters for PutDashboardLayout.
+type PutDashboardLayoutParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+}
+
+// OrderDashboardItemsParams defines parameters for OrderDashboardItems.
+type OrderDashboardItemsParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+
+	// IfDashboardMembershipMatch Compared with persisted document and local eligibility inside the write transaction, for both Custom and Alphabetical commands.
+	IfDashboardMembershipMatch LayoutMembershipMatch `json:"If-Dashboard-Membership-Match"`
+}
+
+// MoveDashboardItemParams defines parameters for MoveDashboardItem.
+type MoveDashboardItemParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+}
+
+// OrderDashboardGroupsParams defines parameters for OrderDashboardGroups.
+type OrderDashboardGroupsParams struct {
+	// IfMatch Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected.
+	IfMatch LayoutIfMatch `json:"If-Match"`
+}
 
 // SetDashboardSelectionJSONBody defines parameters for SetDashboardSelection.
 type SetDashboardSelectionJSONBody struct {
@@ -1452,6 +1896,21 @@ type DeleteThemeParams struct {
 	// ExpectedRevision Exact current revision of the item being deleted. A stale value returns 409.
 	ExpectedRevision PresentationExpectedRevision `form:"expectedRevision" json:"expectedRevision"`
 }
+
+// PutDashboardLayoutJSONRequestBody defines body for PutDashboardLayout for application/json ContentType.
+type PutDashboardLayoutJSONRequestBody = LayoutDocument
+
+// OrderDashboardItemsJSONRequestBody defines body for OrderDashboardItems for application/json ContentType.
+type OrderDashboardItemsJSONRequestBody = LayoutOrdering
+
+// MoveDashboardItemJSONRequestBody defines body for MoveDashboardItem for application/json ContentType.
+type MoveDashboardItemJSONRequestBody = LayoutMove
+
+// OrderDashboardGroupsJSONRequestBody defines body for OrderDashboardGroups for application/json ContentType.
+type OrderDashboardGroupsJSONRequestBody = LayoutOrdering
+
+// PreviewDashboardLayoutJSONRequestBody defines body for PreviewDashboardLayout for application/json ContentType.
+type PreviewDashboardLayoutJSONRequestBody = LayoutPreviewRequest
 
 // SetDashboardSelectionJSONRequestBody defines body for SetDashboardSelection for application/json ContentType.
 type SetDashboardSelectionJSONRequestBody SetDashboardSelectionJSONBody
@@ -1575,7 +2034,35 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 	// GetDashboard request
-	GetDashboard(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetDashboard(ctx context.Context, params *GetDashboardParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetDashboardLayout request
+	GetDashboardLayout(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutDashboardLayoutWithBody request with any body
+	PutDashboardLayoutWithBody(ctx context.Context, params *PutDashboardLayoutParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutDashboardLayout(ctx context.Context, params *PutDashboardLayoutParams, body PutDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// OrderDashboardItemsWithBody request with any body
+	OrderDashboardItemsWithBody(ctx context.Context, groupId string, params *OrderDashboardItemsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	OrderDashboardItems(ctx context.Context, groupId string, params *OrderDashboardItemsParams, body OrderDashboardItemsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MoveDashboardItemWithBody request with any body
+	MoveDashboardItemWithBody(ctx context.Context, itemId string, params *MoveDashboardItemParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	MoveDashboardItem(ctx context.Context, itemId string, params *MoveDashboardItemParams, body MoveDashboardItemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// OrderDashboardGroupsWithBody request with any body
+	OrderDashboardGroupsWithBody(ctx context.Context, params *OrderDashboardGroupsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	OrderDashboardGroups(ctx context.Context, params *OrderDashboardGroupsParams, body OrderDashboardGroupsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PreviewDashboardLayoutWithBody request with any body
+	PreviewDashboardLayoutWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PreviewDashboardLayout(ctx context.Context, body PreviewDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetDashboardSelectionWithBody request with any body
 	SetDashboardSelectionWithBody(ctx context.Context, sourceKind string, sourceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1740,8 +2227,140 @@ type ClientInterface interface {
 	GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-func (c *Client) GetDashboard(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDashboardRequest(c.Server)
+func (c *Client) GetDashboard(ctx context.Context, params *GetDashboardParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDashboardRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetDashboardLayout(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDashboardLayoutRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutDashboardLayoutWithBody(ctx context.Context, params *PutDashboardLayoutParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutDashboardLayoutRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutDashboardLayout(ctx context.Context, params *PutDashboardLayoutParams, body PutDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutDashboardLayoutRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) OrderDashboardItemsWithBody(ctx context.Context, groupId string, params *OrderDashboardItemsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewOrderDashboardItemsRequestWithBody(c.Server, groupId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) OrderDashboardItems(ctx context.Context, groupId string, params *OrderDashboardItemsParams, body OrderDashboardItemsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewOrderDashboardItemsRequest(c.Server, groupId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MoveDashboardItemWithBody(ctx context.Context, itemId string, params *MoveDashboardItemParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMoveDashboardItemRequestWithBody(c.Server, itemId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MoveDashboardItem(ctx context.Context, itemId string, params *MoveDashboardItemParams, body MoveDashboardItemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMoveDashboardItemRequest(c.Server, itemId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) OrderDashboardGroupsWithBody(ctx context.Context, params *OrderDashboardGroupsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewOrderDashboardGroupsRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) OrderDashboardGroups(ctx context.Context, params *OrderDashboardGroupsParams, body OrderDashboardGroupsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewOrderDashboardGroupsRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PreviewDashboardLayoutWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPreviewDashboardLayoutRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PreviewDashboardLayout(ctx context.Context, body PreviewDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPreviewDashboardLayoutRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2461,7 +3080,7 @@ func (c *Client) GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) 
 }
 
 // NewGetDashboardRequest generates requests for GetDashboard
-func NewGetDashboardRequest(server string) (*http.Request, error) {
+func NewGetDashboardRequest(server string, params *GetDashboardParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2479,10 +3098,339 @@ func NewGetDashboardRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.LayoutView != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "layoutView", *params.LayoutView, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewGetDashboardLayoutRequest generates requests for GetDashboardLayout
+func NewGetDashboardLayoutRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard/layout")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutDashboardLayoutRequest calls the generic PutDashboardLayout builder with application/json body
+func NewPutDashboardLayoutRequest(server string, params *PutDashboardLayoutParams, body PutDashboardLayoutJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutDashboardLayoutRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPutDashboardLayoutRequestWithBody generates requests for PutDashboardLayout with any type of body
+func NewPutDashboardLayoutRequestWithBody(server string, params *PutDashboardLayoutParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard/layout")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("If-Match", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewOrderDashboardItemsRequest calls the generic OrderDashboardItems builder with application/json body
+func NewOrderDashboardItemsRequest(server string, groupId string, params *OrderDashboardItemsParams, body OrderDashboardItemsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewOrderDashboardItemsRequestWithBody(server, groupId, params, "application/json", bodyReader)
+}
+
+// NewOrderDashboardItemsRequestWithBody generates requests for OrderDashboardItems with any type of body
+func NewOrderDashboardItemsRequestWithBody(server string, groupId string, params *OrderDashboardItemsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "groupId", groupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard/layout/groups/%s/order", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("If-Match", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "If-Dashboard-Membership-Match", params.IfDashboardMembershipMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("If-Dashboard-Membership-Match", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewMoveDashboardItemRequest calls the generic MoveDashboardItem builder with application/json body
+func NewMoveDashboardItemRequest(server string, itemId string, params *MoveDashboardItemParams, body MoveDashboardItemJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewMoveDashboardItemRequestWithBody(server, itemId, params, "application/json", bodyReader)
+}
+
+// NewMoveDashboardItemRequestWithBody generates requests for MoveDashboardItem with any type of body
+func NewMoveDashboardItemRequestWithBody(server string, itemId string, params *MoveDashboardItemParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "itemId", itemId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard/layout/items/%s/placement", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("If-Match", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewOrderDashboardGroupsRequest calls the generic OrderDashboardGroups builder with application/json body
+func NewOrderDashboardGroupsRequest(server string, params *OrderDashboardGroupsParams, body OrderDashboardGroupsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewOrderDashboardGroupsRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewOrderDashboardGroupsRequestWithBody generates requests for OrderDashboardGroups with any type of body
+func NewOrderDashboardGroupsRequestWithBody(server string, params *OrderDashboardGroupsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard/layout/order")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "If-Match", params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("If-Match", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewPreviewDashboardLayoutRequest calls the generic PreviewDashboardLayout builder with application/json body
+func NewPreviewDashboardLayoutRequest(server string, body PreviewDashboardLayoutJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPreviewDashboardLayoutRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPreviewDashboardLayoutRequestWithBody generates requests for PreviewDashboardLayout with any type of body
+func NewPreviewDashboardLayoutRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/dashboard/layout/preview")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -4275,7 +5223,35 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 	// GetDashboardWithResponse request
-	GetDashboardWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDashboardResponse, error)
+	GetDashboardWithResponse(ctx context.Context, params *GetDashboardParams, reqEditors ...RequestEditorFn) (*GetDashboardResponse, error)
+
+	// GetDashboardLayoutWithResponse request
+	GetDashboardLayoutWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDashboardLayoutResponse, error)
+
+	// PutDashboardLayoutWithBodyWithResponse request with any body
+	PutDashboardLayoutWithBodyWithResponse(ctx context.Context, params *PutDashboardLayoutParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDashboardLayoutResponse, error)
+
+	PutDashboardLayoutWithResponse(ctx context.Context, params *PutDashboardLayoutParams, body PutDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDashboardLayoutResponse, error)
+
+	// OrderDashboardItemsWithBodyWithResponse request with any body
+	OrderDashboardItemsWithBodyWithResponse(ctx context.Context, groupId string, params *OrderDashboardItemsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OrderDashboardItemsResponse, error)
+
+	OrderDashboardItemsWithResponse(ctx context.Context, groupId string, params *OrderDashboardItemsParams, body OrderDashboardItemsJSONRequestBody, reqEditors ...RequestEditorFn) (*OrderDashboardItemsResponse, error)
+
+	// MoveDashboardItemWithBodyWithResponse request with any body
+	MoveDashboardItemWithBodyWithResponse(ctx context.Context, itemId string, params *MoveDashboardItemParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MoveDashboardItemResponse, error)
+
+	MoveDashboardItemWithResponse(ctx context.Context, itemId string, params *MoveDashboardItemParams, body MoveDashboardItemJSONRequestBody, reqEditors ...RequestEditorFn) (*MoveDashboardItemResponse, error)
+
+	// OrderDashboardGroupsWithBodyWithResponse request with any body
+	OrderDashboardGroupsWithBodyWithResponse(ctx context.Context, params *OrderDashboardGroupsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OrderDashboardGroupsResponse, error)
+
+	OrderDashboardGroupsWithResponse(ctx context.Context, params *OrderDashboardGroupsParams, body OrderDashboardGroupsJSONRequestBody, reqEditors ...RequestEditorFn) (*OrderDashboardGroupsResponse, error)
+
+	// PreviewDashboardLayoutWithBodyWithResponse request with any body
+	PreviewDashboardLayoutWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewDashboardLayoutResponse, error)
+
+	PreviewDashboardLayoutWithResponse(ctx context.Context, body PreviewDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewDashboardLayoutResponse, error)
 
 	// SetDashboardSelectionWithBodyWithResponse request with any body
 	SetDashboardSelectionWithBodyWithResponse(ctx context.Context, sourceKind string, sourceId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetDashboardSelectionResponse, error)
@@ -4465,6 +5441,232 @@ func (r GetDashboardResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetDashboardResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetDashboardLayoutResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LayoutState
+	JSON503      *Layout503
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDashboardLayoutResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDashboardLayoutResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetDashboardLayoutResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutDashboardLayoutResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LayoutState
+	JSON400      *Layout400
+	JSON403      *Layout403
+	JSON404      *Layout404
+	JSON409      *Layout409
+	JSON412      *Layout412
+	JSON413      *Layout413
+	JSON422      *Layout422
+	JSON428      *Layout428
+	JSON503      *Layout503
+}
+
+// Status returns HTTPResponse.Status
+func (r PutDashboardLayoutResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutDashboardLayoutResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutDashboardLayoutResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type OrderDashboardItemsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LayoutState
+	JSON400      *Layout400
+	JSON403      *Layout403
+	JSON404      *Layout404
+	JSON409      *Layout409
+	JSON412      *Layout412
+	JSON413      *Layout413
+	JSON422      *Layout422
+	JSON428      *Layout428
+	JSON503      *Layout503
+}
+
+// Status returns HTTPResponse.Status
+func (r OrderDashboardItemsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r OrderDashboardItemsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r OrderDashboardItemsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type MoveDashboardItemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LayoutState
+	JSON400      *Layout400
+	JSON403      *Layout403
+	JSON404      *Layout404
+	JSON409      *Layout409
+	JSON412      *Layout412
+	JSON413      *Layout413
+	JSON422      *Layout422
+	JSON428      *Layout428
+	JSON503      *Layout503
+}
+
+// Status returns HTTPResponse.Status
+func (r MoveDashboardItemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MoveDashboardItemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MoveDashboardItemResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type OrderDashboardGroupsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LayoutState
+	JSON400      *Layout400
+	JSON403      *Layout403
+	JSON404      *Layout404
+	JSON409      *Layout409
+	JSON412      *Layout412
+	JSON413      *Layout413
+	JSON422      *Layout422
+	JSON428      *Layout428
+	JSON503      *Layout503
+}
+
+// Status returns HTTPResponse.Status
+func (r OrderDashboardGroupsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r OrderDashboardGroupsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r OrderDashboardGroupsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PreviewDashboardLayoutResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LayoutPreview
+	JSON400      *Layout400
+	JSON403      *Layout403
+	JSON404      *Layout404
+	JSON409      *Layout409
+	JSON412      *Layout412
+	JSON413      *Layout413
+	JSON422      *Layout422
+	JSON428      *Layout428
+	JSON503      *Layout503
+}
+
+// Status returns HTTPResponse.Status
+func (r PreviewDashboardLayoutResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PreviewDashboardLayoutResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PreviewDashboardLayoutResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -5858,12 +7060,106 @@ func (r GetHealthzResponse) ContentType() string {
 }
 
 // GetDashboardWithResponse request returning *GetDashboardResponse
-func (c *ClientWithResponses) GetDashboardWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDashboardResponse, error) {
-	rsp, err := c.GetDashboard(ctx, reqEditors...)
+func (c *ClientWithResponses) GetDashboardWithResponse(ctx context.Context, params *GetDashboardParams, reqEditors ...RequestEditorFn) (*GetDashboardResponse, error) {
+	rsp, err := c.GetDashboard(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseGetDashboardResponse(rsp)
+}
+
+// GetDashboardLayoutWithResponse request returning *GetDashboardLayoutResponse
+func (c *ClientWithResponses) GetDashboardLayoutWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDashboardLayoutResponse, error) {
+	rsp, err := c.GetDashboardLayout(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDashboardLayoutResponse(rsp)
+}
+
+// PutDashboardLayoutWithBodyWithResponse request with arbitrary body returning *PutDashboardLayoutResponse
+func (c *ClientWithResponses) PutDashboardLayoutWithBodyWithResponse(ctx context.Context, params *PutDashboardLayoutParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDashboardLayoutResponse, error) {
+	rsp, err := c.PutDashboardLayoutWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutDashboardLayoutResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutDashboardLayoutWithResponse(ctx context.Context, params *PutDashboardLayoutParams, body PutDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDashboardLayoutResponse, error) {
+	rsp, err := c.PutDashboardLayout(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutDashboardLayoutResponse(rsp)
+}
+
+// OrderDashboardItemsWithBodyWithResponse request with arbitrary body returning *OrderDashboardItemsResponse
+func (c *ClientWithResponses) OrderDashboardItemsWithBodyWithResponse(ctx context.Context, groupId string, params *OrderDashboardItemsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OrderDashboardItemsResponse, error) {
+	rsp, err := c.OrderDashboardItemsWithBody(ctx, groupId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseOrderDashboardItemsResponse(rsp)
+}
+
+func (c *ClientWithResponses) OrderDashboardItemsWithResponse(ctx context.Context, groupId string, params *OrderDashboardItemsParams, body OrderDashboardItemsJSONRequestBody, reqEditors ...RequestEditorFn) (*OrderDashboardItemsResponse, error) {
+	rsp, err := c.OrderDashboardItems(ctx, groupId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseOrderDashboardItemsResponse(rsp)
+}
+
+// MoveDashboardItemWithBodyWithResponse request with arbitrary body returning *MoveDashboardItemResponse
+func (c *ClientWithResponses) MoveDashboardItemWithBodyWithResponse(ctx context.Context, itemId string, params *MoveDashboardItemParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MoveDashboardItemResponse, error) {
+	rsp, err := c.MoveDashboardItemWithBody(ctx, itemId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMoveDashboardItemResponse(rsp)
+}
+
+func (c *ClientWithResponses) MoveDashboardItemWithResponse(ctx context.Context, itemId string, params *MoveDashboardItemParams, body MoveDashboardItemJSONRequestBody, reqEditors ...RequestEditorFn) (*MoveDashboardItemResponse, error) {
+	rsp, err := c.MoveDashboardItem(ctx, itemId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMoveDashboardItemResponse(rsp)
+}
+
+// OrderDashboardGroupsWithBodyWithResponse request with arbitrary body returning *OrderDashboardGroupsResponse
+func (c *ClientWithResponses) OrderDashboardGroupsWithBodyWithResponse(ctx context.Context, params *OrderDashboardGroupsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*OrderDashboardGroupsResponse, error) {
+	rsp, err := c.OrderDashboardGroupsWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseOrderDashboardGroupsResponse(rsp)
+}
+
+func (c *ClientWithResponses) OrderDashboardGroupsWithResponse(ctx context.Context, params *OrderDashboardGroupsParams, body OrderDashboardGroupsJSONRequestBody, reqEditors ...RequestEditorFn) (*OrderDashboardGroupsResponse, error) {
+	rsp, err := c.OrderDashboardGroups(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseOrderDashboardGroupsResponse(rsp)
+}
+
+// PreviewDashboardLayoutWithBodyWithResponse request with arbitrary body returning *PreviewDashboardLayoutResponse
+func (c *ClientWithResponses) PreviewDashboardLayoutWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewDashboardLayoutResponse, error) {
+	rsp, err := c.PreviewDashboardLayoutWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePreviewDashboardLayoutResponse(rsp)
+}
+
+func (c *ClientWithResponses) PreviewDashboardLayoutWithResponse(ctx context.Context, body PreviewDashboardLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewDashboardLayoutResponse, error) {
+	rsp, err := c.PreviewDashboardLayout(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePreviewDashboardLayoutResponse(rsp)
 }
 
 // SetDashboardSelectionWithBodyWithResponse request with arbitrary body returning *SetDashboardSelectionResponse
@@ -6405,6 +7701,484 @@ func ParseGetDashboardResponse(rsp *http.Response) (*GetDashboardResponse, error
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest ErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetDashboardLayoutResponse parses an HTTP response from a GetDashboardLayoutWithResponse call
+func ParseGetDashboardLayoutResponse(rsp *http.Response) (*GetDashboardLayoutResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDashboardLayoutResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LayoutState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Layout503
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutDashboardLayoutResponse parses an HTTP response from a PutDashboardLayoutWithResponse call
+func ParsePutDashboardLayoutResponse(rsp *http.Response) (*PutDashboardLayoutResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutDashboardLayoutResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LayoutState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Layout400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Layout403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Layout404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Layout409
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest Layout412
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Layout413
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest Layout422
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 428:
+		var dest Layout428
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON428 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Layout503
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseOrderDashboardItemsResponse parses an HTTP response from a OrderDashboardItemsWithResponse call
+func ParseOrderDashboardItemsResponse(rsp *http.Response) (*OrderDashboardItemsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &OrderDashboardItemsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LayoutState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Layout400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Layout403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Layout404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Layout409
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest Layout412
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Layout413
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest Layout422
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 428:
+		var dest Layout428
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON428 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Layout503
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMoveDashboardItemResponse parses an HTTP response from a MoveDashboardItemWithResponse call
+func ParseMoveDashboardItemResponse(rsp *http.Response) (*MoveDashboardItemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MoveDashboardItemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LayoutState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Layout400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Layout403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Layout404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Layout409
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest Layout412
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Layout413
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest Layout422
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 428:
+		var dest Layout428
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON428 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Layout503
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseOrderDashboardGroupsResponse parses an HTTP response from a OrderDashboardGroupsWithResponse call
+func ParseOrderDashboardGroupsResponse(rsp *http.Response) (*OrderDashboardGroupsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &OrderDashboardGroupsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LayoutState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Layout400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Layout403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Layout404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Layout409
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest Layout412
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Layout413
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest Layout422
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 428:
+		var dest Layout428
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON428 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Layout503
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePreviewDashboardLayoutResponse parses an HTTP response from a PreviewDashboardLayoutWithResponse call
+func ParsePreviewDashboardLayoutResponse(rsp *http.Response) (*PreviewDashboardLayoutResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PreviewDashboardLayoutResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LayoutPreview
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Layout400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Layout403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Layout404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Layout409
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest Layout412
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Layout413
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest Layout422
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 428:
+		var dest Layout428
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON428 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Layout503
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
