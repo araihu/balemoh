@@ -24,6 +24,7 @@
     fitsOrder(groupId) { const g=this.group(groupId),r=this.resolved(groupId);return !!g&&!!r&&this.referenceCount()-g.placements.length+r.members.length<=512; }
     fitsMove(itemId,groupId) { const g=this.group(groupId),r=this.resolved(groupId);if(!g||!r)return false;const outside=this.document.groups.some(v=>v.id!==groupId&&v.placements.some(p=>p.itemId===itemId));const count=r.members.some(m=>m.itemId===itemId)?r.members.length:r.members.length+1;return this.referenceCount()-g.placements.length-(outside?1:0)+count<=512; }
     get dirty() { return canonical(this.saved) !== canonical(this.document); }
+    get followsLive() {return !["saving","outcome_unknown","conflict"].includes(this.state);}
     get ready() { return this.state === 'preview_valid' && this.preview.draftGeneration === this.generation; }
     group(id = this.selection.groupId) { return this.document.groups.find(g => g.id === id); }
     resolved(id = this.selection.groupId) { return this.preview.resolvedGroups.find(g => g.groupId === id); }
@@ -230,7 +231,7 @@
     async function onLive(data) {
       if (pointer) { queuedLive = data; return; }
       const entry=model.beginLive(data.revision);if(!entry)return;
-      if (data.revision !== model.revision && !['saving', 'outcome_unknown'].includes(model.state)) {
+      if (data.revision !== model.revision && model.followsLive) {
         if (model.dirty) { controller?.abort(); model.pending = null; model.state = 'conflict'; state('Another client saved a layout. Your draft is retained.'); }
         else {
           liveController?.abort();liveController=new AbortController();controller?.abort();model.pending=null;model.state='preview_pending';state('Loading the saved layout…');

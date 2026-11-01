@@ -63,3 +63,6 @@ test('rejected provisional ID recovery rewrites every group reference and retain
  const at=rejected.request.document.groups.findIndex(g=>g.id===oldId),detail={fieldErrors:{['/document/groups/'+at+'/id']:'Use another UUID.'}};assert.equal(d.fail(rejected,422),true);const row=d.rejectedGroup(rejected,detail);assert.ok(row);
  assert.equal(d.regenerateGroup(row,newId),true);assert.equal(d.selection.groupId,newId);assert.equal(d.group().title,'Keep this title');assert.equal(d.document.homepage.width,'contained');assert.equal(d.document.sourceGroups.other,newId);assert.ok(d.document.homepage.ordering.ids.includes(newId));assert.ok(d.document.homepage.placements.some(p=>p.groupId===newId));assert.equal(JSON.stringify(d.document).includes(oldId),false);assert.equal(d.saved.groups.length,3);assert.equal(d.state,'preview_pending');
 });
+test('conflict stays frozen until explicit recovery even when draft equals old saved content', () => {
+ const d=setup();d.state='conflict';assert.equal(d.dirty,false);assert.equal(d.followsLive,false);const entry=d.beginLive('1');const changed=structuredClone(d.document);changed.homepage.width='contained';assert.equal(d.applyLive(entry,{revision:'1',document:changed}),false);assert.equal(d.state,'conflict');assert.equal(d.revision,'0');
+});
