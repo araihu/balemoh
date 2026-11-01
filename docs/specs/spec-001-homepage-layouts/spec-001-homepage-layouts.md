@@ -383,7 +383,7 @@ Errors use the existing `ErrorResponse` fields `code`, `message`, optional
 | 413 | `request_too_large` | No write |
 | 422 | `invalid_layout`, duplicates, foreign ranks, invalid known-field values or geometry | No write; field errors |
 | 428 | `precondition_required`, missing revision or membership precondition | No write |
-| 503 | `unavailable`, storage/identity projection/unsupported stored schema | No write or fallback reset |
+| 503 | `unavailable`, storage/identity projection or COMMIT error; `layout_unreadable`, unsupported/corrupt saved schema | Never reset. `unavailable` may follow a committed write: preserve the attempt and GET readback. `layout_unreadable` rejects without a write. |
 
 `fieldErrors` keys are RFC 6901 JSON Pointers into the **submitted request body**,
 using original request array indices before any ID sorting. For example full PUT

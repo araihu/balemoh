@@ -27,7 +27,8 @@ provisional UUID repair, active-to-dormant selection fallback and uncertain Save
 Save responses require a complete valid configuration, a signed-64 revision and
 a plausible transition matching the attempted document. Invalid confirmations and
 ambiguous gateway responses preserve the attempt and trigger readback. Only documented
-application status/code errors are definite. Ambiguous results use BFF HTTP 503,
+application status/code errors are definite. Storage unavailable remains ambiguous
+because it can follow a COMMIT error; unreadable configuration is a definite rejection. Ambiguous results use BFF HTTP 503,
 preventing browsers from automatically retrying a 408 POST before JavaScript.
 Preview membership tokens use the same non-HTML-escaped UTF-8 bytes as the API;
 a real BFF regression includes an ID containing HTML-sensitive and Unicode text.

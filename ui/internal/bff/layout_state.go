@@ -57,8 +57,7 @@ func validLayoutState(s api.LayoutState) bool {
 		return false
 	}
 	d := s.Document
-	raw, _ := json.Marshal(d)
-	if len(raw) > 128<<10 || d.SchemaVersion != 1 || len(d.Groups) < 1 || len(d.Groups) > 32 || !d.Homepage.Width.Valid() || !validLayoutGeometry(d.Homepage.Layout) {
+	if d.SchemaVersion != 1 || len(d.Groups) < 1 || len(d.Groups) > 32 || !d.Homepage.Width.Valid() || !validLayoutGeometry(d.Homepage.Layout) {
 		return false
 	}
 	groups, refs := map[string]bool{}, map[string]bool{}
@@ -195,7 +194,8 @@ func documentedLayoutFailure(status int, code string) bool {
 	case 428:
 		return code == "precondition_required"
 	case 503:
-		return code == "unavailable" || code == "layout_unreadable"
+		// Unavailable may follow a COMMIT error; only unreadable configuration proves no write.
+		return code == "layout_unreadable"
 	default:
 		return false
 	}

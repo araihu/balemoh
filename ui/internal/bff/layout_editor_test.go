@@ -357,7 +357,8 @@ func TestLayoutSaveRejectsUnconfirmedResponsesAndAllowsReadback(t *testing.T) {
 		{"bad gateway", 502, `Bad gateway`, true}, {"gateway timeout", 504, `{}`, true},
 		{"intermediary unavailable", 503, `<html>Unavailable</html>`, true},
 		{"unknown server error", 500, `{"code":"other","message":"Failure"}`, true},
-		{"documented no write", 503, `{"code":"unavailable","message":"Storage unavailable."}`, false},
+		{"storage or commit unavailable", 503, `{"code":"unavailable","message":"Storage unavailable."}`, true},
+		{"unreadable no write", 503, `{"code":"layout_unreadable","message":"Saved configuration is unreadable."}`, false},
 		{"valid changed", 200, state("1", document), false}, {"valid no op", 200, state("0", document), false},
 	}
 	for _, tc := range cases {
@@ -550,5 +551,30 @@ func TestLayoutPreviewPreservesHTMLSensitiveAndUnicodeMembershipIDs(t *testing.T
 	}
 	if w.Code != 200 || response.Preview.ResolvedGroups[0].Members[0].ItemId != itemID || response.Preview.MembershipTokens["builtin:hosts"] != token {
 		t.Fatal(w.Code, w.Body)
+	}
+}
+
+func TestLayoutResponseLimitDoesNotReuseRequestByteLimitAfterHTMLEscaping(t *testing.T) {
+	raw, e := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var state api.LayoutState
+	state.Revision = "1"
+	_ = json.Unmarshal(raw, &state.Document)
+	for i := 0; i < 512; i++ {
+		state.Document.Groups[0].Placements = append(state.Document.Groups[0].Placements, api.LayoutGroupPlacement{ItemId: fmt.Sprintf("host-%03d-%s", i, strings.Repeat("<", 180))})
+	}
+	var request bytes.Buffer
+	encoder := json.NewEncoder(&request)
+	encoder.SetEscapeHTML(false)
+	_ = encoder.Encode(state.Document)
+	response, _ := json.Marshal(state)
+	if request.Len() > 128<<10 || len(response) <= 128<<10 || len(response) > 1<<20 {
+		t.Fatal("fixture does not distinguish wire bounds", request.Len(), len(response))
+	}
+	decoded, e := layoutResponse[api.LayoutState](&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(response))}, nil)
+	if e != nil || len(decoded.Document.Groups[0].Placements) != 512 {
+		t.Fatal("valid escaped response rejected", e)
 	}
 }
