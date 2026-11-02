@@ -24,7 +24,6 @@ type LayoutFrame struct {
 	Targets                     map[string]string
 }
 type EditorGroup struct {
-	ExplicitCount                   int
 	ID, Title, Label, Span, Order   string
 	Arrangement                     Arrangement
 	ShowHeading, InitiallyCollapsed bool
@@ -107,14 +106,21 @@ func (f LayoutFrame) itemsContainer(g EditorGroup) layout.Config {
 	}
 	return c
 }
-func layoutCapacity(f LayoutFrame) string {
-	count := 0
-	explicit := 0
-	for _, g := range f.Groups {
-		count += len(g.Members)
-		explicit += g.ExplicitCount
+func (f LayoutFrame) groupPosition() int {
+	for i, g := range f.Groups {
+		if g.ID == f.SelectedGroup {
+			return i + 1
+		}
 	}
-	return strconv.Itoa(len(f.Groups)) + " of 32 groups. " + strconv.Itoa(count) + " complete members. " + strconv.Itoa(explicit) + " of 512 explicit references. Larger default groups remain visible; complete custom ordering must fit this limit."
+	return 0
+}
+func (f LayoutFrame) itemPosition() int {
+	for i, m := range f.group().Members {
+		if m.ID == f.SelectedItem {
+			return i + 1
+		}
+	}
+	return 0
 }
 
 type LayoutComparisonRow struct {

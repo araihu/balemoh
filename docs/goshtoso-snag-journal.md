@@ -445,3 +445,22 @@
 - Hover keeps original item identity and logical ordering. Only an accepted release
   emits a move. Escape, veto, blur, resize and removal clean up temporary visuals;
   reduced motion skips card shift animations. No new layout API setting is needed.
+
+## Layout settings drawer, 2026-11-02
+
+- Settings container: reuse `drawer.Drawer` with `SideLeft`, `WidthSM`, public
+  `drawer:open` and `drawer:close-request` events. It owns modal focus and Escape.
+  The page composition adds a 4rem top offset below ConsoleShell and a larger
+  header close target through `PanelClass`. No duplicate drawer implementation.
+- Context navigation: compose `tabs.Tabs`, `tabs.Tab.Icon` and application-owned
+  icon slots. The tabs API has no external select event, so preview refreshes
+  activate the semantic button containing the owned slot. No private Alpine state
+  or component methods are read. An external selection event would simplify this.
+- Layout choices: reuse `radio.RadioBar`, segmented `radio.Radio.LabelLeading`
+  and Heroicons. Exact positions reuse numeric `textinput.Config` within
+  `form.FieldGroup`; the app translates positions to existing complete ID order.
+- Source lookup was needed for Drawer focus-trap/close timing and Tabs selection
+  after HTMX replacement. Public event docs and a consumer refresh example would
+  reduce this lookup. No upstream API change is required for this composition.
+- Wrap-up checkpoint: did component/docs/release behavior slow the task down?
+  Yes, the lifecycle lookups above. Recorded here; dependency version unchanged.

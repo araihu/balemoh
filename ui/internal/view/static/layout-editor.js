@@ -27,8 +27,8 @@
     fitsMove(itemId,groupId) { const g=this.group(groupId),r=this.resolved(groupId);if(!g||!r)return false;const outside=this.document.groups.some(v=>v.id!==groupId&&v.placements.some(p=>p.itemId===itemId));const count=r.members.some(m=>m.itemId===itemId)?r.members.length:r.members.length+1;return this.referenceCount()-g.placements.length-(outside?1:0)+count<=512; }
     movementAllowed(action,destination) {
       if(action==='move-item')return !!this.selection.itemId&&destination!==this.selection.groupId&&this.fitsMove(this.selection.itemId,destination);
-      if(action==='group-earlier'||action==='group-later'){const ids=this.preview.resolvedGroups.map(g=>g.groupId),at=ids.indexOf(this.selection.groupId);return at>=0&&(action==='group-earlier'?at>0:at<ids.length-1);}
-      if(action==='item-earlier'||action==='item-later'){const ids=this.resolved()?.members.map(m=>m.itemId)||[],at=ids.indexOf(this.selection.itemId);return this.fitsOrder(this.selection.groupId)&&at>=0&&(action==='item-earlier'?at>0:at<ids.length-1);}
+      if(action==='group-position')return this.preview.resolvedGroups.some(g=>g.groupId===this.selection.groupId);
+      if(action==='item-position')return this.fitsOrder(this.selection.groupId)&&!!this.resolved()?.members.some(m=>m.itemId===this.selection.itemId);
       return true;
     }
     get dirty() { return canonical(this.saved) !== canonical(this.document); }
@@ -70,6 +70,15 @@
     fail(entry, status) { if (!this.owns(entry)) return false; this.state = status === 412 ? 'conflict' : status === 422 || status === 400 || status === 404 || status === 409 ? 'preview_invalid' : 'preview_error'; return true; }
     orderGroups(ids) { return this.change(d => { d.homepage.ordering = { mode: 'custom', ids: clone(ids) }; }, true); }
     orderItems(groupId, ids) { if (!this.fitsOrder(groupId)) return false; return this.change(d => { const g = d.groups.find(g => g.id === groupId); g.ordering = { mode: 'custom', ids: clone(ids) }; g.placements = ids.map(itemId => ({ itemId })); }, true); }
+    setPosition(kind, value) {
+      if (!this.ready || !['group','item'].includes(kind) || String(value).trim()==='') return false;
+      const ids = kind==='group' ? this.preview.resolvedGroups.map(g=>g.groupId) : (this.resolved()?.members.map(m=>m.itemId)||[]);
+      const id = kind==='group' ? this.selection.groupId : this.selection.itemId;
+      const at = ids.indexOf(id), position = Number(value);
+      if (at<0 || !Number.isSafeInteger(position) || position<1 || position>ids.length || at===position-1) return false;
+      ids.splice(at,1); ids.splice(position-1,0,id);
+      return kind==='group' ? this.orderGroups(ids) : this.orderItems(this.selection.groupId,ids);
+    }
     move(itemId, groupId, beforeItemId) {
       const destination = this.resolved(groupId); if (!this.ready || !destination || !this.fitsMove(itemId,groupId) || !this.preview.resolvedGroups.some(g => g.members.some(m => m.itemId === itemId))) return false;
       const ids = destination.members.map(m => m.itemId).filter(id => id !== itemId); const at = beforeItemId === null ? ids.length : ids.indexOf(beforeItemId); if (at < 0) return false;
@@ -105,21 +114,34 @@
     const model = new Draft(JSON.parse(root.dataset.layoutEditor));
     global.htmx.registerExtension('balemoh-layout-editor-disclosure',{htmx_before_morph_attr(element,detail){if(element.matches('details[data-editor-collapse]')&&detail.attrName==='open')return false;}});
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
-    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, alive = true;
+    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, activeSettingsTab='page', requestedSettingsTab, settingsReturnId='layout-action-settings', alive = true;
     const find = action => root.querySelector(`[data-layout-action="${action}"]`);
     const dispatchModal = (name, id) => global.dispatchEvent(new CustomEvent(`modal:${name}`, { detail: { id: `layout-${id}` } }));
     const announce = text => { status.textContent = text; };
+    function settingsTab(tab) { return root.querySelector('[data-layout-settings-tab="'+tab+'"]')?.closest('button'); }
+    function openSettings(tab,returnId) {
+      activeSettingsTab=tab; settingsReturnId=returnId||settingsReturnId;
+      const button=settingsTab(tab); button?.click();
+      global.dispatchEvent(new CustomEvent('drawer:open',{detail:{id:'layoutSettings'}}));
+      global.Alpine.nextTick(()=>button?.focus({preventScroll:true}));
+    }
+    function closeSettings(event) {
+      if(event.detail?.id!=='layoutSettings'||event.defaultPrevented)return;
+      requestedSettingsTab=null;
+      global.Alpine.nextTick(()=>{const target=document.getElementById(settingsReturnId);focusControl(target&&!target.disabled?target:find('open-settings'));});
+    }
+    global.addEventListener('drawer:close-request',closeSettings);
     function state(text) {
       if (text) announce(text);
       const frozen = ['saving', 'outcome_unknown', 'conflict'].includes(model.state);
       const focused = document.activeElement;
       const focusedStructural=[...frame.querySelectorAll('[data-layout-structural]')].some(el=>el===focused||el.contains(focused)||el.hidden&&document.getElementById(el.dataset.layoutFocus||el.id+'-trigger')===focused);
-      if (!model.ready && frame.contains(focused) && (frozen || focused.closest('[data-layout-preview]') || focusedStructural)) { restoreId = focused.id;restoreElement=focused;status.focus({ preventScroll: true }); }
+      if (!model.ready && frame.contains(focused) && (frozen || focused.closest('[data-layout-preview]') || focusedStructural)) { restoreId = focused.id;restoreElement=focused;if(!focused.closest('#layout-editor-inspector'))status.focus({ preventScroll: true }); }
       frame.setAttribute('aria-busy', String(model.state === 'preview_pending' || model.state === 'saving'));
       frame.querySelector('[data-layout-preview]').disabled = !model.ready;
-      frame.querySelectorAll('[data-layout-structural]').forEach(el => { const capacityBlocked = ['item-earlier','item-later'].includes(el.dataset.layoutAction)&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.movementAllowed(el.dataset.layoutAction,root.querySelector('[data-layout-destination]')?.value) || !model.ready || el.dataset.layoutAction === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-earlier', 'item-later'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
+      frame.querySelectorAll('[data-layout-structural]').forEach(el => { const capacityBlocked = el.dataset.layoutAction==='item-position'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.movementAllowed(el.dataset.layoutAction,root.querySelector('[data-layout-destination]')?.value) || !model.ready || el.dataset.layoutAction === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-position'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
       frame.querySelectorAll('[data-layout-field]').forEach(el => { if (!el.hasAttribute('data-layout-structural')) disable(el, frozen || el.closest('[data-layout-group-fields-owner]')&&el.closest('[data-layout-group-fields-owner]').dataset.layoutGroupFieldsOwner!==model.selection.groupId || el.hasAttribute('data-layout-span') && model.document.homepage.layout.type === 'stack'); });
-      find('save').disabled = !model.ready || !model.dirty;
+      find('save').disabled = !model.ready || !model.dirty || !!root.querySelector('[data-layout-position]:invalid');
       find('regenerate-provisional').hidden=model.state!=='preview_invalid'||!rejectedGroupRow;
       find('retry').hidden = model.state !== 'preview_error' && model.state !== 'preview_invalid';
       find('readback').hidden = model.state !== 'outcome_unknown';
@@ -127,7 +149,7 @@
       root.querySelectorAll('[data-layout-create-form] button[type=submit]').forEach(el => { el.disabled = !model.ready; });
       if (model.ready && !afterPreviewFocus && document.activeElement === status) {const control=restoreElement?.isConnected?restoreElement:restoreId?document.getElementById(restoreId):null;control?.focus({preventScroll:true});restoreId=null;restoreElement=null;}
     }
-    function disable(el, value) { el.disabled = value; if (el.hidden) { const target = el.dataset.layoutFocus || el.id + '-trigger'; const control = document.getElementById(target); if (control) control.disabled = value; } }
+    function disable(el, value) { if(el.hasAttribute('data-layout-position')){el.readOnly=value;el.setAttribute('aria-disabled',String(value));return;} el.disabled = value; if (el.hidden) { const target = el.dataset.layoutFocus || el.id + '-trigger'; const control = document.getElementById(target); if (control) control.disabled = value; } }
     function focusControl(el,scroll=false) { if(!el)return;for(let parent=el.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;el.focus({preventScroll:true});const bounds=el.getBoundingClientRect(),bar=root.querySelector('.balemoh-layout-topbar').getBoundingClientRect();if(scroll||bounds.top<bar.bottom||bounds.bottom>innerHeight)el.scrollIntoView({block:scroll?'start':'nearest',behavior:'instant'}); }
     function clearErrors() { errors.replaceChildren(); errors.hidden = true; root.querySelectorAll('[data-layout-inline-error]').forEach(el => el.remove()); root.querySelectorAll('[aria-invalid="true"]').forEach(el => { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); }); }
     function targets() {
@@ -147,11 +169,13 @@
       if (!model.accept(entry, result.preview)) { state(model.state === 'conflict' ? 'Saved layout changed. Your draft is retained.' : 'Preview response invalid. Your draft is retained. Retry preview.'); return; }
       if(JSON.stringify(entry.selection)!==JSON.stringify(model.selection)){afterPreviewFocus='editor-group-heading-'+key(model.selection.groupId);model.state='preview_pending';state('Selection changed with current membership. Updating preview…');preview();return;}
       try {
-      const focus = document.activeElement; const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
+      const focus = document.activeElement; const inSettings=!!focus?.closest('#layout-editor-inspector'); const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
       const openPanels=[...root.querySelectorAll('details[data-layout-panel][open]')].map(el=>el.dataset.layoutPanel);
       // Replace form controls without copying old attributes during HTMX settlement.
       await global.htmx.swap({sourceElement:frame,target:'#layout-editor-page-controls',swap:'innerHTML settle:0',text:result.pageHtml});
+      const focusedTab=focus?.closest('[role=tab]');
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML settle:0', text: result.inspectorHtml });
+      const tab=settingsTab(requestedSettingsTab||activeSettingsTab);tab?.click();if(focusedTab)tab?.focus({preventScroll:true});
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-preview-body', swap: 'innerMorph', text: result.previewHtml });
       frame.querySelectorAll('details[data-editor-collapse]').forEach(el=>{const group=model.resolved(el.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active'))el.open=true;});
       if(root.querySelector('#layout-selected-movement'))await global.htmx.swap({sourceElement:frame,target:'#layout-selected-movement',swap:'innerHTML settle:0',text:result.movementHtml});
@@ -166,8 +190,10 @@
         movedIdentity = null;
       }
       state(outcome);
-      if (id && document.activeElement === document.body) { const next = document.getElementById(id); next?.focus({ preventScroll: true }); if (next?.setSelectionRange && start !== null) { try { next.setSelectionRange(start, end); } catch (_) {} } }
+      if (id && (document.activeElement === document.body || inSettings)) { const next = document.getElementById(id); next?.focus({ preventScroll: true }); if (next?.setSelectionRange && start !== null) { try { next.setSelectionRange(start, end); } catch (_) {} } }
       if (afterPreviewFocus && (document.activeElement === status || document.activeElement === document.body)) { const next=document.getElementById(afterPreviewFocus);focusControl(next,afterPreviewFocus==='layout-inspector-heading'&&matchMedia('(max-width:1099px)').matches); }
+      if(inSettings&&document.activeElement===document.body)settingsTab(activeSettingsTab)?.focus({preventScroll:true});
+      if(requestedSettingsTab){openSettings(requestedSettingsTab);requestedSettingsTab=null;}
       afterPreviewFocus = null;restoreId=null;restoreElement=null;
       } catch (_) {model.state='preview_error';state('Preview could not be displayed. Your draft is retained. Retry preview.');}
     }
@@ -185,17 +211,22 @@
     }
     function changed(text) { lastSaveMessage=null;clearErrors(); state(text || 'Updating preview…'); clearTimeout(timer); timer = setTimeout(preview, 180); }
     function select(groupId, itemId = '', control) {
-      if (!model.ready || !model.group(groupId)) return; model.selection = { groupId, itemId };revealGroup=groupId;if(matchMedia('(max-width:1099px)').matches||control?.closest('#layout-editor-inspector'))afterPreviewFocus='layout-inspector-heading'; if (control?.id) restoreId = control.id; model.state = 'preview_pending'; changed('Updating selection…');
+      if (!model.ready || !model.group(groupId)) return;
+      model.selection={groupId,itemId};revealGroup=groupId;
+      requestedSettingsTab=itemId?'item':'group';settingsReturnId=control?.closest('[data-layout-preview]')?control.id:itemId?'edit-item-'+key(itemId):'edit-group-'+key(groupId);
+      model.state='preview_pending';changed('Updating selection…');
     }
-    function reorder(ids, itemId, delta) { const at = ids.indexOf(itemId); const next = Math.max(0, Math.min(ids.length - 1, at + delta)); if (at < 0 || at === next) return null; ids.splice(at, 1); ids.splice(next, 0, itemId); return ids; }
-    function movement(action) {
-      if (!model.ready) return;
-      if (action.startsWith('group-')) { const ids = reorder(model.preview.resolvedGroups.map(g => g.groupId), model.selection.groupId, action.endsWith('earlier') ? -1 : 1); if (ids && model.orderGroups(ids)) {movedIdentity={kind:'group',id:model.selection.groupId};changed('Group order changed. Updating preview…');} }
-      else { const group = model.resolved(); const ids = reorder(group.members.map(m => m.itemId), model.selection.itemId, action.endsWith('earlier') ? -1 : 1); if (ids && model.orderItems(group.groupId, ids)) {movedIdentity={kind:'item',id:model.selection.itemId};changed('Item order changed. Updating preview…');} }
+    function applyPosition(el) {
+      if(!model.ready)return;
+      if(!el.reportValidity()){state('Enter a whole position between 1 and '+el.max+'.');return;}
+      const kind=el.dataset.layoutAction==='group-position'?'group':'item';
+      if(model.setPosition(kind,el.value)){movedIdentity={kind,id:kind==='group'?model.selection.groupId:model.selection.itemId};changed('Position changed. Updating preview…');}
+      else state(model.dirty?'Unsaved changes.':'All changes saved.');
     }
     root.addEventListener('change', event => {
       const el = event.target; const action = el.dataset.layoutAction;
       if (el.hasAttribute('data-layout-destination')) return state();
+      if(el.hasAttribute('data-layout-position'))return applyPosition(el);
       if (action === 'select-group') return select(el.value, '', el);
       if (action === 'select-item') return select(model.selection.groupId, el.value, el);
       if (action === 'page-order' || action === 'item-order') { if (!model.ready) return; if (action === 'page-order') { if (model.change(d => { d.homepage.ordering = { mode: el.value, ids: el.value === 'custom' ? model.preview.resolvedGroups.map(g => g.groupId) : [] }; }, true)) changed(); } else { const group = model.resolved(); if (el.value === 'custom') { if (model.orderItems(group.groupId, group.members.map(m => m.itemId))) changed(); else state('This order would exceed 512 explicit references. Choose a smaller group or reset alphabetical order.'); } else if (model.change(() => { model.group().ordering = { mode: 'alphabetical', ids: [] }; }, true)) changed(); } return; }
@@ -205,22 +236,21 @@
       const path = el.dataset.layoutField; if (!path) return;const owner=el.closest('[data-layout-group-fields-owner]')?.dataset.layoutGroupFieldsOwner;if(path.startsWith('/group/')&&owner!==model.selection.groupId)return; const structural = el.hasAttribute('data-layout-structural'); const value = el.type === 'checkbox' ? el.checked : el.hasAttribute('data-layout-number') ? Number(el.value) : el.value;
       if (model.change(d => { if (path === '/group/span') { d.homepage.placements.find(p => p.groupId === model.selection.groupId).span = value; return; } const parts = path.split('/').slice(1); let target = parts[0] === 'group' ? model.group() : d; if (parts[0] === 'group') parts.shift(); const last = parts.pop(); parts.forEach(p => { target = target[p]; }); target[last] = value; }, structural)) changed();
     }
-    root.addEventListener('input', event => { if (event.target.type === 'text' && !event.target.hidden && event.target.hasAttribute('data-layout-field')) editField(event.target); });
+    root.addEventListener('input', event => { if(event.target.hasAttribute('data-layout-position'))return state(); if (event.target.type === 'text' && !event.target.hidden && event.target.hasAttribute('data-layout-field')) editField(event.target); });
     root.addEventListener('click', async event => {
+      const tab=event.target.closest('[role=tab]')?.querySelector('[data-layout-settings-tab]');if(tab)activeSettingsTab=tab.dataset.layoutSettingsTab;
       const group = event.target.closest('[data-layout-select-group]'); if (group) return select(group.dataset.layoutSelectGroup, '', group);
       const item = event.target.closest('[data-layout-select-item]'); if (item) { const owner = model.preview.resolvedGroups.find(g => g.members.some(m => m.itemId === item.dataset.layoutSelectItem)); if (owner) select(owner.groupId, item.dataset.layoutSelectItem, item); return; }
       const button = event.target.closest('[data-layout-action]'); if (!button || button.disabled) return; const action = button.dataset.layoutAction;
-      if (['group-earlier', 'group-later', 'item-earlier', 'item-later'].includes(action)) return movement(action);
       if (action === 'move-item') { const destination = root.querySelector('[data-layout-destination]').value; if (model.move(model.selection.itemId, destination, null)) {movedIdentity={kind:'item',id:model.selection.itemId};changed('Item moved. Updating preview…');} }
       else if (action === 'create' && model.ready) { createId = crypto.randomUUID(); root.querySelector('[data-layout-create-form]').reset(); root.querySelector('[data-layout-create-error]').hidden=true;find('regenerate').hidden=true; dispatchModal('open', 'create'); }
       else if(action==='regenerate-provisional'){const next=crypto.randomUUID();if(model.regenerateGroup(rejectedGroupRow,next)){rejectedGroupRow=null;afterPreviewFocus='editor-group-heading-'+key(next);status.focus({preventScroll:true});changed('Group ID replaced in draft. Updating preview…');}}
       else if (action === 'regenerate') {createId=crypto.randomUUID();root.querySelector('[data-layout-create-error]').hidden=true;find('regenerate').hidden=true;document.getElementById('layout-create-title').focus({preventScroll:true});}
       else if (action === 'delete' && model.ready && model.document.groups.length > 1) dispatchModal('open', 'delete');
-      else if (action === 'confirm-delete') { const destination = document.getElementById('layout-delete-destination').value; if (model.remove(model.selection.groupId, destination)) { dispatchModal('close', 'delete'); afterPreviewFocus = 'editor-group-heading-' + key(destination); status.focus({ preventScroll: true }); changed('Group deleted in draft. Updating preview…'); } else announce('Choose a different surviving group.'); }
+      else if (action === 'confirm-delete') { const destination = document.getElementById('layout-delete-destination').value; if (model.remove(model.selection.groupId, destination)) { dispatchModal('close', 'delete');requestedSettingsTab='group';settingsReturnId='edit-group-'+key(destination); afterPreviewFocus = 'editor-group-heading-' + key(destination); status.focus({ preventScroll: true }); changed('Group deleted in draft. Updating preview…'); } else announce('Choose a different surviving group.'); }
       else if (action.startsWith('close-')) dispatchModal('close', action.slice(6));
-      else if(action==='focus-settings')focusControl(document.getElementById('layout-inspector-heading'),true);
-      else if(action==='back-preview'){const entity=document.getElementById(model.selection.itemId?'edit-item-'+key(model.selection.itemId):'edit-group-'+key(model.selection.groupId));focusControl(entity||document.getElementById('layout-preview-heading'),true);}
-      else if (action === 'retry') preview();
+      else if(action==='open-settings')openSettings(activeSettingsTab,'layout-action-settings');
+            else if (action === 'retry') preview();
       else if (action === 'save') save();
       else if (action === 'readback') readback();
       else if (action === 'view-saved') viewSaved();
@@ -228,14 +258,14 @@
       else if (action === 'cancel') { navigation = '/'; if (model.dirty) dispatchModal('open', 'discard'); else location.assign('/'); }
       else if (action === 'confirm-discard') { alive = false; controller?.abort(); live.close(); location.assign(navigation || '/'); }
     });
-    root.querySelector('[data-layout-create-form]').addEventListener('submit', event => { event.preventDefault(); if (!model.ready || !event.target.reportValidity()) return; const title = trimTitle(event.target.elements.title.value); if (!title || [...title].length > 80) return; if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(createId) || model.group(createId)) {const error=root.querySelector('[data-layout-create-error]');error.textContent='This group ID is invalid or already used. Generate another ID; your title is retained.';error.hidden=false;find('regenerate').hidden=false;find('regenerate').focus({preventScroll:true});return;} if (model.create(createId, title)) { dispatchModal('close', 'create'); afterPreviewFocus = 'editor-group-heading-' + key(createId); status.focus({ preventScroll: true }); changed('Group created in draft. Updating preview…'); } });
+    root.querySelector('[data-layout-create-form]').addEventListener('submit', event => { event.preventDefault(); if (!model.ready || !event.target.reportValidity()) return; const title = trimTitle(event.target.elements.title.value); if (!title || [...title].length > 80) return; if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(createId) || model.group(createId)) {const error=root.querySelector('[data-layout-create-error]');error.textContent='This group ID is invalid or already used. Generate another ID; your title is retained.';error.hidden=false;find('regenerate').hidden=false;find('regenerate').focus({preventScroll:true});return;} if (model.create(createId, title)) { dispatchModal('close', 'create');requestedSettingsTab='group';settingsReturnId='edit-group-'+key(createId); afterPreviewFocus = 'editor-group-heading-' + key(createId); status.focus({ preventScroll: true }); changed('Group created in draft. Updating preview…'); } });
     root.addEventListener('layout:before-move', event => { const d = event.detail; if (d && d.fromContainerId!=='layout-editor-groups') {const destination=model.document.groups.find(g=>'editor-items-'+key(g.id)===d.toContainerId);if(!destination||!model.fitsMove(d.itemId,destination.id)){event.preventDefault();announce('This move would exceed 512 explicit references.');return;}} if (!model.ready || model.pending || !d || !model.group() || d.fromContainerId === 'layout-editor-groups' && d.toContainerId !== 'layout-editor-groups') event.preventDefault(); });
     root.addEventListener('layout:move', event => { if (!model.ready) return; const d = event.detail; if (d.fromContainerId === 'layout-editor-groups') { const ids = model.preview.resolvedGroups.map(g => g.groupId).filter(id => id !== d.itemId); const at = d.beforeItemId === null ? ids.length : ids.indexOf(d.beforeItemId); if (at < 0) return; ids.splice(at, 0, d.itemId); if (model.orderGroups(ids)) {movedIdentity={kind:'group',id:d.itemId};changed('Group moved. Updating preview…');} } else { const destination = model.document.groups.find(g => 'editor-items-' + key(g.id) === d.toContainerId); if (destination && model.move(d.itemId, destination.id, d.beforeItemId)) {movedIdentity={kind:'item',id:d.itemId};changed('Item moved. Updating preview…');} } });
     root.addEventListener('toggle',event=>{const disclosure=event.target;if(!disclosure.matches?.('[data-editor-collapse]')||disclosure.open)return;const group=model.resolved(disclosure.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active')){disclosure.open=true;announce('Selected item stays visible while editing. Saved collapse setting is unchanged.');}},true);
     root.addEventListener('pointerdown', event => { if (event.target.closest('[data-layout-preview]')) pointer = true; }, true);
     function releasePointer() { pointer = false; if (queuedLive) { const data = queuedLive; queuedLive = null; onLive(data); } if (queuedPreview) { const args = queuedPreview; queuedPreview = null; apply(...args); } }
     global.addEventListener('pointerup', releasePointer); global.addEventListener('pointercancel', releasePointer);
-    root.addEventListener('keydown', event => { if (event.key === 'Escape') releasePointer(); });
+    root.addEventListener('keydown', event => { if (event.key === 'Escape') releasePointer(); if(event.key==='Enter'&&event.target.hasAttribute('data-layout-position')){event.preventDefault();applyPosition(event.target);} });
     async function save() {
       const attempt = model.startSave(); if (!attempt) return; controller?.abort(); clearTimeout(timer);if(document.activeElement===find('save'))status.focus({preventScroll:true});state('Saving layout…'); const map = targets();
       try { const { r, data } = await response('/settings/homepage/layout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedRevision: attempt.expectedRevision, document: attempt.document }) });
@@ -278,7 +308,7 @@
     }
 
     live.onmessage = event => { try { onLive(JSON.parse(event.data)).catch(()=>announce('Live update unavailable. Your draft is retained.')); } catch (_) { announce('Live updates could not be read.'); } };
-    global.addEventListener('pagehide', () => { alive = false;controller?.abort();liveController?.abort();clearTimeout(timer);live.close(); global.removeEventListener('pointerup', releasePointer); global.removeEventListener('pointercancel', releasePointer); }, { once: true });
+    global.addEventListener('pagehide', () => { alive = false;controller?.abort();liveController?.abort();clearTimeout(timer);live.close(); global.removeEventListener('pointerup', releasePointer); global.removeEventListener('pointercancel', releasePointer);global.removeEventListener('drawer:close-request',closeSettings); }, { once: true });
     root.querySelector('[data-layout-controls]').disabled=false;
     state(model.ready?'All changes saved.':'Saved layout changed while loading. Your draft is retained.');
     root.balemohLayout = model;

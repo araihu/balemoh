@@ -675,3 +675,27 @@ covers every possible catalog. Beyond 16 MiB the editor fails explicitly and kee
 its draft; it never truncates members, resets configuration or writes implicitly.
 Operators can manage larger catalogs through the API. This is an editor capacity
 boundary, not a new API grouping or membership limit.
+
+## Editor refinement: on-demand settings and exact positions
+
+The layout editor opens with the populated preview at full width. Settings live
+in a left drawer using the public Goshtoso Drawer and Tabs components. The drawer
+starts closed, opens from Settings or an explicit group/item edit control, and
+selects Page, Group or Item to match the user's action. Closing or Escape returns
+focus to that action. Switching tabs does not modify the draft or make a request.
+Preview refreshes retain the chosen tab and restore the initiating field or tab.
+The drawer closes without saving; Save remains the single persistence boundary.
+
+Page and group layouts use labelled List, Grid and Masonry radio choices with
+Heroicons. The limits/capacity panel is omitted from the editor. API limits remain
+enforced; actionable errors appear only when an operation cannot be completed.
+
+Group settings expose a one-based Group position, and Item settings expose a
+one-based Position in group. Enter or leaving a valid field applies the proposed
+position to the draft. These fields replace Earlier/Later buttons. They expand
+the complete resolved sibling order, including dormant members, into existing
+custom-order ID arrays. No numeric rank, schema change or API endpoint is added.
+Only that parent's ordering changes. Empty, fractional and out-of-range positions
+are rejected without changing the draft, and identical positions are a no-op.
+Pending, conflict and capacity guards apply just as they do to drag movement.
+Alphabetical reset remains in the Page or Group ordering selector.

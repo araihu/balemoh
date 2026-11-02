@@ -37,7 +37,7 @@ and layout come from the upstream prerequisite; raw prototype controls are not c
 | Ready current preview | Click a card body or its service/plugin link | No navigation, widget action or selection transition | Editor route, exact draft and selection | Existing editor focus | 0 |
 | Ready current preview | Press and drag any card body into another group | Mouse/pen pickup without prior selection; ghost follows pointer, destination opens an insertion gap; one validated local move on release | Widget identity and natural geometry | Moved item's handle; no mobile settings jump | 0 until Save |
 | Clean or dirty draft | Change layout, name, heading or spacing | Local draft + bounded preview; no persist | Other group settings and selected item | Initiating field | 0 |
-| Alphabetical parent | Drag or earlier/later | Valid move sets Custom in that parent only | Identity, source, renderer | Logical handle/action, announced position | 0 until Save |
+| Alphabetical parent | Drag or set a numeric position | Valid move sets Custom in that parent only | Identity, source, renderer | Logical handle/action, announced position | 0 until Save |
 | Custom parent | Reset alphabetical | Local draft shows canonical name order | Membership, renderers, other parents | Reset/mode control | 0 until Save |
 | Any group | Move selected item to named destination | Atomic draft membership update | Source identity and presentation | Item movement control, destination announced | 0 until Save |
 | Empty/collapsed destination | Move item there | Same valid movement without opening content first | Other collapse states | Item control or destination heading if needed | 0 until Save |
@@ -108,3 +108,15 @@ targeted-order outcomes. Invalid relational sets write zero changes: missing,
 duplicate or foreign homepage placements, nonexistent default targets and duplicate
 cross-group item references. Nested fieldErrors pointers retain request indices,
 map to actual stable controls, and use the summary for aggregate/unmapped errors.
+
+Drawer and numeric order follow-up:
+
+| State | Action | Expected result | Persistence |
+| --- | --- | --- | --- |
+| Clean editor | Open Settings | Left drawer, Page/Group/Item tabs; full-width preview behind it | 0 |
+| Clean or dirty editor | Select a group/item edit button | Drawer opens on matching context; card body remains inactive | 0 |
+| Open drawer | Change tab, close or Escape | Local navigation only; return focus to initiating action | 0 |
+| Selected group/item | Enter valid position and press Enter or blur | Complete sibling order moves selected identity; relevant parent becomes Manual; tab retained | 0 until Save |
+| Selected item | Enter empty, fractional, zero or out-of-range position | Native validation and actionable status; draft/order unchanged | 0 |
+| Position preview pending | Try another order change | Field read-only; delayed structure cannot apply twice | 0 |
+| Dirty numeric draft | Save, reload | One conditional revision; same IDs, membership and custom order | 1 changed revision |

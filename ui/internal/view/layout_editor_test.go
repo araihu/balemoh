@@ -37,12 +37,21 @@ func TestLayoutPreviewFirstKeepsMovementInOneContextualInspector(t *testing.T) {
 	if strings.Contains(active[previewAt:inspectorAt], `id="layout-selected-movement"`) {
 		t.Fatal("movement controls change widget geometry")
 	}
-	if strings.Contains(active[inspectorAt:], `data-layout-group-fields-owner`) {
-		t.Fatal("group and item settings compete in the inspector")
+	for _, label := range []string{"Page", "Group", "Item"} {
+		if !strings.Contains(active, `role="tabpanel" aria-label="`+label+`"`) {
+			t.Fatal("missing tab panel", label)
+		}
 	}
-	if !strings.Contains(active, `data-layout-panel="page-settings"`) || strings.Contains(active, `data-layout-panel="page-settings" open`) {
-		t.Fatal("page settings must start collapsed")
+	if strings.Count(active, `role="dialog"`) != 1 || !strings.Contains(active, `layoutSettingsIsOpen: false`) {
+		t.Fatal("settings must start in a closed drawer")
 	}
+	if strings.Contains(active, "Layout limits") || strings.Contains(active, "data-layout-capacity") {
+		t.Fatal("documentation limits leaked into editor")
+	}
+	if !strings.Contains(active, `id="layout-group-position"`) || !strings.Contains(active, `id="layout-item-position"`) || !strings.Contains(active, `type="number"`) {
+		t.Fatal("missing group/item numeric ordering")
+	}
+
 	frame.Groups[0].InitiallyCollapsed = true
 	collapsed := render()
 	detailsAt := strings.Index(collapsed, `<details data-editor-collapse=`)

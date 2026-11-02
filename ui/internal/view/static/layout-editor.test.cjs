@@ -108,7 +108,17 @@ test('preview title normalization matches Go Unicode White_Space rather than JS 
  const other=setup();other.change(doc=>{doc.groups[0].title='\uFEFFRetain BOM\uFEFF';});const request=other.begin('bom-title','digest');assert.equal(other.accept(request,result(request,other)),true);assert.equal(other.group().title,'\uFEFFRetain BOM\uFEFF');
 });
 
-test('contextual movement disables boundaries and moving to the current group',()=>{
- const d=setup();assert.equal(d.movementAllowed('group-earlier'),false);assert.equal(d.movementAllowed('group-later'),true);assert.equal(d.movementAllowed('item-earlier'),false);assert.equal(d.movementAllowed('item-later'),true);assert.equal(d.movementAllowed('move-item','builtin:hosts'),false);assert.equal(d.movementAllowed('move-item','builtin:widgets'),true);
- d.selection.itemId='host-z';assert.equal(d.movementAllowed('item-later'),false);assert.equal(d.movementAllowed('item-earlier'),true);d.selection.itemId='';assert.equal(d.movementAllowed('move-item','builtin:widgets'),false);
+test('numeric positions include dormant members and only change their parent order',()=>{
+ const d=setup();assert.equal(d.setPosition('item','3'),true);
+ assert.deepEqual(d.group().ordering.ids,['host-dormant','host-z','host-a']);assert.equal(d.document.homepage.ordering.mode,'alphabetical');assert.equal(d.setPosition('item','1'),false,'pending preview cannot reorder again');
+ const groups=setup();assert.equal(groups.setPosition('group','3'),true);assert.deepEqual(groups.document.homepage.ordering.ids,['builtin:services','builtin:widgets','builtin:hosts']);assert.equal(groups.group().ordering.mode,'alphabetical');
+});
+test('numeric position rejects invalid bounds, fractions, missing selection and no-op',()=>{
+ for(const value of ['',0,-1,4,1.5,Infinity,'bad',1]){const d=setup(),before=canonical(d.document);assert.equal(d.setPosition('item',value),false,String(value));assert.equal(canonical(d.document),before);assert.equal(d.ready,true);}
+ const d=setup();d.selection.itemId='';assert.equal(d.setPosition('item',2),false);assert.equal(d.movementAllowed('item-position'),false);
+ d.selection.groupId='unknown';assert.equal(d.setPosition('group',2),false);assert.equal(d.movementAllowed('group-position'),false);
+});
+test('numeric order retains capacity and same-group move guards',()=>{
+ const d=setup();assert.equal(d.movementAllowed('move-item','builtin:hosts'),false);assert.equal(d.movementAllowed('move-item','builtin:widgets'),true);assert.equal(d.movementAllowed('item-position'),true);
+ d.preview.resolvedGroups[0].members=Array.from({length:513},(_,i)=>({itemId:'host-'+i,state:'active'}));d.selection.itemId='host-0';assert.equal(d.setPosition('item',2),false);assert.equal(d.movementAllowed('item-position'),false);
 });

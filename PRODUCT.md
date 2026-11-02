@@ -33,3 +33,8 @@ drag any card body between groups without selecting it first.
 
 Local demonstrations use synthetic content and a real plugin renderer. Existing
 brand assets and theme tokens belong to Balemoh and Goshtoso. No new claims are needed.
+
+Settings preference: use an on-demand left drawer with Page, Group and Item tabs.
+Open it on Settings or explicit group/item selection. Keep preview full-width when
+closed. Numeric positions set group and item order. Remove limits documentation
+from the editing form; keep validation and actionable errors.

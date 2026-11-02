@@ -219,7 +219,6 @@ func (s *server) layoutFrame(ctx context.Context, p api.LayoutPreview, selection
 				g.ShowHeading = v.ShowHeading
 				g.InitiallyCollapsed = v.InitiallyCollapsed
 				g.Order = string(v.Ordering.Mode)
-				g.ExplicitCount = len(v.Placements)
 			}
 		}
 		for _, v := range p.Document.Homepage.Placements {

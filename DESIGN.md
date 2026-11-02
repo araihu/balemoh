@@ -121,7 +121,13 @@ The service/card system can use larger titles and metric values. Widget titles u
 
 Balemoh's content class caps width at 96rem and centers itself. ConsoleShell also wraps it in an 88rem content cap with 1.5rem main padding, so the inner cap alone does not establish the available width. Default padding is 2rem 1rem 4rem, changing below 720px to 1.25rem 0.75rem 3rem. Contained homepages cap at 72rem. Repeated spacing steps appear in frontmatter; they describe observed spacing rather than a new token API.
 
-The homepage editor is a specific composition, documented in `.impeccable/surfaces/homepage-layout.md`. A sticky top bar holds Save, Cancel and status. Its -1.5rem top offset cancels ConsoleShell scroll-root padding, keeping the bar flush beneath the shell during scrolling. Compact page controls precede the preview and one contextual inspector. At 1100px and above the workspace has a flexible preview, 1.5rem gap and 17rem inspector. The inspector sticks 7rem below the top, with a leading border and 1.25rem inset. Below that breakpoint, the same DOM stacks preview before inspector, separated by horizontal borders, with direct settings/back navigation. Page/default fields become three columns at 800px; geometry fields use two columns. Below 601px toolbar helper text takes its own row.
+The homepage editor is a specific composition, documented in `.impeccable/surfaces/homepage-layout.md`. A sticky top bar holds Save, Cancel and status. Its -1.5rem top offset cancels ConsoleShell scroll-root padding, keeping the bar flush beneath the shell during scrolling. Compact Settings and Create group controls precede the preview. The preview uses
+the full content width. A left Goshtoso Drawer starts closed and opens on Settings
+or an explicit group/item edit action. Page, Group and Item tabs separate form
+contexts. The panel uses the public small width and begins 4rem below ConsoleShell.
+Closing returns focus to the initiating action. Numeric fields set one-based group
+and item positions; mode radios pair Heroicons with text. Desktop and mobile share
+one DOM and retain the same draft/save contract.
 
 Selection updates the inspector. It does not insert controls into widget content. Page geometry and each group's geometry remain independent. Goshtoso `layout.Container` owns Stack, Grid and Masonry geometry and movement. Balemoh owns draft selection and persistence. Natural-height content must remain free to resize. Min-width zero, wrapping titles and `overflow-wrap:anywhere` protect narrow layouts.
 
