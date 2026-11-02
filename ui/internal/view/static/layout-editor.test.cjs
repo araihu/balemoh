@@ -107,3 +107,8 @@ test('preview title normalization matches Go Unicode White_Space rather than JS 
  const d=setup();d.change(doc=>{doc.groups[0].title='\u0085Host title\u0085';});const entry=d.begin('unicode-title','digest'),preview=result(entry,d);preview.document.groups[0].title='Host title';assert.equal(d.accept(entry,preview),true);assert.equal(d.group().title,'Host title');
  const other=setup();other.change(doc=>{doc.groups[0].title='\uFEFFRetain BOM\uFEFF';});const request=other.begin('bom-title','digest');assert.equal(other.accept(request,result(request,other)),true);assert.equal(other.group().title,'\uFEFFRetain BOM\uFEFF');
 });
+
+test('contextual movement disables boundaries and moving to the current group',()=>{
+ const d=setup();assert.equal(d.movementAllowed('group-earlier'),false);assert.equal(d.movementAllowed('group-later'),true);assert.equal(d.movementAllowed('item-earlier'),false);assert.equal(d.movementAllowed('item-later'),true);assert.equal(d.movementAllowed('move-item','builtin:hosts'),false);assert.equal(d.movementAllowed('move-item','builtin:widgets'),true);
+ d.selection.itemId='host-z';assert.equal(d.movementAllowed('item-later'),false);assert.equal(d.movementAllowed('item-earlier'),true);d.selection.itemId='';assert.equal(d.movementAllowed('move-item','builtin:widgets'),false);
+});

@@ -5,46 +5,30 @@ import (
  "github.com/araihu/goshtoso/components/button"
  "github.com/araihu/goshtoso/components/checkbox"
  "github.com/araihu/goshtoso/components/form"
+ "github.com/araihu/goshtoso/components/icon"
+ "github.com/araihu/goshtoso/components/icon/heroicons"
+ "github.com/araihu/goshtoso/components/radio"
  "github.com/araihu/goshtoso/components/table"
  "github.com/araihu/goshtoso/components/layout"
  "github.com/araihu/goshtoso/components/modal"
  "github.com/araihu/goshtoso/components/pageheader"
  selectfield "github.com/araihu/goshtoso/components/select"
  "github.com/araihu/goshtoso/components/textinput"
+ "strconv"
 )
 
 templ LayoutEditorContent(d LayoutEditor) {
- @pageheader.PageHeader(pageheader.Config{Title:"Homepage layout",Description:"Arrange groups and their items. Save applies one layout to the whole instance.",HideSeparator:true})
- <noscript>@alert.Alert(alert.Config{Title:"JavaScript required for editing",Description:"The homepage remains readable. API clients can configure layouts, groups and order."})</noscript>
- <section data-layout-editor={d.Bootstrap}>
+ <section data-layout-editor={d.Bootstrap} class="balemoh-layout-editor">
+  <header class="balemoh-layout-topbar">
+   @pageheader.PageHeader(pageheader.Config{Title:"Homepage layout",HideSeparator:true,Actions:LayoutPrimaryActions(),ActionsClass:"balemoh-layout-primary-actions",RootClass:"balemoh-layout-page-heading"})
+   <p id="layout-editor-status" role="status" aria-live="polite" tabindex="-1">Loading preview…</p>
+  </header>
+  <noscript>@alert.Alert(alert.Config{Title:"JavaScript required for editing",Description:"The homepage remains readable. API clients can configure layouts, groups and order."})</noscript>
   <div id="layout-editor-live" hidden></div>
-  <p id="layout-editor-status" role="status" aria-live="polite" tabindex="-1">Loading preview…</p>
-  @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-regenerate-provisional","data-layout-action":"regenerate-provisional","hidden":true})) {
-   Generate another group ID
-  }
+  @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-regenerate-provisional","data-layout-action":"regenerate-provisional","hidden":true})) { Generate another group ID }
   <div id="layout-editor-errors" role="alert" tabindex="-1" hidden></div>
-  <div class="balemoh-layout-actions">
-   @button.Button(button.WithType("button"),button.Disabled(),button.WithAttrs(templ.Attributes{"id":"layout-action-save","data-layout-action":"save"})) {
-    Save layout
-   }
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-cancel","data-layout-action":"cancel"})) {
-    Cancel
-   }
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-retry","data-layout-action":"retry","hidden":true})) {
-    Retry preview
-   }
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-readback","data-layout-action":"readback","hidden":true})) {
-    Check saved result
-   }
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-view-saved","data-layout-action":"view-saved","hidden":true})) {
-    View saved version
-   }
-   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-reload","data-layout-action":"reload","hidden":true})) {
-    Discard draft and reload
-   }
-  </div>
-  <fieldset data-layout-controls disabled class="balemoh-layout-controls">
-  <div id="layout-editor-frame" aria-busy="true">@LayoutEditorFrame(d.Frame)</div>
+  <fieldset data-layout-controls disabled class="balemoh-layout-controls" aria-label="Homepage layout editor">
+   <div id="layout-editor-frame" aria-busy="true">@LayoutEditorFrame(d.Frame)</div>
   </fieldset>
   @modal.Dialog(modal.DialogConfig{ID:"layout-create",Title:"Create group",Content:LayoutCreateDialog()})
   @modal.Dialog(modal.DialogConfig{ID:"layout-delete",Title:"Delete group",Content:LayoutDeleteDialog(d.Frame)})
@@ -53,56 +37,73 @@ templ LayoutEditorContent(d LayoutEditor) {
  </section>
 }
 
+templ LayoutPrimaryActions() {
+ @LayoutRecoveryAction("retry","Retry preview")
+ @LayoutRecoveryAction("readback","Check saved result")
+ @LayoutRecoveryAction("view-saved","View saved version")
+ @LayoutRecoveryAction("reload","Discard draft and reload")
+ @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"id":"layout-action-cancel","data-layout-action":"cancel"})) { Cancel }
+ @button.Button(button.WithType("button"),button.Disabled(),button.WithAttrs(templ.Attributes{"id":"layout-action-save","data-layout-action":"save"})) { Save layout }
+}
+
+templ LayoutRecoveryAction(action,label string) {
+ @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-"+action,"data-layout-action":action,"hidden":true})) { {label} }
+}
+
 templ LayoutEditorFrame(f LayoutFrame) {
  <div data-layout-targets={f.targetsJSON()}></div>
  <div id="layout-editor-page-controls">@LayoutPageArrangement(f)</div>
  <div class="balemoh-layout-workspace">
-  <div id="layout-editor-inspector" class="balemoh-layout-inspector">@LayoutInspector(f)</div>
   <div class="balemoh-layout-preview-column">
-   <h2>Preview</h2>
+   <h2 id="layout-preview-heading" tabindex="-1" class="sr-only">Homepage preview</h2>
    <fieldset data-layout-preview disabled class={"balemoh-layout-preview",templ.KV("balemoh-homepage-contained",f.Width=="contained")} aria-label="Layout preview">
     <div id="layout-editor-preview-body">@LayoutPreview(f)</div>
    </fieldset>
   </div>
+  <aside id="layout-editor-inspector" class="balemoh-layout-inspector" aria-label="Selection settings">@LayoutInspector(f)</aside>
  </div>
 }
 
 templ LayoutAction(action,label string) {
- @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithSize(button.SizeSmall),button.WithAttrs(templ.Attributes{"id":"layout-action-"+action,"data-layout-action":action,"data-layout-structural":""})) {
-  <span>{label}</span>
+ @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithSize(button.SizeSmall),button.WithAttrs(templ.Attributes{"id":"layout-action-"+action,"data-layout-action":action,"data-layout-structural":"","aria-label":label})) {
+  if action=="group-earlier"||action=="item-earlier" {
+   @LayoutIcon(heroicons.Icon16SolidArrowUp)
+   <span>Earlier</span>
+  } else if action=="group-later"||action=="item-later" {
+   @LayoutIcon(heroicons.Icon16SolidArrowDown)
+   <span>Later</span>
+  } else if action=="move-item" {
+   <span>Move item</span>
+  } else {
+   <span>{label}</span>
+  }
  }
 }
 
+templ LayoutIcon(symbol icon.Symbol) { @icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:symbol,Decorative:true,Size:icon.SizeSM}) }
+
 templ LayoutPreviewGroup(f LayoutFrame,g EditorGroup) {
- <section aria-label={g.Label}>
-  <h3 id={"editor-group-heading-"+DOMKey(g.ID)} tabindex="-1" class={templ.KV("sr-only",!g.ShowHeading)}>{g.Label}</h3>
-  @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithSize(button.SizeSmall),button.WithAttrs(templ.Attributes{"id":"edit-group-"+DOMKey(g.ID),"data-layout-select-group":g.ID,"aria-pressed":f.SelectedGroup==g.ID})) {
-   <span>{"Edit group "+g.Label}</span>
-  }
-  <details data-editor-collapse={g.ID} open?={!g.InitiallyCollapsed||f.selectedActiveGroup(g.ID)}>
-   <summary>Items</summary>
-   @layout.Container(f.itemsContainer(g))
-  </details>
-  <details><summary>Not currently on home</summary>
-   for _,m:=range g.Members {
- if m.State=="dormant" {
-    @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"id":"edit-item-"+DOMKey(m.ID),"data-layout-select-item":m.ID,"data-layout-item-group":g.ID,"aria-pressed":f.SelectedItem==m.ID})) {
-     <span>{"Edit item "+m.Label}</span>
-    }
-   }
-  }
+ <section aria-label={g.Label} class="balemoh-layout-preview-group">
+  <div class="balemoh-layout-group-header">
+   <h3 id={"editor-group-heading-"+DOMKey(g.ID)} tabindex="-1">
+    @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-layout-group-title"),button.WithAttrs(templ.Attributes{"id":"edit-group-"+DOMKey(g.ID),"data-layout-select-group":g.ID,"aria-label":"Edit group "+g.Label,"aria-pressed":f.SelectedGroup==g.ID&&f.SelectedItem==""})) { {g.Label} @LayoutIcon(heroicons.Icon16SolidPencilSquare) }
+   </h3>
+  </div>
+  <details data-editor-collapse={g.ID} open?={!g.InitiallyCollapsed||f.SelectedGroup==g.ID}>
+   <summary aria-label={"Items in "+g.Label}>{g.activeCountLabel()}</summary>
+   <div class="balemoh-layout-group-body">
+    @layout.Container(f.itemsContainer(g))
+    if g.activeCount()==0 {
+ <p class="balemoh-layout-empty-copy">Drop items here</p>
+ }
+   </div>
   </details>
  </section>
 }
 
 templ LayoutPreviewItem(f LayoutFrame,m EditorMember) {
- <div>
-  @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithSize(button.SizeSmall),button.WithAttrs(templ.Attributes{"id":"edit-item-"+DOMKey(m.ID),"data-layout-select-item":m.ID,"aria-pressed":f.SelectedItem==m.ID})) {
-   <span>{"Edit item "+m.Label}</span>
-  }
-  if f.SelectedItem==m.ID {
-   <div id="layout-selected-movement" class="balemoh-layout-item-movement">@LayoutItemMovement(f)</div>
-  }
+ <div class="balemoh-layout-preview-item">
+  @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithRootClass("balemoh-layout-item-select"),button.WithAttrs(templ.Attributes{"id":"edit-item-"+DOMKey(m.ID),"data-layout-select-item":m.ID,"aria-label":"Edit item "+m.Label,"aria-pressed":f.SelectedItem==m.ID,"title":"Edit "+m.Label})) { @LayoutIcon(heroicons.Icon16SolidPencilSquare) }
   @WidgetContent(m.Widget)
  </div>
 }
@@ -113,7 +114,7 @@ templ LayoutCreateDialog() {
   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-regenerate","data-layout-action":"regenerate","hidden":true})) {
    Generate another ID
   }
-  @form.FieldGroup(form.FieldGroupConfig{ID:"layout-create-title-field",Label:"Group title",Required:true,Input:&textinput.Config{ID:"layout-create-title",Name:"title",MaxLength:80}})
+  @form.FieldGroup(form.FieldGroupConfig{ID:"layout-create-title-field",Label:"Group title",Required:true,Input:&textinput.Config{ID:"layout-create-title",Name:"title",MaxLength:80,InputAttrs:templ.Attributes{"autofocus":true}}})
   @button.Button(button.WithType("submit")) {
    Create group
   }
@@ -162,76 +163,93 @@ templ LayoutLiveWidgets(widgets []Widget) {
 }
 
 templ LayoutInspector(f LayoutFrame) {
+ @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-layout-back-preview"),button.WithAttrs(templ.Attributes{"data-layout-action":"back-preview"})) { @LayoutIcon(heroicons.Icon16SolidChevronLeft) Back to preview }
+ <h2 id="layout-inspector-heading" tabindex="-1">{f.selectionLabel()}</h2>
  if f.SelectedItem!="" {
+  <p class="balemoh-layout-context">Item settings</p>
   @LayoutItemInspector(f)
- }
-
-   @form.Section(form.SectionConfig{Title:"Selected group",Columns:"1"}) {
-    @form.FieldGroup(form.FieldGroupConfig{ID:"layout-group-choice-field",Select:&selectfield.Config{ID:"layout-group-choice",Label:"Group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-action":"select-group","data-layout-structural":""}}})
-    {{g:=f.group();key:="layout-group-"+DOMKey(g.ID)}}
-    <div data-layout-group-fields-owner={g.ID} class="balemoh-layout-group-fields">
-    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-title-field",Label:"Group title",Required:true,Input:&textinput.Config{ID:key+"-title",Value:g.Title,MaxLength:80,InputAttrs:templ.Attributes{"data-layout-field":"/group/title"}}})
-    for _,field:=range geometryChoice(key,"/group/layout",g.Arrangement) {
-     @form.FieldGroup(field)
-    }
-    @form.FieldGroup(choice(key+"-order","Item order",g.Order,[]string{"alphabetical","custom"},templ.Attributes{"data-layout-action":"item-order","data-layout-structural":""}))
-    @form.FieldGroup(choice(key+"-span","Group width",g.Span,[]string{"auto","full"},templ.Attributes{"data-layout-field":"/group/span","data-layout-span":""}))
+ } else {
+  <p class="balemoh-layout-context">Group settings</p>
+  {{g:=f.group();key:="layout-group-"+DOMKey(g.ID)}}
+  <div data-layout-group-fields-owner={g.ID} class="balemoh-layout-group-fields">
+   @form.FieldGroup(form.FieldGroupConfig{ID:key+"-title-field",Label:"Name",Required:true,Input:&textinput.Config{ID:key+"-title",Value:g.Title,MaxLength:80,InputAttrs:templ.Attributes{"data-layout-field":"/group/title"}}})
+   @LayoutGeometry(key,"/group/layout",g.Arrangement)
+   @form.FieldGroup(choice(key+"-order","Item order",g.Order,[]string{"alphabetical","custom"},templ.Attributes{"data-layout-action":"item-order","data-layout-structural":""}))
+   <div class="balemoh-layout-actions balemoh-layout-order-actions">@LayoutAction("group-earlier","Move group earlier") @LayoutAction("group-later","Move group later")</div>
+   <details data-layout-panel={"group-advanced-"+g.ID} class="balemoh-layout-disclosure"><summary>More group options</summary>
+    @form.FieldGroup(choice(key+"-span","Width on the page",g.Span,[]string{"auto","full"},templ.Attributes{"data-layout-field":"/group/span","data-layout-span":""}))
     if f.Page.Type=="stack" {
-     <p>Group width has no effect while the page uses Stack.</p>
-    }
-    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-heading-field",Checkbox:&checkbox.Config{ID:key+"-heading",Label:"Show heading",Checked:g.ShowHeading,InputAttrs:templ.Attributes{"data-layout-field":"/group/showHeading"}}})
-    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-collapsed-field",Checkbox:&checkbox.Config{ID:key+"-collapsed",Label:"Start collapsed",Checked:g.InitiallyCollapsed,InputAttrs:templ.Attributes{"data-layout-field":"/group/initiallyCollapsed"}}})
-    <div class="balemoh-layout-actions">
-     @LayoutAction("group-earlier","Move group earlier")
-     @LayoutAction("group-later","Move group later")
-     @LayoutAction("delete","Delete group")
-    </div>
-    <details><summary>Identity</summary><code>{g.ID}</code></details>
-    </div>
-   }
- if f.SelectedItem=="" {
-  @LayoutItemInspector(f)
+ <p class="balemoh-layout-hint">Width applies to Grid and Masonry pages.</p>
  }
-   @form.Section(form.SectionConfig{Title:"Default groups",Columns:"1"}) {
-    for _,kind:=range []string{"host","service","other"} {
-     @form.FieldGroup(form.FieldGroupConfig{ID:"layout-default-"+kind+"-field",Select:&selectfield.Config{ID:"layout-default-"+kind,Label:kind+" items",Options:f.groupOptions(f.SourceGroups[kind]),InputAttrs:templ.Attributes{"data-layout-field":"/sourceGroups/"+kind,"data-layout-structural":""}}})
+    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-heading-field",Checkbox:&checkbox.Config{ID:key+"-heading",Label:"Show heading on homepage",Checked:g.ShowHeading,InputAttrs:templ.Attributes{"data-layout-field":"/group/showHeading"}}})
+    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-collapsed-field",Checkbox:&checkbox.Config{ID:key+"-collapsed",Label:"Start collapsed on homepage",Checked:g.InitiallyCollapsed,InputAttrs:templ.Attributes{"data-layout-field":"/group/initiallyCollapsed"}}})
+    if g.dormantCount()>0 {
+     <details class="balemoh-layout-disclosure"><summary>{g.dormantCountLabel()}</summary>
+      for _,m:=range g.Members {
+ if m.State=="dormant" {
+       @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"id":"edit-item-"+DOMKey(m.ID),"data-layout-select-item":m.ID,"data-layout-item-group":g.ID})) { {m.Label} }
+      }
+ }
+     </details>
     }
-   }
-
+    <details><summary>Group ID</summary><code>{g.ID}</code></details>
+    @LayoutAction("delete","Delete group")
+   </details>
+  </div>
+  <details data-layout-panel="group-picker" class="balemoh-layout-disclosure"><summary>Choose another group</summary>
+   @form.FieldGroup(form.FieldGroupConfig{ID:"layout-group-choice-field",Select:&selectfield.Config{ID:"layout-group-choice",Label:"Group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-action":"select-group","data-layout-structural":""}}})
+  </details>
+ }
 }
 
-templ LayoutPreview(f LayoutFrame) {
- @layout.Container(f.previewContainer())
-}
+templ LayoutPreview(f LayoutFrame) { @layout.Container(f.previewContainer()) }
 
 templ LayoutPageArrangement(f LayoutFrame) {
-   @form.Section(form.SectionConfig{Title:"Page arrangement",Columns:"1"}) {
-    <div class="balemoh-layout-page-fields">
-    @form.FieldGroup(choice("layout-width","Page width",f.Width,[]string{"full","contained"},templ.Attributes{"data-layout-field":"/homepage/width"}))
-    for _,field:=range geometryChoice("layout-page","/homepage/layout",f.Page) {
-     @form.FieldGroup(field)
-    }
-    @form.FieldGroup(choice("layout-page-order","Group order",f.PageOrder,[]string{"alphabetical","custom"},templ.Attributes{"data-layout-action":"page-order","data-layout-structural":""}))
-    </div>
-    <div class="balemoh-layout-page-footer">
-    @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-create","data-layout-action":"create","data-layout-structural":""})) {
-     Create group
-    }
-    <p data-layout-capacity>{layoutCapacity(f)}</p>
-    </div>
-   }
+ <div class="balemoh-layout-toolbar">
+  @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-create","data-layout-action":"create","data-layout-structural":""})) { @LayoutIcon(heroicons.Icon16SolidPlus) Create group }
+  <p>Drag to arrange. Select a group name or an item's pencil to edit.</p>
+  @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-layout-settings-shortcut"),button.WithAttrs(templ.Attributes{"data-layout-action":"focus-settings"})) { Selection settings }
+ </div>
+ <details data-layout-panel="page-settings" class="balemoh-layout-page-settings"><summary>@LayoutIcon(heroicons.Icon16SolidCog6Tooth) Page settings <span>{layoutModeLabel(f.Page.Type)+" · "+f.widthLabel()}</span><span class="balemoh-layout-page-chevron">@LayoutIcon(heroicons.Icon16SolidChevronDown)</span></summary>
+  <div class="balemoh-layout-page-fields">
+   @form.FieldGroup(choice("layout-width","Page width",f.Width,[]string{"full","contained"},templ.Attributes{"data-layout-field":"/homepage/width"}))
+   @LayoutGeometry("layout-page","/homepage/layout",f.Page)
+   @form.FieldGroup(choice("layout-page-order","Group order",f.PageOrder,[]string{"alphabetical","custom"},templ.Attributes{"data-layout-action":"page-order","data-layout-structural":""}))
+  </div>
+  <details data-layout-panel="defaults" class="balemoh-layout-disclosure"><summary>Default groups for new items</summary>
+   <p class="balemoh-layout-hint">Choose where newly selected items appear. Items you moved keep their group.</p>
+   <div class="balemoh-layout-default-fields">
+    for _,kind:=range []string{"host","service","other"} {
+ @form.FieldGroup(form.FieldGroupConfig{ID:"layout-default-"+kind+"-field",Select:&selectfield.Config{ID:"layout-default-"+kind,Label:sourceGroupLabel(kind),Options:f.groupOptions(f.SourceGroups[kind]),InputAttrs:templ.Attributes{"data-layout-field":"/sourceGroups/"+kind,"data-layout-structural":""}}})
+ }
+   </div>
+  </details>
+  <details data-layout-panel="capacity" class="balemoh-layout-disclosure"><summary>Layout limits</summary><p data-layout-capacity>{layoutCapacity(f)}</p></details>
+ </details>
+}
 
+templ LayoutGeometry(prefix,path string,a Arrangement) {
+ <fieldset id={prefix+"-mode"} tabindex="-1" class="balemoh-layout-mode"><legend>Layout</legend>
+  @radio.RadioBar() {
+   for _,mode:=range []string{"stack","grid","masonry"} {
+    @radio.Radio(radio.Config{ID:prefix+"-mode-"+mode,Name:prefix+"-mode",Value:mode,Label:layoutModeLabel(mode),Checked:a.Type==mode,Segmented:true,RootClass:"balemoh-layout-mode-option",InputAttrs:templ.Attributes{"data-layout-field":path+"/type","data-layout-focus":prefix+"-mode"}})
+   }
+  }
+ </fieldset>
+ <div class="balemoh-layout-geometry-fields">
+  if a.Type!="stack" {
+ @form.FieldGroup(choice(prefix+"-columns","Columns",strconv.Itoa(a.Columns),[]string{"1","2","3","4"},templ.Attributes{"data-layout-field":path+"/columns","data-layout-number":""}))
+ }
+  @form.FieldGroup(choice(prefix+"-gap","Spacing",strconv.Itoa(a.GapPx),[]string{"12","16","24"},templ.Attributes{"data-layout-field":path+"/gapPx","data-layout-number":""}))
+ </div>
 }
 
 templ LayoutItemInspector(f LayoutFrame) {
-   @form.Section(form.SectionConfig{Title:"Selected item",Columns:"1"}) {
-    @form.FieldGroup(form.FieldGroupConfig{ID:"layout-item-choice-field",Select:&selectfield.Config{ID:"layout-item-choice",Label:"Item",Options:f.itemOptions(),InputAttrs:templ.Attributes{"data-layout-action":"select-item","data-layout-structural":""}}})
-    if f.selectedItemDormant() {
-     <div id="layout-selected-movement">@LayoutItemMovement(f)</div>
-    }
-
-   }
-
+ @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"id":"layout-action-parent-group","data-layout-structural":"","data-layout-select-group":f.SelectedGroup,"aria-label":"Edit group "+f.group().Label})) { @LayoutIcon(heroicons.Icon16SolidChevronLeft) <span>{f.group().Label}</span> }
+ <div id="layout-selected-movement">@LayoutItemMovement(f)</div>
+ <details data-layout-panel="item-picker" class="balemoh-layout-disclosure"><summary>Choose another item</summary>
+  @form.FieldGroup(form.FieldGroupConfig{ID:"layout-item-choice-field",Select:&selectfield.Config{ID:"layout-item-choice",Label:"Item",Options:f.itemOptions(),InputAttrs:templ.Attributes{"data-layout-action":"select-item","data-layout-structural":""}}})
+ </details>
 }
 
 templ LayoutComparison(rows []LayoutComparisonRow) {
@@ -244,12 +262,11 @@ templ LayoutComparison(rows []LayoutComparisonRow) {
 }
 
 templ LayoutItemMovement(f LayoutFrame) {
- <p>Selected items stay visible while editing. Start collapsed applies on the homepage.</p>
-    @form.FieldGroup(form.FieldGroupConfig{ID:"layout-destination-field",Select:&selectfield.Config{ID:"layout-destination",Label:"Destination group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-destination":"","data-layout-structural":""}}})
-    <div class="balemoh-layout-actions">
-     @LayoutAction("move-item","Move item to group")
-     @LayoutAction("item-earlier","Move item earlier")
-     @LayoutAction("item-later","Move item later")
-    </div>
-    <p>Drag or use the named movement controls. Dormant items keep their saved position.</p>
+ @form.FieldGroup(form.FieldGroupConfig{ID:"layout-destination-field",Select:&selectfield.Config{ID:"layout-destination",Label:"Move to group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-destination":"","data-layout-structural":""}}})
+ @LayoutAction("move-item","Move item to group")
+ <div class="balemoh-layout-actions balemoh-layout-order-actions">@LayoutAction("item-earlier","Move item earlier") @LayoutAction("item-later","Move item later")</div>
+ <p class="balemoh-layout-hint">Earlier and Later set a manual order. Reset to alphabetical in group settings.</p>
+ if f.selectedItemDormant() {
+ <p class="balemoh-layout-hint">This item is not currently on the homepage. Its saved group and position are retained.</p>
+ }
 }

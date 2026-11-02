@@ -65,38 +65,36 @@ func (f LayoutFrame) targetsJSON() string { b, _ := json.Marshal(f.Targets); ret
 func choice(id, label, value string, options []string, attrs templ.Attributes) form.FieldGroupConfig {
 	choices := []selectfield.Option{}
 	for _, v := range options {
-		choices = append(choices, selectfield.Option{Value: v, Label: v, Selected: v == value})
+		choices = append(choices, selectfield.Option{Value: v, Label: layoutChoiceLabel(v), Selected: v == value})
 	}
 	field := form.FieldGroupConfig{ID: id + "-field", Select: &selectfield.Config{ID: id, Label: label, Options: choices, InputAttrs: attrs}}
 	field.Select.InputAttrs["data-layout-focus"] = field.FocusTargetID()
 	return field
 }
-func geometryChoice(prefix, path string, a Arrangement) []form.FieldGroupConfig {
-	return []form.FieldGroupConfig{
-		choice(prefix+"-type", "Arrangement", a.Type, []string{"stack", "grid", "masonry"}, templ.Attributes{"data-layout-field": path + "/type"}),
-		choice(prefix+"-columns", "Maximum columns", strconv.Itoa(a.Columns), []string{"1", "2", "3", "4"}, templ.Attributes{"data-layout-field": path + "/columns", "data-layout-number": ""}),
-		choice(prefix+"-gap", "Spacing", strconv.Itoa(a.GapPx), []string{"12", "16", "24"}, templ.Attributes{"data-layout-field": path + "/gapPx", "data-layout-number": ""}),
-	}
-}
 func (f LayoutFrame) previewContainer() layout.Config {
 	c := geometry("layout-editor-groups", "Homepage groups", f.Page)
 	c.Reorder = &layout.ReorderConfig{Group: "balemoh-layout-groups"}
+	c.RootClass = "balemoh-layout-canvas"
 	for _, g := range f.Groups {
 		attrs := templ.Attributes{"id": "editor-group-" + DOMKey(g.ID), "data-editor-group": g.ID}
-		if f.SelectedGroup == g.ID {
+		if f.SelectedGroup == g.ID && f.SelectedItem == "" {
 			attrs["aria-current"] = "true"
 		}
 		span := layout.SpanAuto
 		if g.Span == "full" {
 			span = layout.SpanFullWidth
 		}
-		c.Items = append(c.Items, layout.Item{ID: g.ID, Label: g.Label, Span: span, Content: LayoutPreviewGroup(f, g), RootAttrs: attrs})
+		c.Items = append(c.Items, layout.Item{ID: g.ID, Label: g.Label, Span: span, Content: LayoutPreviewGroup(f, g), RootClass: "balemoh-layout-group", RootAttrs: attrs})
 	}
 	return c
 }
 func (f LayoutFrame) itemsContainer(g EditorGroup) layout.Config {
 	c := geometry("editor-items-"+DOMKey(g.ID), g.Label, g.Arrangement)
 	c.Reorder = &layout.ReorderConfig{Group: "balemoh-layout-items"}
+	c.RootClass = "balemoh-layout-group-items"
+	if g.activeCount() == 0 {
+		c.RootClass += " balemoh-layout-empty-target"
+	}
 	for _, m := range g.Members {
 		if m.State != "active" {
 			continue
@@ -105,7 +103,7 @@ func (f LayoutFrame) itemsContainer(g EditorGroup) layout.Config {
 		if f.SelectedItem == m.ID {
 			attrs["aria-current"] = "true"
 		}
-		c.Items = append(c.Items, layout.Item{ID: m.ID, Label: m.Label, Content: LayoutPreviewItem(f, m), RootAttrs: attrs})
+		c.Items = append(c.Items, layout.Item{ID: m.ID, Label: m.Label, Content: LayoutPreviewItem(f, m), RootClass: "balemoh-layout-item", RootAttrs: attrs})
 	}
 	return c
 }
@@ -161,4 +159,78 @@ func (f LayoutFrame) selectedActiveGroup(id string) bool {
 		}
 	}
 	return false
+}
+
+func layoutModeLabel(value string) string {
+	switch value {
+	case "stack":
+		return "List"
+	case "masonry":
+		return "Masonry"
+	default:
+		return "Grid"
+	}
+}
+func layoutChoiceLabel(value string) string {
+	switch value {
+	case "full":
+		return "Full width"
+	case "contained":
+		return "Centered"
+	case "auto":
+		return "Fit column"
+	case "alphabetical":
+		return "Alphabetical"
+	case "custom":
+		return "Manual"
+	case "12":
+		return "Tight"
+	case "16":
+		return "Normal"
+	case "24":
+		return "Wide"
+	default:
+		return value
+	}
+}
+func sourceGroupLabel(kind string) string {
+	switch kind {
+	case "host":
+		return "Hosts"
+	case "service":
+		return "Services"
+	default:
+		return "Widgets and other items"
+	}
+}
+func (f LayoutFrame) widthLabel() string { return layoutChoiceLabel(f.Width) }
+func (f LayoutFrame) selectionLabel() string {
+	for _, g := range f.Groups {
+		for _, m := range g.Members {
+			if m.ID == f.SelectedItem {
+				return m.Label
+			}
+		}
+	}
+	return f.group().Label
+}
+func (g EditorGroup) activeCount() int {
+	n := 0
+	for _, m := range g.Members {
+		if m.State == "active" {
+			n++
+		}
+	}
+	return n
+}
+func (g EditorGroup) activeCountLabel() string {
+	if n := g.activeCount(); n == 1 {
+		return "1 item"
+	} else {
+		return strconv.Itoa(n) + " items"
+	}
+}
+func (g EditorGroup) dormantCount() int { return len(g.Members) - g.activeCount() }
+func (g EditorGroup) dormantCountLabel() string {
+	return strconv.Itoa(g.dormantCount()) + " items not on homepage"
 }
