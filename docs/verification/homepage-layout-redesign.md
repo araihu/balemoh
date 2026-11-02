@@ -119,3 +119,51 @@ clean with Save disabled. Held-gesture evidence is retained outside Git.
 Current-head CI is tracked on the PRs. No merge, release or production rollout
 is included. Physical pen/touch, real screen readers and Firefox/WebKit remain
 unchecked. The temporary pin still requires an upstream release before merge.
+
+## Settings drawer and numeric ordering follow-up
+
+The limits documentation panel is removed. The preview uses the full content
+width, and Settings or an explicit entity edit opens a left Drawer below the
+shell header. Public Tabs separate Page, Group and Item forms. Public Radio
+leading slots pair layout icons with labels. Numeric Group position and Position
+in group fields replace Earlier/Later buttons. Complete sibling IDs, including
+dormant members, use the existing custom-order API document. No schema changes.
+
+The user chose a drawer that starts closed and opens on demand. Public Goshtoso
+Drawer, Tabs, Radio, TextInput and Form components own the controls. Preview
+refreshes retain tab context. Invalid numeric proposals reset locally with an
+alert, preserve the accepted draft and cannot block another valid Save. Recovery
+states close the drawer and focus visible error/status with Retry available.
+Error links reopen the matching tab. Dormant/removed controls return focus to a
+visible group or Settings action. Capacity hints appear only when an operation
+is unavailable. The general limits panel stays absent.
+
+Independent review accepted frozen runtime `235f767285407c5340b412afe0f242de4aa23878`
+after fixes for hidden invalid scratch values, trapped recovery, dormant focus
+fallback, focus changes during awaited swaps, and inaccurate capacity advice.
+Final cleanup removes an unused width-label helper and obsolete inspector style.
+
+Validation passed with the pinned module and `GOWORK=off`: 36 model cases, full
+UI race suite, vet, build and regenerated templ. The Impeccable detector reported
+only existing design-token advisories. Standalone
+full golangci-lint also reports existing repository debt; the scoped diff check
+is recorded separately. Browser evidence remains the usability gate.
+
+Native browser checks cover numeric group/item movement, invalid range handling,
+Page/Group/Item navigation, layout mode independence, modal Cancel, Escape focus
+return and a retained dormant item. A stopped isolated API proved that failure
+closes the drawer, reveals Retry and focuses the visible error. Restart and Retry
+retained the exact edited group name. The test draft was then discarded.
+
+An isolated API on 8880 was cloned from the original synthetic 8480 database. One
+UI Save advanced layout revision 33 to 34 with the exact numeric group/item order;
+API readback and reload confirmed it. Test selection changes and the saved QA
+layout were restored afterward, leaving the clone at revision 35 with the initial
+document. Original 8480 remained unchanged at revision 33, and the original 8681
+editor's unsaved draft was not reloaded or discarded. New preview uses port 8781.
+
+The screenshot matrix covers Goshtoso and Minimal, light/dark, 1440px and 390px;
+an additional check uses the user's 1404px width. Drawer bounds are positive and
+start at y=64, with no horizontal overflow or duplicate IDs. Screenshots and
+measurements are retained outside Git. Physical pen/touch, real screen readers
+and Firefox/WebKit remain untested. No release or production deployment.

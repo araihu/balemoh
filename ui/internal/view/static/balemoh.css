@@ -444,7 +444,6 @@ body {
 .balemoh-layout-settings-drawer > header button { min-height:2.75rem; min-width:2.75rem; }
 .balemoh-layout-settings-title { margin:0 0 1rem; font-size:1.125rem; font-weight:600; overflow-wrap:anywhere; }
 .balemoh-layout-inspector [role=tab] { min-height:2.75rem; }
-.balemoh-layout-inspector h2 { font-size:1.125rem; font-weight:600; margin:0; overflow-wrap:anywhere; }
 .balemoh-layout-group-fields { display:grid; gap:1rem; }
 .balemoh-layout-mode { border:0; padding:0; margin:0; min-width:0; }
 .balemoh-layout-mode-choices { display:grid; }

@@ -209,7 +209,6 @@ func sourceGroupLabel(kind string) string {
 		return "Widgets and other items"
 	}
 }
-func (f LayoutFrame) widthLabel() string { return layoutChoiceLabel(f.Width) }
 func (f LayoutFrame) selectionLabel() string {
 	for _, g := range f.Groups {
 		for _, m := range g.Members {
