@@ -1199,7 +1199,7 @@ func LayoutGroupInspector(f LayoutFrame) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "<p data-layout-order-unavailable class=\"balemoh-layout-hint\" hidden>Custom ordering is unavailable here. Reset another group to alphabetical or use a smaller group.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "<p data-layout-order-unavailable class=\"balemoh-layout-hint\" hidden>This order exceeds editor capacity. Try a smaller group.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1873,7 +1873,7 @@ func LayoutItemMovement(f LayoutFrame) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<p data-layout-move-unavailable class=\"balemoh-layout-hint\" hidden>Moving here is unavailable. Reset another group to alphabetical to make room.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<p data-layout-move-unavailable class=\"balemoh-layout-hint\" hidden>Moving here would exceed editor capacity. Choose another group.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1881,7 +1881,7 @@ func LayoutItemMovement(f LayoutFrame) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, "<p data-layout-order-unavailable class=\"balemoh-layout-hint\" hidden>Custom ordering is unavailable here. Reset another group to alphabetical or use a smaller group.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, "<p data-layout-order-unavailable class=\"balemoh-layout-hint\" hidden>This order exceeds editor capacity. Try a smaller group.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

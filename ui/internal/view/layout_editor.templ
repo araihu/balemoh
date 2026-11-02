@@ -176,7 +176,7 @@ templ LayoutGroupInspector(f LayoutFrame) {
    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-title-field",Label:"Name",Required:true,Input:&textinput.Config{ID:key+"-title",Value:g.Title,MaxLength:80,InputAttrs:templ.Attributes{"data-layout-field":"/group/title"}}})
    @LayoutGeometry(key,"/group/layout",g.Arrangement)
    @form.FieldGroup(choice(key+"-order","Item order",g.Order,[]string{"alphabetical","custom"},templ.Attributes{"data-layout-action":"item-order","data-layout-structural":""}))
-   <p data-layout-order-unavailable class="balemoh-layout-hint" hidden>Custom ordering is unavailable here. Reset another group to alphabetical or use a smaller group.</p>
+   <p data-layout-order-unavailable class="balemoh-layout-hint" hidden>This order exceeds editor capacity. Try a smaller group.</p>
    @LayoutPosition("group",f.groupPosition(),len(f.Groups))
    <details data-layout-panel={"group-advanced-"+g.ID} class="balemoh-layout-disclosure"><summary>More group options</summary>
     @form.FieldGroup(choice(key+"-span","Width on the page",g.Span,[]string{"auto","full"},templ.Attributes{"data-layout-field":"/group/span","data-layout-span":""}))
@@ -299,9 +299,9 @@ templ LayoutComparison(rows []LayoutComparisonRow) {
 templ LayoutItemMovement(f LayoutFrame) {
  @form.FieldGroup(form.FieldGroupConfig{ID:"layout-destination-field",Select:&selectfield.Config{ID:"layout-destination",Label:"Move to group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-destination":"","data-layout-structural":""}}})
  @LayoutAction("move-item","Move item to group")
- <p data-layout-move-unavailable class="balemoh-layout-hint" hidden>Moving here is unavailable. Reset another group to alphabetical to make room.</p>
+ <p data-layout-move-unavailable class="balemoh-layout-hint" hidden>Moving here would exceed editor capacity. Choose another group.</p>
  @LayoutPosition("item",f.itemPosition(),len(f.group().Members))
- <p data-layout-order-unavailable class="balemoh-layout-hint" hidden>Custom ordering is unavailable here. Reset another group to alphabetical or use a smaller group.</p>
+ <p data-layout-order-unavailable class="balemoh-layout-hint" hidden>This order exceeds editor capacity. Try a smaller group.</p>
  if f.selectedItemDormant() {
  <p class="balemoh-layout-hint">This item is not currently on the homepage. Its saved group and position are retained.</p>
  }
