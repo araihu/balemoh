@@ -25,7 +25,9 @@ The application uses Go, templ and Goshtoso components with existing themes.
 ## Confirmed editing preference
 
 The user selected a preview-first editor with contextual settings. Settings should
-follow the selected group or item. Advanced configuration must remain available.
+follow the selected group or item. Advanced configuration must remain available. On the layout editor page, clicks on
+card bodies must not navigate or trigger widget actions. Operators can press and
+drag any card body between groups without selecting it first.
 
 ## Evidence
 

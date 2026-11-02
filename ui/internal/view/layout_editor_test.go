@@ -8,7 +8,7 @@ import (
 )
 
 func TestLayoutPreviewFirstKeepsMovementInOneContextualInspector(t *testing.T) {
-	frame := LayoutFrame{Width: "full", Page: Arrangement{Type: "grid", Columns: 2, GapPx: 16}, PageOrder: "alphabetical", SelectedGroup: "builtin:widgets", SelectedItem: "plugin-a", SourceGroups: map[string]string{"host": "builtin:widgets", "service": "builtin:widgets", "other": "builtin:widgets"}, Groups: []EditorGroup{{ID: "builtin:widgets", Label: "Mixed", Title: "Mixed", Span: "auto", Order: "alphabetical", Arrangement: Arrangement{Type: "masonry", Columns: 2, GapPx: 16}, ShowHeading: true, Members: []EditorMember{{ID: "plugin-a", Label: "Plain plugin", State: "active", Widget: Widget{ID: "plugin-a", Content: templ.Raw("<aside>Arbitrary plugin content</aside>")}}, {ID: "host-inactive", Label: "Inactive host", State: "dormant"}}}}}
+	frame := LayoutFrame{Width: "full", Page: Arrangement{Type: "grid", Columns: 2, GapPx: 16}, PageOrder: "alphabetical", SelectedGroup: "builtin:widgets", SelectedItem: "plugin-a", SourceGroups: map[string]string{"host": "builtin:widgets", "service": "builtin:widgets", "other": "builtin:widgets"}, Groups: []EditorGroup{{ID: "builtin:widgets", Label: "Mixed", Title: "Mixed", Span: "auto", Order: "alphabetical", Arrangement: Arrangement{Type: "masonry", Columns: 2, GapPx: 16}, ShowHeading: true, Members: []EditorMember{{ID: "plugin-a", Label: "Plain plugin", State: "active", Widget: Widget{ID: "plugin-a", Content: templ.Raw(`<aside><a href="/plugins/example">Arbitrary plugin content</a><button type="button">Widget action</button></aside>`)}}, {ID: "host-inactive", Label: "Inactive host", State: "dormant"}}}}}
 	render := func() string {
 		t.Helper()
 		var b bytes.Buffer
@@ -21,6 +21,13 @@ func TestLayoutPreviewFirstKeepsMovementInOneContextualInspector(t *testing.T) {
 	if strings.Count(active, `id="layout-selected-movement"`) != 1 || !strings.Contains(active, "Arbitrary plugin content") {
 		t.Fatal("selected movement missing or duplicated")
 	}
+	if !strings.Contains(active, `<div data-layout-preview-content inert>`) || strings.Count(active, `data-layout-content-drag="true"`) != 1 {
+		t.Fatal("card bodies must be inactive and draggable independently of outer groups")
+	}
+	if strings.Index(active, `data-layout-select-item`) > strings.Index(active, `data-layout-preview-content inert`) {
+		t.Fatal("item settings button must stay outside inactive card content")
+	}
+
 	inspectorAt := strings.Index(active, `id="layout-editor-inspector"`)
 	previewAt := strings.Index(active, `class="balemoh-layout-preview-column"`)
 	movementAt := strings.Index(active, `id="layout-selected-movement"`)

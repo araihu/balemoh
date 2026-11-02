@@ -92,7 +92,7 @@ templ LayoutPreviewGroup(f LayoutFrame,g EditorGroup) {
   <details data-editor-collapse={g.ID} open?={!g.InitiallyCollapsed||f.SelectedGroup==g.ID}>
    <summary aria-label={"Items in "+g.Label}>{g.activeCountLabel()}</summary>
    <div class="balemoh-layout-group-body">
-    @layout.Container(f.itemsContainer(g))
+    @layout.Container(f.itemsContainer(g)).WithContentDrag(true)
     if g.activeCount()==0 {
  <p class="balemoh-layout-empty-copy">Drop items here</p>
  }
@@ -104,7 +104,7 @@ templ LayoutPreviewGroup(f LayoutFrame,g EditorGroup) {
 templ LayoutPreviewItem(f LayoutFrame,m EditorMember) {
  <div class="balemoh-layout-preview-item">
   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithRootClass("balemoh-layout-item-select"),button.WithAttrs(templ.Attributes{"id":"edit-item-"+DOMKey(m.ID),"data-layout-select-item":m.ID,"aria-label":"Edit item "+m.Label,"aria-pressed":f.SelectedItem==m.ID,"title":"Edit "+m.Label})) { @LayoutIcon(heroicons.Icon16SolidPencilSquare) }
-  @WidgetContent(m.Widget)
+  <div data-layout-preview-content inert>@WidgetContent(m.Widget)</div>
  </div>
 }
 
@@ -207,7 +207,7 @@ templ LayoutPreview(f LayoutFrame) { @layout.Container(f.previewContainer()) }
 templ LayoutPageArrangement(f LayoutFrame) {
  <div class="balemoh-layout-toolbar">
   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-create","data-layout-action":"create","data-layout-structural":""})) { @LayoutIcon(heroicons.Icon16SolidPlus) Create group }
-  <p>Drag to arrange. Select a group name or an item's pencil to edit.</p>
+  <p>Drag any card between groups. Card actions are disabled while editing.</p>
   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithRootClass("balemoh-layout-settings-shortcut"),button.WithAttrs(templ.Attributes{"data-layout-action":"focus-settings"})) { Selection settings }
  </div>
  <details data-layout-panel="page-settings" class="balemoh-layout-page-settings"><summary>@LayoutIcon(heroicons.Icon16SolidCog6Tooth) Page settings <span>{layoutModeLabel(f.Page.Type)+" · "+f.widthLabel()}</span><span class="balemoh-layout-page-chevron">@LayoutIcon(heroicons.Icon16SolidChevronDown)</span></summary>

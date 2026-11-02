@@ -9,7 +9,9 @@ not establish usability.
 The user chose preview-first editing with contextual settings. The replacement
 uses one dominant preview, a persistent Save/status bar and one contextual inspector.
 Page options, default assignments, limits and IDs use progressive disclosure.
-Widget selection remains separate from its existing links and interactive content.
+Widget selection remains separate from its existing content. Following the user's
+subsequent interaction request, editor card bodies are inactive and support direct
+mouse/pen dragging. Normal homepage actions remain available.
 
 ## Component decisions
 
@@ -60,3 +62,29 @@ the sticky editor header. The bar now offsets that 1.5rem scroll-root padding. A
 390px deep-scroll capture places both the scroll root and bar at y=64px. The reviewer
 scored the replacement mobile and desktop views, found no visible regressions, and
 returned `disposition: ship`.
+
+## Direct card pickup follow-up
+
+The user requested inactive card clicks and direct press-and-drag between groups.
+The editor composes upstream `layout.Instance.WithContentDrag(true)` with an inert
+wrapper around arbitrary widget content. Pencils and public keyboard/touch movement
+handles remain outside that wrapper. Page and group settings keep their own actions.
+The upstream implementation and independent review precede this consumer change.
+The UI temporarily pins reviewed upstream commit `ebcaa29d9103` as
+`v0.5.1-0.20261102011108-ebcaa29d9103`, available through the Go module proxy.
+Balemoh remains a draft PR until upstream PR #364 is merged and a release replaces
+that temporary pin.
+
+Validation for this follow-up passes against the downloaded module with `GOWORK=off`:
+full UI race suite, vet and view/BFF tests. Native browser checks clicked host,
+service and plugin links without changing route or selection, then dragged their
+card bodies between groups, including an empty destination. Alt+Up still reordered
+the moved plugin. Saved API configuration remained identical at revision 31; QA
+draft changes were discarded. At 390px, contextual settings/back navigation retained
+visible focus and no horizontal overflow. All ten card bodies retained `inert`
+after preview morphs. Normal homepage rendering remains interactive.
+
+A separate consumer reviewer accepted the inert boundary, pencil/handle placement,
+OOB widget targets and temporary immutable pin with no blocking findings. Native
+pen hardware, physical touch and real screen-reader announcement sequences remain
+unchecked. Touch continues to use the existing public handles.

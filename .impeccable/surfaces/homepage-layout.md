@@ -14,7 +14,9 @@ Signature interaction: selecting a group or item updates one inspector without
 inserting form controls into the selected widget or changing its geometry.
 
 Page settings, default assignments, IDs and capacity information are secondary.
-Drag, keyboard and named movement remain. Existing widget links stay usable.
+Drag, keyboard and named movement remain. Card bodies are inactive in this editor;
+mouse or pen can drag them directly between groups. Clicks do not navigate or run
+widget actions. Item pencils and group names still open settings.
 Save, errors, conflict comparison, readback, discard and provisional ID recovery
 retain the reviewed state machine and API contract. One responsive DOM, stable IDs.
 

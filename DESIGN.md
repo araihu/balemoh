@@ -159,7 +159,7 @@ Reuse Goshtoso Badge for compact metadata. A medium badge uses 0.75rem type, 0.5
 
 ### Contextual editor
 
-The group title selects its group. Item edit controls appear on hover, focus-within and selection, and remain visible on devices without hover. Selection controls are separate from widget links. The inspector exposes basic settings first and advanced options in native disclosures. Empty groups retain a 4rem drop region. Summary focus and inspector heading focus use a 2px accent outline with 3px offset; headings and errors reserve 7rem scroll margin below sticky controls.
+The group title selects its group. Item edit controls appear on hover, focus-within and selection, and remain visible on devices without hover. Selection controls remain outside inactive widget bodies. Editor card bodies use native inert semantics, so clicks do not navigate or run actions; mouse or pen can drag the body directly. Public movement handles remain available for keyboard and touch. The inspector exposes basic settings first and advanced options in native disclosures. Empty groups retain a 4rem drop region. Summary focus and inspector heading focus use a 2px accent outline with 3px offset; headings and errors reserve 7rem scroll margin below sticky controls.
 
 Preview, dirty draft, save, conflict and uncertain result remain separate states. Preserve the draft and the available recovery actions when a request fails.
 
@@ -168,7 +168,7 @@ Preview, dirty draft, save, conflict and uncertain result remain separate states
 ### Do:
 
 - Do use Goshtoso components and their semantic light/dark token pairs.
-- Do keep widget links and arbitrary widget content usable while editing.
+- Do preserve arbitrary widget presentation while disabling body actions in the layout editor. Keep normal homepage links and actions usable.
 - Do keep focus, selection, disabled and error states distinguishable.
 - Do verify the homepage editor at 1440px, 1404px and 390px in both color modes.
 

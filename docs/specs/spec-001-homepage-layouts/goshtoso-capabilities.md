@@ -94,3 +94,15 @@ modal.Dialog. Inspector fragments replace their form controls when choices chang
 preview fragments morph stable library item roots. This avoids preserving stale
 Select choices while keeping widget content and movement identities stable.
 App-owned coordination uses public Layout events and native disabled fieldsets.
+
+### Direct card dragging follow-up
+
+User requested inactive card clicks and direct body pickup in the editor. Goshtoso
+PR #364 adds immutable `layout.Instance.WithContentDrag(true)` without changing
+public config structs or the default handle-only behavior. The UI composes that
+method with native inert widget-body wrappers. Settings pencils and movement
+handles remain active outside those wrappers; normal homepage content stays active.
+
+The UI temporarily selects reviewed commit `ebcaa29d9103` through the Go module
+proxy. The API module retains released v0.5.0. Replace the UI's temporary version
+with a release after the upstream PR merges. No local replacement is committed.

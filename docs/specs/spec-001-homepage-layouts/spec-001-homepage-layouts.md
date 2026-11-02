@@ -463,11 +463,16 @@ whole widget root. Every group header has `Edit group <displayLabel>` and every
 item's editor-only semantic content wrapper has `Edit item <displayLabel>`.
 Each is `button[type=button]` with aria-pressed=true exactly when its stable ID is
 selected, false otherwise, and a stable DOM control ID derived from the full ID.
-Pointer click, Enter and Space activate the same selection transition. The button
-retains focus; it does not automatically jump into an inspector field. Inspectors'
-labelled group/item Select controls perform the same ID-based transition. Existing
-links/forms inside content remain independent. These small editor decorations do
-not require Card markup and are absent from the normal homepage.
+Pointer click, Enter and Space activate the same selection transition. On desktop
+the button retains focus; mobile selection moves to the contextual inspector
+heading. Inspectors' labelled group/item Select controls perform the same ID-based
+transition. Editor widget bodies are inactive with native inert semantics: clicks
+do not navigate or trigger widget actions. Mouse/pen can press and drag a card body between
+groups without selecting it first, through Goshtoso `WithContentDrag(true)`. The
+settings buttons stay outside inactive content; keyboard and touch retain named
+handles and movement controls. These editor-only wrappers preserve natural content
+geometry and are absent from the normal homepage, where links and actions remain
+usable.
 
 Duplicate group titles are permitted, but every selector, preview heading and
 announcement uses one shared disambiguated display label. Within equal normalized
