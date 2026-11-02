@@ -433,3 +433,15 @@
   renders the same component under its preview, without copying cards or math.
 - Runtime layout checks also caught an unclosed app-owned 480px media query.
   Closing it restores desktop appearance styles, including the sticky preview.
+
+## Layout drag feedback, 2026-11-02
+
+- Card pickup needed a copy following the mouse and destination items moving aside.
+  Goshtoso owns pointer feedback, so this is implemented upstream in PR #364.
+  Balemoh uses the shared component without a second drag handler or placeholder.
+- A tall insertion gap after a full-width source item can push the next container
+  out from under the pointer. Upstream preserves the original hit bounds for that
+  source expansion case, while normal destination hit testing follows visible items.
+- Hover keeps original item identity and logical ordering. Only an accepted release
+  emits a move. Escape, veto, blur, resize and removal clean up temporary visuals;
+  reduced motion skips card shift animations. No new layout API setting is needed.

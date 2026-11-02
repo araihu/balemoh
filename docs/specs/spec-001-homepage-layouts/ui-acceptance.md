@@ -35,13 +35,13 @@ and layout come from the upstream prerequisite; raw prototype controls are not c
 | Duplicate group/item names | Select/move/reorder/delete | Disambiguated labels and one stable selected identity throughout | Preview, inspector and destination ID agreement | Same logical handle or documented removal fallback | 0 until Save |
 | Ready current preview | Activate explicit Edit group/Edit item button by Enter/Space/pointer | Same ID transition as inspector Select; aria-pressed and root aria-current agree | Inactive widget bodies, natural geometry and existing content | Desktop: initiating logical button; mobile or inspector selection: contextual heading | 0 |
 | Ready current preview | Click a card body or its service/plugin link | No navigation, widget action or selection transition | Editor route, exact draft and selection | Existing editor focus | 0 |
-| Ready current preview | Press and drag any card body into another group | Mouse/pen pickup without prior selection; same validated local move event as handle | Widget identity and natural geometry | Moved item's handle; no mobile settings jump | 0 until Save |
+| Ready current preview | Press and drag any card body into another group | Mouse/pen pickup without prior selection; ghost follows pointer, destination opens an insertion gap; one validated local move on release | Widget identity and natural geometry | Moved item's handle; no mobile settings jump | 0 until Save |
 | Clean or dirty draft | Change layout, name, heading or spacing | Local draft + bounded preview; no persist | Other group settings and selected item | Initiating field | 0 |
 | Alphabetical parent | Drag or earlier/later | Valid move sets Custom in that parent only | Identity, source, renderer | Logical handle/action, announced position | 0 until Save |
 | Custom parent | Reset alphabetical | Local draft shows canonical name order | Membership, renderers, other parents | Reset/mode control | 0 until Save |
 | Any group | Move selected item to named destination | Atomic draft membership update | Source identity and presentation | Item movement control, destination announced | 0 until Save |
 | Empty/collapsed destination | Move item there | Same valid movement without opening content first | Other collapse states | Item control or destination heading if needed | 0 until Save |
-| Drag in progress | Escape / target removed | Cancel provisional movement | Complete pre-pickup order/membership | Original handle, or named group fallback | 0 |
+| Drag in progress | Escape / target removed / window blur or resize | Cancel provisional movement and remove ghost/gap | Complete pre-pickup order/membership | Original handle, or named group fallback | 0 |
 | Configured group | Rename | ID stable; alphabetical position can change | Item references/default mappings | Name control | 0 until Save |
 | Nonempty/default-mapped group | Delete | Dialog requires destination; one draft replacement rehomes members/defaults | Widget identities and source state | Destination group heading | 0 until Save |
 | Delete dialog | Cancel / Escape | No draft mutation | Exact draft and selection | Delete trigger | 0 |

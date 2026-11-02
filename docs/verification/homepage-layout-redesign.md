@@ -70,8 +70,8 @@ The editor composes upstream `layout.Instance.WithContentDrag(true)` with an ine
 wrapper around arbitrary widget content. Pencils and public keyboard/touch movement
 handles remain outside that wrapper. Page and group settings keep their own actions.
 The upstream implementation and independent review precede this consumer change.
-The UI temporarily pins reviewed upstream commit `ebcaa29d9103` as
-`v0.5.1-0.20261102011108-ebcaa29d9103`, available through the Go module proxy.
+The UI temporarily pins reviewed upstream commit `a8c72cf65a05` as
+`v0.5.1-0.20261102031929-a8c72cf65a05`, available through the Go module proxy.
 Balemoh remains a draft PR until upstream PR #364 is merged and a release replaces
 that temporary pin.
 
@@ -88,3 +88,34 @@ A separate consumer reviewer accepted the inert boundary, pencil/handle placemen
 OOB widget targets and temporary immutable pin with no blocking findings. Native
 pen hardware, physical touch and real screen-reader announcement sequences remain
 unchecked. Touch continues to use the existing public handles.
+
+## Pointer feedback follow-up
+
+Goshtoso now renders a passive ghost at the pickup offset and a destination gap
+that shifts surrounding cards before release. Balemoh consumes that shared runtime
+without another pointer handler or persisted setting. Hover preserves real item
+order and does not update the draft. One accepted drop uses the existing move
+event and conditional Save workflow. Reduced motion skips card shift animations.
+
+Independent upstream review accepted frozen `a8c72cf65a05` after three rounds.
+The review found and closed customized built-in lifecycle activation, generated
+CSS drift, and exceptions copying valid HTML colon attributes. Browser regressions
+cover constructor/connected counts after `is` removal, safe colon attributes,
+ghost offset, populated/empty destinations, cleanup and a single accepted move.
+The Layout suite exercises Stack, Grid and Masonry, both supported themes,
+light/dark and reduced motion. JS lint/drift, canonical CSS regeneration, asset
+tests, site lint, current-source integration and published-consumer checks pass.
+
+The consumer was rebuilt with `GOWORK=off` from Go-proxy module bytes; its full
+UI race suite and vet pass. Native browser verification on port 8681 captured
+Pico's ghost over Services while the target opened a gap, then confirmed Pico
+first in that group. Plugin content moved into the newly empty Remote hosts
+group. A service-link click stayed on the editor without changing selection.
+After drop, all ten widget bodies remained inactive, no ghost/gap/source markers
+remained, and browser error logs were empty. Saved API document and revision 32
+were identical before/after; only the QA draft was discarded. Preview reopened
+clean with Save disabled. Held-gesture evidence is retained outside Git.
+
+Current-head CI is tracked on the PRs. No merge, release or production rollout
+is included. Physical pen/touch, real screen readers and Firefox/WebKit remain
+unchecked. The temporary pin still requires an upstream release before merge.

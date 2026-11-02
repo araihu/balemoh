@@ -468,8 +468,12 @@ the button retains focus; mobile selection moves to the contextual inspector
 heading. Inspectors' labelled group/item Select controls perform the same ID-based
 transition. Editor widget bodies are inactive with native inert semantics: clicks
 do not navigate or trigger widget actions. Mouse/pen can press and drag a card body between
-groups without selecting it first, through Goshtoso `WithContentDrag(true)`. The
-settings buttons stay outside inactive content; keyboard and touch retain named
+groups without selecting it first, through Goshtoso `WithContentDrag(true)`. During
+pickup, a passive copy follows the pointer at its grab offset. A visible insertion
+gap shifts destination items before drop. This feedback belongs to Goshtoso and
+does not mutate the draft during hover. Release commits one validated local move;
+Escape restores the original placement. Reduced motion disables shift animations.
+The settings buttons stay outside inactive content; keyboard and touch retain named
 handles and movement controls. These editor-only wrappers preserve natural content
 geometry and are absent from the normal homepage, where links and actions remain
 usable.
