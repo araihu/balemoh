@@ -9,10 +9,11 @@ Primary task: arrange selected content into useful named groups, then save one
 instance-wide configuration. Keep source selection on its existing pages.
 Identity: existing ConsoleShell, branding and semantic theme tokens.
 Density: compact operational editor with populated preview and a single Save boundary.
-Desktop: dominant preview beside one contextual inspector for the selected group or
-item. Page settings and advanced options start folded. Save/status/recovery remain
-visible during scrolling. Mobile: preview before inspector, direct settings/back
-navigation and named movement controls. Opaque IDs are secondary details.
+Desktop and mobile: full-width preview with an on-demand left settings drawer.
+Page, Group and Item tabs keep contexts separate. Explicit selection opens the
+matching tab; close returns focus to the initiating control or visible group
+fallback. Save/status/recovery remain visible during scrolling. Failed preview
+closes the drawer and reveals recovery. Opaque IDs remain secondary details.
 
 Use existing Goshtoso controls listed in the capability assessment. Generic movement
 and layout come from the upstream prerequisite; raw prototype controls are not copied.
@@ -120,3 +121,9 @@ Drawer and numeric order follow-up:
 | Selected item | Enter empty, fractional, zero or out-of-range position | Native validation and actionable status; draft/order unchanged | 0 |
 | Position preview pending | Try another order change | Field read-only; delayed structure cannot apply twice | 0 |
 | Dirty numeric draft | Save, reload | One conditional revision; same IDs, membership and custom order | 1 changed revision |
+
+Invalid numeric scratch values reset to the last accepted position with a local
+message. They do not change the draft or gate unrelated valid Save. Field-error
+links reveal the correct drawer tab. Closed, removed or dormant item controls use
+a visible group/Settings focus fallback. Capacity hints appear only when the
+relevant operation is unavailable; the general limits panel stays removed.

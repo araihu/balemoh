@@ -169,12 +169,14 @@ templ LayoutInspector(f LayoutFrame) {
 templ LayoutTabIcon(tab string,symbol icon.Symbol) { <span data-layout-settings-tab={tab}>@LayoutIcon(symbol)</span> }
 
 templ LayoutGroupInspector(f LayoutFrame) {
+ <div data-layout-settings-context="group">
  <h3 class="balemoh-layout-settings-title">{f.group().Label}</h3>
   {{g:=f.group();key:="layout-group-"+DOMKey(g.ID)}}
   <div data-layout-group-fields-owner={g.ID} class="balemoh-layout-group-fields">
    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-title-field",Label:"Name",Required:true,Input:&textinput.Config{ID:key+"-title",Value:g.Title,MaxLength:80,InputAttrs:templ.Attributes{"data-layout-field":"/group/title"}}})
    @LayoutGeometry(key,"/group/layout",g.Arrangement)
    @form.FieldGroup(choice(key+"-order","Item order",g.Order,[]string{"alphabetical","custom"},templ.Attributes{"data-layout-action":"item-order","data-layout-structural":""}))
+   <p data-layout-order-unavailable class="balemoh-layout-hint" hidden>Custom ordering is unavailable here. Reset another group to alphabetical or use a smaller group.</p>
    @LayoutPosition("group",f.groupPosition(),len(f.Groups))
    <details data-layout-panel={"group-advanced-"+g.ID} class="balemoh-layout-disclosure"><summary>More group options</summary>
     @form.FieldGroup(choice(key+"-span","Width on the page",g.Span,[]string{"auto","full"},templ.Attributes{"data-layout-field":"/group/span","data-layout-span":""}))
@@ -199,6 +201,7 @@ templ LayoutGroupInspector(f LayoutFrame) {
   <details data-layout-panel="group-picker" class="balemoh-layout-disclosure"><summary>Choose another group</summary>
    @form.FieldGroup(form.FieldGroupConfig{ID:"layout-group-choice-field",Select:&selectfield.Config{ID:"layout-group-choice",Label:"Group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-action":"select-group","data-layout-structural":""}}})
   </details>
+ </div>
 }
 
 templ LayoutPreview(f LayoutFrame) { @layout.Container(f.previewContainer()) }
@@ -208,10 +211,12 @@ templ LayoutPageArrangement(f LayoutFrame) {
   @button.Button(button.WithType("button"),button.WithTone(button.ToneAlternate),button.WithAttrs(templ.Attributes{"id":"layout-action-settings","data-layout-action":"open-settings"})) { @LayoutIcon(heroicons.Icon16SolidCog6Tooth) <span>Settings</span> }
   @button.Button(button.WithType("button"),button.WithAppearance(button.AppearancePlain),button.WithAttrs(templ.Attributes{"id":"layout-action-create","data-layout-action":"create","data-layout-structural":""})) { @LayoutIcon(heroicons.Icon16SolidPlus) <span>Create group</span> }
   <p>Drag cards to arrange your homepage.</p>
+  <p data-layout-group-unavailable class="balemoh-layout-hint" hidden>Group limit reached. Delete a group to create another.</p>
  </div>
 }
 
 templ LayoutPageFields(f LayoutFrame) {
+ <div data-layout-settings-context="page">
   <div class="balemoh-layout-page-fields">
    @form.FieldGroup(choice("layout-width","Page width",f.Width,[]string{"full","contained"},templ.Attributes{"data-layout-field":"/homepage/width"}))
    @LayoutGeometry("layout-page","/homepage/layout",f.Page)
@@ -225,7 +230,7 @@ templ LayoutPageFields(f LayoutFrame) {
  }
    </div>
   </details>
-
+ </div>
 }
 
 templ LayoutGeometry(prefix,path string,a Arrangement) {
@@ -259,9 +264,11 @@ templ LayoutModeIcon(mode string) {
 templ LayoutPosition(kind string,position,count int) {
  {{label:="Group position";if kind=="item"{label="Position in group"}}}
  @form.FieldGroup(form.FieldGroupConfig{ID:"layout-"+kind+"-position-field",Label:label,Input:&textinput.Config{ID:"layout-"+kind+"-position",Type:textinput.TypeNumber,Value:strconv.Itoa(position),Required:true,InputAttrs:templ.Attributes{"min":"1","max":strconv.Itoa(count),"step":"1","data-layout-action":kind+"-position","data-layout-position":"","data-layout-structural":""}}})
+ <p id={"layout-"+kind+"-position-error"} data-layout-position-error class="balemoh-layout-hint" role="alert" hidden></p>
 }
 
 templ LayoutItemSettings(f LayoutFrame) {
+ <div data-layout-settings-context="item">
  if f.SelectedItem!="" {
   <h3 class="balemoh-layout-settings-title">{f.selectionLabel()}</h3>
   @LayoutItemInspector(f)
@@ -269,6 +276,7 @@ templ LayoutItemSettings(f LayoutFrame) {
   <p class="balemoh-layout-hint">Choose an item in {f.group().Label} or use a card's edit button.</p>
   @form.FieldGroup(form.FieldGroupConfig{ID:"layout-item-choice-field",Select:&selectfield.Config{ID:"layout-item-choice",Label:"Item",Options:f.itemOptions(),InputAttrs:templ.Attributes{"data-layout-action":"select-item","data-layout-structural":""}}})
  }
+ </div>
 }
 
 templ LayoutItemInspector(f LayoutFrame) {
@@ -291,7 +299,9 @@ templ LayoutComparison(rows []LayoutComparisonRow) {
 templ LayoutItemMovement(f LayoutFrame) {
  @form.FieldGroup(form.FieldGroupConfig{ID:"layout-destination-field",Select:&selectfield.Config{ID:"layout-destination",Label:"Move to group",Options:f.groupOptions(f.SelectedGroup),InputAttrs:templ.Attributes{"data-layout-destination":"","data-layout-structural":""}}})
  @LayoutAction("move-item","Move item to group")
+ <p data-layout-move-unavailable class="balemoh-layout-hint" hidden>Moving here is unavailable. Reset another group to alphabetical to make room.</p>
  @LayoutPosition("item",f.itemPosition(),len(f.group().Members))
+ <p data-layout-order-unavailable class="balemoh-layout-hint" hidden>Custom ordering is unavailable here. Reset another group to alphabetical or use a smaller group.</p>
  if f.selectedItemDormant() {
  <p class="balemoh-layout-hint">This item is not currently on the homepage. Its saved group and position are retained.</p>
  }

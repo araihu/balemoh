@@ -114,25 +114,31 @@
     const model = new Draft(JSON.parse(root.dataset.layoutEditor));
     global.htmx.registerExtension('balemoh-layout-editor-disclosure',{htmx_before_morph_attr(element,detail){if(element.matches('details[data-editor-collapse]')&&detail.attrName==='open')return false;}});
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
-    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, activeSettingsTab='page', requestedSettingsTab, settingsReturnId='layout-action-settings', alive = true;
+    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, activeSettingsTab='page', requestedSettingsTab, settingsReturnId='layout-action-settings', settingsOpen=false, interactionEpoch=0, alive = true;
     const find = action => root.querySelector(`[data-layout-action="${action}"]`);
     const dispatchModal = (name, id) => global.dispatchEvent(new CustomEvent(`modal:${name}`, { detail: { id: `layout-${id}` } }));
     const announce = text => { status.textContent = text; };
     function settingsTab(tab) { return root.querySelector('[data-layout-settings-tab="'+tab+'"]')?.closest('button'); }
     function openSettings(tab,returnId) {
-      activeSettingsTab=tab; settingsReturnId=returnId||settingsReturnId;
+      settingsOpen=true;activeSettingsTab=tab; settingsReturnId=returnId||settingsReturnId;
       const button=settingsTab(tab); button?.click();
       global.dispatchEvent(new CustomEvent('drawer:open',{detail:{id:'layoutSettings'}}));
       global.Alpine.nextTick(()=>button?.focus({preventScroll:true}));
     }
     function closeSettings(event) {
       if(event.detail?.id!=='layoutSettings'||event.defaultPrevented)return;
-      requestedSettingsTab=null;
-      global.Alpine.nextTick(()=>{const target=document.getElementById(settingsReturnId);focusControl(target&&!target.disabled?target:find('open-settings'));});
+      settingsOpen=false;requestedSettingsTab=null;
+      global.Alpine.nextTick(()=>{const target=[document.getElementById(settingsReturnId),document.getElementById('edit-group-'+key(model.selection.groupId)),find('open-settings')].find(el=>el&&!el.matches(':disabled')&&!el.closest('#layout-editor-inspector')&&el.getClientRects().length);focusControl(target);});
     }
     global.addEventListener('drawer:close-request',closeSettings);
+    const trackInteraction=event=>{if(event.isTrusted)interactionEpoch++;};
+    root.addEventListener('pointerdown',trackInteraction,true);root.addEventListener('keydown',trackInteraction,true);
     function state(text) {
       if (text) announce(text);
+      if(settingsOpen&&['preview_error','preview_invalid','conflict','outcome_unknown'].includes(model.state)){
+        settingsOpen=false;requestedSettingsTab=null;global.dispatchEvent(new CustomEvent('drawer:close',{detail:{id:'layoutSettings'}}));
+        global.Alpine.nextTick(()=>focusControl(errors.hidden?status:errors,true));
+      }
       const frozen = ['saving', 'outcome_unknown', 'conflict'].includes(model.state);
       const focused = document.activeElement;
       const focusedStructural=[...frame.querySelectorAll('[data-layout-structural]')].some(el=>el===focused||el.contains(focused)||el.hidden&&document.getElementById(el.dataset.layoutFocus||el.id+'-trigger')===focused);
@@ -141,7 +147,10 @@
       frame.querySelector('[data-layout-preview]').disabled = !model.ready;
       frame.querySelectorAll('[data-layout-structural]').forEach(el => { const capacityBlocked = el.dataset.layoutAction==='item-position'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.movementAllowed(el.dataset.layoutAction,root.querySelector('[data-layout-destination]')?.value) || !model.ready || el.dataset.layoutAction === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-position'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
       frame.querySelectorAll('[data-layout-field]').forEach(el => { if (!el.hasAttribute('data-layout-structural')) disable(el, frozen || el.closest('[data-layout-group-fields-owner]')&&el.closest('[data-layout-group-fields-owner]').dataset.layoutGroupFieldsOwner!==model.selection.groupId || el.hasAttribute('data-layout-span') && model.document.homepage.layout.type === 'stack'); });
-      find('save').disabled = !model.ready || !model.dirty || !!root.querySelector('[data-layout-position]:invalid');
+      find('save').disabled = !model.ready || !model.dirty;
+      root.querySelectorAll('[data-layout-order-unavailable]').forEach(el=>{el.hidden=model.fitsOrder(model.selection.groupId);});
+      const groupLimit=root.querySelector('[data-layout-group-unavailable]');if(groupLimit)groupLimit.hidden=model.document.groups.length<32;
+      const moveNote=root.querySelector('[data-layout-move-unavailable]'),destination=root.querySelector('[data-layout-destination]')?.value;if(moveNote)moveNote.hidden=destination===model.selection.groupId||model.fitsMove(model.selection.itemId,destination);
       find('regenerate-provisional').hidden=model.state!=='preview_invalid'||!rejectedGroupRow;
       find('retry').hidden = model.state !== 'preview_error' && model.state !== 'preview_invalid';
       find('readback').hidden = model.state !== 'outcome_unknown';
@@ -150,7 +159,9 @@
       if (model.ready && !afterPreviewFocus && document.activeElement === status) {const control=restoreElement?.isConnected?restoreElement:restoreId?document.getElementById(restoreId):null;control?.focus({preventScroll:true});restoreId=null;restoreElement=null;}
     }
     function disable(el, value) { if(el.hasAttribute('data-layout-position')){el.readOnly=value;el.setAttribute('aria-disabled',String(value));return;} el.disabled = value; if (el.hidden) { const target = el.dataset.layoutFocus || el.id + '-trigger'; const control = document.getElementById(target); if (control) control.disabled = value; } }
-    function focusControl(el,scroll=false) { if(!el)return;for(let parent=el.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;el.focus({preventScroll:true});const bounds=el.getBoundingClientRect(),bar=root.querySelector('.balemoh-layout-topbar').getBoundingClientRect();if(scroll||bounds.top<bar.bottom||bounds.bottom>innerHeight)el.scrollIntoView({block:scroll?'start':'nearest',behavior:'instant'}); }
+    function focusControl(el,scroll=false) { if(!el)return;
+      const context=el.closest('[data-layout-settings-context]')?.dataset.layoutSettingsContext;
+      if(context&&(!settingsOpen||context!==activeSettingsTab)){openSettings(context);global.Alpine.nextTick(()=>focusControl(el,scroll));return;}for(let parent=el.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;el.focus({preventScroll:true});const bounds=el.getBoundingClientRect(),bar=root.querySelector('.balemoh-layout-topbar').getBoundingClientRect();if(scroll||bounds.top<bar.bottom||bounds.bottom>innerHeight)el.scrollIntoView({block:scroll?'start':'nearest',behavior:'instant'}); }
     function clearErrors() { errors.replaceChildren(); errors.hidden = true; root.querySelectorAll('[data-layout-inline-error]').forEach(el => el.remove()); root.querySelectorAll('[aria-invalid="true"]').forEach(el => { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); }); }
     function targets() {
       const result = {}; const groupIndex = model.document.groups.findIndex(g => g.id === model.selection.groupId); const placementIndex = model.document.homepage.placements.findIndex(p => p.groupId === model.selection.groupId);
@@ -159,7 +170,7 @@
     function showError(detail, map) {
       clearErrors(); errors.hidden = false; const title = document.createElement('p'); title.textContent = detail.message || 'Layout request failed. Your draft is retained.'; errors.append(title);
       for (const [path, message] of Object.entries(detail.fieldErrors || {})) { const id = map?.[path]; const control = id && document.getElementById(id); const row = document.createElement('p'); if (control) { const link = document.createElement('a'); link.href = '#' + id; link.textContent = message; link.addEventListener('click', event => { event.preventDefault(); focusControl(control,true); }); row.append(link); control.setAttribute('aria-invalid', 'true'); const inline = document.createElement('p'); inline.dataset.layoutInlineError = ''; inline.id = id + '-layout-error'; inline.textContent = message; control.setAttribute('aria-describedby', inline.id); control.after(inline); } else row.textContent = message; errors.append(row); }
-      errors.focus({ preventScroll: true });
+      global.Alpine.nextTick(()=>focusControl(errors,true));
     }
     async function response(url, options = {}) { const r = await fetch(url, { cache: 'no-store', ...options }); const data = await r.json(); return { r, data }; }
     async function apply(entry, result) {
@@ -169,13 +180,13 @@
       if (!model.accept(entry, result.preview)) { state(model.state === 'conflict' ? 'Saved layout changed. Your draft is retained.' : 'Preview response invalid. Your draft is retained. Retry preview.'); return; }
       if(JSON.stringify(entry.selection)!==JSON.stringify(model.selection)){afterPreviewFocus='editor-group-heading-'+key(model.selection.groupId);model.state='preview_pending';state('Selection changed with current membership. Updating preview…');preview();return;}
       try {
-      const focus = document.activeElement; const inSettings=!!focus?.closest('#layout-editor-inspector'); const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
+      const focusEpoch=interactionEpoch;const focus = document.activeElement; const inSettings=!!focus?.closest('#layout-editor-inspector'); const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
       const openPanels=[...root.querySelectorAll('details[data-layout-panel][open]')].map(el=>el.dataset.layoutPanel);
       // Replace form controls without copying old attributes during HTMX settlement.
       await global.htmx.swap({sourceElement:frame,target:'#layout-editor-page-controls',swap:'innerHTML settle:0',text:result.pageHtml});
       const focusedTab=focus?.closest('[role=tab]');
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML settle:0', text: result.inspectorHtml });
-      const tab=settingsTab(requestedSettingsTab||activeSettingsTab);tab?.click();if(focusedTab)tab?.focus({preventScroll:true});
+      const tab=settingsTab(requestedSettingsTab||activeSettingsTab);tab?.click();if(focusedTab&&focusEpoch===interactionEpoch)tab?.focus({preventScroll:true});
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-preview-body', swap: 'innerMorph', text: result.previewHtml });
       frame.querySelectorAll('details[data-editor-collapse]').forEach(el=>{const group=model.resolved(el.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active'))el.open=true;});
       if(root.querySelector('#layout-selected-movement'))await global.htmx.swap({sourceElement:frame,target:'#layout-selected-movement',swap:'innerHTML settle:0',text:result.movementHtml});
@@ -190,10 +201,10 @@
         movedIdentity = null;
       }
       state(outcome);
-      if (id && (document.activeElement === document.body || inSettings)) { const next = document.getElementById(id); next?.focus({ preventScroll: true }); if (next?.setSelectionRange && start !== null) { try { next.setSelectionRange(start, end); } catch (_) {} } }
-      if (afterPreviewFocus && (document.activeElement === status || document.activeElement === document.body)) { const next=document.getElementById(afterPreviewFocus);focusControl(next,afterPreviewFocus==='layout-inspector-heading'&&matchMedia('(max-width:1099px)').matches); }
-      if(inSettings&&document.activeElement===document.body)settingsTab(activeSettingsTab)?.focus({preventScroll:true});
-      if(requestedSettingsTab){openSettings(requestedSettingsTab);requestedSettingsTab=null;}
+      if (focusEpoch===interactionEpoch && id && (document.activeElement === document.body || inSettings)) { const next = document.getElementById(id); next?.focus({ preventScroll: true }); if (next?.setSelectionRange && start !== null) { try { next.setSelectionRange(start, end); } catch (_) {} } }
+      if (focusEpoch===interactionEpoch && afterPreviewFocus && (document.activeElement === status || document.activeElement === document.body)) { const next=document.getElementById(afterPreviewFocus);focusControl(next,afterPreviewFocus==='layout-inspector-heading'&&matchMedia('(max-width:1099px)').matches); }
+      if(focusEpoch===interactionEpoch&&inSettings&&document.activeElement===document.body)settingsTab(activeSettingsTab)?.focus({preventScroll:true});
+      if(requestedSettingsTab&&focusEpoch===interactionEpoch)openSettings(requestedSettingsTab);requestedSettingsTab=null;
       afterPreviewFocus = null;restoreId=null;restoreElement=null;
       } catch (_) {model.state='preview_error';state('Preview could not be displayed. Your draft is retained. Retry preview.');}
     }
@@ -218,7 +229,7 @@
     }
     function applyPosition(el) {
       if(!model.ready)return;
-      if(!el.reportValidity()){state('Enter a whole position between 1 and '+el.max+'.');return;}
+      if(!el.checkValidity()){const note=document.getElementById(el.id+'-error');note.textContent='Enter a whole position between 1 and '+el.max+'. Position remains '+el.defaultValue+'.';note.hidden=false;el.value=el.defaultValue;state('Position unchanged.');return;}
       const kind=el.dataset.layoutAction==='group-position'?'group':'item';
       if(model.setPosition(kind,el.value)){movedIdentity={kind,id:kind==='group'?model.selection.groupId:model.selection.itemId};changed('Position changed. Updating preview…');}
       else state(model.dirty?'Unsaved changes.':'All changes saved.');
@@ -236,9 +247,9 @@
       const path = el.dataset.layoutField; if (!path) return;const owner=el.closest('[data-layout-group-fields-owner]')?.dataset.layoutGroupFieldsOwner;if(path.startsWith('/group/')&&owner!==model.selection.groupId)return; const structural = el.hasAttribute('data-layout-structural'); const value = el.type === 'checkbox' ? el.checked : el.hasAttribute('data-layout-number') ? Number(el.value) : el.value;
       if (model.change(d => { if (path === '/group/span') { d.homepage.placements.find(p => p.groupId === model.selection.groupId).span = value; return; } const parts = path.split('/').slice(1); let target = parts[0] === 'group' ? model.group() : d; if (parts[0] === 'group') parts.shift(); const last = parts.pop(); parts.forEach(p => { target = target[p]; }); target[last] = value; }, structural)) changed();
     }
-    root.addEventListener('input', event => { if(event.target.hasAttribute('data-layout-position'))return state(); if (event.target.type === 'text' && !event.target.hidden && event.target.hasAttribute('data-layout-field')) editField(event.target); });
+    root.addEventListener('input', event => { if(event.target.hasAttribute('data-layout-position')){document.getElementById(event.target.id+'-error').hidden=true;return state();} if (event.target.type === 'text' && !event.target.hidden && event.target.hasAttribute('data-layout-field')) editField(event.target); });
     root.addEventListener('click', async event => {
-      const tab=event.target.closest('[role=tab]')?.querySelector('[data-layout-settings-tab]');if(tab)activeSettingsTab=tab.dataset.layoutSettingsTab;
+      const tab=event.target.closest('[role=tab]')?.querySelector('[data-layout-settings-tab]');if(tab){activeSettingsTab=tab.dataset.layoutSettingsTab;if(event.isTrusted)requestedSettingsTab=null;}
       const group = event.target.closest('[data-layout-select-group]'); if (group) return select(group.dataset.layoutSelectGroup, '', group);
       const item = event.target.closest('[data-layout-select-item]'); if (item) { const owner = model.preview.resolvedGroups.find(g => g.members.some(m => m.itemId === item.dataset.layoutSelectItem)); if (owner) select(owner.groupId, item.dataset.layoutSelectItem, item); return; }
       const button = event.target.closest('[data-layout-action]'); if (!button || button.disabled) return; const action = button.dataset.layoutAction;
