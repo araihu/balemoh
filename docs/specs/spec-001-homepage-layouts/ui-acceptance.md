@@ -9,9 +9,10 @@ Primary task: arrange selected content into useful named groups, then save one
 instance-wide configuration. Keep source selection on its existing pages.
 Identity: existing ConsoleShell, branding and semantic theme tokens.
 Density: compact operational editor with populated preview and a single Save boundary.
-Desktop: page arrangement above preview, selected group beside it, selected-item
-movement controls adjacent to that selection. Mobile: one reading column,
-named movement controls and reachable Save/Cancel. Opaque IDs are secondary details.
+Desktop: dominant preview beside one contextual inspector for the selected group or
+item. Page settings and advanced options start folded. Save/status/recovery remain
+visible during scrolling. Mobile: preview before inspector, direct settings/back
+navigation and named movement controls. Opaque IDs are secondary details.
 
 Use existing Goshtoso controls listed in the capability assessment. Generic movement
 and layout come from the upstream prerequisite; raw prototype controls are not copied.
@@ -32,7 +33,7 @@ and layout come from the upstream prerequisite; raw prototype controls are not c
 | Current preview transport failure | Retry preview | New requestId, same generation; last preview labelled stale; no silent write | Exact dirty draft and base revision | Retry control; error summary if repeated failure | 0 |
 | Old retained preview while pending | Try selecting/moving/reordering old entities | Controls disabled; delayed events rejected against current generation/IDs | Exact newest draft; readable stale preview | Existing current control or removal fallback | 0 |
 | Duplicate group/item names | Select/move/reorder/delete | Disambiguated labels and one stable selected identity throughout | Preview, inspector and destination ID agreement | Same logical handle or documented removal fallback | 0 until Save |
-| Ready current preview | Activate explicit Edit group/Edit item button by Enter/Space/pointer | Same ID transition as inspector Select; aria-pressed and root aria-current agree | Widget links/forms and existing content | Initiating logical selection button | 0 |
+| Ready current preview | Activate explicit Edit group/Edit item button by Enter/Space/pointer | Same ID transition as inspector Select; aria-pressed and root aria-current agree | Widget links/forms and existing content | Desktop: initiating logical button; mobile or inspector selection: contextual heading | 0 |
 | Clean or dirty draft | Change layout, name, heading or spacing | Local draft + bounded preview; no persist | Other group settings and selected item | Initiating field | 0 |
 | Alphabetical parent | Drag or earlier/later | Valid move sets Custom in that parent only | Identity, source, renderer | Logical handle/action, announced position | 0 until Save |
 | Custom parent | Reset alphabetical | Local draft shows canonical name order | Membership, renderers, other parents | Reset/mode control | 0 until Save |
