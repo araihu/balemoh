@@ -193,6 +193,11 @@ templ ServiceGlyph(service Service) {
 }
 
 templ ServiceCardAddresses(service Service) {
+ if addresses := groupAddresses(service); len(addresses)==1 {
+  @link.Link(addresses[0],link.WithTarget("_blank"),link.WithRootClass("balemoh-service-primary-link")) {
+   <span class="sr-only">{service.DisplayName}</span>
+  }
+ } else {
 	<div class="balemoh-card-addresses">
 		if addresses := groupAddresses(service); len(addresses) > 0 {
 			@link.Link(addresses[0], link.WithTarget("_blank")) {
@@ -211,6 +216,7 @@ templ ServiceCardAddresses(service Service) {
 			<span class="balemoh-muted">No public address</span>
 		}
 	</div>
+ }
 }
 
 templ AddressCountTrigger(service Service, count int) {

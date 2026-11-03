@@ -53,7 +53,15 @@ func TestHomepageCardAddresses(t *testing.T) {
 		if count > 0 && !strings.Contains(body, `href="https://app.example/" target="_blank"`) {
 			t.Fatal("first address missing or not a new-tab link")
 		}
+		if count == 1 {
+			if strings.Contains(cardHTML.String(), "balemoh-card-addresses") || !strings.Contains(cardHTML.String(), `balemoh-service-primary-link`) || !strings.Contains(cardHTML.String(), `<span class="sr-only">Application</span>`) {
+				t.Fatal("single address must remain an accessible card link without a visible address row")
+			}
+		}
 		if count > 1 {
+			if !strings.Contains(cardHTML.String(), `>app.example/</a>`) || !strings.Contains(cardHTML.String(), `balemoh-card-addresses`) {
+				t.Fatal("multiple addresses must retain the visible primary URL and address menu")
+			}
 			if !strings.Contains(body, fmt.Sprintf("+%d", count-1)) {
 				t.Fatalf("%d addresses: wrong remaining count", count)
 			}
