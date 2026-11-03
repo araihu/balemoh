@@ -1,5 +1,9 @@
 # Goshtoso integration notes
 
+## Layout preview flash, 2026-11-03
+
+- Replacing the entire inspector reinitializes Tabs and its cloaked panels on every preview. Keep the public Tabs component mounted and replace only changed app-owned settings slots. Replacing those slots still refreshes Select options and server defaults correctly. The toolbar is static, and item movement controls already arrive inside the item slot, so neither needs another swap. No upstream change is required. Closing checks covered fresh options, group creation/deletion, item relocation, validation, focus and tab intent at 390px and 1440px.
+
 ## Layout editor field focus, 2026-11-03
 
 - Replacing the inspector resets Goshtoso Tabs to its initial panel. After selecting the prior tab, await Alpine's public `nextTick()` before restoring focus and selection to the replacement field. Otherwise the field is still hidden and focus lands on the tab. This is consumer swap sequencing; no upstream change or component replacement is needed. Native checks passed at 390px and 1440px, including selection retention and a deliberate tab switch during preview.

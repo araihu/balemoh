@@ -2,8 +2,41 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
+const { runInNewContext } = require('node:vm');
 const { Draft, canonical, actionFor } = require('./layout-editor.js');
 const initial = JSON.parse(readFileSync(path.resolve(__dirname, '../../../../docs/specs/spec-001-homepage-layouts/example-layout.json')));
+function inspectorHarness() {
+ const slots = Object.fromEntries(['page','group','item'].map(context=>[context,{context}]));
+ const contextFor = selector => selector.match(/"(page|group|item)"/)[1];
+ let incoming;
+ const inspector = {
+  ownerDocument:{createElement(){return {set innerHTML(value){incoming=JSON.parse(value);},content:{querySelector(selector){const html=incoming[contextFor(selector)];return html===undefined?null:{innerHTML:html};}}};}},
+  querySelector(selector){return slots[contextFor(selector)];},
+ };
+ const calls=[], previous=new Map(), scope={htmx:{swap:async options=>{calls.push(options);if(options.target.context===scope.fail)throw Error('swap failed');}}};
+ runInNewContext(readFileSync(require.resolve('./layout-editor.js'),'utf8'),scope);
+ return {slots,calls,previous,scope,update:html=>scope.BalemohLayoutDraft.updateInspector(inspector,JSON.stringify(html),previous)};
+}
+test('preview updates application settings slots without replacing the tab shell',async()=>{
+ const h=inspectorHarness();await h.update({page:'Page fields',group:'Group fields',item:'Item fields'});
+ assert.deepEqual(h.calls.map(call=>call.target),Object.values(h.slots));
+ assert.ok(h.calls.every(call=>call.swap==='innerHTML settle:0'));
+});
+test('unchanged settings stay mounted while a changed section updates',async()=>{
+ const h=inspectorHarness(), html={page:'Page fields',group:'Group fields',item:'Item fields'};
+ await h.update(html);h.calls.length=0;await h.update(html);assert.equal(h.calls.length,0);
+ await h.update({...html,group:'Renamed group'});assert.deepEqual(h.calls.map(call=>call.target.context),['group']);
+ assert.equal(h.calls[0].text,'Renamed group');
+});
+test('missing settings sections reject the response before any swap',async()=>{
+ const h=inspectorHarness();await assert.rejects(h.update({page:'Page fields',group:'Group fields'}),/Missing settings section/);
+ assert.equal(h.calls.length,0);assert.equal(h.previous.size,0);
+});
+test('retry completes failed sections without replacing already applied settings',async()=>{
+ const h=inspectorHarness(), html={page:'Page fields',group:'Group fields',item:'Item fields'};h.scope.fail='group';
+ await assert.rejects(h.update(html),/swap failed/);assert.deepEqual([...h.previous.keys()],['page']);
+ h.scope.fail=null;h.calls.length=0;await h.update(html);assert.deepEqual(h.calls.map(call=>call.target.context),['group','item']);
+});
 function setup() {
  const document = structuredClone(initial);
  document.groups[0].placements = [{ itemId: 'host-dormant' }];

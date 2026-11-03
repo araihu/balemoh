@@ -28,3 +28,31 @@ the regression depends on actual Alpine panel visibility.
 Initial homepage and editor HTML passed title, description, per-route canonical,
 Open Graph and explicit X Card checks. The existing public social image returned
 PNG, 1280 by 640 pixels, below 1 MB. No page metadata changes were needed.
+
+## Preview swap churn
+
+The following mitigation keeps the static toolbar and Goshtoso Tabs scope
+mounted. Preview responses update only changed Page, Group and Item content
+slots owned by Balemoh. The selected panel no longer needs reinitialization.
+Item movement controls are updated once through their containing slot.
+
+Four Node regressions cover scoped targets, unchanged-section reuse, rejection
+of incomplete fragments before any mutation, and retry after a partial failure.
+All 41 editor Node tests and the view/BFF tests passed. Independent review
+approved the runtime changes.
+
+Native checks on an isolated synthetic database passed:
+
+- Rename, change selected group, and switch List/Grid. Fields and option labels
+  update while the Group tab stays selected.
+- Create an empty draft group, move pico into it, then delete the group and
+  move references back to Widgets. New options appear and removed ones disappear.
+- Commit position 999 with Enter. The field returns to its valid position and
+  shows the error; changing context clears the old error.
+- Switch to Page during a rename. Preview completion retains Page and focus.
+- At 390px and 1440px, Name keeps focus and selection through preview updates,
+  with no horizontal page overflow or console errors.
+
+Saved layout bytes and revision remain unchanged. No production tab, settings,
+library dependency or metadata changed. Fresh homepage/editor HTML and the
+public social PNG passed the existing metadata gate.

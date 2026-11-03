@@ -107,7 +107,22 @@
   function actionFor(control) {
     return control?.dataset.layoutAction || /^layout-action-(save|cancel|create)(?:-overflow)?$/.exec(control?.id)?.[1] || (control?.id === 'layout-action-settings' ? 'open-settings' : undefined);
   }
-  global.BalemohLayoutDraft = { Draft, canonical, key, actionFor };
+  async function updateInspector(inspector, html, previous) {
+    const template = inspector.ownerDocument.createElement('template');
+    template.innerHTML = html;
+    const updates = ['page', 'group', 'item'].map(context => {
+      const selector = '[data-layout-settings-context="' + context + '"]';
+      const target = inspector.querySelector(selector), next = template.content.querySelector(selector);
+      if (!target || !next) throw Error('Missing settings section');
+      return { context, target, html: next.innerHTML };
+    });
+    for (const update of updates) {
+      if (previous.get(update.context) === update.html) continue;
+      await global.htmx.swap({ sourceElement: inspector, target: update.target, swap: 'innerHTML settle:0', text: update.html });
+      previous.set(update.context, update.html);
+    }
+  }
+  global.BalemohLayoutDraft = { Draft, canonical, key, actionFor, updateInspector };
   if (typeof module !== 'undefined') module.exports = global.BalemohLayoutDraft;
   if (typeof document === 'undefined') return;
 
@@ -115,6 +130,7 @@
     const root = document.querySelector('[data-layout-editor]'); if (!root || root.dataset.layoutInitialized) return; root.dataset.layoutInitialized = 'true';
     if (global.goshtosoDependencies?.ready) await global.goshtosoDependencies.ready;
     const model = new Draft(JSON.parse(root.dataset.layoutEditor));
+    const settingsMarkup = new Map();
     global.htmx.registerExtension('balemoh-layout-editor-disclosure',{htmx_before_morph_attr(element,detail){if(element.matches('details[data-editor-collapse]')&&detail.attrName==='open')return false;}});
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
     let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, activeSettingsTab='page', requestedSettingsTab, settingsReturnId='layout-action-settings', settingsOpen=false, interactionEpoch=0, alive = true;
@@ -185,17 +201,15 @@
       try {
       const focusEpoch=interactionEpoch;const focus = document.activeElement; const inSettings=!!focus?.closest('#layout-editor-inspector'); const id = focus?.id; const start = focus?.selectionStart; const end = focus?.selectionEnd;
       const openPanels=[...root.querySelectorAll('details[data-layout-panel][open]')].map(el=>el.dataset.layoutPanel);
-      // Replace form controls without copying old attributes during HTMX settlement.
-      await global.htmx.swap({sourceElement:frame,target:'#layout-editor-page-controls',swap:'innerHTML settle:0',text:result.pageHtml});
       const focusedTab=focus?.closest('[role=tab]');
-      await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML settle:0', text: result.inspectorHtml });
+      // Keep the toolbar and Tabs scope mounted; only changed application slots need replacement.
+      await updateInspector(document.getElementById('layout-editor-inspector'), result.inspectorHtml, settingsMarkup);
       const tab=settingsTab(requestedSettingsTab||activeSettingsTab);tab?.click();
       // Alpine must reveal the selected panel before its replaced field can regain focus.
       await global.Alpine.nextTick();
       if(focusedTab&&focusEpoch===interactionEpoch)tab?.focus({preventScroll:true});
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-preview-body', swap: 'innerMorph', text: result.previewHtml });
       frame.querySelectorAll('details[data-editor-collapse]').forEach(el=>{const group=model.resolved(el.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active'))el.open=true;});
-      if(root.querySelector('#layout-selected-movement'))await global.htmx.swap({sourceElement:frame,target:'#layout-selected-movement',swap:'innerHTML settle:0',text:result.movementHtml});
       await global.htmx.swap({ sourceElement: root, target: '#layout-delete-destinations', swap: 'innerHTML settle:0', text: result.deleteHtml });
       if (!alive) return;
       root.querySelectorAll('details[data-layout-panel]').forEach(el=>{el.open=openPanels.includes(el.dataset.layoutPanel);});
