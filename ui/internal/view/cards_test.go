@@ -37,7 +37,11 @@ func TestHomepageCardAddresses(t *testing.T) {
 			t.Fatal(err)
 		}
 		body := html.String()
-		if !strings.Contains(body, "Team workspace") || strings.Contains(body, "<details") || strings.Contains(body, "<table") {
+		var cardHTML bytes.Buffer
+		if err := ServiceCard(service, ServiceCardIcon(service)).Render(context.Background(), &cardHTML); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(body, "Team workspace") || strings.Contains(cardHTML.String(), "<details") || strings.Contains(cardHTML.String(), "<table") {
 			t.Fatalf("unexpected card contents: %s", body)
 		}
 		if got := strings.Contains(body, "More addresses for Application"); got != (count > 1) {

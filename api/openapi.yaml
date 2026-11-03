@@ -37,6 +37,810 @@ info:
     name: Balemoh maintainers
     url: https://github.com/araihu/balemoh/issues
 paths:
+  /api/v1/dashboard/layout:
+    get:
+      operationId: "GetDashboardLayout"
+      tags:
+        - "Dashboard"
+      summary: "Read the instance layout without reading provider data"
+      description: "Read the instance layout without reading provider data. Configuration, preview and responses use Cache-Control no-store. Writes are atomic, conditional and API-first."
+      responses:
+        "200":
+          description: "Read the instance layout without reading provider data."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutState"
+              example:
+                revision: "0"
+                document:
+                  schemaVersion: 1
+                  homepage:
+                    width: "full"
+                    layout:
+                      type: "stack"
+                      columns: 1
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    placements:
+                      -
+                        groupId: "builtin:hosts"
+                        span: "auto"
+                      -
+                        groupId: "builtin:services"
+                        span: "auto"
+                      -
+                        groupId: "builtin:widgets"
+                        span: "auto"
+                  groups:
+                    -
+                      id: "builtin:hosts"
+                      title: "Hosts"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:services"
+                      title: "Services"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:widgets"
+                      title: "Widgets"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                  sourceGroups:
+                    host: "builtin:hosts"
+                    service: "builtin:services"
+                    other: "builtin:widgets"
+          headers:
+            ETag:
+              $ref: "#/components/headers/LayoutETag"
+        "503":
+          $ref: "#/components/responses/Layout503"
+    put:
+      operationId: "PutDashboardLayout"
+      tags:
+        - "Dashboard"
+      summary: "Replace the complete instance layout"
+      description: "Replace the complete instance layout. Configuration, preview and responses use Cache-Control no-store. Writes are atomic, conditional and API-first."
+      responses:
+        "200":
+          description: "Replace the complete instance layout."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutState"
+              example:
+                revision: "0"
+                document:
+                  schemaVersion: 1
+                  homepage:
+                    width: "full"
+                    layout:
+                      type: "stack"
+                      columns: 1
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    placements:
+                      -
+                        groupId: "builtin:hosts"
+                        span: "auto"
+                      -
+                        groupId: "builtin:services"
+                        span: "auto"
+                      -
+                        groupId: "builtin:widgets"
+                        span: "auto"
+                  groups:
+                    -
+                      id: "builtin:hosts"
+                      title: "Hosts"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:services"
+                      title: "Services"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:widgets"
+                      title: "Widgets"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                  sourceGroups:
+                    host: "builtin:hosts"
+                    service: "builtin:services"
+                    other: "builtin:widgets"
+          headers:
+            ETag:
+              $ref: "#/components/headers/LayoutETag"
+        "400":
+          $ref: "#/components/responses/Layout400"
+        "403":
+          $ref: "#/components/responses/Layout403"
+        "404":
+          $ref: "#/components/responses/Layout404"
+        "409":
+          $ref: "#/components/responses/Layout409"
+        "412":
+          $ref: "#/components/responses/Layout412"
+        "413":
+          $ref: "#/components/responses/Layout413"
+        "422":
+          $ref: "#/components/responses/Layout422"
+        "428":
+          $ref: "#/components/responses/Layout428"
+        "503":
+          $ref: "#/components/responses/Layout503"
+      parameters:
+        -
+          $ref: "#/components/parameters/LayoutIfMatch"
+      requestBody:
+        required: true
+        description: "Replace the complete instance layout using strict JSON, at most 128 KiB."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutDocument"
+            example:
+              schemaVersion: 1
+              homepage:
+                width: "full"
+                layout:
+                  type: "stack"
+                  columns: 1
+                  gapPx: 16
+                ordering:
+                  mode: "alphabetical"
+                  ids: []
+                placements:
+                  -
+                    groupId: "builtin:hosts"
+                    span: "auto"
+                  -
+                    groupId: "builtin:services"
+                    span: "auto"
+                  -
+                    groupId: "builtin:widgets"
+                    span: "auto"
+              groups:
+                -
+                  id: "builtin:hosts"
+                  title: "Hosts"
+                  layout:
+                    type: "masonry"
+                    columns: 3
+                    gapPx: 16
+                  ordering:
+                    mode: "alphabetical"
+                    ids: []
+                  showHeading: true
+                  initiallyCollapsed: false
+                  placements: []
+                -
+                  id: "builtin:services"
+                  title: "Services"
+                  layout:
+                    type: "masonry"
+                    columns: 3
+                    gapPx: 16
+                  ordering:
+                    mode: "alphabetical"
+                    ids: []
+                  showHeading: true
+                  initiallyCollapsed: false
+                  placements: []
+                -
+                  id: "builtin:widgets"
+                  title: "Widgets"
+                  layout:
+                    type: "masonry"
+                    columns: 3
+                    gapPx: 16
+                  ordering:
+                    mode: "alphabetical"
+                    ids: []
+                  showHeading: true
+                  initiallyCollapsed: false
+                  placements: []
+              sourceGroups:
+                host: "builtin:hosts"
+                service: "builtin:services"
+                other: "builtin:widgets"
+  /api/v1/dashboard/layout/preview:
+    post:
+      operationId: "PreviewDashboardLayout"
+      tags:
+        - "Dashboard"
+      summary: "Validate and resolve a draft without saving"
+      description: "Validate and resolve a draft without saving. Configuration, preview and responses use Cache-Control no-store. Writes are atomic, conditional and API-first."
+      responses:
+        "200":
+          description: "Validate and resolve a draft without saving."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutPreview"
+              example:
+                requestId: "11111111-1111-4111-8111-111111111111"
+                draftGeneration: 0
+                layoutRevision: "0"
+                document:
+                  schemaVersion: 1
+                  homepage:
+                    width: "full"
+                    layout:
+                      type: "stack"
+                      columns: 1
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    placements:
+                      -
+                        groupId: "builtin:hosts"
+                        span: "auto"
+                      -
+                        groupId: "builtin:services"
+                        span: "auto"
+                      -
+                        groupId: "builtin:widgets"
+                        span: "auto"
+                  groups:
+                    -
+                      id: "builtin:hosts"
+                      title: "Hosts"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:services"
+                      title: "Services"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:widgets"
+                      title: "Widgets"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                  sourceGroups:
+                    host: "builtin:hosts"
+                    service: "builtin:services"
+                    other: "builtin:widgets"
+                resolvedGroups: []
+                membershipTokens: {}
+                stale: false
+        "400":
+          $ref: "#/components/responses/Layout400"
+        "403":
+          $ref: "#/components/responses/Layout403"
+        "404":
+          $ref: "#/components/responses/Layout404"
+        "409":
+          $ref: "#/components/responses/Layout409"
+        "412":
+          $ref: "#/components/responses/Layout412"
+        "413":
+          $ref: "#/components/responses/Layout413"
+        "422":
+          $ref: "#/components/responses/Layout422"
+        "428":
+          $ref: "#/components/responses/Layout428"
+        "503":
+          $ref: "#/components/responses/Layout503"
+      requestBody:
+        required: true
+        description: "Validate and resolve a draft without saving using strict JSON, at most 128 KiB."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutPreviewRequest"
+            example:
+              requestId: "11111111-1111-4111-8111-111111111111"
+              draftGeneration: 0
+              expectedRevision: "0"
+              document:
+                schemaVersion: 1
+                homepage:
+                  width: "full"
+                  layout:
+                    type: "stack"
+                    columns: 1
+                    gapPx: 16
+                  ordering:
+                    mode: "alphabetical"
+                    ids: []
+                  placements:
+                    -
+                      groupId: "builtin:hosts"
+                      span: "auto"
+                    -
+                      groupId: "builtin:services"
+                      span: "auto"
+                    -
+                      groupId: "builtin:widgets"
+                      span: "auto"
+                groups:
+                  -
+                    id: "builtin:hosts"
+                    title: "Hosts"
+                    layout:
+                      type: "masonry"
+                      columns: 3
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    showHeading: true
+                    initiallyCollapsed: false
+                    placements: []
+                  -
+                    id: "builtin:services"
+                    title: "Services"
+                    layout:
+                      type: "masonry"
+                      columns: 3
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    showHeading: true
+                    initiallyCollapsed: false
+                    placements: []
+                  -
+                    id: "builtin:widgets"
+                    title: "Widgets"
+                    layout:
+                      type: "masonry"
+                      columns: 3
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    showHeading: true
+                    initiallyCollapsed: false
+                    placements: []
+                sourceGroups:
+                  host: "builtin:hosts"
+                  service: "builtin:services"
+                  other: "builtin:widgets"
+  /api/v1/dashboard/layout/order:
+    put:
+      operationId: "OrderDashboardGroups"
+      tags:
+        - "Dashboard"
+      summary: "Set complete page group order or reset alphabetical"
+      description: "Set complete page group order or reset alphabetical. Configuration, preview and responses use Cache-Control no-store. Writes are atomic, conditional and API-first."
+      responses:
+        "200":
+          description: "Set complete page group order or reset alphabetical."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutState"
+              example:
+                revision: "0"
+                document:
+                  schemaVersion: 1
+                  homepage:
+                    width: "full"
+                    layout:
+                      type: "stack"
+                      columns: 1
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    placements:
+                      -
+                        groupId: "builtin:hosts"
+                        span: "auto"
+                      -
+                        groupId: "builtin:services"
+                        span: "auto"
+                      -
+                        groupId: "builtin:widgets"
+                        span: "auto"
+                  groups:
+                    -
+                      id: "builtin:hosts"
+                      title: "Hosts"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:services"
+                      title: "Services"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:widgets"
+                      title: "Widgets"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                  sourceGroups:
+                    host: "builtin:hosts"
+                    service: "builtin:services"
+                    other: "builtin:widgets"
+          headers:
+            ETag:
+              $ref: "#/components/headers/LayoutETag"
+        "400":
+          $ref: "#/components/responses/Layout400"
+        "403":
+          $ref: "#/components/responses/Layout403"
+        "404":
+          $ref: "#/components/responses/Layout404"
+        "409":
+          $ref: "#/components/responses/Layout409"
+        "412":
+          $ref: "#/components/responses/Layout412"
+        "413":
+          $ref: "#/components/responses/Layout413"
+        "422":
+          $ref: "#/components/responses/Layout422"
+        "428":
+          $ref: "#/components/responses/Layout428"
+        "503":
+          $ref: "#/components/responses/Layout503"
+      parameters:
+        -
+          $ref: "#/components/parameters/LayoutIfMatch"
+      requestBody:
+        required: true
+        description: "Set complete page group order or reset alphabetical using strict JSON, at most 128 KiB."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutOrdering"
+            example:
+              mode: "alphabetical"
+              ids: []
+  /api/v1/dashboard/layout/groups/{groupId}/order:
+    put:
+      operationId: "OrderDashboardItems"
+      tags:
+        - "Dashboard"
+      summary: "Set complete group member order or reset alphabetical"
+      description: "Set complete group member order or reset alphabetical. Configuration, preview and responses use Cache-Control no-store. Writes are atomic, conditional and API-first."
+      responses:
+        "200":
+          description: "Set complete group member order or reset alphabetical."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutState"
+              example:
+                revision: "0"
+                document:
+                  schemaVersion: 1
+                  homepage:
+                    width: "full"
+                    layout:
+                      type: "stack"
+                      columns: 1
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    placements:
+                      -
+                        groupId: "builtin:hosts"
+                        span: "auto"
+                      -
+                        groupId: "builtin:services"
+                        span: "auto"
+                      -
+                        groupId: "builtin:widgets"
+                        span: "auto"
+                  groups:
+                    -
+                      id: "builtin:hosts"
+                      title: "Hosts"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:services"
+                      title: "Services"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:widgets"
+                      title: "Widgets"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                  sourceGroups:
+                    host: "builtin:hosts"
+                    service: "builtin:services"
+                    other: "builtin:widgets"
+          headers:
+            ETag:
+              $ref: "#/components/headers/LayoutETag"
+        "400":
+          $ref: "#/components/responses/Layout400"
+        "403":
+          $ref: "#/components/responses/Layout403"
+        "404":
+          $ref: "#/components/responses/Layout404"
+        "409":
+          $ref: "#/components/responses/Layout409"
+        "412":
+          $ref: "#/components/responses/Layout412"
+        "413":
+          $ref: "#/components/responses/Layout413"
+        "422":
+          $ref: "#/components/responses/Layout422"
+        "428":
+          $ref: "#/components/responses/Layout428"
+        "503":
+          $ref: "#/components/responses/Layout503"
+      parameters:
+        -
+          name: "groupId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+          description: "Exact configured group ID."
+        -
+          $ref: "#/components/parameters/LayoutIfMatch"
+        -
+          $ref: "#/components/parameters/LayoutMembershipMatch"
+      requestBody:
+        required: true
+        description: "Set complete group member order or reset alphabetical using strict JSON, at most 128 KiB."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutOrdering"
+            example:
+              mode: "alphabetical"
+              ids: []
+  /api/v1/dashboard/layout/items/{itemId}/placement:
+    put:
+      operationId: "MoveDashboardItem"
+      tags:
+        - "Dashboard"
+      summary: "Move a widget to a group or anchored position"
+      description: "Move a widget to a group or anchored position. Configuration, preview and responses use Cache-Control no-store. Writes are atomic, conditional and API-first."
+      responses:
+        "200":
+          description: "Move a widget to a group or anchored position."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutState"
+              example:
+                revision: "0"
+                document:
+                  schemaVersion: 1
+                  homepage:
+                    width: "full"
+                    layout:
+                      type: "stack"
+                      columns: 1
+                      gapPx: 16
+                    ordering:
+                      mode: "alphabetical"
+                      ids: []
+                    placements:
+                      -
+                        groupId: "builtin:hosts"
+                        span: "auto"
+                      -
+                        groupId: "builtin:services"
+                        span: "auto"
+                      -
+                        groupId: "builtin:widgets"
+                        span: "auto"
+                  groups:
+                    -
+                      id: "builtin:hosts"
+                      title: "Hosts"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:services"
+                      title: "Services"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                    -
+                      id: "builtin:widgets"
+                      title: "Widgets"
+                      layout:
+                        type: "masonry"
+                        columns: 3
+                        gapPx: 16
+                      ordering:
+                        mode: "alphabetical"
+                        ids: []
+                      showHeading: true
+                      initiallyCollapsed: false
+                      placements: []
+                  sourceGroups:
+                    host: "builtin:hosts"
+                    service: "builtin:services"
+                    other: "builtin:widgets"
+          headers:
+            ETag:
+              $ref: "#/components/headers/LayoutETag"
+        "400":
+          $ref: "#/components/responses/Layout400"
+        "403":
+          $ref: "#/components/responses/Layout403"
+        "404":
+          $ref: "#/components/responses/Layout404"
+        "409":
+          $ref: "#/components/responses/Layout409"
+        "412":
+          $ref: "#/components/responses/Layout412"
+        "413":
+          $ref: "#/components/responses/Layout413"
+        "422":
+          $ref: "#/components/responses/Layout422"
+        "428":
+          $ref: "#/components/responses/Layout428"
+        "503":
+          $ref: "#/components/responses/Layout503"
+      parameters:
+        -
+          name: "itemId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+            maxLength: 256
+          description: "Complete percent-encoded widget ID."
+        -
+          $ref: "#/components/parameters/LayoutIfMatch"
+      requestBody:
+        required: true
+        description: "Move a widget to a group or anchored position using strict JSON, at most 128 KiB."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutMove"
+            example:
+              groupId: "builtin:widgets"
+              beforeItemId: null
   /api/v1/plugin-widgets:
     get:
       operationId: GetPluginWidgets
@@ -310,6 +1114,14 @@ paths:
   /api/v1/dashboard:
     get:
       operationId: GetDashboard
+      parameters:
+        - name: layoutView
+          in: query
+          required: false
+          description: Explicit temporary default view ignores saved layout without changing it. Normal unreadable layout returns 503. Default view omits layoutRevision.
+          schema:
+            type: string
+            enum: [default]
       responses:
         '200':
           description: Selected widgets and unavailable source providers
@@ -5316,6 +6128,12 @@ paths:
         private, max-age=0, must-revalidate caching. If-None-Match may produce 304. Missing or deleted references
         return the JSON error envelope.
 components:
+  headers:
+    LayoutETag:
+      description: "Strong configuration-only layout entity tag."
+      schema:
+        type: "string"
+        example: "\"layout-0\""
   securitySchemes:
     PluginService:
       type: http
@@ -5338,6 +6156,87 @@ components:
       description: Configured source-bound credential for external publication only. It cannot list, mark or clear
         messages.
   responses:
+    Layout400:
+      description: "Malformed JSON, unsupported schema, unknown, repeated, missing or null fields, or malformed preconditions."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "invalid_request"
+            message: "Malformed JSON, unsupported schema, unknown, repeated, missing or null fields, or malformed preconditions."
+    Layout403:
+      description: "Instance access policy denies editing."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "read_only"
+            message: "Instance access policy denies editing."
+    Layout404:
+      description: "Target group or newly referenced selected item does not exist."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "not_found"
+            message: "Target group or newly referenced selected item does not exist."
+    Layout409:
+      description: "Membership changed, group/reference capacity exceeded, last group removed or revision exhausted."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "membership_changed"
+            message: "Membership changed, group/reference capacity exceeded, last group removed or revision exhausted."
+    Layout412:
+      description: "Layout revision changed. Preserve draft and explicitly inspect or reload saved state."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "revision_conflict"
+            message: "Layout revision changed. Preserve draft and explicitly inspect or reload saved state."
+    Layout413:
+      description: "Request exceeds 128 KiB."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "request_too_large"
+            message: "Request exceeds 128 KiB."
+    Layout422:
+      description: "Known fields violate geometry, membership or ordering rules. Field errors use submitted JSON Pointer indices, at most 32 sorted keys with messages at most 256 Unicode scalars."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "invalid_layout"
+            message: "Known fields violate geometry, membership or ordering rules. Field errors use submitted JSON Pointer indices, at most 32 sorted keys with messages at most 256 Unicode scalars."
+    Layout428:
+      description: "Missing If-Match or required per-group membership token."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "precondition_required"
+            message: "Missing If-Match or required per-group membership token."
+    Layout503:
+      description: "Storage or local identity projection unavailable; unreadable saved configuration uses layout_unreadable. No reset or implicit fallback."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: "unavailable"
+            message: "Storage or local identity projection unavailable; unreadable saved configuration uses layout_unreadable. No reset or implicit fallback."
     PresentationInvalid:
       description: Malformed command, unsupported values, unknown fields, or a missing required revision.
       content:
@@ -5396,6 +6295,26 @@ components:
             code: unavailable
             message: Presentation storage or catalog unavailable.
   parameters:
+    LayoutIfMatch:
+      name: "If-Match"
+      in: "header"
+      required: true
+      schema:
+        type: "string"
+        description: "One exact strong layout ETag."
+        pattern: "^\"layout-(0|[1-9][0-9]*)\"$"
+        example: "\"layout-0\""
+      description: "Required current layout revision. Weak, wildcard, multiple and noncanonical values rejected."
+    LayoutMembershipMatch:
+      name: "If-Dashboard-Membership-Match"
+      in: "header"
+      required: true
+      schema:
+        type: "string"
+        description: "Exact quoted complete-membership token."
+        pattern: "^\"members-[a-f0-9]{64}\"$"
+        example: "\"members-0000000000000000000000000000000000000000000000000000000000000000\""
+      description: "Compared with persisted document and local eligibility inside the write transaction, for both Custom and Alphabetical commands."
     PresentationThemeID:
       name: themeID
       in: path
@@ -5418,6 +6337,436 @@ components:
       schema:
         $ref: '#/components/schemas/PresentationRevision'
   schemas:
+    LayoutRevision:
+      type: "string"
+      description: "Independent canonical layout revision within signed 64-bit range."
+      pattern: "^(0|[1-9][0-9]*)$"
+      example: "0"
+    LayoutContainer:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "type"
+        - "columns"
+        - "gapPx"
+      properties:
+        type:
+          type: "string"
+          description: "Natural-height arrangement."
+          enum:
+            - "stack"
+            - "grid"
+            - "masonry"
+          example: "stack"
+        columns:
+          type: "integer"
+          minimum: 1
+          maximum: 4
+          description: "Maximum responsive column count."
+          example: 2
+        gapPx:
+          type: "integer"
+          enum:
+            - 12
+            - 16
+            - 24
+          description: "Spacing in CSS pixels."
+          example: 16
+      description: "Independent page or group geometry."
+    LayoutOrdering:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "mode"
+        - "ids"
+      properties:
+        mode:
+          type: "string"
+          description: "Alphabetical sorts NFKC then Unicode default case fold, with exact ID ties. Custom ranks a prefix then that alphabetical tail."
+          enum:
+            - "alphabetical"
+            - "custom"
+          example: "alphabetical"
+        ids:
+          type: "array"
+          items:
+            type: "string"
+            description: "Exact member ID."
+            maxLength: 256
+          description: "Ranked IDs, empty for alphabetical. Targeted custom commands require the complete current member set."
+          example: []
+      description: "Parent-scoped order."
+    LayoutGroupPlacement:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "itemId"
+      properties:
+        itemId:
+          type: "string"
+          description: "Exact existing widget ID, at most 256 UTF-8 bytes."
+          maxLength: 256
+          example: "host-atlas"
+      description: "Optional explicit membership override, retained while dormant."
+    LayoutHomepagePlacement:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "groupId"
+        - "span"
+      properties:
+        groupId:
+          type: "string"
+          description: "Configured group ID."
+          example: "builtin:hosts"
+        span:
+          type: "string"
+          description: "Width in the parent layout."
+          enum:
+            - "auto"
+            - "full"
+          example: "auto"
+      description: "Page-owned group placement."
+    LayoutGroup:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "id"
+        - "title"
+        - "layout"
+        - "ordering"
+        - "showHeading"
+        - "initiallyCollapsed"
+        - "placements"
+      properties:
+        id:
+          type: "string"
+          description: "Canonical UUID for user groups, or one of the reserved builtin group IDs."
+          example: "builtin:hosts"
+        title:
+          type: "string"
+          description: "Trimmed display title. Duplicate titles are allowed."
+          minLength: 1
+          maxLength: 80
+          example: "Hosts"
+        layout:
+          $ref: "#/components/schemas/LayoutContainer"
+        ordering:
+          $ref: "#/components/schemas/LayoutOrdering"
+        showHeading:
+          type: "boolean"
+          description: "Show the group heading while retaining its accessible name."
+          example: true
+        initiallyCollapsed:
+          type: "boolean"
+          description: "Initial disclosure state. Runtime disclosure changes are transient."
+          example: false
+        placements:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/LayoutGroupPlacement"
+          description: "Explicit memberships, including dormant references. Canonical configuration sorts by item ID."
+          example: []
+      description: "Named container, independent of widget kind or renderer."
+    LayoutHomepage:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "width"
+        - "layout"
+        - "ordering"
+        - "placements"
+      properties:
+        width:
+          type: "string"
+          description: "Contained limits the page to 72rem."
+          enum:
+            - "full"
+            - "contained"
+          example: "full"
+        layout:
+          $ref: "#/components/schemas/LayoutContainer"
+        ordering:
+          $ref: "#/components/schemas/LayoutOrdering"
+        placements:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/LayoutHomepagePlacement"
+          description: "Every configured group exactly once. Canonical configuration sorts by group ID."
+          example: []
+      description: "Homepage container settings."
+    LayoutSourceGroups:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "host"
+        - "service"
+        - "other"
+      properties:
+        host:
+          type: "string"
+          description: "Default group for host items."
+          example: "builtin:hosts"
+        service:
+          type: "string"
+          description: "Default group for service items."
+          example: "builtin:services"
+        other:
+          type: "string"
+          description: "Default group for other items."
+          example: "builtin:widgets"
+      description: "Defaults apply to selected items without explicit memberships."
+    LayoutDocument:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "schemaVersion"
+        - "homepage"
+        - "groups"
+        - "sourceGroups"
+      properties:
+        schemaVersion:
+          type: "integer"
+          enum:
+            - 1
+          description: "Layout document schema."
+          example: 1
+        homepage:
+          $ref: "#/components/schemas/LayoutHomepage"
+        groups:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/LayoutGroup"
+          minItems: 1
+          maxItems: 32
+          description: "Configured groups. Canonical configuration sorts by exact ID. At most 512 explicit widget references across all groups."
+          example:
+            -
+              id: "builtin:hosts"
+              title: "Hosts"
+              layout:
+                type: "masonry"
+                columns: 3
+                gapPx: 16
+              ordering:
+                mode: "alphabetical"
+                ids: []
+              showHeading: true
+              initiallyCollapsed: false
+              placements: []
+            -
+              id: "builtin:services"
+              title: "Services"
+              layout:
+                type: "masonry"
+                columns: 3
+                gapPx: 16
+              ordering:
+                mode: "alphabetical"
+                ids: []
+              showHeading: true
+              initiallyCollapsed: false
+              placements: []
+            -
+              id: "builtin:widgets"
+              title: "Widgets"
+              layout:
+                type: "masonry"
+                columns: 3
+                gapPx: 16
+              ordering:
+                mode: "alphabetical"
+                ids: []
+              showHeading: true
+              initiallyCollapsed: false
+              placements: []
+        sourceGroups:
+          $ref: "#/components/schemas/LayoutSourceGroups"
+      description: "Instance-wide configuration. All fields required; null and unknown fields rejected. Full writes may preserve a partial custom prefix. Removing a group must rehome all its prior explicit references, including dormant references, and redirect defaults."
+    LayoutState:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "revision"
+        - "document"
+      properties:
+        revision:
+          $ref: "#/components/schemas/LayoutRevision"
+        document:
+          $ref: "#/components/schemas/LayoutDocument"
+      description: "Configuration-only state. Virtual revision 0 does not write storage. An identical normalized current write preserves revision; stale identical writes still fail."
+    LayoutMember:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "itemId"
+        - "state"
+        - "displayLabel"
+      properties:
+        itemId:
+          type: "string"
+          description: "Exact widget ID."
+          example: "host-atlas"
+        state:
+          type: "string"
+          description: "Only active members render on the homepage."
+          enum:
+            - "active"
+            - "dormant"
+          example: "active"
+        displayLabel:
+          type: "string"
+          description: "Shared disambiguated accessible name."
+          example: "Atlas"
+      description: "Resolved membership, including retained dormant references."
+    LayoutResolvedGroup:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "groupId"
+        - "title"
+        - "displayLabel"
+        - "members"
+      properties:
+        groupId:
+          type: "string"
+          description: "Configured group ID. Applies to LayoutResolvedGroup properties groupId."
+          example: "builtin:hosts"
+        title:
+          type: "string"
+          description: "Configured title."
+          example: "Hosts"
+        displayLabel:
+          type: "string"
+          description: "Shared disambiguated group label."
+          example: "Hosts"
+        members:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/LayoutMember"
+          description: "Complete effective ordered membership."
+          example: []
+      description: "Preview group, including empty configured groups."
+    DashboardGroup:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "groupId"
+        - "title"
+        - "displayLabel"
+        - "itemIds"
+      properties:
+        groupId:
+          type: "string"
+          description: "Configured group ID. Applies to DashboardGroup properties groupId."
+          example: "builtin:hosts"
+        title:
+          type: "string"
+          description: "Configured title. Applies to DashboardGroup properties title."
+          example: "Hosts"
+        displayLabel:
+          type: "string"
+          description: "Shared disambiguated group label. Applies to DashboardGroup properties displayLabel."
+          example: "Hosts"
+        itemIds:
+          type: "array"
+          items:
+            type: "string"
+            description: "Active widget ID joining the flat items array."
+            example: "host-atlas"
+          description: "Active members in effective order."
+          example: []
+      description: "Active resolved group; empty active groups omitted."
+    LayoutPreviewRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "requestId"
+        - "draftGeneration"
+        - "expectedRevision"
+        - "document"
+      properties:
+        requestId:
+          type: "string"
+          description: "Per-attempt UUID echoed by preview."
+          format: "uuid"
+          example: "11111111-1111-4111-8111-111111111111"
+        draftGeneration:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          maximum: 9007199254740991
+          description: "Local draft generation echoed by preview."
+          example: 0
+        expectedRevision:
+          $ref: "#/components/schemas/LayoutRevision"
+        document:
+          $ref: "#/components/schemas/LayoutDocument"
+      description: "Read-only draft validation, at most 128 KiB."
+    LayoutPreview:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "requestId"
+        - "draftGeneration"
+        - "layoutRevision"
+        - "document"
+        - "resolvedGroups"
+        - "membershipTokens"
+        - "stale"
+      properties:
+        requestId:
+          type: "string"
+          description: "Echoed attempt UUID."
+          format: "uuid"
+          example: "11111111-1111-4111-8111-111111111111"
+        draftGeneration:
+          type: "integer"
+          format: "int64"
+          description: "Echoed generation."
+          example: 0
+        layoutRevision:
+          $ref: "#/components/schemas/LayoutRevision"
+        document:
+          $ref: "#/components/schemas/LayoutDocument"
+        resolvedGroups:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/LayoutResolvedGroup"
+          description: "Every configured group in effective page order."
+          example: []
+        membershipTokens:
+          type: "object"
+          additionalProperties:
+            type: "string"
+            description: "Token from submitted-document membership."
+            pattern: "^members-[a-f0-9]{64}$"
+          description: "Each submitted group maps to members- plus SHA-256 of compact UTF-8 JSON [\"layout-members-v1\", groupId, sortedExactCompleteMemberIds]. Includes dormant explicit references and active default members; excludes labels."
+          example: {}
+        stale:
+          type: "boolean"
+          description: "Expected revision differs from current saved revision. Preview never authorizes a stale write."
+          example: false
+      description: "Canonical draft resolution without persistence."
+    LayoutMove:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "groupId"
+      properties:
+        groupId:
+          type: "string"
+          description: "Destination group ID."
+          example: "builtin:widgets"
+        beforeItemId:
+          x-go-type: nullable.Nullable[string]
+          x-go-type-skip-optional-pointer: true
+          x-omitempty: true
+          type: "string"
+          description: "Destination member before which to insert; null explicitly appends."
+          nullable: true
+          example: "host-atlas"
+      description: "Move an item without changing selection or renderer. Omitted anchor preserves destination order and joins its unranked tail. Null appends and establishes complete Custom order."
     PluginPlacementBody:
       type: object
       additionalProperties: false
@@ -5819,6 +7168,13 @@ components:
       type: object
       required: [items, unavailable]
       properties:
+        layoutRevision:
+          $ref: '#/components/schemas/LayoutRevision'
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardGroup'
+          description: Active groups in effective page order, with active member IDs. Empty groups omitted.
         items:
           type: array
           items: {$ref: '#/components/schemas/DashboardWidget'}

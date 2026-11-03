@@ -260,6 +260,18 @@ func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candida
 	defer func() { _ = tx.Rollback() }()
 	queries := s.queries.WithTx(tx)
 
+	result, err := s.listCandidates(ctx, queries, pinned)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit catalog read: %w", err)
+	}
+	return result, nil
+}
+
+func (s *CatalogStore) listCandidates(ctx context.Context, queries *sqlc.Queries, pinned bool) ([]catalog.Candidate, error) {
+	var err error
 	var rows []discoveredServiceRow
 	if pinned {
 		pinnedRows, listErr := queries.ListPinnedDiscoveredServices(ctx)
@@ -285,9 +297,6 @@ func (s *CatalogStore) List(ctx context.Context, pinned bool) ([]catalog.Candida
 			return nil, err
 		}
 		result = append(result, candidate)
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit catalog read: %w", err)
 	}
 	return result, nil
 }

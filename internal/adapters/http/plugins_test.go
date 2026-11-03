@@ -47,7 +47,7 @@ func (pluginRuntimeFixture) Query(_ context.Context, _, _, q string, input json.
 }
 func TestPluginAPIAuthenticationGrantsAndBounds(t *testing.T) {
 	token := strings.Repeat("private-token", 4)
-	h := MountPlugins(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(204) }), app.New(pluginStoreFixture{}, pluginRuntimeFixture{}), token)
+	h := MountPlugins(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(204) }), app.New(pluginStoreFixture{}, pluginRuntimeFixture{}), token, nil)
 	route := "/api/v1/plugins/example.plugin/connections/connection/queries/"
 	tests := []struct {
 		name, method, path, body, credential string

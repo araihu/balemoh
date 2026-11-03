@@ -20,6 +20,7 @@ type Handler struct {
 	presentation      presentation.Store
 	plugins           *plugins.Service
 	pluginToken       string
+	layouts           *dashboard.Layouts
 	dashboard         *dashboard.Service
 	telemetry         TelemetryStore
 	icons             IconStore

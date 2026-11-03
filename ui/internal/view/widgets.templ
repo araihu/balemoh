@@ -10,6 +10,7 @@ import (
 	"github.com/araihu/goshtoso/components/icon"
 	"github.com/araihu/goshtoso/components/icon/heroicons"
 	"github.com/araihu/goshtoso/components/link"
+ "github.com/araihu/goshtoso/components/layout"
 	"github.com/araihu/goshtoso/components/panel"
 	"github.com/araihu/goshtoso/components/tooltip"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 
 type Widget struct {
 	ID      string
+ Title string
 	SourceKind string
 	Content templ.Component
 }
@@ -24,6 +26,8 @@ type Dashboard struct {
 	Widgets     []Widget
 	Services    []Service
 	Unavailable []string
+ Layout *DashboardLayout
+ DefaultView bool
 }
 
 templ WidgetGrid(widgets []Widget) {
@@ -35,16 +39,26 @@ templ WidgetGrid(widgets []Widget) {
 	}
 }
 
+templ WidgetContent(widget Widget) {
+ <div id={ "widget-" + widget.ID } data-dashboard-widget>@widget.Content</div>
+}
+
 templ DashboardGrid(page Dashboard) {
-	if len(page.Widgets)==0 && len(page.Unavailable)==0 {
-		@WidgetGrid(nil)
-	}
-	for _, section := range dashboardSections(page.Widgets) {
-		<section id={ "dashboard-section-" + section.ID } aria-labelledby={ "dashboard-heading-" + section.ID } class="balemoh-dashboard-section">
-			<h2 id={ "dashboard-heading-" + section.ID }>{ section.Title }</h2>
-			<div class="balemoh-service-grid" data-dashboard-layout>@WidgetGrid(section.Widgets)</div>
-		</section>
-	}
+ if len(page.Widgets)==0 && len(page.Unavailable)==0 {
+  @WidgetGrid(nil)
+ }
+ <div class={ templ.KV("balemoh-homepage-contained",page.Layout!=nil && page.Layout.Width=="contained") }>
+  @layout.Container(dashboardContainer(page))
+ </div>
+}
+
+templ DashboardSection(section dashboardSection) {
+ <section id={ "dashboard-section-"+section.ID } aria-label={section.Label} class="balemoh-dashboard-section">
+  <details data-dashboard-disclosure={section.ID} open?={!section.InitiallyCollapsed}>
+   <summary><h2 id={"dashboard-heading-"+section.ID} tabindex="-1" class={templ.KV("sr-only",!section.ShowHeading)}>{section.Label}</h2></summary>
+   @layout.Container(groupContainer(section))
+  </details>
+ </section>
 }
 
 templ DashboardWarnings(sources []string) {

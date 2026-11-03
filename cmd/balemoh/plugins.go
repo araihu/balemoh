@@ -54,7 +54,16 @@ func startPlugins(ctx context.Context, db *sql.DB, server *http.Server, deployme
 				}
 			}
 		}
-		server.Handler = httpadapter.MountPlugins(server.Handler, service, token, dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: sqlite.NewTelemetryStore(db), Selections: sqlite.NewDashboardSelections(db)})
+		layoutStore := sqlite.NewLayoutStore(db)
+		layoutStore.PluginTitle = func(pluginID, contributionID string) string {
+			for _, d := range service.Definitions() {
+				if d.PluginID == pluginID && d.ContributionID == contributionID {
+					return d.Title
+				}
+			}
+			return ""
+		}
+		server.Handler = httpadapter.MountPlugins(server.Handler, service, token, &dashboard.Layouts{Store: layoutStore}, dashboard.ServiceProvider{Catalog: catalogService}, dashboard.HostProvider{Hosts: sqlite.NewTelemetryStore(db), Selections: sqlite.NewDashboardSelections(db)})
 	}
 	return runtime.Close, nil
 }

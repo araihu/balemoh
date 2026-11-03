@@ -13,19 +13,21 @@ import (
 	"github.com/araihu/balemoh/plugin-sdk/credential"
 )
 
-func MountPlugins(base http.Handler, service *plugins.Service, token string, providers ...dashboard.Provider) http.Handler {
-	h := Handler{plugins: service, pluginToken: token}
+func MountPlugins(base http.Handler, service *plugins.Service, token string, layouts *dashboard.Layouts, providers ...dashboard.Provider) http.Handler {
+	h := Handler{plugins: service, pluginToken: token, layouts: layouts}
 	if len(providers) > 0 {
-		h.dashboard = dashboard.New(append(providers, plugins.Provider{Service: service})...)
+		h.dashboard = dashboard.New(append(providers, plugins.Provider{Service: service})...).WithLayouts(layouts)
 	}
-	routes := generated.HandlerFromMux(h, http.NewServeMux())
+	routes := generated.HandlerWithOptions(h, generated.StdHTTPServerOptions{BaseRouter: http.NewServeMux(), ErrorHandlerFunc: RequestError})
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/plugins", routes)
 	mux.Handle("/api/v1/plugins/", routes)
 	mux.Handle("/api/v1/plugin-widgets", routes)
 	mux.Handle("/api/v1/plugin-widgets/", routes)
 	if h.dashboard != nil {
-		mux.HandleFunc("GET /api/v1/dashboard", h.GetDashboard)
+		mux.Handle("GET /api/v1/dashboard", routes)
+		mux.Handle("/api/v1/dashboard/layout", routes)
+		mux.Handle("/api/v1/dashboard/layout/", routes)
 	}
 	mux.Handle("/", base)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T00:02:06.708432+00:00",
+  "title": "Design System: Balemoh",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Primary"
+      },
+      "on-primary": {
+        "role": "primary",
+        "displayName": "On primary"
+      },
+      "primary-dark": {
+        "role": "primary",
+        "displayName": "Primary dark"
+      },
+      "on-primary-dark": {
+        "role": "primary",
+        "displayName": "On primary dark"
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Secondary"
+      },
+      "secondary-dark": {
+        "role": "secondary",
+        "displayName": "Secondary dark"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface"
+      },
+      "surface-alt": {
+        "role": "neutral",
+        "displayName": "Surface alt"
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Surface dark"
+      },
+      "surface-dark-alt": {
+        "role": "neutral",
+        "displayName": "Surface dark alt"
+      },
+      "on-surface": {
+        "role": "neutral",
+        "displayName": "On surface"
+      },
+      "on-surface-strong": {
+        "role": "neutral",
+        "displayName": "On surface strong"
+      },
+      "on-surface-dark": {
+        "role": "neutral",
+        "displayName": "On surface dark"
+      },
+      "on-surface-dark-strong": {
+        "role": "neutral",
+        "displayName": "On surface dark strong"
+      },
+      "on-surface-muted": {
+        "role": "neutral",
+        "displayName": "On surface muted"
+      },
+      "on-surface-dark-muted": {
+        "role": "neutral",
+        "displayName": "On surface dark muted"
+      },
+      "outline": {
+        "role": "neutral",
+        "displayName": "Outline"
+      },
+      "outline-dark-strong": {
+        "role": "neutral",
+        "displayName": "Outline dark strong"
+      },
+      "control-outline": {
+        "role": "neutral",
+        "displayName": "Control outline"
+      },
+      "control-outline-dark": {
+        "role": "neutral",
+        "displayName": "Control outline dark"
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Body",
+        "purpose": "Inherited ConsoleShell system font; theme font tokens are exposed separately."
+      },
+      "title": {
+        "displayName": "Editor section title",
+        "purpose": "Inspector and dashboard section headings."
+      },
+      "label": {
+        "displayName": "Field label",
+        "purpose": "Compact form legends."
+      },
+      "context": {
+        "displayName": "Context",
+        "purpose": "Inspector context and secondary copy."
+      }
+    },
+    "shadows": [
+      {
+        "name": "control",
+        "value": "var(--shadow-elevation-control)",
+        "purpose": "Existing Goshtoso control elevation; no blanket editor application."
+      },
+      {
+        "name": "raised",
+        "value": "var(--shadow-elevation-raised)",
+        "purpose": "Existing Goshtoso raised component role."
+      },
+      {
+        "name": "overlay",
+        "value": "var(--shadow-elevation-overlay)",
+        "purpose": "Existing Goshtoso overlay role."
+      }
+    ],
+    "motion": [
+      {
+        "name": "reduced-motion-duration",
+        "value": "0.01ms",
+        "purpose": "Balemoh reduced-motion animation and transition duration."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "content-compact-max",
+        "value": "719px"
+      },
+      {
+        "name": "editor-toolbar-compact-max",
+        "value": "600px"
+      },
+      {
+        "name": "editor-field-columns-min",
+        "value": "800px"
+      },
+      {
+        "name": "editor-inspector-sidebar-min",
+        "value": "1100px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "description": "Goshtoso filled action with active theme and keyboard focus.",
+      "html": "<div class=\"ds-theme\"><button type=\"button\" class=\"ds-button\">Save layout</button></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-button{font-family:system-ui,sans-serif;font-size:.875rem;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.75rem;min-width:2.75rem;padding:.5rem 1rem;border:1px solid;border-radius:1rem;font-weight:500;letter-spacing:.025em;line-height:1.25rem;cursor:pointer;transition:color .15s,background-color .15s,border-color .15s,filter .15s;background:var(--ds-primary);color:var(--ds-on-primary);border-color:var(--ds-primary)}.ds-button:hover{filter:contrast(1.25)}.ds-button:focus-visible{outline:2px solid var(--ds-primary);outline-offset:2px}.ds-button:active{filter:contrast(1);outline-offset:0}.ds-button:disabled{opacity:.75;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}",
+      "refersTo": "button-primary"
+    },
+    {
+      "name": "Alternate action",
+      "kind": "button",
+      "description": "Goshtoso filled action with active theme and keyboard focus.",
+      "html": "<div class=\"ds-theme\"><button type=\"button\" class=\"ds-button\">Create group</button></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-button{font-family:system-ui,sans-serif;font-size:.875rem;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.75rem;min-width:2.75rem;padding:.5rem 1rem;border:1px solid;border-radius:1rem;font-weight:500;letter-spacing:.025em;line-height:1.25rem;cursor:pointer;transition:color .15s,background-color .15s,border-color .15s,filter .15s;background:var(--ds-alt);color:var(--ds-ink);border-color:var(--ds-alt)}.ds-button:hover{filter:contrast(1.25)}.ds-button:focus-visible{outline:2px solid var(--ds-primary);outline-offset:2px}.ds-button:active{filter:contrast(1);outline-offset:0}.ds-button:disabled{opacity:.75;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}",
+      "refersTo": "button-alternate"
+    },
+    {
+      "name": "Plain action",
+      "kind": "button",
+      "description": "Text action used for Cancel and group selection.",
+      "html": "<div class=\"ds-theme\"><button type=\"button\" class=\"ds-plain\">Cancel</button></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-plain{font-family:system-ui,sans-serif;font-size:.875rem;background:transparent;color:var(--ds-ink);border:0;min-height:2.75rem;padding:0 .25rem;font-weight:500;cursor:pointer}.ds-plain:hover{text-decoration:underline}.ds-plain:focus-visible{outline:2px solid currentColor;outline-offset:2px}.ds-plain:disabled{opacity:.75;cursor:not-allowed}",
+      "refersTo": "button-plain"
+    },
+    {
+      "name": "Group name field",
+      "kind": "input",
+      "description": "Observed TextInput field with explicit label and focus.",
+      "html": "<div class=\"ds-theme\"><label class=\"ds-label\" for=\"ds-group-name\">Name</label><input class=\"ds-input\" id=\"ds-group-name\" value=\"Services\"></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-label{font-family:system-ui,sans-serif;font-size:.875rem;display:block;color:var(--ds-ink);margin-bottom:.5rem}.ds-input{font-family:system-ui,sans-serif;font-size:.875rem;width:100%;padding:.5rem;color:var(--ds-ink);background:var(--ds-bg);border:1px solid var(--ds-control);border-radius:var(--radius-radius)}.ds-input:focus-visible{outline:2px solid var(--ds-primary);outline-offset:2px}.ds-input:disabled{opacity:.5;background:var(--ds-alt);cursor:not-allowed}",
+      "refersTo": "text-input"
+    },
+    {
+      "name": "Service card",
+      "kind": "card",
+      "description": "Content-only Goshtoso card, preserving natural height.",
+      "html": "<div class=\"ds-theme\"><article class=\"ds-card\"><h3>Service</h3><p>Service address</p></article></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-card{font-family:system-ui,sans-serif;font-size:.875rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;background:var(--ds-alt);color:var(--ds-text);border:1px solid var(--ds-outline);border-radius:var(--radius-radius)}.ds-card h3{margin:0;color:var(--ds-ink);font-size:1.25rem;font-weight:700;line-height:1.75rem}.ds-card p{margin:0;line-height:1.25rem}@media(min-width:1024px){.ds-card h3{font-size:1.5rem;line-height:2rem}}",
+      "refersTo": "card"
+    },
+    {
+      "name": "Editor group",
+      "kind": "custom",
+      "description": "Dashed editing boundary with selection and disclosure focus.",
+      "html": "<div class=\"ds-theme\"><section class=\"ds-group\" aria-current=\"true\"><h3>Services</h3><details open><summary>2 items</summary><p>Rendered widgets</p></details></section></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-group{font-family:system-ui,sans-serif;font-size:.875rem;padding:.75rem;border:1px dashed var(--balemoh-border);border-radius:var(--radius-radius);color:var(--ds-ink)}.ds-group[aria-current=\"true\"]{border-style:solid;border-color:var(--ds-primary)}.ds-group h3{margin:0 0 .25rem;font-size:1rem;font-weight:600}.ds-group summary{min-height:2rem;cursor:pointer;font-size:.8rem}.ds-group summary:focus-visible{outline:2px solid var(--ds-primary);outline-offset:3px}",
+      "refersTo": "group"
+    },
+    {
+      "name": "Metadata badge",
+      "kind": "chip",
+      "description": "Goshtoso medium default filled badge.",
+      "html": "<div class=\"ds-theme\"><span class=\"ds-badge\">Built-in</span></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-badge{font-family:system-ui,sans-serif;font-size:.875rem;display:inline-flex;align-items:center;gap:.25rem;padding:.25rem .5rem;border:1px solid var(--ds-outline);border-radius:var(--radius-radius);background:var(--ds-alt);color:var(--ds-text);font-size:.75rem;line-height:1rem}"
+    },
+    {
+      "name": "Shell navigation",
+      "kind": "nav",
+      "description": "Observed Goshtoso top-level navigation with ConsoleShell active-link weight.",
+      "html": "<div class=\"ds-theme\"><nav aria-label=\"Main\"><a class=\"ds-nav\" href=\"#home\">Home</a><a class=\"ds-nav\" href=\"#layout\" aria-current=\"page\">Homepage layout</a></nav></div>",
+      "css": ".ds-theme{--ds-bg:var(--color-surface);--ds-alt:var(--color-surface-alt);--ds-ink:var(--color-on-surface-strong);--ds-text:var(--color-on-surface);--ds-primary:var(--color-primary);--ds-on-primary:var(--color-on-primary);--ds-outline:var(--color-outline);--ds-control:var(--color-control-outline)}:host-context(.dark) .ds-theme{--ds-bg:var(--color-surface-dark);--ds-alt:var(--color-surface-dark-alt);--ds-ink:var(--color-on-surface-dark-strong);--ds-text:var(--color-on-surface-dark);--ds-primary:var(--color-primary-dark);--ds-on-primary:var(--color-on-primary-dark);--ds-outline:var(--color-outline-dark);--ds-control:var(--color-control-outline-dark)}.ds-nav{display:flex;align-items:center;gap:.5rem;padding:.5rem 0;font-family:system-ui,sans-serif;font-size:1rem;line-height:1.5rem;color:var(--ds-text);text-decoration:none;transition:color .15s}.ds-nav:hover{color:var(--ds-ink)}.ds-nav[aria-current=\"page\"]{color:var(--ds-primary);font-weight:700}.ds-nav:focus-visible{outline:2px solid var(--ds-primary);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-nav{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Balemoh / Goshtoso",
+    "overview": "Balemoh keeps its existing brand assets and Goshtoso theme system. Theme selection and light/dark preferences determine semantic color bindings; the shell supplies inherited typography. This document records the implemented system; it does not establish a replacement identity.\n\nControls use familiar forms, named actions and visible focus. Widgets keep their own content and natural geometry. Structural separators and theme surfaces distinguish editing controls from the content they affect.",
+    "keyCharacteristics": [
+      "Semantic theme bindings across light and dark modes.",
+      "Compact controls with visible keyboard focus.",
+      "Natural-height service, host and plugin content."
+    ],
+    "rules": [
+      {
+        "name": "The Theme Binding Rule",
+        "body": "Reuse the active theme's semantic tokens and their dark counterparts. A default-theme snapshot is not a product-wide palette.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do use Goshtoso components and their semantic light/dark token pairs.",
+      "Do keep widget links and arbitrary widget content usable while editing.",
+      "Do keep focus, selection, disabled and error states distinguishable.",
+      "Do verify the homepage editor at 1440px, 1404px and 390px in both color modes."
+    ],
+    "donts": [
+      "Don't replace configured themes, fonts or existing brand assets with fixed palette values.",
+      "Don't treat the homepage editor composition as a rule for every product screen.",
+      "Don't use preview appearance as proof that a draft has been saved.",
+      "Don't remove named movement actions or keyboard access when adding drag interactions."
+    ]
+  }
+}

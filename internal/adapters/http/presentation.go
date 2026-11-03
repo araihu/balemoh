@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"github.com/araihu/balemoh/internal/application/dashboard"
 	"io"
 	"net/http"
 	"strings"
@@ -275,6 +276,19 @@ func (h Handler) GetFontFile(w http.ResponseWriter, r *http.Request, id string) 
 
 // RequestError keeps generated parameter-validation failures in the API envelope.
 func RequestError(w http.ResponseWriter, r *http.Request, _ error) {
+	if strings.HasPrefix(r.URL.Path, "/api/v1/dashboard/layout") {
+		membership := strings.HasPrefix(r.URL.Path, "/api/v1/dashboard/layout/groups/")
+		_, _, err := layoutPreconditions(r, membership)
+		if err == nil {
+			err = dashboard.LayoutFailure(400, "invalid_request", "Invalid layout request parameters.")
+		}
+		writeLayoutError(w, err)
+		return
+	}
+	if r.URL.Path == "/api/v1/dashboard" {
+		writeLayoutError(w, dashboard.LayoutFailure(400, "invalid_request", "Invalid dashboard parameters."))
+		return
+	}
 	if strings.HasPrefix(r.URL.Path, "/api/v1/presentation") || strings.HasPrefix(r.URL.Path, "/api/v1/themes") || strings.HasPrefix(r.URL.Path, "/api/v1/fonts") {
 		presentationError(w, p.Invalid())
 		return
