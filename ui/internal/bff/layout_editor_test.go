@@ -345,7 +345,7 @@ func TestLayoutSaveRejectsUnconfirmedResponsesAndAllowsReadback(t *testing.T) {
 	}{
 		{"empty", 200, `{}`, true},
 		{"duplicate revision", 200, strings.Replace(state("1", document), `"revision":"1"`, `"revision":"999","revision":"1"`, 1), true},
-		{"duplicate nested field", 200, strings.Replace(state("1", document), `"showHeading":true`, `"showHeading":false,"showHeading":true`, 1), true},
+		{"duplicate nested field", 200, strings.Replace(state("1", document), `"showHeading":false`, `"showHeading":true,"showHeading":false`, 1), true},
 		{"duplicate error code", 503, `{"code":"unavailable","code":"layout_unreadable","message":"Unreadable."}`, true},
 		{"duplicate error message", 422, `{"code":"invalid_layout","message":"One","message":"Two"}`, true}, {"null", 200, `null`, true},
 		{"missing revision", 200, `{"document":` + string(raw) + `}`, true},
@@ -416,6 +416,14 @@ func TestLayoutStateValidationRejectsIncompleteAndInvalidDocuments(t *testing.T)
 		t.Fatal(e)
 	}
 	cases := map[string]func(map[string]any){
+		"null optional":       func(d map[string]any) { d["groups"].([]any)[0].(map[string]any)["collapsible"] = nil },
+		"unknown optional":    func(d map[string]any) { d["groups"].([]any)[0].(map[string]any)["collapsable"] = true },
+		"wrong optional type": func(d map[string]any) { d["groups"].([]any)[0].(map[string]any)["collapsible"] = "true" },
+		"contradictory accordion": func(d map[string]any) {
+			g := d["groups"].([]any)[0].(map[string]any)
+			g["collapsible"] = false
+			g["initiallyCollapsed"] = true
+		},
 		"missing bool":     func(d map[string]any) { delete(d["groups"].([]any)[0].(map[string]any), "showHeading") },
 		"null bool":        func(d map[string]any) { d["groups"].([]any)[0].(map[string]any)["showHeading"] = nil },
 		"invalid geometry": func(d map[string]any) { d["homepage"].(map[string]any)["layout"].(map[string]any)["columns"] = 8 },
@@ -649,7 +657,7 @@ func TestLayoutPreviewRejectsDuplicateResponseKeys(t *testing.T) {
 	_ = json.Unmarshal(raw, &request.Document)
 	response, _ := json.Marshal(emptyLayoutPreview(request, "0", false))
 	body, _ := json.Marshal(request)
-	for _, wire := range []string{strings.Replace(string(response), `"layoutRevision":"0"`, `"layoutRevision":"999","layoutRevision":"0"`, 1), strings.Replace(string(response), `"showHeading":true`, `"showHeading":false,"showHeading":true`, 1)} {
+	for _, wire := range []string{strings.Replace(string(response), `"layoutRevision":"0"`, `"layoutRevision":"999","layoutRevision":"0"`, 1), strings.Replace(string(response), `"showHeading":false`, `"showHeading":true,"showHeading":false`, 1)} {
 		t.Run(strconv.Itoa(len(wire)), func(t *testing.T) {
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
@@ -666,5 +674,70 @@ func TestLayoutPreviewRejectsDuplicateResponseKeys(t *testing.T) {
 				t.Fatal("duplicate-key preview accepted", e)
 			}
 		})
+	}
+}
+
+func TestLayoutAccordionResponseCompatibility(t *testing.T) {
+	raw, err := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var d api.LayoutDocument
+	if err = json.Unmarshal(raw, &d); err != nil {
+		t.Fatal(err)
+	}
+	for _, collapsed := range []bool{false, true} {
+		d.Groups[0].Collapsible = nil
+		d.Groups[0].InitiallyCollapsed = collapsed
+		legacy := api.LayoutState{Revision: "1", Document: d}
+		body, _ := json.Marshal(legacy)
+		decoded, err := layoutResponse[api.LayoutState](&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(body))}, nil)
+		if err != nil {
+			t.Fatal("legacy omission rejected", err)
+		}
+		explicit := decoded.Document
+		explicit.Groups = append([]api.LayoutGroup(nil), explicit.Groups...)
+		explicit.Groups[0].Collapsible = new(collapsed)
+		if !sameLayoutDocument(decoded.Document, explicit) || decoded.Document.Groups[0].Collapsible != nil {
+			t.Fatal("comparison changed legacy document or treated an effective default as a change")
+		}
+	}
+	d.Groups[0].Collapsible = new(true)
+	d.Groups[0].InitiallyCollapsed = false
+	body, _ := json.Marshal(api.LayoutState{Revision: "1", Document: d})
+	decoded, err := layoutResponse[api.LayoutState](&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(body))}, nil)
+	if err != nil || decoded.Document.Groups[0].Collapsible == nil || !*decoded.Document.Groups[0].Collapsible {
+		t.Fatal("optional flag lost", err)
+	}
+}
+
+func TestLayoutComparisonUsesEffectiveAccordionSetting(t *testing.T) {
+	for _, collapsed := range []bool{false, true} {
+		raw, err := os.ReadFile("../../../docs/specs/spec-001-homepage-layouts/example-layout.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var d api.LayoutDocument
+		if err = json.Unmarshal(raw, &d); err != nil {
+			t.Fatal(err)
+		}
+		d.Groups[0].InitiallyCollapsed = collapsed
+		d.Groups[0].Collapsible = nil
+		raw, _ = json.Marshal(d)
+		legacy, err := layoutValues(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d.Groups[0].Collapsible = new(collapsed)
+		raw, _ = json.Marshal(d)
+		explicit, err := layoutValues(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		a, _ := json.Marshal(legacy)
+		b, _ := json.Marshal(explicit)
+		if string(a) != string(b) {
+			t.Fatal("comparison reports a wire-only difference", string(a), string(b))
+		}
 	}
 }

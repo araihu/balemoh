@@ -70,7 +70,7 @@ func TestLayoutHTTPConditionalWritesAndStrictBodies(t *testing.T) {
 		})
 	}
 	raw, _ := json.Marshal(d)
-	for _, body := range []string{strings.Replace(string(raw), `"showHeading":true,`, "", 1), strings.Replace(string(raw), `"gapPx":16`, `"gapPx":16,"unknown":1`, 1), strings.Replace(string(raw), `"gapPx":16`, `"gapPx":null`, 1), string(raw) + ` {}`} {
+	for _, body := range []string{strings.Replace(string(raw), `"showHeading":false,`, "", 1), strings.Replace(string(raw), `"gapPx":16`, `"gapPx":16,"unknown":1`, 1), strings.Replace(string(raw), `"gapPx":16`, `"gapPx":null`, 1), string(raw) + ` {}`} {
 		w := layoutRequest(h, "PUT", "/api/v1/dashboard/layout", body, headers)
 		if w.Code != 400 {
 			t.Fatal(w.Code, w.Body.String())
@@ -196,5 +196,36 @@ func TestLayoutTargetedErrorsIdentifySubmittedFields(t *testing.T) {
 	_ = json.Unmarshal(w.Body.Bytes(), &failure)
 	if w.Code != 422 || failure.FieldErrors["/ids/0"] == "" || failure.FieldErrors["/ids/1"] == "" {
 		t.Fatal(w.Code, w.Body.String())
+	}
+}
+
+func TestLayoutHTTPAccordionAndRequiredNameRecovery(t *testing.T) {
+	h, _ := layoutHandler(t)
+	d := dashboard.DefaultLayout()
+	headers := map[string]string{"If-Match": `"layout-0"`}
+	d.Groups[0].Title = " "
+	invalid := layoutRequest(h, "PUT", "/api/v1/dashboard/layout", d, headers)
+	if invalid.Code != 422 || !strings.Contains(invalid.Body.String(), `"/groups/0/title"`) {
+		t.Fatal("missing editable title error", invalid.Code, invalid.Body.String())
+	}
+	d.Groups[0].Title = "Renamed"
+	d.Groups[0].Collapsible = new(true)
+	saved := layoutRequest(h, "PUT", "/api/v1/dashboard/layout", d, headers)
+	if saved.Code != 200 || saved.Header().Get("ETag") != `"layout-1"` {
+		t.Fatal(saved.Code, saved.Body.String())
+	}
+	var state sdkclient.LayoutState
+	if err := json.Unmarshal(saved.Body.Bytes(), &state); err != nil || state.Document.Groups[0].Collapsible == nil || !*state.Document.Groups[0].Collapsible || state.Document.Groups[0].ShowHeading {
+		t.Fatal("generated client lost independent opt-ins", state, err)
+	}
+	d.Groups[0].Collapsible = new(false)
+	d.Groups[0].InitiallyCollapsed = true
+	invalid = layoutRequest(h, "PUT", "/api/v1/dashboard/layout", d, map[string]string{"If-Match": `"layout-1"`})
+	if invalid.Code != 422 || !strings.Contains(invalid.Body.String(), `"/groups/0/initiallyCollapsed"`) {
+		t.Fatal(invalid.Code, invalid.Body.String())
+	}
+	get := layoutRequest(h, "GET", "/api/v1/dashboard/layout", nil, nil)
+	if get.Header().Get("ETag") != `"layout-1"` || get.Body.String() != saved.Body.String() {
+		t.Fatal("invalid write changed saved state", get.Body.String())
 	}
 }

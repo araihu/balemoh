@@ -85,7 +85,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -98,7 +98,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -111,7 +111,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                   sourceGroups:
@@ -170,7 +170,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -183,7 +183,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -196,7 +196,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                   sourceGroups:
@@ -266,7 +266,7 @@ paths:
                   ordering:
                     mode: "alphabetical"
                     ids: []
-                  showHeading: true
+                  showHeading: false
                   initiallyCollapsed: false
                   placements: []
                 -
@@ -279,7 +279,7 @@ paths:
                   ordering:
                     mode: "alphabetical"
                     ids: []
-                  showHeading: true
+                  showHeading: false
                   initiallyCollapsed: false
                   placements: []
                 -
@@ -292,7 +292,7 @@ paths:
                   ordering:
                     mode: "alphabetical"
                     ids: []
-                  showHeading: true
+                  showHeading: false
                   initiallyCollapsed: false
                   placements: []
               sourceGroups:
@@ -349,7 +349,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -362,7 +362,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -375,7 +375,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                   sourceGroups:
@@ -446,7 +446,7 @@ paths:
                     ordering:
                       mode: "alphabetical"
                       ids: []
-                    showHeading: true
+                    showHeading: false
                     initiallyCollapsed: false
                     placements: []
                   -
@@ -459,7 +459,7 @@ paths:
                     ordering:
                       mode: "alphabetical"
                       ids: []
-                    showHeading: true
+                    showHeading: false
                     initiallyCollapsed: false
                     placements: []
                   -
@@ -472,7 +472,7 @@ paths:
                     ordering:
                       mode: "alphabetical"
                       ids: []
-                    showHeading: true
+                    showHeading: false
                     initiallyCollapsed: false
                     placements: []
                 sourceGroups:
@@ -527,7 +527,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -540,7 +540,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -553,7 +553,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                   sourceGroups:
@@ -642,7 +642,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -655,7 +655,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -668,7 +668,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                   sourceGroups:
@@ -766,7 +766,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -779,7 +779,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                     -
@@ -792,7 +792,7 @@ paths:
                       ordering:
                         mode: "alphabetical"
                         ids: []
-                      showHeading: true
+                      showHeading: false
                       initiallyCollapsed: false
                       placements: []
                   sourceGroups:
@@ -6455,11 +6455,15 @@ components:
           $ref: "#/components/schemas/LayoutOrdering"
         showHeading:
           type: "boolean"
-          description: "Show the group heading while retaining its accessible name."
+          description: "Show the group name while retaining its accessible name. New groups default to false."
           example: true
+        collapsible:
+          type: "boolean"
+          description: "Enable accordion behavior independently of heading visibility. New groups default to false. When omitted, initiallyCollapsed supplies the effective value for legacy documents. Canonical responses omit this field when its value equals initiallyCollapsed."
+          example: false
         initiallyCollapsed:
           type: "boolean"
-          description: "Initial disclosure state. Runtime disclosure changes are transient."
+          description: "Start an enabled accordion collapsed. Must be false when collapsible is false. Runtime disclosure changes are transient."
           example: false
         placements:
           type: "array"
@@ -6551,7 +6555,7 @@ components:
               ordering:
                 mode: "alphabetical"
                 ids: []
-              showHeading: true
+              showHeading: false
               initiallyCollapsed: false
               placements: []
             -
@@ -6564,7 +6568,7 @@ components:
               ordering:
                 mode: "alphabetical"
                 ids: []
-              showHeading: true
+              showHeading: false
               initiallyCollapsed: false
               placements: []
             -
@@ -6577,7 +6581,7 @@ components:
               ordering:
                 mode: "alphabetical"
                 ids: []
-              showHeading: true
+              showHeading: false
               initiallyCollapsed: false
               placements: []
         sourceGroups:

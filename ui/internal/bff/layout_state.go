@@ -26,17 +26,27 @@ func completeLayoutJSON(raw []byte, t reflect.Type) bool {
 		return false
 	}
 	switch t.Kind() {
+	case reflect.Pointer:
+		return completeLayoutJSON(raw, t.Elem())
 	case reflect.Struct:
 		var object map[string]json.RawMessage
-		if json.Unmarshal(raw, &object) != nil || len(object) != t.NumField() {
+		if json.Unmarshal(raw, &object) != nil {
 			return false
 		}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
-			value, ok := object[strings.Split(f.Tag.Get("json"), ",")[0]]
+			name, options, _ := strings.Cut(f.Tag.Get("json"), ",")
+			value, ok := object[name]
+			if !ok && strings.Contains(options, "omitempty") {
+				continue
+			}
 			if !ok || !completeLayoutJSON(value, f.Type) {
 				return false
 			}
+			delete(object, name)
+		}
+		if len(object) != 0 {
+			return false
 		}
 	case reflect.Slice:
 		var values []json.RawMessage
@@ -63,6 +73,9 @@ func validLayoutState(s api.LayoutState) bool {
 	}
 	groups, refs := map[string]bool{}, map[string]bool{}
 	for _, g := range d.Groups {
+		if g.Collapsible != nil && !*g.Collapsible && g.InitiallyCollapsed {
+			return false
+		}
 		if groups[g.Id] || g.Title == "" || g.Title != strings.TrimSpace(g.Title) || utf8.RuneCountInString(g.Title) > 80 || !validLayoutGeometry(g.Layout) || g.Placements == nil {
 			return false
 		}
@@ -125,6 +138,9 @@ func sameLayoutDocument(a, b api.LayoutDocument) bool {
 		for i := range d.Groups {
 			g := &d.Groups[i]
 			g.Title = strings.TrimSpace(g.Title)
+			if g.Collapsible == nil {
+				g.Collapsible = new(g.InitiallyCollapsed)
+			}
 			slices.SortFunc(g.Placements, func(a, b api.LayoutGroupPlacement) int { return strings.Compare(a.ItemId, b.ItemId) })
 		}
 		raw, _ = json.Marshal(d)

@@ -127,3 +127,21 @@ message. They do not change the draft or gate unrelated valid Save. Field-error
 links reveal the correct drawer tab. Closed, removed or dormant item controls use
 a visible group/Settings focus fallback. Capacity hints appear only when the
 relevant operation is unavailable; the general limits panel stays removed.
+
+## Required names and optional presentation
+
+- Clear Name and pause for validation. Drawer stays open, Name keeps focus/caret,
+  inline error is announced and editable, Save stays disabled. Type a valid name;
+  preview recovers without Retry. Whitespace-only names also fail.
+- Close an invalid drawer. Global error summary stays visible; its Name link reopens
+  the Group tab and focuses the editable input. Deliberate tab switches retain the
+  draft. Network failures, conflicts and uncertain writes still expose recovery.
+- New groups start with Show group name and Use accordion unchecked. Toggle each
+  independently. Start collapsed appears only for an enabled accordion; disabling
+  accordion clears that preference. Empty editor groups keep their drop targets.
+- Homepage renders no details for static groups. Hidden headings retain accessible
+  region names; hidden-name accordions show item count. Existing explicit headings
+  and legacy initially-collapsed preferences remain intact.
+- Legacy omission and equivalent explicit flags cause no dirty state or revision
+  change. Null, duplicate, unknown and wrong-type fields remain rejected. Saving
+  an open accordion survives restart; old binaries require a compatible backup.

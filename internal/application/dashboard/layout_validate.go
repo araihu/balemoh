@@ -76,6 +76,14 @@ func ValidateLayout(d *LayoutDocument, previous LayoutDocument, active []Widget)
 		g := &d.Groups[i]
 		p := fmt.Sprintf("/groups/%d", i)
 		g.Title = strings.TrimSpace(g.Title)
+		if g.Collapsible != nil {
+			if !*g.Collapsible && g.InitiallyCollapsed {
+				add(p+"/initiallyCollapsed", "Enable accordion before starting collapsed.")
+			} else if *g.Collapsible == g.InitiallyCollapsed {
+				// Keep legacy documents readable by clients with closed JSON decoders.
+				g.Collapsible = nil
+			}
+		}
 		if old, ok := firstGroup[g.ID]; ok {
 			add(p+"/id", "Repeated group ID.")
 			add(fmt.Sprintf("/groups/%d/id", old), "Repeated group ID.")

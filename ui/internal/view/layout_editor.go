@@ -24,10 +24,10 @@ type LayoutFrame struct {
 	Targets                     map[string]string
 }
 type EditorGroup struct {
-	ID, Title, Label, Span, Order   string
-	Arrangement                     Arrangement
-	ShowHeading, InitiallyCollapsed bool
-	Members                         []EditorMember
+	ID, Title, Label, Span, Order                string
+	Arrangement                                  Arrangement
+	ShowHeading, Collapsible, InitiallyCollapsed bool
+	Members                                      []EditorMember
 }
 type EditorMember struct {
 	ID, Label, State string
