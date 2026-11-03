@@ -320,3 +320,16 @@ and Firefox/WebKit remain untested. No release or production deployment.
   startup. No Balemoh production deployment. Physical pen/touch, real screen
   readers and Firefox/WebKit remain unchecked.
 - Receipts are under the existing local report's `release-v0.6.0/` directory.
+
+
+## Final dependency refresh, 2026-11-03
+
+Main advanced to `46ba52b` during publication, bringing kin-openapi v0.149.0 and
+jsonschema/v6 v6.0.3 from dependency PRs #22 and #23. Merged that baseline and
+resolved the UI module conflict by retaining those updates and the Goshtoso
+release's YAML v3.0.6 requirement. Both application modules still pin v0.6.0.
+API, UI and standalone client race suites, vet and module verification passed
+again. API/UI CGO-disabled builds passed; client generation has no drift.
+Rebuilt preview listeners passed the HTTP/editor/canonical/exact-runtime checks.
+Saved layout remains revision 35 with the original document hash. No application
+source or browser interaction behavior changed in this dependency refresh.
