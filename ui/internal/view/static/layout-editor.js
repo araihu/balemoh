@@ -189,7 +189,10 @@
       await global.htmx.swap({sourceElement:frame,target:'#layout-editor-page-controls',swap:'innerHTML settle:0',text:result.pageHtml});
       const focusedTab=focus?.closest('[role=tab]');
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-inspector', swap: 'innerHTML settle:0', text: result.inspectorHtml });
-      const tab=settingsTab(requestedSettingsTab||activeSettingsTab);tab?.click();if(focusedTab&&focusEpoch===interactionEpoch)tab?.focus({preventScroll:true});
+      const tab=settingsTab(requestedSettingsTab||activeSettingsTab);tab?.click();
+      // Alpine must reveal the selected panel before its replaced field can regain focus.
+      await global.Alpine.nextTick();
+      if(focusedTab&&focusEpoch===interactionEpoch)tab?.focus({preventScroll:true});
       await global.htmx.swap({ sourceElement: frame, target: '#layout-editor-preview-body', swap: 'innerMorph', text: result.previewHtml });
       frame.querySelectorAll('details[data-editor-collapse]').forEach(el=>{const group=model.resolved(el.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active'))el.open=true;});
       if(root.querySelector('#layout-selected-movement'))await global.htmx.swap({sourceElement:frame,target:'#layout-selected-movement',swap:'innerHTML settle:0',text:result.movementHtml});

@@ -1,5 +1,9 @@
 # Goshtoso integration notes
 
+## Layout editor field focus, 2026-11-03
+
+- Replacing the inspector resets Goshtoso Tabs to its initial panel. After selecting the prior tab, await Alpine's public `nextTick()` before restoring focus and selection to the replacement field. Otherwise the field is still hidden and focus lands on the tab. This is consumer swap sequencing; no upstream change or component replacement is needed. Native checks passed at 390px and 1440px, including selection retention and a deliberate tab switch during preview.
+
 ## Shared demo service logos, 2026-10-30
 
 - Reuse the locked selfh.st catalog and existing `LibraryImage`/`ServiceGlyph` rendering. No custom component, JavaScript or new image source is needed. Default brand PNGs use a small light backing on service cards so dark artwork stays readable in both color modes.
