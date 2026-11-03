@@ -3,6 +3,7 @@ package view
 import (
 	"bytes"
 	"github.com/a-h/templ"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -21,8 +22,8 @@ func TestLayoutPreviewFirstKeepsMovementInOneContextualInspector(t *testing.T) {
 	if strings.Count(active, `id="layout-selected-movement"`) != 1 || !strings.Contains(active, "Arbitrary plugin content") {
 		t.Fatal("selected movement missing or duplicated")
 	}
-	if !strings.Contains(active, `<div data-layout-preview-content inert>`) || strings.Count(active, `data-layout-content-drag="true"`) != 1 {
-		t.Fatal("card bodies must be inactive and draggable independently of outer groups")
+	if !strings.Contains(active, `<div data-layout-preview-content inert>`) || strings.Count(active, `data-layout-content-drag="true"`) != 2 {
+		t.Fatal("card bodies must be inactive; groups and cards must support independent body dragging")
 	}
 	if strings.Index(active, `data-layout-select-item`) > strings.Index(active, `data-layout-preview-content inert`) {
 		t.Fatal("item settings button must stay outside inactive card content")
@@ -41,6 +42,12 @@ func TestLayoutPreviewFirstKeepsMovementInOneContextualInspector(t *testing.T) {
 		if !strings.Contains(active, `role="tabpanel" aria-label="`+label+`"`) {
 			t.Fatal("missing tab panel", label)
 		}
+	}
+	if !strings.Contains(active, `right-0 top-0 bottom-0 border-l`) || strings.Contains(active, `left-0 top-0 bottom-0 border-r`) {
+		t.Fatal("settings drawer must open from the right")
+	}
+	if !strings.Contains(active, `aria-label="Preview actions"`) || !strings.Contains(active, `data-goshtoso-action-group`) {
+		t.Fatal("preview actions must use the shared action group")
 	}
 	if strings.Count(active, `role="dialog"`) != 1 || !strings.Contains(active, `layoutSettingsIsOpen: false`) {
 		t.Fatal("settings must start in a closed drawer")
@@ -89,5 +96,67 @@ func TestLayoutGroupContextRetainsFieldsAndAccessibleModes(t *testing.T) {
 	}
 	if !strings.Contains(html, "Drop items here") || !strings.Contains(html, "Default groups for new items") {
 		t.Fatal("empty/default configuration guidance missing")
+	}
+}
+
+func TestLayoutActionCommandsRenderNativeButtonsIncludingOverflow(t *testing.T) {
+	var b bytes.Buffer
+	for _, component := range []templ.Component{LayoutPrimaryActions(), LayoutPageArrangement(LayoutFrame{})} {
+		if err := component.Render(t.Context(), &b); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, id := range []string{"layout-action-save", "layout-action-cancel", "layout-action-cancel-overflow", "layout-action-create", "layout-action-create-overflow"} {
+		opening := regexp.MustCompile(`<button\b[^>]*\bid="` + regexp.QuoteMeta(id) + `"[^>]*>`).FindString(b.String())
+		if opening == "" {
+			t.Fatalf("%s must be a native command button", id)
+		}
+		if id == "layout-action-save" && !regexp.MustCompile(`\sdisabled(?:[=>\s])`).MatchString(opening) {
+			t.Fatal("Save must start disabled")
+		}
+		if id != "layout-action-save" && regexp.MustCompile(`\sdisabled(?:[=>\s])`).MatchString(opening) {
+			t.Fatalf("%s has static disabled treatment", id)
+		}
+	}
+}
+
+func TestEmptyEditorGroupAlwaysExposesDropTarget(t *testing.T) {
+	for _, members := range [][]EditorMember{nil, {{ID: "dormant", State: "dormant", Label: "Dormant item"}}} {
+		g := EditorGroup{ID: "empty", Label: "Empty", InitiallyCollapsed: true, Arrangement: Arrangement{Type: "masonry", Columns: 2, GapPx: 16}, Members: members}
+		f := LayoutFrame{SelectedGroup: "other"}
+		var b bytes.Buffer
+		if err := LayoutPreviewGroup(f, g).Render(t.Context(), &b); err != nil {
+			t.Fatal(err)
+		}
+		html := b.String()
+		if strings.Contains(html, "<details") || !strings.Contains(html, "balemoh-layout-empty-target") || !strings.Contains(html, "Drop items here") || !strings.Contains(html, `data-layout-content-drag="true"`) {
+			t.Fatal("empty group must expose its drop target independently of selection/collapse")
+		}
+		if !g.InitiallyCollapsed {
+			t.Fatal("editor changed saved homepage collapse preference")
+		}
+	}
+}
+
+func TestGroupAndItemUseSameExplicitEditAction(t *testing.T) {
+	var b bytes.Buffer
+	f := LayoutFrame{SelectedGroup: "g"}
+	g := EditorGroup{ID: "g", Label: "Group", Arrangement: Arrangement{Type: "stack", Columns: 1, GapPx: 16}}
+	if err := LayoutPreviewGroup(f, g).Render(t.Context(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if err := LayoutPreviewItem(f, EditorMember{ID: "i", Label: "Item", Widget: Widget{ID: "i", Content: templ.Raw("<p>Card</p>")}}).Render(t.Context(), &b); err != nil {
+		t.Fatal(err)
+	}
+	html := b.String()
+	if strings.Count(html, "balemoh-layout-edit") != 2 {
+		t.Fatal("groups and cards must share their edit control")
+	}
+	if !strings.Contains(html, `data-layout-select-group="g"`) || !strings.Contains(html, `data-layout-select-item="i"`) {
+		t.Fatal("explicit edit actions missing")
+	}
+	heading := regexp.MustCompile(`<h3[^>]*>Group</h3>`).FindString(html)
+	if heading == "" || strings.Contains(heading, "data-layout-select") {
+		t.Fatal("group heading must be plain draggable content")
 	}
 }

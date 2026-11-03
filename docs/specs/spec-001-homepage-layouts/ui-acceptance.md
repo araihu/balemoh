@@ -9,8 +9,8 @@ Primary task: arrange selected content into useful named groups, then save one
 instance-wide configuration. Keep source selection on its existing pages.
 Identity: existing ConsoleShell, branding and semantic theme tokens.
 Density: compact operational editor with populated preview and a single Save boundary.
-Desktop and mobile: full-width preview with an on-demand left settings drawer.
-Page, Group and Item tabs keep contexts separate. Explicit selection opens the
+Desktop and mobile: full-width preview with an on-demand right settings drawer.
+Page, Group and Item tabs keep contexts separate. Explicit pencil edit opens the
 matching tab; close returns focus to the initiating control or visible group
 fallback. Save/status/recovery remain visible during scrolling. Failed preview
 closes the drawer and reveals recovery. Opaque IDs remain secondary details.

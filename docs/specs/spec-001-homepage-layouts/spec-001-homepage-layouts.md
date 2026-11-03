@@ -1,9 +1,9 @@
 # Spec 001: Homepage groups, layouts and ordering
 
-Status: reviewed implementation contract; implementation in progress. No endpoints,
+Status: reviewed implementation contract; implemented on the feature branch, pending merge. No endpoints,
 migrations or library capabilities described as proposed are implemented by this document.
-Date: 2026-11-01. Owner: Balemoh. Release stage: pre-v0.1.0, current host release v0.0.8.
-Current milestone: implement the first complete instance-wide layout editor and API against verified Goshtoso v0.5.0.
+Date: 2026-11-01. Owner: Balemoh. Release stage: pre-v0.1.0, baseline host release v0.0.8.
+Current milestone, 2026-11-03: integrate the first complete instance-wide layout editor and API against verified Goshtoso v0.6.0.
 Trust boundary: the existing private operator API/BFF, not a new public write surface.
 
 ## 1. Purpose and references
@@ -18,7 +18,7 @@ Related existing contracts:
 - [Homepage widgets](../../superpowers/specs/2026-10-14-home-widgets-design.md).
 - [Plugin system](../../superpowers/specs/2026-10-25-plugin-system-design.md).
 - [Instance themes](../../themes.md).
-- [OpenAPI](../../../api/openapi.yaml), currently without these layout routes.
+- [OpenAPI](../../../api/openapi.yaml).
 - [Goshtoso capability assessment](goshtoso-capabilities.md).
 - [UI and acceptance ledger](ui-acceptance.md).
 
@@ -679,7 +679,7 @@ boundary, not a new API grouping or membership limit.
 ## Editor refinement: on-demand settings and exact positions
 
 The layout editor opens with the populated preview at full width. Settings live
-in a left drawer using the public Goshtoso Drawer and Tabs components. The drawer
+in a right drawer using the public Goshtoso Drawer and Tabs components. The drawer
 starts closed, opens from Settings or an explicit group/item edit control, and
 selects Page, Group or Item to match the user's action. Closing or Escape returns
 focus to that action. Switching tabs does not modify the draft or make a request.

@@ -34,7 +34,11 @@ drag any card body between groups without selecting it first.
 Local demonstrations use synthetic content and a real plugin renderer. Existing
 brand assets and theme tokens belong to Balemoh and Goshtoso. No new claims are needed.
 
-Settings preference: use an on-demand left drawer with Page, Group and Item tabs.
+Settings preference: use an on-demand right drawer with Page, Group and Item tabs.
 Open it on Settings or explicit group/item selection. Keep preview full-width when
 closed. Numeric positions set group and item order. Remove limits documentation
 from the editing form; keep validation and actionable errors.
+
+Group backgrounds and titles drag the group without opening settings. Groups and
+cards use the same explicit pencil edit action; nested cards keep their own dragging. Related editor commands use Goshtoso ActionGroup,
+including accessible overflow commands on narrow screens.

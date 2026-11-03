@@ -167,3 +167,156 @@ an additional check uses the user's 1404px width. Drawer bounds are positive and
 start at y=64, with no horizontal overflow or duplicate IDs. Screenshots and
 measurements are retained outside Git. Physical pen/touch, real screen readers
 and Firefox/WebKit remain untested. No release or production deployment.
+
+
+## Right drawer and grouped commands, 2026-11-02
+
+- Reused public Drawer `SideRight`; group headings and unused group background
+  open contextual Group settings. Card clicks, handles and collapse disclosures
+  remain independent. No API schema or persistence changes.
+- Reused Goshtoso ActionGroup for Layout actions and Preview actions, with public
+  OnClick command events for Settings, Create and Cancel. Save retains its initial
+  disabled state and validated native command path. Both Create copies obey
+  readiness/capacity checks. Overflow closes before modal handoff.
+- Independent review caught empty-link overflow actions and static disabled
+  styling. The final public command channel resolves both. Review accepted the
+  final interaction source; narrow browser proofs remained producer-owned.
+- Passed 37 Node tests, native-button render regression, view/BFF tests, focused
+  UI race tests, vet, build and diff check. Native pointer and keyboard both
+  activated overflow Create at 320px and Cancel at a forced 210px stress width.
+  Canceling the modal returned focus to More actions with its menu closed.
+- Verified group-background and keyboard selection, inactive card-body click,
+  separate collapse controls, Save enabled after an edit, and dirty-draft Cancel
+  protection. At 390px the right panel is 320px wide, right-aligned, with no
+  duplicate IDs or document overflow. The wider action row returns after resize.
+- Preview restored on 8781 using the existing isolated API8880 database. Only
+  producer QA draft edits were discarded. No saved layout mutation, commit,
+  push, merge, release or deployment. Physical touch and screen readers unchecked.
+
+## Icon movement handles, 2026-11-02
+
+- Toolbar hint now reads "Drag cards and groups to arrange homepage."
+- Goshtoso PR #364 commit `3706088900aa2e8d39e316d215dab34aa08c01f9` replaces
+  visible movement labels with decorative six-dot grips. The existing localized
+  names remain visually hidden and are repeated in tooltips. Handles retain
+  native buttons, instructions and keyboard movement, with 44x44 minimum targets.
+- Independent upstream review and full focused Layout browser suite passed before
+  integration. Layout/assets unit tests, vet, root/site diff lint and both
+  site-current-source/published-consumer contracts passed.
+- Balemoh UI pins public proxy version
+  `v0.5.1-0.20261102091851-3706088900aa`, with GOWORK=off and no replacement.
+  Focused UI race tests, vet, module verification and consumer review passed.
+- Native preview verified group keyboard reordering and cross-group card transfer
+  with grip controls. No drawer opened and no navigation fired. At 390px and
+  1404px, grips remain at least 44x44, hidden labels measure 1x1, and the document
+  has no horizontal overflow. Only the producer QA draft was discarded; saved
+  isolated API layout remains revision 35. Existing user tabs were not reloaded.
+- Required metadata checks found an inherited homepage canonical on this editor.
+  Set PageData.Path to the registered editor route and added it to existing brand
+  metadata coverage. Initial HTML for homepage/editor now has each required title,
+  description, canonical, Open Graph and X tag once. Both local and production
+  social image return 200 PNG, 1280x640, 46963 bytes.
+- Screenshots: report `grip-handles.jpg`, `grip-handles-mobile.jpg`.
+  No merge/release/deployment. Physical touch and screen readers remain unchecked.
+
+## Drawer and dialog spacing, 2026-11-02
+
+- Added application-owned vertical stacks to Item settings and all four dialog
+  bodies. Numeric errors stay with their fields. Action rows wrap on desktop and
+  stack full-width on mobile. Existing controls, command IDs, form submission,
+  focus targets and HTMX roots are unchanged.
+- Confirmed the selected Goshtoso Modal already owns adequate panel padding;
+  arbitrary nested form content lacked spacing. No upstream change is warranted.
+- Independent design assessment and source review passed. View tests with race,
+  vet and focused BFF Layout/metadata tests passed. Native desktop1106/mobile390
+  checks measured selector-to-Move12px, Move-to-Position16px, inline error8px,
+  input-to-dialog-actions24px and action-to-action12px. Controls remain44px high.
+- Native checks covered all drawer tabs, invalid position reset and message
+  placement, Create via Enter, Delete/Cancel over the drawer, and Discard. Create
+  and Delete mobile action buttons measured324px wide with no dialog/document
+  overflow. Saved comparison retains the same spacing wrappers and passed source
+  and render review; a fresh conflict was not created for this visual-only change.
+- Only producer QA draft changes were discarded. Saved API8880 remains revision 35.
+  User tabs/forms were not reloaded. Preview 8781 uses the downloaded pinned module
+  with GOWORK=off. Initial homepage/editor metadata and production social image
+  checks passed. No merge, release, deployment or dependency change.
+- Screenshots in report `spacing/`: item-desktop.jpg, item-mobile.jpg,
+  create-desktop.jpg, create-mobile.jpg. Physical touch/screen readers unchecked.
+
+## Empty group drop, 2026-11-02
+
+- Reproduced with a native mouse drag: Grafana into collapsed Remote hosts was
+  canceled; expanding the zero-item group allowed the drop. The saved preference
+  `InitiallyCollapsed:true` hid the nested item container.
+- Zero-active editor groups now always expose their existing 64px drop area.
+  Dormant references do not make a visually empty group collapsible. Populated
+  groups keep the existing disclosure behavior; homepage preferences are unchanged.
+- Native mouse checks passed without selecting/expanding the destination, then
+  moved the last card out and dropped into the recreated empty group again.
+  The empty/populated wrapper transitions preserved movement and focus after
+  HTMX refresh. Only the QA draft was discarded; saved revision 35 and the true
+  homepage collapse preference remain unchanged.
+- Added empty/dormant-only render regression. View tests with race, vet, focused
+  BFF Layout checks, diff lint and independent review passed. Metadata/image
+  verification passed. No JS, API, upstream library or dependency changes.
+- Screenshots: `empty-drop-success.jpg`, `empty-drop-target.jpg` in the report.
+  Original user tabs were not reloaded. Physical touch remains unchecked.
+
+## Whole-group dragging and explicit pencils, 2026-11-02
+
+- Outer groups and inner cards opt into Goshtoso body drag independently. Group
+  padding, headings and nested background pick up the group; nested cards retain
+  their own scope. Group/body/title clicks do not open the drawer. Shared 44px
+  pencil actions open the corresponding Group or Item tab.
+- Upstream `c6de263385f6a9ea1f871271662a6666c667369d` is pushed in PR #364 and
+  integrated through public pseudo-version `v0.5.1-0.20261102104218-c6de263385f6`.
+  No local module replacement is used. Upstream independent review and the entire
+  Layout E2E suite passed, including new nested-background/padding/handle-row tests.
+  JS drift/lint, unit/vet, diff lint and both module contracts passed.
+- Consumer independent review, view race tests, all 37 Node tests, full BFF tests,
+  vet and module verification passed. Native mouse QA dragged the empty group's
+  body before another group, then dragged a plain title to restore order. It also
+  clicked title/card bodies without opening/navigating, and moved atlas between
+  groups while keeping group order unchanged. Both pencil buttons open the right
+  settings tab and have identical classes and 44x44 geometry.
+- Only producer QA draft changes were discarded. Original user tabs were not
+  reloaded; saved layout remains revision 35. Preview 8781 uses the exact downloaded
+  module. Metadata and public social image checks passed. No merge/release/deploy.
+- Screenshot `group-drag-edit.jpg` shows both shared pencils. Physical touch and
+  screen readers remain unchecked; touch body keeps scrolling and uses handles.
+
+
+## Published Goshtoso v0.6.0, 2026-11-03
+
+- [Goshtoso #364](https://github.com/araihu/goshtoso/pull/364) merged with the
+  authorized organization-admin bypass at `57b800042a41a167935774c9961106af2556050f`.
+  Independent review accepted `e11ebc52`; its source tree matches the merge/tag.
+  The Layout implementation and generated runtime remain identical to reviewed
+  `c6de2633`. Main's existing dependency updates were included before final CI.
+- [Main CI](https://github.com/araihu/goshtoso/actions/runs/41625264029) passed
+  before tagging. [Release verification and publication](https://github.com/araihu/goshtoso/actions/runs/41627265688)
+  passed, including full browser coverage, Codecov upload and the isolated
+  exact-tag published consumer. Authoritative authored Go coverage is 94.2%.
+  Both coverage profiles, summaries and HTML reports are retained locally.
+- [v0.6.0](https://github.com/araihu/goshtoso/releases/tag/v0.6.0) is a published
+  release. Downloaded CSS assets match tag SHA-256 values. Release and
+  coverage badges match the release artifact. Codecov exposes a completed report
+  for the merge commit. The docs deployment and exact-tag skill discovery passed.
+- The public Go proxy resolves v0.6.0 to the merge commit. Its CSS and JavaScript
+  match the tag. Both Balemoh modules now select v0.6.0 with GOWORK=off and no
+  Goshtoso replacement; stale pseudo-version sums are removed. YAML v3.0.6 and
+  x/net v0.62.0 follow the release's dependency requirements.
+- API and UI full race suites, vet, CGO-disabled builds and module verification
+  passed. Templ generation has no drift. All 50 editor/notification Node tests
+  passed. Current UI diff lint reports no new findings; full standalone lint
+  was not repeated, and earlier repository findings remain documented above.
+- Preview API8880 and UI8781 were restored from the release-pinned binaries using
+  the existing isolated database. HTTP checks verified the editor, canonical route
+  and exact release JavaScript. A fresh native tab rendered the saved editor.
+  Later browser refresh/reconnection timed out, so fresh native movement testing
+  was not repeated. Earlier native interaction receipts cover the identical
+  Layout runtime. No original user tab was reloaded and no draft was discarded.
+- Saved layout remains revision 35 with the same document SHA-256 before/after
+  startup. No Balemoh production deployment. Physical pen/touch, real screen
+  readers and Firefox/WebKit remain unchecked.
+- Receipts are under the existing local report's `release-v0.6.0/` directory.

@@ -464,3 +464,120 @@
   reduce this lookup. No upstream API change is required for this composition.
 - Wrap-up checkpoint: did component/docs/release behavior slow the task down?
   Yes, the lifecycle lookups above. Recorded here; dependency version unchanged.
+
+## Right drawer and grouped editor actions, 2026-11-02
+
+- Reuse `drawer.SideRight` and `actiongroup.ActionGroup` for Preview actions and
+  Layout actions. The existing theme page provides the closest composition.
+- `actiongroup.Action` supports public IDs, but has no arbitrary action attributes.
+  Inspection of `types.go`, `render.go` and the public overflow ID contract showed
+  how to retain delegated commands without adding another event implementation.
+  Balemoh maps its own stable IDs, including secondary `-overflow` copies, to
+  existing commands and updates both Create controls when preview is unavailable.
+  Public `OnClick` dispatches an app-owned `layout:command` event, making both
+  normal and overflow copies native buttons. The initial `Disabled` alternative
+  also produced buttons but left static disabled Dropdown styling after enabling;
+  independent review caught both cases. The Save primary stays disabled until the
+  controller validates a changed draft and uses its stable public ID for delegation.
+  Overflow commands toggle their semantic menu trigger closed and focus it before
+  opening a dialog. Dropdown does not automatically dismiss on item activation.
+  An optional action-attributes field would avoid this adapter. No upstream change
+  is required for the requested behavior.
+- Group background selects its settings; item bodies, handles and disclosures
+  remain separate interactions. Named group buttons remain keyboard-accessible.
+- Wrap-up source lookup checkpoint: ActionGroup attribute/overflow support needed
+  a source lookup; captured above. Existing module version remains unchanged.
+
+## Grip handles, 2026-11-02
+
+- Layout generated visible movement-label buttons with no public handle-content
+  slot. User requested icons on group and card handles. The bundled Heroicons
+  set has no six-dot grip; the layout template now owns a small decorative SVG.
+- Upstream PR #364 commit `3706088900aa2e8d39e316d215dab34aa08c01f9` changes the
+  shared default handle to a six-dot grip. Existing localized HandleLabel remains
+  visually hidden and is reused as the tooltip. Native button ownership, movement
+  scope, instructions and keyboard shortcuts remain unchanged. Minimum target is
+  44 by 44 CSS pixels, with grab/grabbing cursors while enabled.
+- Source lookup: `components/layout/layout.templ`, `expressions.Layout.HandleLabel`,
+  `css/main.css`, bundled Heroicons names. No extra public API or consumer CSS
+  replacement is needed. Focused real movement/geometry E2E, tests and independent
+  review passed before consumer dependency integration.
+- Wrap-up checkpoint: the handle-label-only template required upstream work;
+  captured here. Balemoh uses an exact downloaded public module commit without a
+  local replacement. A durable release remains required before final merge.
+
+## Drawer and dialog spacing ownership, 2026-11-02
+
+- User reported crowded Item movement fields and Create modal actions. Inspected
+  the pinned module's `modal.Dialog`, `form.Form`, `form.FieldGroup` and Footer.
+  Dialog already supplies body padding; FieldGroup spaces its own label/input.
+  Neither owns spacing among arbitrary application form children.
+- Reuse existing Modal, FieldGroup and Button controls; compose app-owned field
+  stacks and action rows. `form.Form` alone would not add gaps, and its Footer
+  uses a Cancel link rather than the existing app-owned close command. Native
+  form submission/Enter and all command IDs remain intact.
+- The fix belongs in Balemoh content composition, so no upstream modal change or
+  dependency update is needed. Browser measurements confirm 12px selector/action,
+  16px independent-field, 8px validation-message and 24px dialog-field/action gaps.
+- Wrap-up source lookup checkpoint: modal-vs-content spacing ownership required
+  inspecting these public components. Captured above; no public API gap blocks it.
+
+## Empty group drop target, 2026-11-02
+
+- Native reproduction showed dropping a card onto a collapsed empty group canceled
+  the move. Expanding the group first allowed the same body drag into its 64px
+  target. Inspected Layout pointerTarget and Balemoh's disclosure wrapper: the
+  target existed inside hidden details content, so pointer hit-testing could not
+  reach it. The shared Layout empty-target behavior itself worked.
+- Balemoh now renders zero-active groups, including dormant-only groups, without
+  a disclosure. The existing Layout container, movement scope and drop hint remain
+  visible. Populated groups retain their disclosure and saved homepage collapse
+  preference. A shared body template keeps the container markup identical.
+- No upstream change or dependency bump is needed. Regression rendering covers an
+  unselected collapsed empty/dormant-only group. Native mouse testing covered
+  empty-to-populated-to-empty, then a second drop into the recreated empty target.
+- Wrap-up lookup checkpoint: source inspection distinguished hidden consumer
+  content from a Layout hit-test defect. Recorded above; upstream remains intact.
+
+## Whole-group dragging and shared edit controls, 2026-11-02
+
+- Reused `layout.Instance.WithContentDrag(true)` on the outer group layout. The
+  previous pickup guard rejected nested collection background, outer item padding
+  and handle-row whitespace. Upstream PR #364 commit
+  `c6de263385f6a9ea1f871271662a6666c667369d` now resolves the nearest item first:
+  a nested item belongs to its own direct parent, while empty/background space can
+  pick up the enclosing group. Registered Layout focus roots with tabindex=-1 are
+  structural; consumer controls and focusable regions still retain their actions.
+- Real browser regressions cover nested background, item padding and handle-row
+  pickup, with inner order retained. The full Layout E2E suite, JS lint/drift,
+  Layout/assets/runtime tests, vet, root/site diff lint, and site/published-consumer
+  contracts passed. Independent review accepted before the consumer dependency pin.
+- Balemoh now uses one `LayoutEditButton` for group and card pencils. Group names
+  are plain headings, and the group-background click handler is removed. Heading
+  pointer events pass to the body while its programmatic focus target remains.
+- Exact public proxy dependency is `v0.5.1-0.20261102104218-c6de263385f6`, verified
+  with GOWORK=off and no local replacement. No API schema changes are needed.
+- Wrap-up lookup checkpoint: the existing opt-in did not cover whole group area;
+  the generic pickup behavior was fixed upstream instead of adding a second drag
+  engine in Balemoh. Shared edit controls use the existing Button and Heroicon.
+
+
+## Published layout runtime and consumer pin, 2026-11-03
+
+- Goshtoso #364 merged and v0.6.0 published before changing the final Balemoh
+  pins. Both API and UI now select the public release, without a Goshtoso local
+  replacement. Module checks, tests and live asset hashes verify the actual
+  released bytes rather than a workspace checkout.
+- Release preparation required inspecting `docs/RELEASE_CHECKLIST.md`,
+  `.github/workflows/release.yml` and `.dagger/src/index.ts`. The publisher runs
+  the exact-tag consumer fixture before creating the release and updates both
+  badges from authoritative full-suite coverage. The shared PR runner serialized
+  checks; no workflow or approval policy was weakened to shorten that queue.
+- The bundled consumer skill's release baseline was corrected to v0.6.0 before
+  tagging, and discovery against that exact tag passed. Installed guidance can
+  lag the selected dependency; the tagged public source and module graph remain
+  authoritative.
+- Closing checkpoint: temporary pseudo-version holds are resolved. The release
+  pin needed no new consumer component workaround or API/schema change. The
+  existing spacing, empty-target and whole-group interaction fixes remain in
+  Balemoh's reviewed editor changes.

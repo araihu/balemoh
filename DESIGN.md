@@ -122,7 +122,7 @@ The service/card system can use larger titles and metric values. Widget titles u
 Balemoh's content class caps width at 96rem and centers itself. ConsoleShell also wraps it in an 88rem content cap with 1.5rem main padding, so the inner cap alone does not establish the available width. Default padding is 2rem 1rem 4rem, changing below 720px to 1.25rem 0.75rem 3rem. Contained homepages cap at 72rem. Repeated spacing steps appear in frontmatter; they describe observed spacing rather than a new token API.
 
 The homepage editor is a specific composition, documented in `.impeccable/surfaces/homepage-layout.md`. A sticky top bar holds Save, Cancel and status. Its -1.5rem top offset cancels ConsoleShell scroll-root padding, keeping the bar flush beneath the shell during scrolling. Compact Settings and Create group controls precede the preview. The preview uses
-the full content width. A left Goshtoso Drawer starts closed and opens on Settings
+the full content width. A right Goshtoso Drawer starts closed and opens on Settings
 or an explicit group/item edit action. Page, Group and Item tabs separate form
 contexts. The panel uses the public small width and begins 4rem below ConsoleShell.
 Closing returns focus to the initiating action. Numeric fields set one-based group
@@ -165,7 +165,7 @@ Reuse Goshtoso Badge for compact metadata. A medium badge uses 0.75rem type, 0.5
 
 ### Contextual editor
 
-The group title selects its group. Item edit controls appear on hover, focus-within and selection, and remain visible on devices without hover. Selection controls remain outside inactive widget bodies. Editor card bodies use native inert semantics, so clicks do not navigate or run actions; mouse or pen can drag the body directly. Public movement handles remain available for keyboard and touch. The inspector exposes basic settings first and advanced options in native disclosures. Empty groups retain a 4rem drop region. Summary focus and inspector heading focus use a 2px accent outline with 3px offset; headings and errors reserve 7rem scroll margin below sticky controls.
+The plain group title is part of the draggable body. Its pencil selects group settings. Item edit controls appear on hover, focus-within and selection, and remain visible on devices without hover. Selection controls remain outside inactive widget bodies. Editor card bodies use native inert semantics, so clicks do not navigate or run actions; mouse or pen can drag the body directly. Public movement handles remain available for keyboard and touch. The inspector exposes basic settings first and advanced options in native disclosures. Empty editor groups always expose a 4rem drop region, including groups saved as collapsed or containing only dormant references. Summary focus and inspector heading focus use a 2px accent outline with 3px offset; headings and errors reserve 7rem scroll margin below sticky controls.
 
 Preview, dirty draft, save, conflict and uncertain result remain separate states. Preserve the draft and the available recovery actions when a request fails.
 
@@ -185,4 +185,8 @@ Preview, dirty draft, save, conflict and uncertain result remain separate states
 - Don't use preview appearance as proof that a draft has been saved.
 - Don't remove named movement actions or keyboard access when adding drag interactions.
 
-Evidence checked: `ui/go.mod`, `ui/internal/view/shell.go`, `ui/internal/view/layout_editor.templ`, `ui/internal/view/static/balemoh.css`, `PRODUCT.md`, and the homepage surface brief. Component and theme definitions come from the locally installed Goshtoso v0.5.0 and App Shells v0.1.9 modules. This scan documents source behavior, not browser or accessibility certification.
+Evidence checked: `ui/go.mod`, `ui/internal/view/shell.go`, `ui/internal/view/layout_editor.templ`, `ui/internal/view/static/balemoh.css`, `PRODUCT.md`, and the homepage surface brief. Component and theme definitions come from the locally installed Goshtoso v0.6.0 and App Shells v0.1.9 modules. This scan documents source behavior, not browser or accessibility certification.
+
+Group backgrounds and titles drag the group without opening settings. Groups and
+cards use the same explicit pencil edit action; nested cards keep their own dragging. Related editor commands use Goshtoso ActionGroup,
+including accessible overflow commands on narrow screens.

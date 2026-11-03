@@ -64,7 +64,7 @@ func decodeLayoutBFF(w http.ResponseWriter, r *http.Request, v any) bool {
 }
 func (s *server) layoutEditor(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	data := view.PageData{Title: "Homepage layout", Description: "Arrange homepage groups and items.", Active: "nav-homepage-layout"}
+	data := view.PageData{Title: "Homepage layout", Path: "/settings/homepage/layout", Description: "Arrange homepage groups and items.", Active: "nav-homepage-layout"}
 	c, ok := s.catalog.(LayoutCatalog)
 	if !ok {
 		data.Error = "Layout editor is unavailable."

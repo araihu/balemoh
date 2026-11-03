@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
-const { Draft, canonical } = require('./layout-editor.js');
+const { Draft, canonical, actionFor } = require('./layout-editor.js');
 const initial = JSON.parse(readFileSync(path.resolve(__dirname, '../../../../docs/specs/spec-001-homepage-layouts/example-layout.json')));
 function setup() {
  const document = structuredClone(initial);
@@ -122,3 +122,12 @@ test('numeric order retains capacity and same-group move guards',()=>{
  const d=setup();assert.equal(d.movementAllowed('move-item','builtin:hosts'),false);assert.equal(d.movementAllowed('move-item','builtin:widgets'),true);assert.equal(d.movementAllowed('item-position'),true);
  d.preview.resolvedGroups[0].members=Array.from({length:513},(_,i)=>({itemId:'host-'+i,state:'active'}));d.selection.itemId='host-0';assert.equal(d.setPosition('item',2),false);assert.equal(d.movementAllowed('item-position'),false);
 });
+
+ test('action group native and overflow controls retain editor commands', () => {
+  for (const [id, expected] of [['layout-action-save','save'],['layout-action-cancel','cancel'],['layout-action-cancel-overflow','cancel'],['layout-action-create','create'],['layout-action-create-overflow','create'],['layout-action-settings','open-settings']]) {
+   assert.equal(actionFor({id,dataset:{}}),expected);
+  }
+  assert.equal(actionFor({id:'unrelated-button',dataset:{}}),undefined);
+  assert.equal(actionFor({id:'layout-action-create',dataset:{layoutAction:'retry'}}),'retry');
+  assert.equal(actionFor(null),undefined);
+ });

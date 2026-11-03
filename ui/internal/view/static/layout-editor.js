@@ -104,7 +104,10 @@
     savedResult(attempt, state, readback = false) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; try { if (!validRevision(state?.revision) || BigInt(state.revision) < BigInt(attempt.expectedRevision) || !readback && BigInt(state.revision) !== BigInt(attempt.expectedRevision) + 1n || canonical(state.document) !== canonical(attempt.document)) throw Error(); } catch (_) { this.state = 'outcome_unknown'; return false; } this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null;this.provisionalGroups.clear();this.pending = null;this.state = 'saved'; return true; }
     readback(state) { if (!this.saveAttempt) return false; try { if (!validRevision(state?.revision)) throw Error(); if (canonical(state.document) === canonical(this.saveAttempt.document)) return this.savedResult(this.saveAttempt, state, true); this.state = 'conflict'; } catch (_) { this.state = 'outcome_unknown'; } return false; }
   }
-  global.BalemohLayoutDraft = { Draft, canonical, key };
+  function actionFor(control) {
+    return control?.dataset.layoutAction || /^layout-action-(save|cancel|create)(?:-overflow)?$/.exec(control?.id)?.[1] || (control?.id === 'layout-action-settings' ? 'open-settings' : undefined);
+  }
+  global.BalemohLayoutDraft = { Draft, canonical, key, actionFor };
   if (typeof module !== 'undefined') module.exports = global.BalemohLayoutDraft;
   if (typeof document === 'undefined') return;
 
@@ -115,7 +118,7 @@
     global.htmx.registerExtension('balemoh-layout-editor-disclosure',{htmx_before_morph_attr(element,detail){if(element.matches('details[data-editor-collapse]')&&detail.attrName==='open')return false;}});
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
     let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, activeSettingsTab='page', requestedSettingsTab, settingsReturnId='layout-action-settings', settingsOpen=false, interactionEpoch=0, alive = true;
-    const find = action => root.querySelector(`[data-layout-action="${action}"]`);
+    const find = action => root.querySelector(`[data-layout-action="${action}"]`) || document.getElementById("layout-action-"+(action==='open-settings'?'settings':action));
     const dispatchModal = (name, id) => global.dispatchEvent(new CustomEvent(`modal:${name}`, { detail: { id: `layout-${id}` } }));
     const announce = text => { status.textContent = text; };
     function settingsTab(tab) { return root.querySelector('[data-layout-settings-tab="'+tab+'"]')?.closest('button'); }
@@ -141,11 +144,11 @@
       }
       const frozen = ['saving', 'outcome_unknown', 'conflict'].includes(model.state);
       const focused = document.activeElement;
-      const focusedStructural=[...frame.querySelectorAll('[data-layout-structural]')].some(el=>el===focused||el.contains(focused)||el.hidden&&document.getElementById(el.dataset.layoutFocus||el.id+'-trigger')===focused);
+      const focusedStructural=[...frame.querySelectorAll('[data-layout-structural], #layout-action-create, #layout-action-create-overflow')].some(el=>el===focused||el.contains(focused)||el.hidden&&document.getElementById(el.dataset.layoutFocus||el.id+'-trigger')===focused);
       if (!model.ready && frame.contains(focused) && (frozen || focused.closest('[data-layout-preview]') || focusedStructural)) { restoreId = focused.id;restoreElement=focused;if(!focused.closest('#layout-editor-inspector'))status.focus({ preventScroll: true }); }
       frame.setAttribute('aria-busy', String(model.state === 'preview_pending' || model.state === 'saving'));
       frame.querySelector('[data-layout-preview]').disabled = !model.ready;
-      frame.querySelectorAll('[data-layout-structural]').forEach(el => { const capacityBlocked = el.dataset.layoutAction==='item-position'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.movementAllowed(el.dataset.layoutAction,root.querySelector('[data-layout-destination]')?.value) || !model.ready || el.dataset.layoutAction === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-position'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
+      frame.querySelectorAll('[data-layout-structural], #layout-action-create, #layout-action-create-overflow').forEach(el => { const action=actionFor(el); const capacityBlocked = el.dataset.layoutAction==='item-position'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='item-order'&&model.group()?.ordering.mode==='alphabetical'&&!model.fitsOrder(model.selection.groupId) || el.dataset.layoutAction==='move-item'&&!model.fitsMove(model.selection.itemId,root.querySelector('[data-layout-destination]').value); const shouldDisable = capacityBlocked || !model.movementAllowed(el.dataset.layoutAction,root.querySelector('[data-layout-destination]')?.value) || !model.ready || action === 'create' && model.document.groups.length >= 32 || el.dataset.layoutAction === 'delete' && model.document.groups.length < 2 || ['move-item', 'item-position'].includes(el.dataset.layoutAction) && !model.selection.itemId; disable(el, shouldDisable); });
       frame.querySelectorAll('[data-layout-field]').forEach(el => { if (!el.hasAttribute('data-layout-structural')) disable(el, frozen || el.closest('[data-layout-group-fields-owner]')&&el.closest('[data-layout-group-fields-owner]').dataset.layoutGroupFieldsOwner!==model.selection.groupId || el.hasAttribute('data-layout-span') && model.document.homepage.layout.type === 'stack'); });
       find('save').disabled = !model.ready || !model.dirty;
       root.querySelectorAll('[data-layout-order-unavailable]').forEach(el=>{el.hidden=model.fitsOrder(model.selection.groupId);});
@@ -252,7 +255,12 @@
       const tab=event.target.closest('[role=tab]')?.querySelector('[data-layout-settings-tab]');if(tab){activeSettingsTab=tab.dataset.layoutSettingsTab;if(event.isTrusted)requestedSettingsTab=null;}
       const group = event.target.closest('[data-layout-select-group]'); if (group) return select(group.dataset.layoutSelectGroup, '', group);
       const item = event.target.closest('[data-layout-select-item]'); if (item) { const owner = model.preview.resolvedGroups.find(g => g.members.some(m => m.itemId === item.dataset.layoutSelectItem)); if (owner) select(owner.groupId, item.dataset.layoutSelectItem, item); return; }
-      const button = event.target.closest('[data-layout-action]'); if (!button || button.disabled) return; const action = button.dataset.layoutAction;
+      const button = event.target.closest('[data-layout-action], #layout-action-save');if(button)runAction(button);
+    });
+    root.addEventListener('layout:command',event=>{const button=event.target.closest('button[id]');if(button)runAction(button);});
+    async function runAction(button) {
+      const action=actionFor(button); if (!action || button.matches(':disabled')) return;
+      if(button.id.endsWith('-overflow')){const trigger=button.closest('[role=group]')?.querySelector('button[aria-haspopup][aria-expanded="true"]');trigger?.click();await global.Alpine.nextTick();trigger?.focus({preventScroll:true});}
       if (action === 'move-item') { const destination = root.querySelector('[data-layout-destination]').value; if (model.move(model.selection.itemId, destination, null)) {movedIdentity={kind:'item',id:model.selection.itemId};changed('Item moved. Updating preview…');} }
       else if (action === 'create' && model.ready) { createId = crypto.randomUUID(); root.querySelector('[data-layout-create-form]').reset(); root.querySelector('[data-layout-create-error]').hidden=true;find('regenerate').hidden=true; dispatchModal('open', 'create'); }
       else if(action==='regenerate-provisional'){const next=crypto.randomUUID();if(model.regenerateGroup(rejectedGroupRow,next)){rejectedGroupRow=null;afterPreviewFocus='editor-group-heading-'+key(next);status.focus({preventScroll:true});changed('Group ID replaced in draft. Updating preview…');}}
@@ -268,7 +276,7 @@
       else if (action === 'reload') { navigation = location.href; dispatchModal('open', 'discard'); }
       else if (action === 'cancel') { navigation = '/'; if (model.dirty) dispatchModal('open', 'discard'); else location.assign('/'); }
       else if (action === 'confirm-discard') { alive = false; controller?.abort(); live.close(); location.assign(navigation || '/'); }
-    });
+    }
     root.querySelector('[data-layout-create-form]').addEventListener('submit', event => { event.preventDefault(); if (!model.ready || !event.target.reportValidity()) return; const title = trimTitle(event.target.elements.title.value); if (!title || [...title].length > 80) return; if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(createId) || model.group(createId)) {const error=root.querySelector('[data-layout-create-error]');error.textContent='This group ID is invalid or already used. Generate another ID; your title is retained.';error.hidden=false;find('regenerate').hidden=false;find('regenerate').focus({preventScroll:true});return;} if (model.create(createId, title)) { dispatchModal('close', 'create');requestedSettingsTab='group';settingsReturnId='edit-group-'+key(createId); afterPreviewFocus = 'editor-group-heading-' + key(createId); status.focus({ preventScroll: true }); changed('Group created in draft. Updating preview…'); } });
     root.addEventListener('layout:before-move', event => { const d = event.detail; if (d && d.fromContainerId!=='layout-editor-groups') {const destination=model.document.groups.find(g=>'editor-items-'+key(g.id)===d.toContainerId);if(!destination||!model.fitsMove(d.itemId,destination.id)){event.preventDefault();announce('This move would exceed 512 explicit references.');return;}} if (!model.ready || model.pending || !d || !model.group() || d.fromContainerId === 'layout-editor-groups' && d.toContainerId !== 'layout-editor-groups') event.preventDefault(); });
     root.addEventListener('layout:move', event => { if (!model.ready) return; const d = event.detail; if (d.fromContainerId === 'layout-editor-groups') { const ids = model.preview.resolvedGroups.map(g => g.groupId).filter(id => id !== d.itemId); const at = d.beforeItemId === null ? ids.length : ids.indexOf(d.beforeItemId); if (at < 0) return; ids.splice(at, 0, d.itemId); if (model.orderGroups(ids)) {movedIdentity={kind:'group',id:d.itemId};changed('Group moved. Updating preview…');} } else { const destination = model.document.groups.find(g => 'editor-items-' + key(g.id) === d.toContainerId); if (destination && model.move(d.itemId, destination.id, d.beforeItemId)) {movedIdentity={kind:'item',id:d.itemId};changed('Item moved. Updating preview…');} } });

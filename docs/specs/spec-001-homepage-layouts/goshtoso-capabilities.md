@@ -80,13 +80,13 @@ Specs and independent design reviews come first in this task. The upstream compo
 demos, generated assets/catalog and browser tests remain implementation work, not
 capabilities assumed available from main or an unreleased pseudo-version.
 
-## Verified upstream prerequisite and integration
+## Initial verified upstream integration, 2026-11-01
 
 PR araihu/goshtoso#363 merged as c4bbff5b89274d31432d6e0a154093ce2e7f8eaa.
 Release v0.5.0 passed full verification and publication before consumer changes.
 Public CSS matches the tag, the external no-replace module consumer passes, and
-main documentation deployment passed. Root and UI now select v0.5.0; the client
-retains its existing theme dependency. Public layout.Container owns page and group
+main documentation deployment passed. Root and UI initially selected v0.5.0; the client
+retained its existing theme dependency. Public layout.Container owns page and group
 geometry, DOM order and optional movement. Balemoh retains drafts and persistence.
 
 Controls compose form.FieldGroup, Select, TextInput, Checkbox, Button and
@@ -98,11 +98,22 @@ App-owned coordination uses public Layout events and native disabled fieldsets.
 ### Direct card dragging follow-up
 
 User requested inactive card clicks and direct body pickup in the editor. Goshtoso
-PR #364 adds immutable `layout.Instance.WithContentDrag(true)` without changing
+PR #364 introduced immutable `layout.Instance.WithContentDrag(true)` without changing
 public config structs or the default handle-only behavior. The UI composes that
 method with native inert widget-body wrappers. Settings pencils and movement
 handles remain active outside those wrappers; normal homepage content stays active.
 
-The UI temporarily selects reviewed commit `ebcaa29d9103` through the Go module
-proxy. The API module retains released v0.5.0. Replace the UI's temporary version
-with a release after the upstream PR merges. No local replacement is committed.
+Outer groups and nested item containers opt in independently. The nearest item
+retains its own movement scope; nested background can pick up the enclosing group.
+
+### Current release integration, 2026-11-03
+
+PR #364 merged as `57b800042a41a167935774c9961106af2556050f`. Goshtoso v0.6.0
+passed full release verification and publication before the final consumer pins.
+Root and UI now select that release through the public Go proxy, replacing the
+earlier temporary UI pseudo-version. No Goshtoso local replacement is committed;
+the client's unrelated theme dependency remains unchanged.
+
+The [verification record](../../verification/homepage-layout-redesign.md#published-goshtoso-v060-2026-11-03)
+records the exact-tag consumer fixture, asset checksums, coverage, badges, module
+graph, consumer tests and runtime checks. The upstream release prerequisite is met.
