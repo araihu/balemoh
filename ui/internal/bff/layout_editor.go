@@ -217,6 +217,10 @@ func (s *server) layoutFrame(ctx context.Context, p api.LayoutPreview, selection
 			if v.Id == r.GroupId {
 				g.Arrangement = arrangement(v.Layout)
 				g.ShowHeading = v.ShowHeading
+				g.Collapsible = v.InitiallyCollapsed
+				if v.Collapsible != nil {
+					g.Collapsible = *v.Collapsible
+				}
 				g.InitiallyCollapsed = v.InitiallyCollapsed
 				g.Order = string(v.Ordering.Mode)
 			}

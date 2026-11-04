@@ -82,6 +82,8 @@ func layoutShape(raw json.RawMessage, t reflect.Type) error {
 		return fmt.Errorf("null")
 	}
 	switch t.Kind() {
+	case reflect.Pointer:
+		return layoutShape(raw, t.Elem())
 	case reflect.Struct:
 		var obj map[string]json.RawMessage
 		if e := json.Unmarshal(raw, &obj); e != nil {

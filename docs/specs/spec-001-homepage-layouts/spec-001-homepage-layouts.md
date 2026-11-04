@@ -258,8 +258,8 @@ GET layout returns `{revision, document}` with the document shape in that exampl
 PUT layout accepts that document directly. Successful writes return the same
 `{revision, document}` envelope. Revision is a decimal string outside the document.
 Targeted ordering accepts `{mode, ids}`. The widget-move body is as listed above.
-All document fields in the example are required; `beforeItemId` is optional only
-in the targeted move body;
+All document fields in the example are required except `collapsible`;
+`beforeItemId` is optional only in the targeted move body;
 empty arrays/maps serialize as `[]`/`{}`, never null. Unknown fields are rejected.
 
 Exact wire object shapes, with no additional properties, are:
@@ -269,7 +269,7 @@ Exact wire object shapes, with no additional properties, are:
 | Homepage placement | `{groupId: string, span: "auto"|"full"}` | None |
 | Group placement | `{itemId: string}` using exact widget ID | None |
 | Ordering | `{mode: "alphabetical"|"custom", ids: string[]}` | None; alphabetical requires `[]` |
-| Group | `id`, `title`, `layout`, `ordering`, `showHeading: boolean`, `initiallyCollapsed: boolean`, `placements: GroupPlacement[]` | None |
+| Group | `id`, `title`, `layout`, `ordering`, `showHeading: boolean`, `initiallyCollapsed: boolean`, `placements: GroupPlacement[]` | Optional `collapsible: boolean`, never null |
 | Container layout | `{type: "stack"|"grid"|"masonry", columns: integer, gapPx: 12|16|24}` | None |
 | Homepage | `width: "full"|"contained"`, `layout`, `ordering`, `placements: HomepagePlacement[]` | None |
 | Document | `schemaVersion: 1`, `homepage`, `groups: Group[]`, `sourceGroups: {host: groupId, service: groupId, other: groupId}` | None |
@@ -436,8 +436,27 @@ Cross-group movement is available through named destination controls; drag is ne
 the only method. After movement, announce the item/group, new position and destination.
 Keep focus on the initiating logical item/action after preview reconciliation.
 
-Visible headings may be hidden while group regions retain accessible names. Collapse
-is disclosure, not removal from membership or ordering. Initial collapse is saved;
+Group names remain required even when their headings are hidden. A blank or
+whitespace-only name returns a field error. Keep the drawer open and the Name field
+editable, retain focus and the draft, and disable Save until a valid preview returns.
+Errors that cannot be represented in visible editable fields use the global recovery
+summary. Closing the drawer reveals that summary, with a link back to Name.
+
+Heading visibility and accordion behavior are independent opt-ins. New and virtual
+default groups use `showHeading:false`, `collapsible:false`, and
+`initiallyCollapsed:false`. Existing explicit heading settings remain unchanged.
+A static group has no disclosure control. An accordion has a visible named summary;
+when its name is hidden, the summary shows its item count.
+
+Omitted `collapsible` uses `initiallyCollapsed` as the effective value, preserving
+legacy collapsed groups. Explicit false with initiallyCollapsed true is invalid.
+Canonical documents omit `collapsible` when it equals initiallyCollapsed, so old rows
+and semantically identical writes retain their bytes, ETags and revisions. No SQL
+migration or read-time rewrite is needed. A saved open accordion contains the new
+field, which older closed decoders reject. Before downgrading, restore a compatible
+pre-upgrade layout or database backup. An image-only rollback is insufficient then.
+
+Collapse is disclosure, not removal from membership or ordering. Initial collapse is saved;
 runtime collapse, focus and search are transient. Empty configured groups stay editable
 in the editor; the normal homepage omits empty groups. Missing selected items remain
 placeholders; intentionally unselected references stay dormant.
@@ -500,7 +519,7 @@ never select a different item merely because it now occupies the old index.
 Create group opens a Goshtoso form with a required title. Generate one client UUID
 per create attempt using crypto.randomUUID and retain it through retries. Creation
 initializes empty memberships, Grid with columns=2/gapPx=16,
-heading=true, initiallyCollapsed=false, span=auto and alphabetical item order.
+heading=false, collapsible=false, initiallyCollapsed=false, span=auto and alphabetical item order.
 Alphabetical page order inserts it by name; custom page order adds it to the unranked
 alphabetical tail. Creating a group does not silently change page ordering mode.
 

@@ -947,10 +947,13 @@ type LayoutDocumentSchemaVersion int
 
 // LayoutGroup Named container, independent of widget kind or renderer.
 type LayoutGroup struct {
+	// Collapsible Enable accordion behavior independently of heading visibility. New groups default to false. When omitted, initiallyCollapsed supplies the effective value for legacy documents. Canonical responses omit this field when its value equals initiallyCollapsed.
+	Collapsible *bool `json:"collapsible,omitempty"`
+
 	// Id Canonical UUID for user groups, or one of the reserved builtin group IDs.
 	Id string `json:"id"`
 
-	// InitiallyCollapsed Initial disclosure state. Runtime disclosure changes are transient.
+	// InitiallyCollapsed Start an enabled accordion collapsed. Must be false when collapsible is false. Runtime disclosure changes are transient.
 	InitiallyCollapsed bool `json:"initiallyCollapsed"`
 
 	// Layout Independent page or group geometry.
@@ -962,7 +965,7 @@ type LayoutGroup struct {
 	// Placements Explicit memberships, including dormant references. Canonical configuration sorts by item ID.
 	Placements []LayoutGroupPlacement `json:"placements"`
 
-	// ShowHeading Show the group heading while retaining its accessible name.
+	// ShowHeading Show the group name while retaining its accessible name. New groups default to false.
 	ShowHeading bool `json:"showHeading"`
 
 	// Title Trimmed display title. Duplicate titles are allowed.

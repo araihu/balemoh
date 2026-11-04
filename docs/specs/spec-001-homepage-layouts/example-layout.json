@@ -39,7 +39,7 @@
         "mode": "alphabetical",
         "ids": []
       },
-      "showHeading": true,
+      "showHeading": false,
       "initiallyCollapsed": false,
       "placements": []
     },
@@ -55,7 +55,7 @@
         "mode": "alphabetical",
         "ids": []
       },
-      "showHeading": true,
+      "showHeading": false,
       "initiallyCollapsed": false,
       "placements": []
     },
@@ -71,7 +71,7 @@
         "mode": "alphabetical",
         "ids": []
       },
-      "showHeading": true,
+      "showHeading": false,
       "initiallyCollapsed": false,
       "placements": []
     }

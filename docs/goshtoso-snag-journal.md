@@ -4,6 +4,10 @@
 
 - Reuse Card Body and Link WithRootClass. Single-address cards render a named, absolute primary link without a visible address row; the native link retains keyboard focus and the card remains its hit area. Multiple addresses keep the existing visible URL and Dropdown. Keep the editor icon button above the card link. Card has no title-link slot, but its public Body supports this composition, so no upstream change is needed. Closing checks cover 0/1/2/3 addresses, desktop/mobile keyboard focus and hit areas, the multi-address menu, and the editor icon picker.
 
+## Group validation and presentation, 2026-11-03
+
+- Required-name errors closed the consumer drawer and disabled preview selection, hiding the editable field. Keep mapped, visible field errors inline; expose the global error summary when the drawer closes or an error needs broader recovery. Reuse Goshtoso Form/Checkbox and the existing Drawer/Tabs. Conditional app-owned details markup implements the independent accordion preference. No upstream change is needed. Closing checks cover blank-name recovery, focus, optional headings/accordions and empty drop targets.
+
 ## Layout preview flash, 2026-11-03
 
 - Replacing the entire inspector reinitializes Tabs and its cloaked panels on every preview. Keep the public Tabs component mounted and replace only changed app-owned settings slots. Replacing those slots still refreshes Select options and server defaults correctly. The toolbar is static, and item movement controls already arrive inside the item slot, so neither needs another swap. No upstream change is required. Closing checks covered fresh options, group creation/deletion, item relocation, validation, focus and tab intent at 390px and 1440px.

@@ -59,12 +59,16 @@ func (s *server) renderDashboard(ctx context.Context, snapshot api.DashboardSnap
 		byID[w.ID] = w
 	}
 	for _, g := range *snapshot.Groups {
-		section := view.DashboardGroup{ID: g.GroupId, Title: g.Title, Label: g.DisplayLabel, ShowHeading: true, Arrangement: view.Arrangement{Type: "masonry", Columns: 3, GapPx: 16}}
+		section := view.DashboardGroup{ID: g.GroupId, Title: g.Title, Label: g.DisplayLabel, Arrangement: view.Arrangement{Type: "masonry", Columns: 3, GapPx: 16}}
 		if doc != nil {
 			for _, setting := range doc.Groups {
 				if setting.Id == g.GroupId {
 					section.Arrangement = arrangement(setting.Layout)
 					section.ShowHeading = setting.ShowHeading
+					section.Collapsible = setting.InitiallyCollapsed
+					if setting.Collapsible != nil {
+						section.Collapsible = *setting.Collapsible
+					}
 					section.InitiallyCollapsed = setting.InitiallyCollapsed
 				}
 			}

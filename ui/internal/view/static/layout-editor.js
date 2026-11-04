@@ -8,6 +8,7 @@
     const d = clone(document);
     d.groups.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     d.homepage.placements.sort((a, b) => a.groupId < b.groupId ? -1 : a.groupId > b.groupId ? 1 : 0);
+    d.groups.forEach(g => { if(g.collapsible===undefined)g.collapsible=g.initiallyCollapsed; });
     d.groups.forEach(g => g.placements.sort((a, b) => a.itemId < b.itemId ? -1 : a.itemId > b.itemId ? 1 : 0));
     function stable(v) { return Array.isArray(v) ? v.map(stable) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, stable(v[k])])) : v; }
     return JSON.stringify(stable(d));
@@ -46,6 +47,15 @@
     change(action, structural = false) {
       if (['saving', 'outcome_unknown', 'conflict'].includes(this.state) || structural && !this.ready) return false;
       action(this.document); this.generation++; this.state = 'preview_pending'; this.pending = null; return true;
+    }
+    editField(path, value, structural = false) {
+      return this.change(d => {
+        if(path==='/group/span'){d.homepage.placements.find(p=>p.groupId===this.selection.groupId).span=value;return;}
+        const parts=path.split('/').slice(1);let target=parts[0]==='group'?this.group():d;if(parts[0]==='group')parts.shift();
+        const last=parts.pop();parts.forEach(p=>{target=target[p];});target[last]=value;
+        if(path==='/group/initiallyCollapsed')target.collapsible=true;
+        if(path==='/group/collapsible'&&!value)target.initiallyCollapsed=false;
+      },structural);
     }
     begin(requestId, digest) {
       const request = { requestId, draftGeneration: this.generation, expectedRevision: this.revision, document: clone(this.document) };
@@ -95,7 +105,7 @@
     rejectedGroup(entry,detail) {
       for(const pointer of Object.keys(detail.fieldErrors||{})){const match=pointer.match(/^\/document\/groups\/(\d+)\/id$/);if(!match)continue;const id=entry.request.document.groups[Number(match[1])]?.id;for(const [rowKey,record] of this.provisionalGroups)if(record.id===id&&this.group(id))return rowKey;}return null;
     }
-    create(id, title) { if (this.document.groups.length >= 32) return false; return this.change(d => { d.groups.push({ id, title, layout: { type: 'grid', columns: 2, gapPx: 16 }, ordering: { mode: 'alphabetical', ids: [] }, showHeading: true, initiallyCollapsed: false, placements: [] }); d.homepage.placements.push({ groupId: id, span: 'auto' });this.provisionalGroups.set('local-group-'+(++this.nextGroupRow),{id});this.selection = { groupId: id, itemId: '' }; }, true); }
+    create(id, title) { if (this.document.groups.length >= 32) return false; return this.change(d => { d.groups.push({ id, title, layout: { type: 'grid', columns: 2, gapPx: 16 }, ordering: { mode: 'alphabetical', ids: [] }, showHeading: false, collapsible: false, initiallyCollapsed: false, placements: [] }); d.homepage.placements.push({ groupId: id, span: 'auto' });this.provisionalGroups.set('local-group-'+(++this.nextGroupRow),{id});this.selection = { groupId: id, itemId: '' }; }, true); }
     remove(groupId, destination) {
       if (!this.ready || this.document.groups.length < 2 || destination === groupId || !this.group(destination)) return false;
       return this.change(d => { const source = this.group(groupId); const target = this.group(destination); target.placements.push(...source.placements); d.groups = d.groups.filter(g => g.id !== groupId); d.homepage.placements = d.homepage.placements.filter(p => p.groupId !== groupId); d.homepage.ordering.ids = d.homepage.ordering.ids.filter(id => id !== groupId); Object.keys(d.sourceGroups).forEach(kind => { if (d.sourceGroups[kind] === groupId) d.sourceGroups[kind] = destination; }); this.selection = { groupId: destination, itemId: '' }; }, true);
@@ -147,6 +157,7 @@
     function closeSettings(event) {
       if(event.detail?.id!=='layoutSettings'||event.defaultPrevented)return;
       settingsOpen=false;requestedSettingsTab=null;
+      if(errors.childElementCount){errors.hidden=false;global.Alpine.nextTick(()=>focusControl(errors,true));return;}
       global.Alpine.nextTick(()=>{const target=[document.getElementById(settingsReturnId),document.getElementById('edit-group-'+key(model.selection.groupId)),find('open-settings')].find(el=>el&&!el.matches(':disabled')&&!el.closest('#layout-editor-inspector')&&el.getClientRects().length);focusControl(target);});
     }
     global.addEventListener('drawer:close-request',closeSettings);
@@ -154,7 +165,7 @@
     root.addEventListener('pointerdown',trackInteraction,true);root.addEventListener('keydown',trackInteraction,true);
     function state(text) {
       if (text) announce(text);
-      if(settingsOpen&&['preview_error','preview_invalid','conflict','outcome_unknown'].includes(model.state)){
+      if(settingsOpen&&['preview_error','conflict','outcome_unknown'].includes(model.state)){
         settingsOpen=false;requestedSettingsTab=null;global.dispatchEvent(new CustomEvent('drawer:close',{detail:{id:'layoutSettings'}}));
         global.Alpine.nextTick(()=>focusControl(errors.hidden?status:errors,true));
       }
@@ -188,7 +199,19 @@
     }
     function showError(detail, map) {
       clearErrors(); errors.hidden = false; const title = document.createElement('p'); title.textContent = detail.message || 'Layout request failed. Your draft is retained.'; errors.append(title);
-      for (const [path, message] of Object.entries(detail.fieldErrors || {})) { const id = map?.[path]; const control = id && document.getElementById(id); const row = document.createElement('p'); if (control) { const link = document.createElement('a'); link.href = '#' + id; link.textContent = message; link.addEventListener('click', event => { event.preventDefault(); focusControl(control,true); }); row.append(link); control.setAttribute('aria-invalid', 'true'); const inline = document.createElement('p'); inline.dataset.layoutInlineError = ''; inline.id = id + '-layout-error'; inline.textContent = message; control.setAttribute('aria-describedby', inline.id); control.after(inline); } else row.textContent = message; errors.append(row); }
+      const fields=Object.entries(detail.fieldErrors||{});let inlineOnly=settingsOpen&&model.state==='preview_invalid'&&fields.length>0;
+      const inlineErrors=[];
+      for (const [path, message] of fields) {
+        const id=map?.[path],control=id&&document.getElementById(id),row=document.createElement('p');
+        if(control){
+          const link=document.createElement('a');link.href='#'+id;link.textContent=message;link.addEventListener('click',event=>{event.preventDefault();focusControl(control,true);});row.append(link);
+          control.setAttribute('aria-invalid','true');const inline=document.createElement('p');inline.dataset.layoutInlineError='';inline.id=id+'-layout-error';inline.textContent=message;control.setAttribute('aria-describedby',inline.id);control.after(inline);inlineErrors.push(inline);
+          inlineOnly=inlineOnly&&!!control.closest('#layout-editor-inspector')&&!control.matches(':disabled')&&control.getClientRects().length>0;
+        }else{row.textContent=message;inlineOnly=false;}
+        errors.append(row);
+      }
+      if(inlineOnly){errors.hidden=true;inlineErrors.forEach(el=>el.setAttribute('role','alert'));return;}
+      if(settingsOpen){settingsOpen=false;requestedSettingsTab=null;global.dispatchEvent(new CustomEvent('drawer:close',{detail:{id:'layoutSettings'}}));}
       global.Alpine.nextTick(()=>focusControl(errors,true));
     }
     async function response(url, options = {}) { const r = await fetch(url, { cache: 'no-store', ...options }); const data = await r.json(); return { r, data }; }
@@ -265,7 +288,7 @@
     });
     function editField(el) {
       const path = el.dataset.layoutField; if (!path) return;const owner=el.closest('[data-layout-group-fields-owner]')?.dataset.layoutGroupFieldsOwner;if(path.startsWith('/group/')&&owner!==model.selection.groupId)return; const structural = el.hasAttribute('data-layout-structural'); const value = el.type === 'checkbox' ? el.checked : el.hasAttribute('data-layout-number') ? Number(el.value) : el.value;
-      if (model.change(d => { if (path === '/group/span') { d.homepage.placements.find(p => p.groupId === model.selection.groupId).span = value; return; } const parts = path.split('/').slice(1); let target = parts[0] === 'group' ? model.group() : d; if (parts[0] === 'group') parts.shift(); const last = parts.pop(); parts.forEach(p => { target = target[p]; }); target[last] = value; }, structural)) changed();
+      if (model.editField(path,value,structural)) changed();
     }
     root.addEventListener('input', event => { if(event.target.hasAttribute('data-layout-position')){document.getElementById(event.target.id+'-error').hidden=true;return state();} if (event.target.type === 'text' && !event.target.hidden && event.target.hasAttribute('data-layout-field')) editField(event.target); });
     root.addEventListener('click', async event => {

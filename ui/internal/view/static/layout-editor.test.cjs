@@ -62,7 +62,7 @@ test('group deletion rehomes dormant overrides and source defaults without copyi
  const d = setup(); assert.equal(d.remove('builtin:hosts', 'builtin:services'), true); assert.equal(d.document.sourceGroups.host, 'builtin:services'); assert.deepEqual(d.group('builtin:services').placements, [{ itemId: 'host-dormant' }]); assert.equal(d.group('builtin:services').ordering.mode, 'alphabetical'); assert.equal(d.selection.groupId, 'builtin:services');
 });
 test('creating a group preserves page policy and uses reviewed defaults', () => {
- const d = setup(); assert.equal(d.create('11111111-1111-4111-8111-111111111111', 'Media'), true); const g = d.group(); assert.equal(d.document.homepage.ordering.mode, 'alphabetical'); assert.deepEqual(g.layout, { type: 'grid', columns: 2, gapPx: 16 }); assert.equal(g.showHeading, true); assert.equal(g.initiallyCollapsed, false);
+ const d = setup(); assert.equal(d.create('11111111-1111-4111-8111-111111111111', 'Media'), true); const g = d.group(); assert.equal(d.document.homepage.ordering.mode, 'alphabetical'); assert.deepEqual(g.layout, { type: 'grid', columns: 2, gapPx: 16 }); assert.equal(g.showHeading, false); assert.equal(g.collapsible, false); assert.equal(g.initiallyCollapsed, false);
 });
 test('uncertain Save confirms configuration only and never silently retries a newer revision', () => {
  const d = setup(); d.change(doc => { doc.homepage.width = 'contained'; }); const p = d.begin('preview', 'digest'); d.accept(p, result(p, d)); const attempt = d.startSave(); assert.ok(attempt); assert.equal(d.startSave(), null);
@@ -164,3 +164,38 @@ test('numeric order retains capacity and same-group move guards',()=>{
   assert.equal(actionFor({id:'layout-action-create',dataset:{layoutAction:'retry'}}),'retry');
   assert.equal(actionFor(null),undefined);
  });
+
+test('required-name validation retains an editable draft and can recover without retry', () => {
+ const d=setup();assert.equal(d.change(doc=>{doc.groups[0].title='';}),true);
+ const invalid=d.begin('invalid','digest');assert.equal(d.fail(invalid,422),true);
+ assert.equal(d.ready,false);assert.equal(d.startSave(),null);assert.equal(d.document.groups[0].title,'');
+ assert.equal(d.change(doc=>{doc.groups[0].title='Renamed';}),true);
+ const valid=d.begin('valid','digest');const result=structuredClone(d.preview);
+ Object.assign(result,{requestId:'valid',draftGeneration:d.generation,layoutRevision:d.revision,document:structuredClone(d.document)});
+ assert.equal(d.accept(valid,result),true);assert.equal(d.ready,true);assert.equal(d.dirty,true);
+});
+test('new groups opt into neither headings nor accordion and equivalent omitted flags stay clean', () => {
+ const d=setup();for(const collapsed of [false,true]){
+  d.saved.groups[0].initiallyCollapsed=collapsed;d.document=structuredClone(d.saved);
+  d.document.groups[0].collapsible=collapsed;assert.equal(d.dirty,false);
+ }
+ d.document=structuredClone(d.saved);d.create('11111111-1111-4111-8111-111111111111','New');
+ const g=d.document.groups.at(-1);assert.equal(g.showHeading,false);assert.equal(g.collapsible,false);assert.equal(g.initiallyCollapsed,false);
+});
+
+test('opening a legacy collapsed accordion preserves accordion across canonical preview', () => {
+ const d=setup();d.document.groups[0].initiallyCollapsed=true;delete d.document.groups[0].collapsible;
+ assert.equal(d.editField('/group/initiallyCollapsed',false),true);
+ assert.equal(d.group().collapsible,true);assert.equal(d.group().initiallyCollapsed,false);
+ const entry=d.begin('open','digest');assert.equal(d.accept(entry,result(entry,d)),true);
+ assert.equal(d.group().collapsible,true);assert.equal(d.group().initiallyCollapsed,false);
+ assert.equal(d.editField('/group/collapsible',false),true);
+ const off=d.begin('off','digest'),response=result(off,d);delete response.document.groups[0].collapsible;
+ assert.equal(d.accept(off,response),true);assert.equal(d.group().initiallyCollapsed,false);
+ assert.equal(d.editField('/group/collapsible',true),true);
+ const enabled=d.begin('enabled','digest');d.accept(enabled,result(enabled,d));
+ assert.equal(d.editField('/group/initiallyCollapsed',true),true);
+ const closed=d.begin('closed','digest'),canonical=result(closed,d);delete canonical.document.groups[0].collapsible;
+ assert.equal(d.accept(closed,canonical),true);assert.equal(d.group().initiallyCollapsed,true);
+ assert.equal(d.editField('/group/initiallyCollapsed',false),true);assert.equal(d.group().collapsible,true);
+});
