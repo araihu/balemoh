@@ -190,3 +190,21 @@ func TestGroupPresentationOptInsAreIndependent(t *testing.T) {
 		t.Fatal("initially collapsed preference ignored")
 	}
 }
+
+func TestCollapseOptionStaysVisibleAndDependsOnAccordion(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		f := LayoutFrame{Groups: []EditorGroup{{ID: "g", Title: "Group", Label: "Group", Collapsible: enabled}}, SelectedGroup: "g"}
+		var b bytes.Buffer
+		if err := LayoutGroupInspector(f).Render(t.Context(), &b); err != nil {
+			t.Fatal(err)
+		}
+		input := regexp.MustCompile(`<input\b[^>]*data-layout-field="/group/initiallyCollapsed"[^>]*>`).FindString(b.String())
+		if input == "" || !strings.Contains(b.String(), "Start collapsed on homepage") {
+			t.Fatal("collapse option must always render")
+		}
+		disabled := regexp.MustCompile(`\sdisabled(?:[=>\s])`).MatchString(input)
+		if disabled == enabled {
+			t.Fatalf("accordion enabled=%v, input=%s", enabled, input)
+		}
+	}
+}

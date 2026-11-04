@@ -1327,11 +1327,9 @@ func LayoutGroupInspector(f LayoutFrame) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if g.Collapsible {
-			templ_7745c5c3_Err = form.FieldGroup(form.FieldGroupConfig{ID: key + "-collapsed-field", Checkbox: &checkbox.Config{ID: key + "-collapsed", Label: "Start collapsed on homepage", Checked: g.InitiallyCollapsed, InputAttrs: templ.Attributes{"data-layout-field": "/group/initiallyCollapsed"}}}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		templ_7745c5c3_Err = form.FieldGroup(form.FieldGroupConfig{ID: key + "-collapsed-field", Checkbox: &checkbox.Config{ID: key + "-collapsed", Label: "Start collapsed on homepage", Checked: g.InitiallyCollapsed, Disabled: !g.Collapsible, InputAttrs: templ.Attributes{"data-layout-field": "/group/initiallyCollapsed"}}}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
 		if g.dormantCount() > 0 {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, "<details class=\"balemoh-layout-disclosure\"><summary>")
@@ -1341,7 +1339,7 @@ func LayoutGroupInspector(f LayoutFrame) templ.Component {
 			var templ_7745c5c3_Var53 string
 			templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(g.dormantCountLabel())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 216, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 214, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 			if templ_7745c5c3_Err != nil {
@@ -1368,7 +1366,7 @@ func LayoutGroupInspector(f LayoutFrame) templ.Component {
 						var templ_7745c5c3_Var55 string
 						templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(m.Label)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 219, Col: 233}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 217, Col: 233}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 						if templ_7745c5c3_Err != nil {
@@ -1394,7 +1392,7 @@ func LayoutGroupInspector(f LayoutFrame) templ.Component {
 		var templ_7745c5c3_Var56 string
 		templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(g.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 224, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 222, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 		if templ_7745c5c3_Err != nil {
@@ -1557,7 +1555,7 @@ func LayoutGeometry(prefix, path string, a Arrangement) templ.Component {
 		var templ_7745c5c3_Var61 string
 		templ_7745c5c3_Var61, templ_7745c5c3_Err = templruntime.NewAttributeExpression(prefix + "-mode").Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 263, Col: 29}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 261, Col: 29}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var61)
 		if templ_7745c5c3_Err != nil {
@@ -1686,7 +1684,7 @@ func LayoutPosition(kind string, position, count int) templ.Component {
 		var templ_7745c5c3_Var65 string
 		templ_7745c5c3_Var65, templ_7745c5c3_Err = templruntime.NewAttributeExpression("layout-" + kind + "-position-error").Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 294, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 292, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var65)
 		if templ_7745c5c3_Err != nil {
@@ -1729,7 +1727,7 @@ func LayoutItemSettings(f LayoutFrame) templ.Component {
 			var templ_7745c5c3_Var67 string
 			templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(f.selectionLabel())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 301, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 299, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 			if templ_7745c5c3_Err != nil {
@@ -1751,7 +1749,7 @@ func LayoutItemSettings(f LayoutFrame) templ.Component {
 			var templ_7745c5c3_Var68 string
 			templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(f.group().Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 304, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 302, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 			if templ_7745c5c3_Err != nil {
@@ -1818,7 +1816,7 @@ func LayoutItemInspector(f LayoutFrame) templ.Component {
 			var templ_7745c5c3_Var71 string
 			templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.JoinStringErrs(f.group().Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 312, Col: 343}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout_editor.templ`, Line: 310, Col: 343}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var71))
 			if templ_7745c5c3_Err != nil {

@@ -209,9 +209,7 @@ templ LayoutGroupInspector(f LayoutFrame) {
  }
     @form.FieldGroup(form.FieldGroupConfig{ID:key+"-heading-field",Checkbox:&checkbox.Config{ID:key+"-heading",Label:"Show group name",Checked:g.ShowHeading,InputAttrs:templ.Attributes{"data-layout-field":"/group/showHeading"}}})
     @form.FieldGroup(form.FieldGroupConfig{ID:key+"-accordion-field",Checkbox:&checkbox.Config{ID:key+"-accordion",Label:"Use accordion",Checked:g.Collapsible,InputAttrs:templ.Attributes{"data-layout-field":"/group/collapsible"}}})
-    if g.Collapsible {
-    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-collapsed-field",Checkbox:&checkbox.Config{ID:key+"-collapsed",Label:"Start collapsed on homepage",Checked:g.InitiallyCollapsed,InputAttrs:templ.Attributes{"data-layout-field":"/group/initiallyCollapsed"}}})
-    }
+    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-collapsed-field",Checkbox:&checkbox.Config{ID:key+"-collapsed",Label:"Start collapsed on homepage",Checked:g.InitiallyCollapsed,Disabled:!g.Collapsible,InputAttrs:templ.Attributes{"data-layout-field":"/group/initiallyCollapsed"}}})
     if g.dormantCount()>0 {
      <details class="balemoh-layout-disclosure"><summary>{g.dormantCountLabel()}</summary>
       for _,m:=range g.Members {

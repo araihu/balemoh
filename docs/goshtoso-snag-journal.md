@@ -6,6 +6,10 @@
 
 ## Group validation and presentation, 2026-11-03
 
+- The three inspector tabs overflowed their 280px strip by 9px with default horizontal padding. Keep the public Tabs component and its scrolling behavior; scope 12px horizontal tab padding to the app-owned inspector, retaining 44px targets. The library correctly scrolls genuinely overflowing content, so no upstream change is needed. Desktop and 320px checks show no overflow; at 240px the last tab remains reachable by keyboard.
+
+- Keep Start collapsed mounted with public Checkbox.Disabled. Apply the same effective accordion value during draft updates, including legacy omitted flags; built-in has-disabled styling follows the native input state. Keyboard and mobile checks cover enabling, clearing and skipping the disabled option.
+
 - Required-name errors closed the consumer drawer and disabled preview selection, hiding the editable field. Keep mapped, visible field errors inline; expose the global error summary when the drawer closes or an error needs broader recovery. Reuse Goshtoso Form/Checkbox and the existing Drawer/Tabs. Conditional app-owned details markup implements the independent accordion preference. No upstream change is needed. Closing checks cover blank-name recovery, focus, optional headings/accordions and empty drop targets.
 
 ## Layout preview flash, 2026-11-03
