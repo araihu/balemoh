@@ -601,3 +601,18 @@
   pin needed no new consumer component workaround or API/schema change. The
   existing spacing, empty-target and whole-group interaction fixes remain in
   Balemoh's reviewed editor changes.
+
+
+## Layout interaction follow-up, 2026-11-04
+
+- Shared insertion and edge scrolling belong to `layout.Container.WithContentDrag`,
+  fixed upstream in Goshtoso PR #365. Pin the reviewed public commit, without a
+  consumer replacement or duplicate drag engine.
+- Group header drops reuse public `layout:request-move`, dispatched from the source
+  container. Balemoh expands its own disclosure and retains saved collapse flags.
+- Keep `drawer.Drawer` and its modal contract. Use the app-owned PanelClass to
+  wait for closing before restoring the surviving opener, guarded against newer
+  interaction. A modeless desktop drawer remains outside this patch.
+- Pointer ownership must release queued preview/live responses on cancellation,
+  lost capture and window blur. Positions retain dormant members; explain that
+  count and announce the switch from Alphabetical to Manual after preview settles.

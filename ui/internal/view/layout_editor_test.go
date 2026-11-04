@@ -162,6 +162,36 @@ func TestGroupAndItemUseSameExplicitEditAction(t *testing.T) {
 	}
 }
 
+func TestEditorGroupIdentityRemainsAccessibleWhenHeadingHidden(t *testing.T) {
+	var b bytes.Buffer
+	group := EditorGroup{ID: "remote", Label: "Remote hosts", Title: "Remote hosts", Arrangement: Arrangement{Type: "stack", Columns: 1, GapPx: 16}}
+	if err := LayoutPreviewGroup(LayoutFrame{}, group).Render(t.Context(), &b); err != nil {
+		t.Fatal(err)
+	}
+	html := b.String()
+	if !strings.Contains(html, `<section aria-label="Remote hosts"`) || !strings.Contains(html, `balemoh-layout-group-title sr-only`) || !strings.Contains(html, `>Remote hosts</h3>`) {
+		t.Fatal("hidden group heading must retain a discoverable group identity")
+	}
+}
+
+func TestEditorMovementCopyNamesPencilsAndDormantNumericPositions(t *testing.T) {
+	var b bytes.Buffer
+	if err := LayoutPageArrangement(LayoutFrame{}).Render(t.Context(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), "Pencil buttons open settings") || !strings.Contains(b.String(), "numeric positions set Manual order") {
+		t.Fatal("movement guidance must name pencil and numeric alternatives")
+	}
+	b.Reset()
+	frame := LayoutFrame{SelectedGroup: "g", SelectedItem: "dormant", Groups: []EditorGroup{{ID: "g", Label: "Group", Members: []EditorMember{{ID: "dormant", Label: "Dormant", State: "dormant"}}}}}
+	if err := LayoutItemMovement(frame).Render(t.Context(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), "Positions include items not currently on the homepage.") {
+		t.Fatal("numeric position guidance must explain dormant members")
+	}
+}
+
 func TestGroupPresentationOptInsAreIndependent(t *testing.T) {
 	for _, heading := range []bool{false, true} {
 		for _, accordion := range []bool{false, true} {

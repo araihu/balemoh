@@ -4,6 +4,22 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const trimTitle = value => value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '');
   const key = id => [...new TextEncoder().encode(id)].map(b => b.toString(16).padStart(2, '0')).join('');
+  class PointerGate {
+    constructor() { this.active = false; this.pointerId = null; this.queuedPreview = null; this.queuedLive = null; }
+    begin(pointerId) { if (this.active) return this.pointerId === pointerId; this.active = true; this.pointerId = pointerId; return true; }
+    matches(pointerId) { return this.active && (pointerId === undefined || pointerId === null || pointerId === this.pointerId); }
+    queuePreview(args) { if (!this.active) return false; this.queuedPreview = args; return true; }
+    queueLive(data) { if (!this.active) return false; this.queuedLive = data; return true; }
+    release(pointerId, handlers = {}) {
+      if (!this.matches(pointerId)) return false;
+      const live = this.queuedLive, preview = this.queuedPreview;
+      this.active = false; this.pointerId = null; this.queuedLive = null; this.queuedPreview = null;
+      if (live && handlers.live) handlers.live(live);
+      if (preview && handlers.preview) handlers.preview(...preview);
+      return true;
+    }
+    clear() { this.active = false; this.pointerId = null; this.queuedLive = null; this.queuedPreview = null; }
+  }
   function canonical(document) {
     const d = clone(document);
     d.groups.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -114,6 +130,36 @@
     savedResult(attempt, state, readback = false) { if (this.saveAttempt !== attempt || this.generation !== attempt.generation) return false; try { if (!validRevision(state?.revision) || BigInt(state.revision) < BigInt(attempt.expectedRevision) || !readback && BigInt(state.revision) !== BigInt(attempt.expectedRevision) + 1n || canonical(state.document) !== canonical(attempt.document)) throw Error(); } catch (_) { this.state = 'outcome_unknown'; return false; } this.saved = clone(state.document); this.document = clone(state.document); this.revision = state.revision; this.saveAttempt = null;this.provisionalGroups.clear();this.pending = null;this.state = 'saved'; return true; }
     readback(state) { if (!this.saveAttempt) return false; try { if (!validRevision(state?.revision)) throw Error(); if (canonical(state.document) === canonical(this.saveAttempt.document)) return this.savedResult(this.saveAttempt, state, true); this.state = 'conflict'; } catch (_) { this.state = 'outcome_unknown'; } return false; }
   }
+  function editorItemMoveContext(model, detail) {
+    if (!detail || !model.ready || detail.fromContainerId === 'layout-editor-groups' || detail.toContainerId === 'layout-editor-groups') return null;
+    const groupForContainer = containerId => model.document.groups.find(group => 'editor-items-' + key(group.id) === containerId)?.id;
+    const sourceGroupId = groupForContainer(detail.fromContainerId), destinationGroupId = groupForContainer(detail.toContainerId);
+    if (!sourceGroupId || !destinationGroupId) return null;
+    const source = model.preview.resolvedGroups.find(group => group.groupId === sourceGroupId);
+    if (!source?.members.some(member => member.itemId === detail.itemId && member.state === 'active') || !model.resolved(destinationGroupId) || !model.fitsMove(detail.itemId, destinationGroupId)) return null;
+    return { sourceGroupId, destinationGroupId };
+  }
+  function manualTransition(mode, subject) { return mode === 'alphabetical' ? `${subject} order is now Manual.` : ''; }
+  function movementOutcome(model, moved, outcome) {
+    if (!moved) return outcome;
+    let mode;
+    if (moved.kind === 'group') {
+      const at = model.preview.resolvedGroups.findIndex(group => group.groupId === moved.id);
+      if (at < 0) return outcome;
+      outcome = `${model.preview.resolvedGroups[at].displayLabel}, group ${at + 1} of ${model.preview.resolvedGroups.length}. ${outcome}`;
+      mode = model.document.homepage.ordering.mode;
+    } else {
+      const owner = model.preview.resolvedGroups.find(group => group.members.some(member => member.itemId === moved.id));
+      if (!owner) return outcome;
+      const at = owner.members.findIndex(member => member.itemId === moved.id);
+      outcome = `${owner.members[at].displayLabel}, position ${at + 1} of ${owner.members.length} in ${owner.displayLabel}. ${outcome}`;
+      mode = model.group(owner.groupId)?.ordering.mode;
+    }
+    return outcome + (mode === 'custom' && moved.transition ? ' ' + moved.transition : '');
+  }
+  function canRestoreFocus(epoch, currentEpoch, drawerOpen, active, body, documentElement, panel) {
+    return !drawerOpen && epoch === currentEpoch && (active === body || active === documentElement || panel?.contains(active));
+  }
   function actionFor(control) {
     return control?.dataset.layoutAction || /^layout-action-(save|cancel|create)(?:-overflow)?$/.exec(control?.id)?.[1] || (control?.id === 'layout-action-settings' ? 'open-settings' : undefined);
   }
@@ -132,7 +178,7 @@
       previous.set(update.context, update.html);
     }
   }
-  global.BalemohLayoutDraft = { Draft, canonical, key, actionFor, updateInspector };
+  global.BalemohLayoutDraft = { Draft, PointerGate, canonical, key, actionFor, editorItemMoveContext, manualTransition, movementOutcome, canRestoreFocus, updateInspector };
   if (typeof module !== 'undefined') module.exports = global.BalemohLayoutDraft;
   if (typeof document === 'undefined') return;
 
@@ -143,24 +189,51 @@
     const settingsMarkup = new Map();
     global.htmx.registerExtension('balemoh-layout-editor-disclosure',{htmx_before_morph_attr(element,detail){if(element.matches('details[data-editor-collapse]')&&detail.attrName==='open')return false;}});
     const status = document.getElementById('layout-editor-status'); const errors = document.getElementById('layout-editor-errors'); const frame = document.getElementById('layout-editor-frame');
-    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointer = false, queuedPreview, queuedLive, navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, activeSettingsTab='page', requestedSettingsTab, settingsReturnId='layout-action-settings', settingsOpen=false, interactionEpoch=0, alive = true;
+    let timer, controller, liveController, restoreId, restoreElement, movedIdentity, lastSaveMessage, rejectedGroupRow, pointerGate = new PointerGate(), navigation, createId, afterPreviewFocus, latestLiveIdentity, revealGroup, activeSettingsTab='page', requestedSettingsTab, settingsReturnId='layout-action-settings', settingsOpen=false, interactionEpoch=0, alive = true;
     const find = action => root.querySelector(`[data-layout-action="${action}"]`) || document.getElementById("layout-action-"+(action==='open-settings'?'settings':action));
     const dispatchModal = (name, id) => global.dispatchEvent(new CustomEvent(`modal:${name}`, { detail: { id: `layout-${id}` } }));
     const announce = text => { status.textContent = text; };
     function settingsTab(tab) { return root.querySelector('[data-layout-settings-tab="'+tab+'"]')?.closest('button'); }
+    function settingsPanel() { return root.querySelector('.balemoh-layout-settings-drawer'); }
+    function settingsReturnTarget() { return [document.getElementById(settingsReturnId),document.getElementById('edit-group-'+key(model.selection.groupId)),find('open-settings')].find(el=>el&&!el.matches(':disabled')&&!el.closest('#layout-editor-inspector')&&el.getClientRects().length); }
+    function focusAfterDrawerClose(epoch, target, scroll = false) {
+      const panel = settingsPanel();
+      let attempts = 0;
+      const settle = () => {
+        if (!alive || settingsOpen) return;
+        if (panel?.getClientRects().length) {
+          if (typeof global.requestAnimationFrame === 'function') global.requestAnimationFrame(settle);
+          return;
+        }
+        const next = typeof target === 'function' ? target() : target;
+        const active = document.activeElement;
+        if (!next || active !== next && !canRestoreFocus(epoch, interactionEpoch, settingsOpen, active, document.body, document.documentElement, panel)) return;
+        if (active !== next && attempts++ < 8) focusControl(next, scroll);
+        // Alpine FocusTrap restores its previous node asynchronously. Keep this
+        // state-driven retry alive until the intended target actually sticks;
+        // an intervening interaction changes the epoch and aborts the retry.
+        if (typeof global.requestAnimationFrame === 'function' && document.activeElement !== next && attempts < 8) global.requestAnimationFrame(settle);
+      };
+      if (typeof global.requestAnimationFrame === 'function') global.requestAnimationFrame(settle); else global.Alpine.nextTick(settle);
+    }
     function openSettings(tab,returnId) {
+      const epoch = interactionEpoch;
       settingsOpen=true;activeSettingsTab=tab; settingsReturnId=returnId||settingsReturnId;
       const button=settingsTab(tab); button?.click();
       global.dispatchEvent(new CustomEvent('drawer:open',{detail:{id:'layoutSettings'}}));
-      global.Alpine.nextTick(()=>button?.focus({preventScroll:true}));
+      global.Alpine.nextTick(()=>{if(settingsOpen&&epoch===interactionEpoch)button?.focus({preventScroll:true});});
     }
     function closeSettings(event) {
       if(event.detail?.id!=='layoutSettings'||event.defaultPrevented)return;
+      event.preventDefault();
+      const epoch = interactionEpoch;
+      const errorTarget = errors.childElementCount ? errors : null;
+      if(errorTarget)errors.hidden=false;
       settingsOpen=false;requestedSettingsTab=null;
-      if(errors.childElementCount){errors.hidden=false;global.Alpine.nextTick(()=>focusControl(errors,true));return;}
-      global.Alpine.nextTick(()=>{const target=[document.getElementById(settingsReturnId),document.getElementById('edit-group-'+key(model.selection.groupId)),find('open-settings')].find(el=>el&&!el.matches(':disabled')&&!el.closest('#layout-editor-inspector')&&el.getClientRects().length);focusControl(target);});
+      global.dispatchEvent(new CustomEvent('drawer:close',{detail:{id:'layoutSettings'}}));
+      focusAfterDrawerClose(epoch,errorTarget||settingsReturnTarget,errorTarget!==null);
     }
-    global.addEventListener('drawer:close-request',closeSettings);
+    global.addEventListener('drawer:close-request',closeSettings,true);
     const trackInteraction=event=>{if(event.isTrusted)interactionEpoch++;};
     root.addEventListener('pointerdown',trackInteraction,true);root.addEventListener('keydown',trackInteraction,true);
     function state(text) {
@@ -215,9 +288,45 @@
       global.Alpine.nextTick(()=>focusControl(errors,true));
     }
     async function response(url, options = {}) { const r = await fetch(url, { cache: 'no-store', ...options }); const data = await r.json(); return { r, data }; }
+    function destinationAtPointer(event) {
+      const hit = document.elementFromPoint(event.clientX,event.clientY), group = hit?.closest('[data-editor-group]');
+      if (!group || !frame.contains(group)) return null;
+      const disclosure = group.querySelector('details[data-editor-collapse]'), destinationGroupId = group.dataset.editorGroup;
+      if (!disclosure || !destinationGroupId) return null;
+      const container = [...disclosure.querySelectorAll('[data-goshtoso-layout="container"]')].find(candidate => candidate.dataset.layoutId === 'editor-items-' + key(destinationGroupId));
+      return { hit, group, disclosure, container, overContainer: !!container?.contains(hit), destinationGroupId };
+    }
+    function draggedEditorItem() { return [...frame.querySelectorAll('[data-goshtoso-layout="item"][data-layout-drag-source]')].find(item => item.parentElement?.dataset.layoutId?.startsWith('editor-items-')); }
+    function expandCollapsedDestination(event) {
+      if (!pointerGate.matches(event.pointerId) || !model.ready) return;
+      const dragged = draggedEditorItem(), destination = dragged && destinationAtPointer(event);
+      if (!dragged || !destination || destination.disclosure.open || destination.overContainer) return;
+      const detail = { itemId: dragged.dataset.layoutItemId, fromContainerId: dragged.parentElement.dataset.layoutId, toContainerId: 'editor-items-' + key(destination.destinationGroupId), beforeItemId: null };
+      const context = editorItemMoveContext(model,detail);
+      if (context && context.sourceGroupId !== context.destinationGroupId) destination.disclosure.open = true;
+    }
+    function completeHeaderDrop(event) {
+      if (!pointerGate.matches(event.pointerId)) return;
+      const dragged = draggedEditorItem(), destination = dragged && destinationAtPointer(event);
+      if (!dragged || !destination || !destination.disclosure.open || destination.overContainer) return;
+      const detail = { itemId: dragged.dataset.layoutItemId, fromContainerId: dragged.parentElement.dataset.layoutId, toContainerId: 'editor-items-' + key(destination.destinationGroupId), beforeItemId: null };
+      const context = editorItemMoveContext(model,detail);
+      if (!context || context.sourceGroupId === context.destinationGroupId || !destination.container) return;
+      event.preventDefault(); event.stopPropagation();
+      dragged.parentElement.dispatchEvent(new CustomEvent('layout:request-move',{bubbles:true,detail}));
+      releasePointer(event);
+    }
+    function directEditorItemMove(detail) {
+      const context = editorItemMoveContext(model,detail);
+      if (!context) return null;
+      const source = [...frame.querySelectorAll('[data-goshtoso-layout="container"]')].find(container => container.dataset.layoutId === detail.fromContainerId);
+      const destination = [...frame.querySelectorAll('[data-goshtoso-layout="container"]')].find(container => container.dataset.layoutId === detail.toContainerId);
+      const item = source && [...source.children].find(candidate => candidate.dataset.layoutItemId === detail.itemId);
+      return item?.parentElement === source && destination ? context : null;
+    }
     async function apply(entry, result) {
       if (!model.owns(entry)) return;
-      if (pointer) { queuedPreview = [entry, result]; return; }
+      if (pointerGate.active) { pointerGate.queuePreview([entry, result]); return; }
       if (typeof result.movementHtml!=='string'||typeof result.pageHtml!=='string'||typeof result.inspectorHtml!=='string'||typeof result.previewHtml!=='string'||typeof result.deleteHtml!=='string') {model.fail(entry,503);state('Preview response unavailable. Your draft is retained.');return;}
       if (!model.accept(entry, result.preview)) { state(model.state === 'conflict' ? 'Saved layout changed. Your draft is retained.' : 'Preview response invalid. Your draft is retained. Retry preview.'); return; }
       if(JSON.stringify(entry.selection)!==JSON.stringify(model.selection)){afterPreviewFocus='editor-group-heading-'+key(model.selection.groupId);model.state='preview_pending';state('Selection changed with current membership. Updating preview…');preview();return;}
@@ -238,11 +347,8 @@
       root.querySelectorAll('details[data-layout-panel]').forEach(el=>{el.open=openPanels.includes(el.dataset.layoutPanel);});
       if(revealGroup){document.getElementById('editor-group-'+key(revealGroup))?.querySelector('details[data-editor-collapse]')?.setAttribute('open','');revealGroup=null;}
       clearErrors(); let outcome = model.dirty ? 'Unsaved changes.' : lastSaveMessage || 'All changes saved.';
-      if (movedIdentity) {
-        if (movedIdentity.kind === 'group') { const at = model.preview.resolvedGroups.findIndex(g => g.groupId === movedIdentity.id); if (at >= 0) outcome = `${model.preview.resolvedGroups[at].displayLabel}, group ${at + 1} of ${model.preview.resolvedGroups.length}. ${outcome}`; }
-        else { const owner = model.preview.resolvedGroups.find(g => g.members.some(m => m.itemId === movedIdentity.id)); if (owner) { const at = owner.members.findIndex(m => m.itemId === movedIdentity.id); outcome = `${owner.members[at].displayLabel}, position ${at + 1} of ${owner.members.length} in ${owner.displayLabel}. ${outcome}`; } }
-        movedIdentity = null;
-      }
+      outcome = movementOutcome(model, movedIdentity, outcome);
+      movedIdentity = null;
       state(outcome);
       if (focusEpoch===interactionEpoch && id && (document.activeElement === document.body || inSettings)) { const next = document.getElementById(id); next?.focus({ preventScroll: true }); if (next?.setSelectionRange && start !== null) { try { next.setSelectionRange(start, end); } catch (_) {} } }
       if (focusEpoch===interactionEpoch && afterPreviewFocus && (document.activeElement === status || document.activeElement === document.body)) { const next=document.getElementById(afterPreviewFocus);focusControl(next,afterPreviewFocus==='layout-inspector-heading'&&matchMedia('(max-width:1099px)').matches); }
@@ -274,7 +380,8 @@
       if(!model.ready)return;
       if(!el.checkValidity()){const note=document.getElementById(el.id+'-error');note.textContent='Enter a whole position between 1 and '+el.max+'. Position remains '+el.defaultValue+'.';note.hidden=false;el.value=el.defaultValue;state('Position unchanged.');return;}
       const kind=el.dataset.layoutAction==='group-position'?'group':'item';
-      if(model.setPosition(kind,el.value)){movedIdentity={kind,id:kind==='group'?model.selection.groupId:model.selection.itemId};changed('Position changed. Updating preview…');}
+      const subject=kind==='group'?'Group':'Item', mode=kind==='group'?model.document.homepage.ordering.mode:model.group()?.ordering.mode;
+      if(model.setPosition(kind,el.value)){movedIdentity={kind,id:kind==='group'?model.selection.groupId:model.selection.itemId,transition:manualTransition(mode,subject)};changed('Position changed. Updating preview…');}
       else state(model.dirty?'Unsaved changes.':'All changes saved.');
     }
     root.addEventListener('change', event => {
@@ -301,7 +408,7 @@
     async function runAction(button) {
       const action=actionFor(button); if (!action || button.matches(':disabled')) return;
       if(button.id.endsWith('-overflow')){const trigger=button.closest('[role=group]')?.querySelector('button[aria-haspopup][aria-expanded="true"]');trigger?.click();await global.Alpine.nextTick();trigger?.focus({preventScroll:true});}
-      if (action === 'move-item') { const destination = root.querySelector('[data-layout-destination]').value; if (model.move(model.selection.itemId, destination, null)) {movedIdentity={kind:'item',id:model.selection.itemId};changed('Item moved. Updating preview…');} }
+      if (action === 'move-item') { const destination = root.querySelector('[data-layout-destination]').value, mode = model.group(destination)?.ordering.mode; if (model.move(model.selection.itemId, destination, null)) {movedIdentity={kind:'item',id:model.selection.itemId,transition:manualTransition(mode,'Item')};changed('Item moved. Updating preview…');} }
       else if (action === 'create' && model.ready) { createId = crypto.randomUUID(); root.querySelector('[data-layout-create-form]').reset(); root.querySelector('[data-layout-create-error]').hidden=true;find('regenerate').hidden=true; dispatchModal('open', 'create'); }
       else if(action==='regenerate-provisional'){const next=crypto.randomUUID();if(model.regenerateGroup(rejectedGroupRow,next)){rejectedGroupRow=null;afterPreviewFocus='editor-group-heading-'+key(next);status.focus({preventScroll:true});changed('Group ID replaced in draft. Updating preview…');}}
       else if (action === 'regenerate') {createId=crypto.randomUUID();root.querySelector('[data-layout-create-error]').hidden=true;find('regenerate').hidden=true;document.getElementById('layout-create-title').focus({preventScroll:true});}
@@ -318,12 +425,19 @@
       else if (action === 'confirm-discard') { alive = false; controller?.abort(); live.close(); location.assign(navigation || '/'); }
     }
     root.querySelector('[data-layout-create-form]').addEventListener('submit', event => { event.preventDefault(); if (!model.ready || !event.target.reportValidity()) return; const title = trimTitle(event.target.elements.title.value); if (!title || [...title].length > 80) return; if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(createId) || model.group(createId)) {const error=root.querySelector('[data-layout-create-error]');error.textContent='This group ID is invalid or already used. Generate another ID; your title is retained.';error.hidden=false;find('regenerate').hidden=false;find('regenerate').focus({preventScroll:true});return;} if (model.create(createId, title)) { dispatchModal('close', 'create');requestedSettingsTab='group';settingsReturnId='edit-group-'+key(createId); afterPreviewFocus = 'editor-group-heading-' + key(createId); status.focus({ preventScroll: true }); changed('Group created in draft. Updating preview…'); } });
-    root.addEventListener('layout:before-move', event => { const d = event.detail; if (d && d.fromContainerId!=='layout-editor-groups') {const destination=model.document.groups.find(g=>'editor-items-'+key(g.id)===d.toContainerId);if(!destination||!model.fitsMove(d.itemId,destination.id)){event.preventDefault();announce('This move would exceed 512 explicit references.');return;}} if (!model.ready || model.pending || !d || !model.group() || d.fromContainerId === 'layout-editor-groups' && d.toContainerId !== 'layout-editor-groups') event.preventDefault(); });
-    root.addEventListener('layout:move', event => { if (!model.ready) return; const d = event.detail; if (d.fromContainerId === 'layout-editor-groups') { const ids = model.preview.resolvedGroups.map(g => g.groupId).filter(id => id !== d.itemId); const at = d.beforeItemId === null ? ids.length : ids.indexOf(d.beforeItemId); if (at < 0) return; ids.splice(at, 0, d.itemId); if (model.orderGroups(ids)) {movedIdentity={kind:'group',id:d.itemId};changed('Group moved. Updating preview…');} } else { const destination = model.document.groups.find(g => 'editor-items-' + key(g.id) === d.toContainerId); if (destination && model.move(d.itemId, destination.id, d.beforeItemId)) {movedIdentity={kind:'item',id:d.itemId};changed('Item moved. Updating preview…');} } });
+    root.addEventListener('layout:before-move', event => { const d = event.detail; if (!model.ready || model.pending || !d || !model.group()) { event.preventDefault(); return; } if (d.fromContainerId === 'layout-editor-groups') { if (d.toContainerId !== 'layout-editor-groups') event.preventDefault(); return; } if (!directEditorItemMove(d)) { const destination=model.document.groups.find(g=>'editor-items-'+key(g.id)===d.toContainerId); if(destination&&!model.fitsMove(d.itemId,destination.id)) announce('This move would exceed 512 explicit references.'); event.preventDefault(); } });
+    root.addEventListener('layout:move', event => { if (!model.ready) return; const d = event.detail; if (d.fromContainerId === 'layout-editor-groups') { const ids = model.preview.resolvedGroups.map(g => g.groupId).filter(id => id !== d.itemId); const at = d.beforeItemId === null ? ids.length : ids.indexOf(d.beforeItemId); if (at < 0) return; ids.splice(at, 0, d.itemId); const mode=model.document.homepage.ordering.mode; if (model.orderGroups(ids)) {movedIdentity={kind:'group',id:d.itemId,transition:manualTransition(mode,'Group')};changed('Group moved. Updating preview…');} } else { const context = editorItemMoveContext(model,d), mode = context && model.group(context.destinationGroupId)?.ordering.mode; if (context && model.move(d.itemId, context.destinationGroupId, d.beforeItemId)) {movedIdentity={kind:'item',id:d.itemId,transition:manualTransition(mode,'Item')};changed('Item moved. Updating preview…');} } });
     root.addEventListener('toggle',event=>{const disclosure=event.target;if(!disclosure.matches?.('[data-editor-collapse]')||disclosure.open)return;const group=model.resolved(disclosure.dataset.editorCollapse);if(group?.groupId===model.selection.groupId&&group.members.some(m=>m.itemId===model.selection.itemId&&m.state==='active')){disclosure.open=true;announce('Selected item stays visible while editing. Saved collapse setting is unchanged.');}},true);
-    root.addEventListener('pointerdown', event => { if (event.target.closest('[data-layout-preview]')) pointer = true; }, true);
-    function releasePointer() { pointer = false; if (queuedLive) { const data = queuedLive; queuedLive = null; onLive(data); } if (queuedPreview) { const args = queuedPreview; queuedPreview = null; apply(...args); } }
-    global.addEventListener('pointerup', releasePointer); global.addEventListener('pointercancel', releasePointer);
+    root.addEventListener('pointerdown', event => { if (event.target.closest('[data-layout-preview]')) pointerGate.begin(event.pointerId); }, true);
+    function releasePointer(event) { pointerGate.release(event?.pointerId,{live:onLive,preview:apply}); }
+    function releaseOnBlur() { releasePointer(); }
+    function releaseOnLostPointerCapture(event) { releasePointer(event); }
+    global.addEventListener('pointermove', expandCollapsedDestination, true);
+    global.addEventListener('pointerup', completeHeaderDrop, true);
+    global.addEventListener('pointerup', releasePointer);
+    global.addEventListener('pointercancel', releasePointer);
+    global.addEventListener('blur', releaseOnBlur);
+    root.addEventListener('lostpointercapture', releaseOnLostPointerCapture, true);
     root.addEventListener('keydown', event => { if (event.key === 'Escape') releasePointer(); if(event.key==='Enter'&&event.target.hasAttribute('data-layout-position')){event.preventDefault();applyPosition(event.target);} });
     async function save() {
       const attempt = model.startSave(); if (!attempt) return; controller?.abort(); clearTimeout(timer);if(document.activeElement===find('save'))status.focus({preventScroll:true});state('Saving layout…'); const map = targets();
@@ -346,7 +460,7 @@
     global.addEventListener('beforeunload', event => { if (alive && model.dirty) { event.preventDefault(); event.returnValue = ''; } });
     const live = new EventSource('/dashboard/events?layoutEditor=true');
     async function onLive(data) {
-      if (pointer) { queuedLive = data; return; }
+      if (pointerGate.active) { pointerGate.queueLive(data); return; }
       const entry=model.beginLive(data.revision);if(!entry)return;
       if (data.revision !== model.revision && model.followsLive) {
         if (model.dirty) { controller?.abort(); model.pending = null; model.state = 'conflict'; state('Another client saved a layout. Your draft is retained.'); }
@@ -363,11 +477,11 @@
       }
       if(!model.ownsLive(entry))return;
       if (data.identity !== latestLiveIdentity) { const initial = latestLiveIdentity === undefined; latestLiveIdentity = data.identity; if (!initial && !['conflict', 'saving', 'outcome_unknown'].includes(model.state)) preview(); }
-      if (data.html && !pointer) await global.htmx.swap({ sourceElement: root, target: '#layout-editor-live', swap: 'none', text: data.html });
+      if (data.html && !pointerGate.active) await global.htmx.swap({ sourceElement: root, target: '#layout-editor-live', swap: 'none', text: data.html });
     }
 
     live.onmessage = event => { try { onLive(JSON.parse(event.data)).catch(()=>announce('Live update unavailable. Your draft is retained.')); } catch (_) { announce('Live updates could not be read.'); } };
-    global.addEventListener('pagehide', () => { alive = false;controller?.abort();liveController?.abort();clearTimeout(timer);live.close(); global.removeEventListener('pointerup', releasePointer); global.removeEventListener('pointercancel', releasePointer);global.removeEventListener('drawer:close-request',closeSettings); }, { once: true });
+    global.addEventListener('pagehide', () => { alive = false;controller?.abort();liveController?.abort();clearTimeout(timer);pointerGate.clear();live.close();global.removeEventListener('pointermove',expandCollapsedDestination,true);global.removeEventListener('pointerup',completeHeaderDrop,true);global.removeEventListener('pointerup',releasePointer);global.removeEventListener('pointercancel',releasePointer);global.removeEventListener('blur',releaseOnBlur);root.removeEventListener('lostpointercapture',releaseOnLostPointerCapture,true);global.removeEventListener('drawer:close-request',closeSettings,true); }, { once: true });
     root.querySelector('[data-layout-controls]').disabled=false;
     state(model.ready?'All changes saved.':'Saved layout changed while loading. Your draft is retained.');
     root.balemohLayout = model;
