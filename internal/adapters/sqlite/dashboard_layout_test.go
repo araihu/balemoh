@@ -267,3 +267,44 @@ func TestLayoutLocalEligibilityAndColdProviderOutage(t *testing.T) {
 		t.Fatal("hidden/missing pinned services must be dormant", dormant)
 	}
 }
+
+func TestLayoutLegacyAccordionNoOpAndPersistence(t *testing.T) {
+	db := newCatalogTestDatabase(t)
+	service := &dashboard.Layouts{Store: NewLayoutStore(db)}
+	for _, collapsed := range []bool{false, true} {
+		d := dashboard.DefaultLayout()
+		d.Groups[0].ShowHeading = true
+		d.Groups[0].InitiallyCollapsed = collapsed
+		raw, _ := json.Marshal(d)
+		if _, err := db.Exec(`INSERT OR REPLACE INTO dashboard_layout(id,schema_version,revision,document,updated_at) VALUES(1,1,7,?,'legacy')`, string(raw)); err != nil {
+			t.Fatal(err)
+		}
+		state, err := service.Get(t.Context())
+		if err != nil || state.Revision != "7" || !state.Document.Groups[0].ShowHeading {
+			t.Fatal(state, err)
+		}
+		state.Document.Groups[0].Collapsible = new(collapsed)
+		same, err := service.Replace(t.Context(), "7", state.Document)
+		if err != nil || same.Revision != "7" {
+			t.Fatal("semantic no-op advanced revision", same, err)
+		}
+		var saved, updated string
+		if err := db.QueryRow(`SELECT document,updated_at FROM dashboard_layout WHERE id=1`).Scan(&saved, &updated); err != nil || saved != string(raw) || updated != "legacy" {
+			t.Fatal("read or no-op rewrote legacy row", err)
+		}
+	}
+	state, err := service.Get(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Document.Groups[0].Collapsible = new(true)
+	state.Document.Groups[0].InitiallyCollapsed = false
+	saved, err := service.Replace(t.Context(), "7", state.Document)
+	if err != nil || saved.Revision != "8" {
+		t.Fatal(saved, err)
+	}
+	again, err := service.Get(t.Context())
+	if err != nil || again.Document.Groups[0].Collapsible == nil || !*again.Document.Groups[0].Collapsible || again.Document.Groups[0].InitiallyCollapsed {
+		t.Fatal("accordion preference did not survive read", again, err)
+	}
+}

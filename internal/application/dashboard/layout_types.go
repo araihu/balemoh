@@ -27,6 +27,7 @@ type LayoutGroup struct {
 	Title              string           `json:"title"`
 	Layout             ContainerLayout  `json:"layout"`
 	Ordering           Ordering         `json:"ordering"`
+	Collapsible        *bool            `json:"collapsible,omitempty"`
 	ShowHeading        bool             `json:"showHeading"`
 	InitiallyCollapsed bool             `json:"initiallyCollapsed"`
 	Placements         []GroupPlacement `json:"placements"`
@@ -114,7 +115,7 @@ func ValidLayoutRevision(s string) bool {
 func DefaultLayout() LayoutDocument {
 	d := LayoutDocument{SchemaVersion: 1, Homepage: HomepageLayout{Width: "full", Layout: ContainerLayout{"stack", 1, 16}, Ordering: Ordering{"alphabetical", []string{}}, Placements: []HomepagePlacement{}}, Groups: []LayoutGroup{}, SourceGroups: SourceGroups{"builtin:hosts", "builtin:services", "builtin:widgets"}}
 	for _, v := range []struct{ id, title string }{{"builtin:hosts", "Hosts"}, {"builtin:services", "Services"}, {"builtin:widgets", "Widgets"}} {
-		d.Groups = append(d.Groups, LayoutGroup{ID: v.id, Title: v.title, Layout: ContainerLayout{"masonry", 3, 16}, Ordering: Ordering{"alphabetical", []string{}}, ShowHeading: true, Placements: []GroupPlacement{}})
+		d.Groups = append(d.Groups, LayoutGroup{ID: v.id, Title: v.title, Layout: ContainerLayout{"masonry", 3, 16}, Ordering: Ordering{"alphabetical", []string{}}, Placements: []GroupPlacement{}})
 		d.Homepage.Placements = append(d.Homepage.Placements, HomepagePlacement{v.id, "auto"})
 	}
 	return d

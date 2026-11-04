@@ -18,7 +18,7 @@ func TestLayoutWireAndOrdering(t *testing.T) {
 	if e = DecodeLayoutJSON(raw, &d); e != nil {
 		t.Fatal(e)
 	}
-	for _, bad := range []string{strings.Replace(string(raw), `"showHeading": true,`, "", 1), strings.Replace(string(raw), `"columns": 1`, `"columns": null`, 1), strings.Replace(string(raw), `"columns": 1`, `"columns": 1, "columns": 2`, 1), strings.Replace(string(raw), `"columns": 1`, `"columns": 1, "renderer": "row"`, 1), string(raw) + ` {}`} {
+	for _, bad := range []string{strings.Replace(string(raw), `"showHeading": false,`, "", 1), strings.Replace(string(raw), `"columns": 1`, `"columns": null`, 1), strings.Replace(string(raw), `"columns": 1`, `"columns": 1, "columns": 2`, 1), strings.Replace(string(raw), `"columns": 1`, `"columns": 1, "renderer": "row"`, 1), string(raw) + ` {}`} {
 		var out LayoutDocument
 		if DecodeLayoutJSON([]byte(bad), &out) == nil {
 			t.Errorf("accepted invalid shape %s", bad)
@@ -94,5 +94,62 @@ func TestRemovedBuiltinGroupCannotBeRecreated(t *testing.T) {
 	recreated := DefaultLayout()
 	if e := ValidateLayout(&recreated, removed, nil); e == nil {
 		t.Fatal("removed builtin ID was accepted as a new group")
+	}
+}
+
+func TestLayoutAccordionOptionalWireAndCanonicalDefaults(t *testing.T) {
+	for _, collapsed := range []bool{false, true} {
+		d := DefaultLayout()
+		for i := range d.Groups {
+			d.Groups[i].InitiallyCollapsed = collapsed
+		}
+		raw, _ := json.Marshal(d)
+		var legacy LayoutDocument
+		if err := DecodeLayoutJSON(raw, &legacy); err != nil {
+			t.Fatal(err)
+		}
+		if err := ValidateLayout(&legacy, legacy, nil); err != nil {
+			t.Fatal(err)
+		}
+		for i := range legacy.Groups {
+			if legacy.Groups[i].Collapsible != nil {
+				t.Fatal("legacy document gained an optional field")
+			}
+			legacy.Groups[i].Collapsible = new(collapsed)
+		}
+		if err := ValidateLayout(&legacy, legacy, nil); err != nil {
+			t.Fatal(err)
+		}
+		normalized, _ := json.Marshal(legacy)
+		if string(normalized) != string(raw) {
+			t.Fatal("equivalent accordion flags changed canonical bytes")
+		}
+	}
+	d := DefaultLayout()
+	for _, g := range d.Groups {
+		if g.ShowHeading || g.InitiallyCollapsed || g.Collapsible != nil {
+			t.Fatal("default presentation must be opt-in")
+		}
+	}
+	d.Groups[0].Collapsible = new(true)
+	raw, _ := json.Marshal(d)
+	var decoded LayoutDocument
+	if err := DecodeLayoutJSON(raw, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateLayout(&decoded, decoded, nil); err != nil || decoded.Groups[0].Collapsible == nil || !*decoded.Groups[0].Collapsible {
+		t.Fatal("open accordion was not retained", err)
+	}
+	for _, value := range []string{"null", `"true"`, "1", `true,"collapsible":false`} {
+		bad := strings.Replace(string(raw), `"collapsible":true`, `"collapsible":`+value, 1)
+		if DecodeLayoutJSON([]byte(bad), &decoded) == nil {
+			t.Fatalf("accepted invalid collapsible: %s", value)
+		}
+	}
+	d.Groups[0].Collapsible = new(false)
+	d.Groups[0].InitiallyCollapsed = true
+	var failure *LayoutError
+	if err := ValidateLayout(&d, d, nil); !errors.As(err, &failure) || failure.FieldErrors["/groups/0/initiallyCollapsed"] == "" {
+		t.Fatal("contradictory accordion flags accepted", err)
 	}
 }

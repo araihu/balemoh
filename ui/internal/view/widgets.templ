@@ -1,5 +1,7 @@
 package view
 
+import "fmt"
+
 import (
 	"github.com/araihu/goshtoso/components/alert"
 	"github.com/araihu/goshtoso/components/badge"
@@ -54,11 +56,35 @@ templ DashboardGrid(page Dashboard) {
 
 templ DashboardSection(section dashboardSection) {
  <section id={ "dashboard-section-"+section.ID } aria-label={section.Label} class="balemoh-dashboard-section">
-  <details data-dashboard-disclosure={section.ID} open?={!section.InitiallyCollapsed}>
-   <summary><h2 id={"dashboard-heading-"+section.ID} tabindex="-1" class={templ.KV("sr-only",!section.ShowHeading)}>{section.Label}</h2></summary>
+  if section.Collapsible {
+   if !section.ShowHeading {
+    @DashboardGroupHeading(section)
+   }
+   <details data-dashboard-disclosure={section.ID} open?={!section.InitiallyCollapsed}>
+    <summary aria-label={"Items in "+section.Label}>
+     if section.ShowHeading {
+      @DashboardGroupHeading(section)
+     } else {
+      <span>
+       if len(section.Widgets)==1 {
+        1 item
+       } else {
+        {fmt.Sprintf("%d items",len(section.Widgets))}
+       }
+      </span>
+     }
+    </summary>
+    @layout.Container(groupContainer(section))
+   </details>
+  } else {
+   @DashboardGroupHeading(section)
    @layout.Container(groupContainer(section))
-  </details>
+  }
  </section>
+}
+
+templ DashboardGroupHeading(section dashboardSection) {
+ <h2 id={"dashboard-heading-"+section.ID} tabindex="-1" class={templ.KV("sr-only",!section.ShowHeading)}>{section.Label}</h2>
 }
 
 templ DashboardWarnings(sources []string) {

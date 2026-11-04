@@ -59,6 +59,7 @@ func TestLayoutPreviewFirstKeepsMovementInOneContextualInspector(t *testing.T) {
 		t.Fatal("missing group/item numeric ordering")
 	}
 
+	frame.Groups[0].Collapsible = true
 	frame.Groups[0].InitiallyCollapsed = true
 	collapsed := render()
 	detailsAt := strings.Index(collapsed, `<details data-editor-collapse=`)
@@ -122,7 +123,7 @@ func TestLayoutActionCommandsRenderNativeButtonsIncludingOverflow(t *testing.T) 
 
 func TestEmptyEditorGroupAlwaysExposesDropTarget(t *testing.T) {
 	for _, members := range [][]EditorMember{nil, {{ID: "dormant", State: "dormant", Label: "Dormant item"}}} {
-		g := EditorGroup{ID: "empty", Label: "Empty", InitiallyCollapsed: true, Arrangement: Arrangement{Type: "masonry", Columns: 2, GapPx: 16}, Members: members}
+		g := EditorGroup{ID: "empty", Label: "Empty", Collapsible: true, InitiallyCollapsed: true, Arrangement: Arrangement{Type: "masonry", Columns: 2, GapPx: 16}, Members: members}
 		f := LayoutFrame{SelectedGroup: "other"}
 		var b bytes.Buffer
 		if err := LayoutPreviewGroup(f, g).Render(t.Context(), &b); err != nil {
@@ -158,5 +159,34 @@ func TestGroupAndItemUseSameExplicitEditAction(t *testing.T) {
 	heading := regexp.MustCompile(`<h3[^>]*>Group</h3>`).FindString(html)
 	if heading == "" || strings.Contains(heading, "data-layout-select") {
 		t.Fatal("group heading must be plain draggable content")
+	}
+}
+
+func TestGroupPresentationOptInsAreIndependent(t *testing.T) {
+	for _, heading := range []bool{false, true} {
+		for _, accordion := range []bool{false, true} {
+			g := dashboardSection{ID: "test", Label: "Named group", ShowHeading: heading, Collapsible: accordion, Widgets: []Widget{{ID: "one", Content: templ.Raw("One")}}}
+			var b bytes.Buffer
+			if err := DashboardSection(g).Render(t.Context(), &b); err != nil {
+				t.Fatal(err)
+			}
+			html := b.String()
+			if strings.Contains(html, "<details") != accordion || strings.Contains(html, `class="sr-only"`) == heading || !strings.Contains(html, `aria-label="Named group"`) {
+				t.Fatalf("wrong heading=%v accordion=%v presentation: %s", heading, accordion, html)
+			}
+			if accordion && !heading && !strings.Contains(html, "1 item") {
+				t.Fatal("hidden heading left an unnamed visible disclosure")
+			}
+			if accordion && !strings.Contains(html, `data-dashboard-disclosure="test" open`) {
+				t.Fatal("accordion must start open by default")
+			}
+		}
+	}
+	var b bytes.Buffer
+	if err := DashboardSection(dashboardSection{ID: "closed", Label: "Closed", Collapsible: true, InitiallyCollapsed: true}).Render(t.Context(), &b); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(b.String(), `data-dashboard-disclosure="closed" open`) {
+		t.Fatal("initially collapsed preference ignored")
 	}
 }

@@ -79,8 +79,8 @@ templ LayoutIcon(symbol icon.Symbol) { @icon.Icon(icon.Config{SpriteURL:heroicon
 templ LayoutPreviewGroup(f LayoutFrame,g EditorGroup) {
  <section aria-label={g.Label} class="balemoh-layout-preview-group">
   @LayoutEditButton("group",g.ID,g.Label,f.SelectedGroup==g.ID&&f.SelectedItem=="")
-  <h3 id={"editor-group-heading-"+DOMKey(g.ID)} tabindex="-1" class="balemoh-layout-group-title">{g.Label}</h3>
-  if g.activeCount()==0 {
+  <h3 id={"editor-group-heading-"+DOMKey(g.ID)} tabindex="-1" class={"balemoh-layout-group-title",templ.KV("sr-only",!g.ShowHeading)}>{g.Label}</h3>
+  if g.activeCount()==0||!g.Collapsible {
    <p class="balemoh-layout-group-count">{g.activeCountLabel()}</p>
    @LayoutPreviewGroupBody(f,g)
   } else {
@@ -207,8 +207,11 @@ templ LayoutGroupInspector(f LayoutFrame) {
     if f.Page.Type=="stack" {
  <p class="balemoh-layout-hint">Width applies to Grid and Masonry pages.</p>
  }
-    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-heading-field",Checkbox:&checkbox.Config{ID:key+"-heading",Label:"Show heading on homepage",Checked:g.ShowHeading,InputAttrs:templ.Attributes{"data-layout-field":"/group/showHeading"}}})
+    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-heading-field",Checkbox:&checkbox.Config{ID:key+"-heading",Label:"Show group name",Checked:g.ShowHeading,InputAttrs:templ.Attributes{"data-layout-field":"/group/showHeading"}}})
+    @form.FieldGroup(form.FieldGroupConfig{ID:key+"-accordion-field",Checkbox:&checkbox.Config{ID:key+"-accordion",Label:"Use accordion",Checked:g.Collapsible,InputAttrs:templ.Attributes{"data-layout-field":"/group/collapsible"}}})
+    if g.Collapsible {
     @form.FieldGroup(form.FieldGroupConfig{ID:key+"-collapsed-field",Checkbox:&checkbox.Config{ID:key+"-collapsed",Label:"Start collapsed on homepage",Checked:g.InitiallyCollapsed,InputAttrs:templ.Attributes{"data-layout-field":"/group/initiallyCollapsed"}}})
+    }
     if g.dormantCount()>0 {
      <details class="balemoh-layout-disclosure"><summary>{g.dormantCountLabel()}</summary>
       for _,m:=range g.Members {

@@ -20,6 +20,19 @@ func layoutValues(raw []byte) (map[string]string, error) {
 	if e := d.Decode(&value); e != nil {
 		return nil, e
 	}
+	// Compare effective settings rather than optional wire representations.
+	if document, ok := value.(map[string]any); ok {
+		groups, _ := document["groups"].([]any)
+		for _, entry := range groups {
+			if group, ok := entry.(map[string]any); ok {
+				if collapsed, ok := group["initiallyCollapsed"].(bool); ok {
+					if _, present := group["collapsible"]; !present {
+						group["collapsible"] = collapsed
+					}
+				}
+			}
+		}
+	}
 	out := map[string]string{}
 	var walk func(any, string)
 	walk = func(value any, path string) {
@@ -70,7 +83,7 @@ func layoutValues(raw []byte) (map[string]string, error) {
 	return out, nil
 }
 func layoutSettingLabel(path string) string {
-	labels := map[string]string{"schemaVersion": "Schema version", "homepage": "Page", "groups": "Groups", "sourceGroups": "Default groups", "layout": "Arrangement", "type": "Type", "columns": "Maximum columns", "gapPx": "Spacing", "width": "Width", "ordering": "Order", "mode": "Mode", "ids": "Ranked IDs", "placements": "Memberships", "groupId": "Group ID", "itemId": "Item ID", "id": "ID", "title": "Title", "showHeading": "Show heading", "initiallyCollapsed": "Start collapsed", "span": "Span", "host": "Host items", "service": "Service items", "other": "Other items"}
+	labels := map[string]string{"schemaVersion": "Schema version", "homepage": "Page", "groups": "Groups", "sourceGroups": "Default groups", "layout": "Arrangement", "type": "Type", "columns": "Maximum columns", "gapPx": "Spacing", "width": "Width", "ordering": "Order", "mode": "Mode", "ids": "Ranked IDs", "placements": "Memberships", "groupId": "Group ID", "itemId": "Item ID", "id": "ID", "title": "Title", "showHeading": "Show group name", "collapsible": "Use accordion", "initiallyCollapsed": "Start collapsed", "span": "Span", "host": "Host items", "service": "Service items", "other": "Other items"}
 	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
 	for i, p := range parts {
 		if label, ok := labels[p]; ok {

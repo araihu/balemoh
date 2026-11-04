@@ -16,10 +16,10 @@ type DashboardLayout struct {
 	Groups          []dashboardSection
 }
 type dashboardSection struct {
-	ID, Title, Label, Span          string
-	Widgets                         []Widget
-	Arrangement                     Arrangement
-	ShowHeading, InitiallyCollapsed bool
+	ID, Title, Label, Span                       string
+	Widgets                                      []Widget
+	Arrangement                                  Arrangement
+	ShowHeading, Collapsible, InitiallyCollapsed bool
 }
 
 // DashboardGroup is the BFF's independent view of one resolved group.
@@ -60,7 +60,6 @@ func dashboardSections(widgets []Widget) []dashboardSection {
 	for _, s := range sections {
 		if len(s.Widgets) > 0 {
 			s.Label = s.Title
-			s.ShowHeading = true
 			s.Arrangement = Arrangement{"masonry", 3, 16}
 			result = append(result, s)
 		}
