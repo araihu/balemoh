@@ -145,3 +145,7 @@ relevant operation is unavailable; the general limits panel stays removed.
 - Legacy omission and equivalent explicit flags cause no dirty state or revision
   change. Null, duplicate, unknown and wrong-type fields remain rejected. Saving
   an open accordion survives restart; old binaries require a compatible backup.
+
+- Drawer tabs retain 44px targets and fit a 320px viewport for every selection.
+  When the viewport is too narrow, Arrow/Enter navigation keeps tabs reachable
+  through the existing horizontal scroll container.
