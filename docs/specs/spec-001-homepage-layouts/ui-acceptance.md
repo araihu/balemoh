@@ -137,8 +137,8 @@ relevant operation is unavailable; the general limits panel stays removed.
   the Group tab and focuses the editable input. Deliberate tab switches retain the
   draft. Network failures, conflicts and uncertain writes still expose recovery.
 - New groups start with Show group name and Use accordion unchecked. Toggle each
-  independently. Start collapsed appears only for an enabled accordion; disabling
-  accordion clears that preference. Empty editor groups keep their drop targets.
+  independently. Start collapsed always remains visible and is disabled unless Use accordion is
+  checked; disabling accordion clears that preference. Empty editor groups keep their drop targets.
 - Homepage renders no details for static groups. Hidden headings retain accessible
   region names; hidden-name accordions show item count. Existing explicit headings
   and legacy initially-collapsed preferences remain intact.
