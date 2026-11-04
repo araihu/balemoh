@@ -312,7 +312,7 @@
       const detail = { itemId: dragged.dataset.layoutItemId, fromContainerId: dragged.parentElement.dataset.layoutId, toContainerId: 'editor-items-' + key(destination.destinationGroupId), beforeItemId: null };
       const context = editorItemMoveContext(model,detail);
       if (!context || context.sourceGroupId === context.destinationGroupId || !destination.container) return;
-      event.preventDefault(); event.stopPropagation();
+      event.preventDefault();
       dragged.parentElement.dispatchEvent(new CustomEvent('layout:request-move',{bubbles:true,detail}));
       releasePointer(event);
     }
