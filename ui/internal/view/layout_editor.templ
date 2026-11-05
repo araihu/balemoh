@@ -234,7 +234,7 @@ templ LayoutPreview(f LayoutFrame) { @layout.Container(f.previewContainer()).Wit
 templ LayoutPageArrangement(f LayoutFrame) {
  <div class="balemoh-layout-toolbar">
   @actiongroup.ActionGroup(actiongroup.Config{Label:"Preview actions",RootClass:"balemoh-layout-preview-actions",RootAttrs:templ.Attributes{"x-data":"{}"},Primary:actiongroup.Action{ID:"layout-action-settings",Label:"Settings",OnClick:"$dispatch('layout:command')",Icon:LayoutIcon(heroicons.Icon16SolidCog6Tooth)},Secondary:[]actiongroup.Action{{ID:"layout-action-create",Label:"Create group",OnClick:"$dispatch('layout:command')",Icon:LayoutIcon(heroicons.Icon16SolidPlus)}}})
-  <p>Drag cards and groups to arrange homepage.</p>
+  <p>Drag cards and groups to arrange homepage. Pencil buttons open settings; numeric positions set Manual order.</p>
   <p data-layout-group-unavailable class="balemoh-layout-hint" hidden>Group limit reached. Delete a group to create another.</p>
  </div>
 }
@@ -331,6 +331,9 @@ templ LayoutItemMovement(f LayoutFrame) {
  <p data-layout-move-unavailable class="balemoh-layout-hint" hidden>Moving here would exceed editor capacity. Choose another group.</p>
  </div>
  @LayoutPosition("item",f.itemPosition(),len(f.group().Members))
+ if len(f.group().Members)>f.group().activeCount() {
+ <p class="balemoh-layout-hint">Positions include items not currently on the homepage.</p>
+ }
  <p data-layout-order-unavailable class="balemoh-layout-hint" hidden>This order exceeds editor capacity. Try a smaller group.</p>
  if f.selectedItemDormant() {
  <p class="balemoh-layout-hint">This item is not currently on the homepage. Its saved group and position are retained.</p>

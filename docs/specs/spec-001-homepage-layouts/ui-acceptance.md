@@ -114,7 +114,7 @@ Drawer and numeric order follow-up:
 
 | State | Action | Expected result | Persistence |
 | --- | --- | --- | --- |
-| Clean editor | Open Settings | Left drawer, Page/Group/Item tabs; full-width preview behind it | 0 |
+| Clean editor | Open Settings | Right drawer, Page/Group/Item tabs; full-width preview behind it | 0 |
 | Clean or dirty editor | Select a group/item edit button | Drawer opens on matching context; card body remains inactive | 0 |
 | Open drawer | Change tab, close or Escape | Local navigation only; return focus to initiating action | 0 |
 | Selected group/item | Enter valid position and press Enter or blur | Complete sibling order moves selected identity; relevant parent becomes Manual; tab retained | 0 until Save |
@@ -149,3 +149,19 @@ relevant operation is unavailable; the general limits panel stays removed.
 - Drawer tabs retain 44px targets and fit a 320px viewport for every selection.
   When the viewport is too narrow, Arrow/Enter navigation keeps tabs reachable
   through the existing horizontal scroll container.
+
+
+## Interaction regression cases
+
+- Drop between grid/masonry cards: nearest insertion slot wins, including RTL.
+  Mouse/pen edge scrolling follows the scroll container and stops on drop/cancel.
+- Drag an active card directly onto a collapsed group header and release there:
+  target expands and accepts it once. Saved initial-collapse flags remain unchanged.
+  Foreign/nested containers, stale previews and over-capacity destinations reject movement.
+- Interrupt pointer capture or blur the window: queued preview/live work resumes;
+  pagehide clears queued work and listeners. Another pointer cannot release this gesture.
+- Open an item pencil, close, reopen with Settings, then use X/Escape/backdrop:
+  focus returns to the surviving opener; later user interaction aborts old focus work.
+- Drag, numeric and destination moves from Alphabetical announce Manual after the
+  matching preview settles. Already-Manual moves do not repeat that transition.
+  When dormant members exist, the numeric field explains their inclusion.

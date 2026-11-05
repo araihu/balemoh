@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const { runInNewContext } = require('node:vm');
-const { Draft, canonical, actionFor } = require('./layout-editor.js');
+const { Draft, PointerGate, canonical, actionFor, key, editorItemMoveContext, manualTransition, movementOutcome, canRestoreFocus } = require('./layout-editor.js');
 const initial = JSON.parse(readFileSync(path.resolve(__dirname, '../../../../docs/specs/spec-001-homepage-layouts/example-layout.json')));
 function inspectorHarness() {
  const slots = Object.fromEntries(['page','group','item'].map(context=>[context,{context}]));
@@ -44,6 +44,36 @@ function setup() {
  return new Draft({ state: { revision: '0', document }, preview, selection: { groupId: 'builtin:hosts', itemId: 'host-a' } });
 }
 function result(entry, model) { return { ...structuredClone(model.preview), requestId: entry.request.requestId, draftGeneration: entry.request.draftGeneration, document: structuredClone(model.document) }; }
+test('pointer gate flushes only the current gesture and recovers queued work on cancel or blur', () => {
+ const gate = new PointerGate(), seen = [];
+ gate.begin(7); gate.queueLive('live-old'); gate.queueLive('live-latest'); gate.queuePreview(['entry', 'preview']);
+ assert.equal(gate.release(8, { live: value => seen.push(['live', value]), preview: (entry, value) => seen.push(['preview', entry, value]) }), false);
+ assert.equal(gate.active, true);
+ assert.equal(gate.release(undefined, { live: value => seen.push(['live', value]), preview: (entry, value) => seen.push(['preview', entry, value]) }), true);
+ assert.deepEqual(seen, [['live', 'live-latest'], ['preview', 'entry', 'preview']]);
+ gate.begin(9); gate.queueLive('discarded'); gate.clear(); assert.equal(gate.active, false); assert.deepEqual(seen, [['live', 'live-latest'], ['preview', 'entry', 'preview']]);
+});
+test('item movement context rejects foreign, nested and capacity-blocked containers', () => {
+ const d = setup(), from = 'editor-items-' + key('builtin:hosts'), to = 'editor-items-' + key('builtin:widgets'), detail = { itemId: 'host-a', fromContainerId: from, toContainerId: to, beforeItemId: null };
+ assert.deepEqual(editorItemMoveContext(d, detail), { sourceGroupId: 'builtin:hosts', destinationGroupId: 'builtin:widgets' });
+ assert.equal(editorItemMoveContext(d, { ...detail, fromContainerId: 'nested-items' }), null);
+ assert.equal(editorItemMoveContext(d, { ...detail, toContainerId: 'foreign-items' }), null);
+ d.preview.resolvedGroups.find(group => group.groupId === 'builtin:widgets').members = Array.from({ length: 512 }, (_, i) => ({ itemId: 'widget-' + i, state: 'active' }));
+ assert.equal(editorItemMoveContext(d, detail), null);
+});
+test('manual transition copy is emitted only when alphabetical order becomes custom', () => {
+ assert.equal(manualTransition('alphabetical', 'Item'), 'Item order is now Manual.');
+ assert.equal(manualTransition('custom', 'Item'), '');
+
+});
+test('drawer focus restoration aborts when interaction or drawer state changed', () => {
+ const body = {}, documentElement = {}, inside = {}, outside = {}, panel = { contains: value => value === inside };
+ assert.equal(canRestoreFocus(2, 2, false, body, body, documentElement, panel), true);
+ assert.equal(canRestoreFocus(2, 3, false, body, body, documentElement, panel), false);
+ assert.equal(canRestoreFocus(2, 2, true, body, body, documentElement, panel), false);
+ assert.equal(canRestoreFocus(2, 2, false, outside, body, documentElement, panel), false);
+ assert.equal(canRestoreFocus(2, 2, false, inside, body, documentElement, panel), true);
+});
 test('late success and failure cannot replace a newer draft or enable Save', () => {
  const d = setup(); d.change(doc => { doc.homepage.width = 'contained'; }); const old = d.begin('old', 'old-digest');
  d.change(doc => { doc.groups[0].title = 'Latest input'; }); const latest = d.begin('latest', 'latest-digest');
@@ -198,4 +228,13 @@ test('opening a legacy collapsed accordion preserves accordion across canonical 
  const closed=d.begin('closed','digest'),canonical=result(closed,d);delete canonical.document.groups[0].collapsible;
  assert.equal(d.accept(closed,canonical),true);assert.equal(d.group().initiallyCollapsed,true);
  assert.equal(d.editField('/group/initiallyCollapsed',false),true);assert.equal(d.group().collapsible,true);
+});
+
+test('settled movement feedback retains the Manual transition without reporting a reset mode', () => {
+ const d=setup(), moved={kind:'group',id:'builtin:hosts',transition:manualTransition('alphabetical','Group')};
+ d.document.homepage.ordering.mode='custom';
+ assert.equal(movementOutcome(d,moved,'Unsaved changes.'),'Hosts, group 1 of 3. Unsaved changes. Group order is now Manual.');
+ d.document.homepage.ordering.mode='alphabetical';
+ assert.equal(movementOutcome(d,moved,'Unsaved changes.'),'Hosts, group 1 of 3. Unsaved changes.');
+ assert.equal(movementOutcome(d,{...moved,id:'gone'},'Unsaved changes.'),'Unsaved changes.');
 });
