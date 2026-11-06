@@ -46,6 +46,9 @@ func ConsolePage(data PageData) templ.Component {
 		}
 		runtimeScripts = append(runtimeScripts, "/ui/host-live.js")
 	}
+	if data.LayoutEditor != nil {
+		runtimeScripts = append(runtimeScripts, "/ui/layout-editor.js")
+	}
 	if data.Dashboard != nil && data.Error == "" {
 		runtimeScripts = append(runtimeScripts, "/ui/dashboard-layout.js")
 	}
@@ -62,6 +65,7 @@ func ConsolePage(data PageData) templ.Component {
 		Icon:        icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidCog6Tooth, Decorative: true}),
 		Items: []sidebar.Item{
 			{ID: "nav-presentation", Label: "Appearance", Href: "/presentation", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidPaintBrush, Decorative: true})},
+			{ID: "nav-homepage-layout", Label: "Homepage layout", Href: "/settings/homepage/layout", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidSquares2x2, Decorative: true})},
 			{ID: "nav-notification-settings", Label: "Notifications", Href: "/settings/notifications", Icon: icon.Icon(icon.Config{SpriteURL: heroicons.SpriteURL, Symbol: heroicons.Icon16SolidBell, Decorative: true})},
 		},
 	}

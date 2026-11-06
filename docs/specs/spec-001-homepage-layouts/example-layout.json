@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "homepage": {
+    "width": "full",
+    "layout": {
+      "type": "stack",
+      "columns": 1,
+      "gapPx": 16
+    },
+    "ordering": {
+      "mode": "alphabetical",
+      "ids": []
+    },
+    "placements": [
+      {
+        "groupId": "builtin:hosts",
+        "span": "auto"
+      },
+      {
+        "groupId": "builtin:services",
+        "span": "auto"
+      },
+      {
+        "groupId": "builtin:widgets",
+        "span": "auto"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "builtin:hosts",
+      "title": "Hosts",
+      "layout": {
+        "type": "masonry",
+        "columns": 3,
+        "gapPx": 16
+      },
+      "ordering": {
+        "mode": "alphabetical",
+        "ids": []
+      },
+      "showHeading": false,
+      "initiallyCollapsed": false,
+      "placements": []
+    },
+    {
+      "id": "builtin:services",
+      "title": "Services",
+      "layout": {
+        "type": "masonry",
+        "columns": 3,
+        "gapPx": 16
+      },
+      "ordering": {
+        "mode": "alphabetical",
+        "ids": []
+      },
+      "showHeading": false,
+      "initiallyCollapsed": false,
+      "placements": []
+    },
+    {
+      "id": "builtin:widgets",
+      "title": "Widgets",
+      "layout": {
+        "type": "masonry",
+        "columns": 3,
+        "gapPx": 16
+      },
+      "ordering": {
+        "mode": "alphabetical",
+        "ids": []
+      },
+      "showHeading": false,
+      "initiallyCollapsed": false,
+      "placements": []
+    }
+  ],
+  "sourceGroups": {
+    "host": "builtin:hosts",
+    "service": "builtin:services",
+    "other": "builtin:widgets"
+  }
+}

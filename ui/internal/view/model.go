@@ -51,6 +51,8 @@ type PageData struct {
 	PluginContent        templ.Component
 	PluginNavigation     []sidebar.Item
 	PluginWarning        bool
+	LayoutRecovery       bool
+	LayoutEditor         *LayoutEditor
 	Dashboard            *Dashboard
 	Status               string
 	IconPage             *IconPage

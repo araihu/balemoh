@@ -84,17 +84,22 @@ func (s *Service) ListStaging(ctx context.Context) ([]Candidate, error) {
 }
 
 func (s *Service) ListHomepage(ctx context.Context) ([]Candidate, error) {
-	candidates, err := s.ListStaging(ctx)
+	candidates, err := s.store.List(ctx, false)
 	if err != nil {
 		return nil, err
 	}
+	return HomepageCandidates(candidates), nil
+}
+
+// HomepageCandidates applies catalog grouping and lifecycle rules to local rows.
+func HomepageCandidates(candidates []Candidate) []Candidate {
 	pinned := make([]Candidate, 0)
-	for _, candidate := range candidates {
+	for _, candidate := range groupCandidates(candidates) {
 		if candidate.PinnedAt != nil && candidate.Status() == "live" {
 			pinned = append(pinned, candidate)
 		}
 	}
-	return pinned, nil
+	return pinned
 }
 
 func (s *Service) Pin(ctx context.Context, id string) (Candidate, error) {

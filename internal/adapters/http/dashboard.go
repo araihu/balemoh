@@ -12,13 +12,33 @@ import (
 )
 
 func (h Handler) WithDashboard(service *dashboard.Service) Handler { h.dashboard = service; return h }
-func (h Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
+func (h Handler) GetDashboard(w http.ResponseWriter, r *http.Request, params generated.GetDashboardParams) {
+	w.Header().Set("Cache-Control", "no-store")
+	defaults := params.LayoutView != nil
+	if defaults && (*params.LayoutView != "default" || len(r.URL.Query()["layoutView"]) != 1) {
+		writeLayoutError(w, dashboard.LayoutFailure(400, "invalid_request", "Unknown layout view."))
+		return
+	}
 	if h.dashboard == nil {
 		writeCatalogUnavailable(w)
 		return
 	}
-	snapshot := h.dashboard.Snapshot(r.Context())
+	snapshot := h.dashboard.SnapshotView(r.Context(), defaults)
+	if snapshot.LayoutError != nil {
+		writeLayoutError(w, snapshot.LayoutError)
+		return
+	}
 	result := generated.DashboardSnapshot{Items: []generated.DashboardWidget{}, Unavailable: snapshot.Unavailable}
+	if snapshot.LayoutRevision != "" {
+		result.LayoutRevision = &snapshot.LayoutRevision
+	}
+	if snapshot.Groups != nil {
+		groups := []generated.DashboardGroup{}
+		for _, g := range snapshot.Groups {
+			groups = append(groups, generated.DashboardGroup{GroupId: g.GroupID, Title: g.Title, DisplayLabel: g.DisplayLabel, ItemIds: g.ItemIDs})
+		}
+		result.Groups = &groups
+	}
 	for _, item := range snapshot.Items {
 		data := item.Data
 		// Keep the existing public service DTO at the HTTP boundary.

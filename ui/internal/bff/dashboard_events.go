@@ -15,6 +15,10 @@ import (
 )
 
 func (s *server) dashboardEvents(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("layoutEditor") == "true" {
+		s.layoutEditorEvents(w, r)
+		return
+	}
 	s.streamDashboard(w, r, 5*time.Second)
 }
 func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interval time.Duration) {
@@ -33,10 +37,13 @@ func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interva
 	var previous [sha256.Size]byte
 	var retained []api.DashboardWidget
 	var published []api.DashboardWidget
+	var publishedLayout string
+	var cachedLayout api.LayoutState
+	defaults := r.URL.Query().Get("layoutView") == "default"
 	failed := false
 	for {
 		ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
-		snapshot, err := s.dashboardSnapshot(ctx)
+		snapshot, err := s.dashboardSnapshotView(ctx, defaults)
 		cancel()
 		var component templ.Component
 		if err != nil {
@@ -50,11 +57,22 @@ func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interva
 			for _, kind := range snapshot.Unavailable {
 				unavailable[kind] = true
 			}
+			currentIDs := map[string]int{}
+			for i, w := range snapshot.Items {
+				currentIDs[w.Id] = i
+			}
 			for _, item := range retained {
-				if unavailable[item.SourceKind] {
+				if !unavailable[item.SourceKind] {
+					continue
+				}
+				if index, ok := currentIDs[item.Id]; ok {
+					snapshot.Items[index].Data = item.Data
+					snapshot.Items[index].Error = item.Error
+				} else if snapshot.Groups == nil {
 					snapshot.Items = append(snapshot.Items, item)
 				}
 			}
+
 			encoded, err := json.Marshal(snapshot)
 			if err != nil {
 				return
@@ -65,19 +83,35 @@ func (s *server) streamDashboard(w http.ResponseWriter, r *http.Request, interva
 				if len(snapshot.Unavailable) > 0 {
 					message = "Some sources unavailable; showing last received values."
 				}
-				if previous == ([sha256.Size]byte{}) && len(snapshot.Unavailable) > 0 {
+				if previous == ([sha256.Size]byte{}) && len(snapshot.Unavailable) > 0 && snapshot.Groups == nil {
 					// On initial connect/reconnect the DOM may already contain data
 					// absent from this stream's retained snapshot. Do not erase it.
 					component = view.DashboardLiveUnavailable(snapshot.Unavailable)
 				} else {
 					changed, structureChanged := dashboardWidgetChanges(published, snapshot.Items)
+					layoutRaw, _ := json.Marshal(struct {
+						Revision *api.LayoutRevision
+						Groups   *[]api.DashboardGroup
+					}{snapshot.LayoutRevision, snapshot.Groups})
+					structureChanged = structureChanged || string(layoutRaw) != publishedLayout
 					if previous == ([sha256.Size]byte{}) || structureChanged {
-						component = view.DashboardLiveSnapshot(*renderWidgets(snapshot, s.widgets), message)
+						renderCtx, renderCancel := context.WithTimeout(r.Context(), s.timeout)
+						page, renderErr := s.renderDashboard(renderCtx, snapshot, defaults, &cachedLayout)
+						renderCancel()
+						if renderErr != nil {
+							component = view.DashboardLiveStatus("Layout changed during refresh. Retrying; showing last received values.")
+							failed = true
+						} else {
+							component = view.DashboardLiveSnapshot(*page, message)
+						}
 					} else {
 						component = view.DashboardLiveWidgets(*renderWidgets(api.DashboardSnapshot{Items: changed, Unavailable: snapshot.Unavailable}, s.widgets), message)
 					}
-					published = snapshot.Items
-					previous = digest
+					if !failed {
+						published = snapshot.Items
+						publishedLayout = string(layoutRaw)
+						previous = digest
+					}
 				}
 			}
 			retained = snapshot.Items
@@ -123,7 +157,7 @@ func dashboardWidgetChanges(previous, current []api.DashboardWidget) ([]api.Dash
 	}
 	var changed []api.DashboardWidget
 	for i, item := range current {
-		if previous[i].Id != item.Id || previous[i].SourceKind != item.SourceKind {
+		if previous[i].Id != item.Id || previous[i].SourceKind != item.SourceKind || previous[i].Kind != item.Kind || previous[i].Presentation != item.Presentation || previous[i].Title != item.Title {
 			return current, true
 		}
 		before, _ := json.Marshal(previous[i])

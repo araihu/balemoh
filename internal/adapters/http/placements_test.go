@@ -37,7 +37,7 @@ func TestPlacementHTTPRevisionContract(t *testing.T) {
 	}
 	token := strings.Repeat("a", 32)
 	service := app.New(store, placementRuntime{})
-	handler := MountPlugins(http.NotFoundHandler(), service, token)
+	handler := MountPlugins(http.NotFoundHandler(), service, token, nil)
 	id := uuid.NewV4().String()
 	path := "/api/v1/plugin-widgets/" + id
 	body := `{"pluginId":"example.plugin","connectionId":"` + cs[0].ID + `","contributionId":"summary","options":{"b":2,"a":1},"enabled":true}`

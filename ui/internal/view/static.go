@@ -87,3 +87,8 @@ func ThemePreviewJS() []byte { return themePreviewJS }
 var presentationFontsJS []byte
 
 func PresentationFontsJS() []byte { return presentationFontsJS }
+
+//go:embed static/layout-editor.js
+var layoutEditorJS []byte
+
+func LayoutEditorJS() []byte { return layoutEditorJS }

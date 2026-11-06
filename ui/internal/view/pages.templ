@@ -52,7 +52,9 @@ templ PageContent(data PageData) {
  >
 		if data.Editor != nil {
  @pageheader.PageHeader(pageheader.Config{Title: data.Title, HideSeparator: true})
- @link.Link(stagingURL(data.Editor.State()), link.WithIcon(icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:heroicons.Icon16SolidArrowUturnLeft,Decorative:true})), link.WithIconPosition(link.IconLeading)) { Back to Staging }
+ @link.Link(stagingURL(data.Editor.State()), link.WithIcon(icon.Icon(icon.Config{SpriteURL:heroicons.SpriteURL,Symbol:heroicons.Icon16SolidArrowUturnLeft,Decorative:true})), link.WithIconPosition(link.IconLeading)) {
+  Back to Staging
+ }
  } else if data.Staging {
 			@pageheader.PageHeader(pageheader.Config{
 				Title:       data.Title,
@@ -67,7 +69,9 @@ templ PageContent(data PageData) {
  @alert.Alert(alert.Config{Title: "Request could not be completed", Description: data.Error, Tone: alert.ToneDanger, RootClass: "balemoh-alert"})
  </div>
 		}
-		if data.Attributions {
+		if data.LayoutEditor != nil {
+ @LayoutEditorContent(*data.LayoutEditor)
+ } else if data.Attributions {
  @AttributionsContent()
  } else if data.NotificationSettings {
  @BrowserNotificationSettings()
@@ -95,7 +99,9 @@ templ PageContent(data PageData) {
 			@StagingContent(data)
 		} else {
 			if data.Path != "" && data.Error != "" {
- @link.Link(data.Path) { Back to host }
+ @link.Link(data.Path) {
+  Back to host
+ }
  } else {
  @HomepageContent(data)
  }
@@ -117,7 +123,9 @@ templ ReadOnlyStagingActions(readOnly bool) {
 }
 
 templ StagingActions() {
- @link.Link("/staging/services/new", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) { Add service }
+ @link.Link("/staging/services/new", link.WithAppearance(link.AppearanceButton), link.WithSize(link.SizeSmall)) {
+  Add service
+ }
 	<form method="post" action="/staging/sync"><fieldset disabled?={ ReadOnly(ctx) } style="display: contents">
 		@tooltip.Tooltip("sync-discovery-tooltip", "Sync discovery", tooltip.WithPosition(tooltip.PositionBottom), tooltip.WithTrigger(SyncButton()))
 	</fieldset></form>
@@ -130,10 +138,17 @@ templ SyncButton() {
 }
 
 templ HomepageContent(data PageData) {
+ if data.LayoutRecovery {
+  @link.Link("/?layoutView=default") { Open temporary default view }
+ }
+ if data.Dashboard!=nil && data.Dashboard.DefaultView {
+  @alert.Alert(alert.Config{Title:"Temporary default view",Description:"Saved layout remains unchanged. This view uses default groups and arrangement.",Tone:alert.ToneWarning})
+ }
+
  if data.Dashboard != nil {
   <div { homepageAttrs(data.Services)... }>
    if !data.ReadOnly {
-   <div id="dashboard-live" data-dashboard-live hx-sse:connect="/dashboard/events" hx-target="#dashboard-live-status" hx-swap="innerMorph">
+   <div id="dashboard-live" data-dashboard-live hx-sse:connect={ dashboardStreamURL(data.Dashboard.DefaultView) } hx-target="#dashboard-live-status" hx-swap="innerMorph">
     <div id="dashboard-live-status" class="sr-only" role="status" tabindex="-1" hx-morph-skip>@HostLiveBadge("Connecting to live updates…")</div>
    </div>
    }
@@ -178,6 +193,11 @@ templ ServiceGlyph(service Service) {
 }
 
 templ ServiceCardAddresses(service Service) {
+ if addresses := groupAddresses(service); len(addresses)==1 {
+  @link.Link(addresses[0],link.WithTarget("_blank"),link.WithRootClass("balemoh-service-primary-link")) {
+   <span class="sr-only">{service.DisplayName}</span>
+  }
+ } else {
 	<div class="balemoh-card-addresses">
 		if addresses := groupAddresses(service); len(addresses) > 0 {
 			@link.Link(addresses[0], link.WithTarget("_blank")) {
@@ -196,6 +216,7 @@ templ ServiceCardAddresses(service Service) {
 			<span class="balemoh-muted">No public address</span>
 		}
 	</div>
+ }
 }
 
 templ AddressCountTrigger(service Service, count int) {
@@ -346,7 +367,9 @@ const homepageSearchKeys = `
  if ([...document.querySelectorAll('[role="dialog"], dialog[open], [role="menu"]')].some(el => el !== own && el.getClientRects().length)) return;
  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
   e.preventDefault();
-  if (own.open) { document.querySelector('#home-search').focus(); document.querySelector('#home-search').select(); }
+  if (own.open) {
+   document.querySelector('#home-search').focus(); document.querySelector('#home-search').select();
+  }
   else { query = ''; $dispatch('modal:open', {id:'home-search-modal'}); }
   return;
  }
@@ -386,7 +409,9 @@ func homeSearchMatch(service Service) string {
 }
 func homeSearchEmpty(services []Service) string {
  matches := make([]string, 0, len(services))
- for _, service := range services { matches = append(matches, homeSearchMatch(service)) }
+ for _, service := range services {
+  matches = append(matches, homeSearchMatch(service))
+ }
  if len(matches)==0 { return "true" }; return "!(" + strings.Join(matches, " || ") + ")"
 }
 

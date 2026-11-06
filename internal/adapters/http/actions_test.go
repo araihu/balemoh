@@ -33,7 +33,7 @@ func (f *actionRuntimeFixture) Action(_ context.Context, _, _, operation string,
 func TestActionAPIAuthenticationScopeAndReadOnlyQueries(t *testing.T) {
 	token := strings.Repeat("private-token", 4)
 	runtime := &actionRuntimeFixture{}
-	handler := MountPlugins(http.NotFoundHandler(), app.New(pluginStoreFixture{}, runtime), token)
+	handler := MountPlugins(http.NotFoundHandler(), app.New(pluginStoreFixture{}, runtime), token, nil)
 	for _, test := range []struct {
 		path, token, body string
 		status, calls     int

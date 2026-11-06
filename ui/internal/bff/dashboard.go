@@ -17,15 +17,9 @@ type DashboardCatalog interface {
 }
 
 func (c *APIClient) Dashboard(ctx context.Context) (api.DashboardSnapshot, error) {
-	r, err := c.client.GetDashboardWithResponse(ctx)
-	if err != nil {
-		return api.DashboardSnapshot{}, &upstreamError{operation: "dashboard", cause: err}
-	}
-	if r.JSON200 == nil {
-		return api.DashboardSnapshot{}, &upstreamError{operation: "dashboard", status: r.StatusCode()}
-	}
-	return *r.JSON200, nil
+	return c.DashboardView(ctx, false)
 }
+
 func (c *APIClient) SelectWidget(ctx context.Context, kind, id string, enabled bool) error {
 	r, err := c.client.SetDashboardSelectionWithResponse(ctx, kind, id, api.SetDashboardSelectionJSONRequestBody{Enabled: enabled})
 	if err != nil {
@@ -78,6 +72,7 @@ func renderWidgets(snapshot api.DashboardSnapshot, renderers map[string]WidgetRe
 			}
 		}
 		widget.SourceKind = item.SourceKind
+		widget.Title = item.Title
 		result.Widgets = append(result.Widgets, widget)
 		if item.Kind == "service-links" && item.Error == "" {
 			var service api.ServiceCandidate
@@ -93,6 +88,10 @@ func (s *server) homepage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if values, ok := r.URL.Query()["layoutView"]; ok && (len(values) != 1 || values[0] != "default") {
+		s.render(w, r, view.PageData{Title: "Homepage", Error: "Unknown layout view."}, 400)
+		return
+	}
 	data := view.PageData{Title: "Homepage", Description: "Pinned services and host metrics across your homelab.", Active: "nav-home", Notice: noticeText(r.URL.Query().Get("notice"))}
 	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
 	defer cancel()
@@ -102,13 +101,22 @@ func (s *server) homepage(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, data, 503)
 		return
 	}
-	snapshot, err := s.dashboardSnapshot(ctx)
+	snapshot, err := s.dashboardSnapshotView(ctx, r.URL.Query().Get("layoutView") == "default")
 	if err != nil {
 		data.Error = "Unable to load dashboard. Refresh to retry."
+		var failure *layoutFailure
+		if errors.As(err, &failure) && failure.detail.Code == "layout_unreadable" {
+			data.LayoutRecovery = true
+		}
 		s.render(w, r, data, 503)
 		return
 	}
-	data.Dashboard = renderWidgets(snapshot, s.widgets)
+	data.Dashboard, err = s.renderDashboard(ctx, snapshot, r.URL.Query().Get("layoutView") == "default", nil)
+	if err != nil {
+		data.Error = "Unable to load a consistent homepage layout. Refresh to retry."
+		s.render(w, r, data, 503)
+		return
+	}
 	data.Services = data.Dashboard.Services
 	s.render(w, r, data, 200)
 }

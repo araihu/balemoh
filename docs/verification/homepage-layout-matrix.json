@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "theme": "goshtoso",
+      "mode": "light",
+      "dark": false,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "goshtoso",
+      "width": 1440
+    },
+    {
+      "theme": "goshtoso",
+      "mode": "light",
+      "dark": false,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "goshtoso",
+      "width": 390
+    },
+    {
+      "theme": "goshtoso",
+      "mode": "dark",
+      "dark": true,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "goshtoso",
+      "width": 1440
+    },
+    {
+      "theme": "goshtoso",
+      "mode": "dark",
+      "dark": true,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "goshtoso",
+      "width": 390
+    },
+    {
+      "theme": "minimal",
+      "mode": "light",
+      "dark": false,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "minimal",
+      "width": 1440
+    },
+    {
+      "theme": "minimal",
+      "mode": "light",
+      "dark": false,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "minimal",
+      "width": 390
+    },
+    {
+      "theme": "minimal",
+      "mode": "dark",
+      "dark": true,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "minimal",
+      "width": 1440
+    },
+    {
+      "theme": "minimal",
+      "mode": "dark",
+      "dark": true,
+      "duplicateIds": [],
+      "overflow": false,
+      "pageAbovePreview": true,
+      "rootTheme": "minimal",
+      "width": 390
+    }
+  ]
+}
