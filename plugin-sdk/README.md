@@ -146,7 +146,7 @@ explicit startup errors.
 Install the released CLI, then generate an independent project:
 
 ```sh
-GOWORK=off go install github.com/araihu/balemoh/plugin-sdk/cmd/balemoh-plugin@v0.0.1-alpha.1
+GOWORK=off go install github.com/araihu/balemoh/plugin-sdk/cmd/balemoh-plugin@v0.0.1-alpha.4
 balemoh-plugin init --id example.metrics --module example.com/metrics --output ../metrics --backend
 cd ../metrics
 GOWORK=off go generate ./...
@@ -157,7 +157,7 @@ balemoh-plugin dev --source . --host /path/to/balemoh-ui
 
 Omit `--backend` for UI-only contributions. `init` accepts a new or empty directory.
 The generated module owns its templ source, tests and assets and requires SDK
-`v0.0.1-alpha.1` through normal Go module resolution, with no source checkout or
+`v0.0.1-alpha.4` through normal Go module resolution, with no source checkout or
 replacement. Commit its `go.mod` and `go.sum`. Optional `dev --sdk` is for SDK
 co-development only and creates a temporary development modfile. An exported
 module never includes a developer absolute replacement or go.work.
@@ -223,10 +223,10 @@ change is required.
 ## Release checks
 
 A nested Go module uses tags prefixed with `plugin-sdk/`; a root `v` tag does not
-version this module. Tag the reviewed, merged commit without moving an existing
-tag. The current Go dependency version is `v0.0.1-alpha.3`, not the prefixed Git tag.
+version this module. Tag the reviewed source commit without moving an existing tag. A prerelease
+may point to an unmerged feature commit; merging that branch stays separate. The current Go dependency version is `v0.0.1-alpha.4`, not the prefixed Git tag.
 
-After publishing, run `bash hack/check-published-plugin-sdk.sh v0.0.1-alpha.3`
+After publishing, run `bash hack/check-published-plugin-sdk.sh v0.0.1-alpha.4`
 from the repository root. It installs the CLI and builds independent UI-only and
 backend projects using a fresh public Go module cache and checksum database,
 without a local replacement. Host integration tests must compile the consumer
@@ -248,3 +248,19 @@ capability rejects the batch. Catalog failure must not hide the plugin's main
 content. No name matching or catalog enumeration is provided. The optional
 interface keeps existing HostServices authors source compatible; old hosts
 return an unavailable callback and consumers should retain their text fallback.
+
+## Optional actions, alpha.4
+
+A plugin declares `actions` separately from `queries`, with the same ID and
+input/output schema fields and capability `data.action/v1`. It optionally
+implements `backend.ActionHandler`. Hosts must explicitly grant both the named
+action and capability for an enabled connection. Query remains read-only.
+
+During a page POST, UI code can type-assert `ui.ActionServices` and call `Action`.
+GET and widget invocations cannot call it. `ui.Request.ActionGrants` controls
+presentation only; the API authorizes every invocation against current grants.
+Return a durable receipt and use Post/Redirect/Get. Apply domain idempotency and
+stale-state validation in the backend; the SDK cannot provide those guarantees.
+
+Alpha.4 adds this contract. Use an action-capable host with explicit grants.
+Existing read-only consumers do not need to implement either optional interface.

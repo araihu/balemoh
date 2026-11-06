@@ -209,7 +209,7 @@ func (c *Client) HandleWithServices(ctx context.Context, r ui.Request, services 
 	defer cancel()
 	w := toWire(r)
 	if services != nil {
-		id, stop, err := c.callback(ctx, services)
+		id, stop, err := c.callback(ctx, services, r.Method == "POST" && r.ContributionType == "page")
 		if err != nil {
 			return ui.Response{}, err
 		}
@@ -274,7 +274,7 @@ func validateContribution(m manifest.Manifest, kind, id, mode string) error {
 	return nil
 }
 func supportedCapability(c string) bool {
-	return c == "page.content/v1" || c == "sidebar.navigation/v1" || c == "home.widget/v1" || c == "data.query/v1" || c == "notifications.publish/v1" || c == ui.ServiceCatalogCapability
+	return c == "page.content/v1" || c == "sidebar.navigation/v1" || c == "home.widget/v1" || c == "data.query/v1" || c == "data.action/v1" || c == "notifications.publish/v1" || c == ui.ServiceCatalogCapability
 }
 func toWire(r ui.Request) *pb.UIRequest {
 	q := map[string]*pb.Values{}
@@ -285,7 +285,7 @@ func toWire(r ui.Request) *pb.UIRequest {
 	for k, v := range r.Form {
 		form[k] = &pb.Values{Values: v}
 	}
-	return &pb.UIRequest{Form: form, Body: r.Body, Region: r.Region, PackageDigest: r.PackageDigest, RequestId: r.RequestID, ConnectionId: r.ConnectionID, PlacementId: r.PlacementID, ContributionType: r.ContributionType, ContributionId: r.ContributionID, Mode: r.Mode, Method: r.Method, PathParams: r.PathParams, Query: q, Locale: r.Locale, Timezone: r.Timezone, Theme: r.Theme, ColorScheme: r.ColorScheme, BasePath: r.BasePath, DomNamespace: r.DOMNamespace}
+	return &pb.UIRequest{ActionGrants: r.ActionGrants, Form: form, Body: r.Body, Region: r.Region, PackageDigest: r.PackageDigest, RequestId: r.RequestID, ConnectionId: r.ConnectionID, PlacementId: r.PlacementID, ContributionType: r.ContributionType, ContributionId: r.ContributionID, Mode: r.Mode, Method: r.Method, PathParams: r.PathParams, Query: q, Locale: r.Locale, Timezone: r.Timezone, Theme: r.Theme, ColorScheme: r.ColorScheme, BasePath: r.BasePath, DomNamespace: r.DOMNamespace}
 }
 func fromWire(r *pb.UIRequest) ui.Request {
 	q := map[string][]string{}
@@ -296,7 +296,7 @@ func fromWire(r *pb.UIRequest) ui.Request {
 	for k, v := range r.Form {
 		form[k] = v.Values
 	}
-	return ui.Request{Form: form, Body: r.Body, Region: r.Region, PackageDigest: r.PackageDigest, RequestID: r.RequestId, ConnectionID: r.ConnectionId, PlacementID: r.PlacementId, ContributionType: r.ContributionType, ContributionID: r.ContributionId, Mode: r.Mode, Method: r.Method, PathParams: r.PathParams, Query: q, Locale: r.Locale, Timezone: r.Timezone, Theme: r.Theme, ColorScheme: r.ColorScheme, BasePath: r.BasePath, DOMNamespace: r.DomNamespace}
+	return ui.Request{ActionGrants: r.ActionGrants, Form: form, Body: r.Body, Region: r.Region, PackageDigest: r.PackageDigest, RequestID: r.RequestId, ConnectionID: r.ConnectionId, PlacementID: r.PlacementId, ContributionType: r.ContributionType, ContributionID: r.ContributionId, Mode: r.Mode, Method: r.Method, PathParams: r.PathParams, Query: q, Locale: r.Locale, Timezone: r.Timezone, Theme: r.Theme, ColorScheme: r.ColorScheme, BasePath: r.BasePath, DOMNamespace: r.DomNamespace}
 }
 
 // PID identifies this runtime-owned child for lifecycle diagnostics.

@@ -43,6 +43,13 @@ func main() {
 			}
 			return ui.Response{Kind: "content", Status: 200, HTML: result.Data}, nil
 		}
+		if operation := r.Query.Get("action"); operation != "" {
+			result, err := h.(ui.ActionServices).Action(ctx, operation, json.RawMessage(`{}`))
+			if err != nil {
+				return ui.Response{}, err
+			}
+			return ui.Response{Kind: "content", Status: 200, HTML: result.Data}, nil
+		}
 		if id := r.Query.Get("service"); id != "" {
 			services, err := h.(ui.ServiceCatalog).ResolveServices(ctx, []string{id})
 			if err != nil {

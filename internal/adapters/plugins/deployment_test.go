@@ -78,6 +78,7 @@ func TestDeploymentPinsSecretsAndValidation(t *testing.T) {
 		func(f *File) { f.Installations[0].Connections[0].Secrets = nil },
 		func(f *File) { f.Installations[0].Connections[0].Secrets = map[string]string{"undeclared": "token"} },
 		func(f *File) { f.Installations[0].Connections[0].Grants = []string{"unregistered"} },
+		func(f *File) { f.Installations[0].Connections[0].Grants = []string{"fixture.read", "fixture.request"} },
 		func(f *File) { f.Installations[0].Connections[0].Grants = nil },
 		func(f *File) {
 			f.Installations[0].Connections[0].Config = json.RawMessage(`{"unexpected":"declared-only"}`)
@@ -117,6 +118,36 @@ func TestDeploymentPinsSecretsAndValidation(t *testing.T) {
 }
 func TestBackendRuntimeGrantsAndCachedMetadata(t *testing.T) {
 	path, file := deploymentFixture(t)
+	pkg := file.Installations[0].Package
+	p, err := manifest.Load(pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Manifest.Actions = []manifest.Query{{ID: "fixture.request", InputSchema: "schema.json", OutputSchema: "output.json", Capability: "data.action/v1"}}
+	p.Manifest.Capabilities.Optional = []string{"data.action/v1"}
+	data, err := json.Marshal(p.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pkg, "plugin.json"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	p, err = manifest.Load(pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Installations[0].ManifestDigest = p.Digest
+	file.Installations[0].PackageDigest, err = p.ContentDigest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Installations[0].Connections[0].Grants = []string{"fixture.read", "fixture.request"}
+	saveDeployment(t, path, file)
+	rejected, err := Load(path)
+	if err != nil || len(rejected.Problems()) == 0 || len(rejected.Provisions()) != 0 {
+		t.Fatal("read-only host accepted an action grant", err)
+	}
+	file.Installations[0].Connections[0].Grants = []string{"fixture.read"}
 	saveDeployment(t, path, file)
 	deployment, err := Load(path)
 	if err != nil {
@@ -143,6 +174,10 @@ func TestBackendRuntimeGrantsAndCachedMetadata(t *testing.T) {
 	if state.AppliedRevision == nil || *state.AppliedRevision != "1" || len(grants) != 1 {
 		t.Fatal("cache did not report configured metadata")
 	}
+	if _, err := runtime.Query(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); app.ErrorCode(err) != "not_found" {
+		t.Fatal("action was exposed through the read-only query runtime", err)
+	}
+
 	if _, err := runtime.Query(t.Context(), "example.fixture", "connection", "not-granted", json.RawMessage(`{}`)); app.ErrorCode(err) != "not_found" {
 		t.Fatal("unknown operation accepted")
 	}

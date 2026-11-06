@@ -50,6 +50,23 @@ type Handler interface {
 	Query(context.Context, Request) (Result, error)
 	CloseConnection(context.Context, string) error
 }
+
+// ActionHandler is optional. Query implementations must remain read-only.
+type ActionHandler interface {
+	Action(context.Context, Request) (ActionResult, error)
+}
+
+type ActionResult struct {
+	Data json.RawMessage `json:"data"`
+}
+
+func (r ActionResult) Validate() error {
+	if !Object(r.Data, MaxResult) {
+		return Fail("invalid_response")
+	}
+	return nil
+}
+
 type Error struct {
 	Code      string `json:"code"`
 	Message   string `json:"message"`
