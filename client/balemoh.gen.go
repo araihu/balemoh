@@ -1218,15 +1218,21 @@ type NotificationSource struct {
 // NotificationSourceKind defines model for NotificationSource.Kind.
 type NotificationSourceKind string
 
+// PluginActionResult Schema-validated data returned by a plugin action. Durability is defined by the plugin.
+type PluginActionResult struct {
+	Data map[string]interface{} `json:"data"`
+}
+
 // PluginCatalog Installed plugin descriptors and safe installation failures, without executable paths or credentials.
 type PluginCatalog struct {
 	Plugins  []PluginDescriptor          `json:"plugins"`
 	Problems []PluginInstallationProblem `json:"problems"`
 }
 
-// PluginConnection Connection identity, applied configuration revision, collection state and available query identifiers.
+// PluginConnection Connection identity, applied configuration revision, collection state and available query and action identifiers.
 type PluginConnection struct {
-	AppliedRevision *string `json:"appliedRevision"`
+	Actions         *[]string `json:"actions,omitempty"`
+	AppliedRevision *string   `json:"appliedRevision"`
 
 	// ConfigurationError Safe error code and message, with a retryability hint and no source credentials.
 	ConfigurationError     *PluginFailure `json:"configurationError,omitempty"`
@@ -1881,6 +1887,11 @@ type PutPluginWidgetParams struct {
 	IfMatch *string `json:"If-Match,omitempty"`
 }
 
+// ActionPluginJSONBody defines parameters for ActionPlugin.
+type ActionPluginJSONBody struct {
+	Input map[string]interface{} `json:"input"`
+}
+
 // QueryPluginJSONBody defines parameters for QueryPlugin.
 type QueryPluginJSONBody struct {
 	Input map[string]interface{} `json:"input"`
@@ -1942,6 +1953,9 @@ type RegisterWebPushJSONRequestBody = WebPushRegistration
 
 // PutPluginWidgetJSONRequestBody defines body for PutPluginWidget for application/json ContentType.
 type PutPluginWidgetJSONRequestBody = PluginPlacementBody
+
+// ActionPluginJSONRequestBody defines body for ActionPlugin for application/json ContentType.
+type ActionPluginJSONRequestBody ActionPluginJSONBody
 
 // QueryPluginJSONRequestBody defines body for QueryPlugin for application/json ContentType.
 type QueryPluginJSONRequestBody QueryPluginJSONBody
@@ -2170,6 +2184,11 @@ type ClientInterface interface {
 
 	// GetPlugins request
 	GetPlugins(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ActionPluginWithBody request with any body
+	ActionPluginWithBody(ctx context.Context, pluginId string, connectionId string, actionId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ActionPlugin(ctx context.Context, pluginId string, connectionId string, actionId string, body ActionPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// QueryPluginWithBody request with any body
 	QueryPluginWithBody(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2809,6 +2828,30 @@ func (c *Client) PutPluginWidget(ctx context.Context, placementId openapi_types.
 
 func (c *Client) GetPlugins(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetPluginsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ActionPluginWithBody(ctx context.Context, pluginId string, connectionId string, actionId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewActionPluginRequestWithBody(c.Server, pluginId, connectionId, actionId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ActionPlugin(ctx context.Context, pluginId string, connectionId string, actionId string, body ActionPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewActionPluginRequest(c.Server, pluginId, connectionId, actionId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4594,6 +4637,67 @@ func NewGetPluginsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewActionPluginRequest calls the generic ActionPlugin builder with application/json body
+func NewActionPluginRequest(server string, pluginId string, connectionId string, actionId string, body ActionPluginJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewActionPluginRequestWithBody(server, pluginId, connectionId, actionId, "application/json", bodyReader)
+}
+
+// NewActionPluginRequestWithBody generates requests for ActionPlugin with any type of body
+func NewActionPluginRequestWithBody(server string, pluginId string, connectionId string, actionId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pluginId", pluginId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "connectionId", connectionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "actionId", actionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/plugins/%s/connections/%s/actions/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewQueryPluginRequest calls the generic QueryPlugin builder with application/json body
 func NewQueryPluginRequest(server string, pluginId string, connectionId string, queryId string, body QueryPluginJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -5359,6 +5463,11 @@ type ClientWithResponsesInterface interface {
 
 	// GetPluginsWithResponse request
 	GetPluginsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPluginsResponse, error)
+
+	// ActionPluginWithBodyWithResponse request with any body
+	ActionPluginWithBodyWithResponse(ctx context.Context, pluginId string, connectionId string, actionId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ActionPluginResponse, error)
+
+	ActionPluginWithResponse(ctx context.Context, pluginId string, connectionId string, actionId string, body ActionPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*ActionPluginResponse, error)
 
 	// QueryPluginWithBodyWithResponse request with any body
 	QueryPluginWithBodyWithResponse(ctx context.Context, pluginId string, connectionId string, queryId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QueryPluginResponse, error)
@@ -6574,6 +6683,36 @@ func (r GetPluginsResponse) ContentType() string {
 	return ""
 }
 
+type ActionPluginResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PluginActionResult
+}
+
+// Status returns HTTPResponse.Status
+func (r ActionPluginResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ActionPluginResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ActionPluginResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type QueryPluginResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -7489,6 +7628,23 @@ func (c *ClientWithResponses) GetPluginsWithResponse(ctx context.Context, reqEdi
 		return nil, err
 	}
 	return ParseGetPluginsResponse(rsp)
+}
+
+// ActionPluginWithBodyWithResponse request with arbitrary body returning *ActionPluginResponse
+func (c *ClientWithResponses) ActionPluginWithBodyWithResponse(ctx context.Context, pluginId string, connectionId string, actionId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ActionPluginResponse, error) {
+	rsp, err := c.ActionPluginWithBody(ctx, pluginId, connectionId, actionId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseActionPluginResponse(rsp)
+}
+
+func (c *ClientWithResponses) ActionPluginWithResponse(ctx context.Context, pluginId string, connectionId string, actionId string, body ActionPluginJSONRequestBody, reqEditors ...RequestEditorFn) (*ActionPluginResponse, error) {
+	rsp, err := c.ActionPlugin(ctx, pluginId, connectionId, actionId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseActionPluginResponse(rsp)
 }
 
 // QueryPluginWithBodyWithResponse request with arbitrary body returning *QueryPluginResponse
@@ -9066,6 +9222,32 @@ func ParseGetPluginsResponse(rsp *http.Response) (*GetPluginsResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest PluginCatalog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseActionPluginResponse parses an HTTP response from a ActionPluginWithResponse call
+func ParseActionPluginResponse(rsp *http.Response) (*ActionPluginResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ActionPluginResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PluginActionResult
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

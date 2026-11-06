@@ -143,12 +143,6 @@ func TestBackendRuntimeGrantsAndCachedMetadata(t *testing.T) {
 	}
 	file.Installations[0].Connections[0].Grants = []string{"fixture.read", "fixture.request"}
 	saveDeployment(t, path, file)
-	rejected, err := Load(path)
-	if err != nil || len(rejected.Problems()) == 0 || len(rejected.Provisions()) != 0 {
-		t.Fatal("read-only host accepted an action grant", err)
-	}
-	file.Installations[0].Connections[0].Grants = []string{"fixture.read"}
-	saveDeployment(t, path, file)
 	deployment, err := Load(path)
 	if err != nil {
 		t.Fatal(err)
@@ -173,6 +167,30 @@ func TestBackendRuntimeGrantsAndCachedMetadata(t *testing.T) {
 	state, grants := runtime.CachedStatus("example.fixture", "connection")
 	if state.AppliedRevision == nil || *state.AppliedRevision != "1" || len(grants) != 1 {
 		t.Fatal("cache did not report configured metadata")
+	}
+	if len(runtime.GrantedActions("example.fixture", "connection")) != 0 {
+		t.Fatal("named grant bypassed missing action capability")
+	}
+	if _, err := runtime.Action(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); app.ErrorCode(err) != "permission_denied" {
+		t.Fatal("action ran without capability grant", err)
+	}
+	runtime.mu.Lock()
+	runtime.plugins["example.fixture"].connections["connection"].config.capabilityGrants = []string{"data.action/v1"}
+	runtime.mu.Unlock()
+	if len(runtime.GrantedActions("example.fixture", "connection")) != 1 {
+		t.Fatal("explicit action grants missing")
+	}
+	if result, err := runtime.Action(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); err != nil || !strings.Contains(string(result.Data), "safe-data") {
+		t.Fatal("explicit action grants did not reach backend", err)
+	}
+	runtime.mu.Lock()
+	runtime.plugins["example.fixture"].connections["connection"].config.grants = []string{"fixture.read"}
+	runtime.mu.Unlock()
+	if len(runtime.GrantedActions("example.fixture", "connection")) != 0 {
+		t.Fatal("capability grant bypassed missing named action grant")
+	}
+	if _, err := runtime.Action(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); app.ErrorCode(err) != "permission_denied" {
+		t.Fatal("action ran without named grant", err)
 	}
 	if _, err := runtime.Query(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); app.ErrorCode(err) != "not_found" {
 		t.Fatal("action was exposed through the read-only query runtime", err)
@@ -267,6 +285,89 @@ func TestInvalidInstallationAndConnectionLeaveValidEntriesUsable(t *testing.T) {
 	for _, private := range []string{file.Installations[0].Package, "declared-only", "token"} {
 		if strings.Contains(string(public), private) {
 			t.Fatal("problem exposes private deployment values")
+		}
+	}
+}
+
+func TestActionOnlyBackendStartsAndRequiresBothGrants(t *testing.T) {
+	path, file := deploymentFixture(t)
+	pkg := file.Installations[0].Package
+	p, err := manifest.Load(pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Manifest.Queries = []manifest.Query{}
+	p.Manifest.Actions = []manifest.Query{{ID: "fixture.request", InputSchema: "schema.json", OutputSchema: "output.json", Capability: "data.action/v1"}}
+	p.Manifest.Capabilities.Required = []string{"page.content/v1"}
+	p.Manifest.Capabilities.Optional = []string{"data.action/v1"}
+	p.Manifest.Pages[0].Capabilities = []string{}
+	data, err := json.Marshal(p.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pkg, "plugin.json"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	p, err = manifest.Load(pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Installations[0].ManifestDigest = p.Digest
+	file.Installations[0].PackageDigest, err = p.ContentDigest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Installations[0].Connections[0].Grants = []string{"fixture.request"}
+	file.Installations[0].Connections[0].CapabilityGrants = []string{"data.action/v1"}
+	saveDeployment(t, path, file)
+	deployment, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(deployment.Problems()) != 0 {
+		t.Fatal("action-only deployment rejected", deployment.Problems())
+	}
+	runtime := NewRuntime(t.Context(), deployment, []app.Connection{{ID: "connection", PluginID: "example.fixture", Key: "one", Revision: "1", Enabled: true}})
+	t.Cleanup(runtime.Close)
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		state, queries := runtime.CachedStatus("example.fixture", "connection")
+		if len(queries) != 0 {
+			t.Fatal("action leaked into query grants")
+		}
+		if state.Ready {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("action-only backend did not become ready")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if len(runtime.GrantedActions("example.fixture", "connection")) != 1 {
+		t.Fatal("action unavailable with both grants")
+	}
+	if result, err := runtime.Action(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); err != nil || !strings.Contains(string(result.Data), "safe-data") {
+		t.Fatal("action did not execute", err)
+	}
+	if _, err := runtime.Query(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); app.ErrorCode(err) != "not_found" {
+		t.Fatal("action exposed as query", err)
+	}
+	for _, missing := range []string{"capability", "operation"} {
+		runtime.mu.Lock()
+		config := &runtime.plugins["example.fixture"].connections["connection"].config
+		config.capabilityGrants = []string{"data.action/v1"}
+		config.grants = []string{"fixture.request"}
+		if missing == "capability" {
+			config.capabilityGrants = nil
+		} else {
+			config.grants = nil
+		}
+		runtime.mu.Unlock()
+		if len(runtime.GrantedActions("example.fixture", "connection")) != 0 {
+			t.Fatal("action exposed without", missing)
+		}
+		if _, err := runtime.Action(t.Context(), "example.fixture", "connection", "fixture.request", json.RawMessage(`{}`)); app.ErrorCode(err) != "permission_denied" {
+			t.Fatal("action executed without", missing, err)
 		}
 	}
 }

@@ -103,6 +103,47 @@ func (h Handler) QueryPlugin(w http.ResponseWriter, r *http.Request, pluginID, c
 	}
 	writeJSON(w, 200, result)
 }
+func (h Handler) ActionPlugin(w http.ResponseWriter, r *http.Request, pluginID, connectionID, actionID string) {
+	if !h.pluginAuth(w, r) {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, (64<<10)+1024)
+	var body struct {
+		Input json.RawMessage `json:"input"`
+	}
+	d := json.NewDecoder(r.Body)
+	d.DisallowUnknownFields()
+	err := d.Decode(&body)
+	if err == nil {
+		trailing := d.Decode(new(any))
+		if trailing != io.EOF {
+			if trailing == nil {
+				err = plugins.Fail("invalid_argument")
+			} else {
+				err = trailing
+			}
+		}
+	}
+	if err != nil || body.Input == nil {
+		var max *http.MaxBytesError
+		if errors.As(err, &max) {
+			writePluginFailureStatus(w, plugins.Fail("invalid_argument"), 413)
+		} else {
+			writePluginFailure(w, plugins.Fail("invalid_argument"))
+		}
+		return
+	}
+	if len(body.Input) > 64<<10 {
+		writePluginFailureStatus(w, plugins.Fail("invalid_argument"), 413)
+		return
+	}
+	result, err := h.plugins.Action(r.Context(), pluginID, connectionID, actionID, body.Input)
+	if err != nil {
+		writePluginFailure(w, err)
+		return
+	}
+	writeJSON(w, 200, result)
+}
 func writePluginFailure(w http.ResponseWriter, err error) {
 	code := plugins.ErrorCode(err)
 	statuses := map[string]int{"invalid_argument": 400, "permission_denied": 403, "not_found": 404, "conflict": 409, "precondition_failed": 412, "precondition_required": 428, "resource_exhausted": 429, "invalid_response": 502, "deadline_exceeded": 504, "unavailable": 503, "collection_failed": 503}

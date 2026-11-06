@@ -7,8 +7,15 @@ concurrency:
   group: publish-balemoh-image
   cancel-in-progress: false
 jobs:
+  checks:
+    if: github.repository == 'araihu/balemoh' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      packages: read
   publish:
-    if: github.repository == 'araihu/balemoh' && github.ref == 'refs/heads/main'
+    needs: checks
+    if: github.repository == 'araihu/balemoh' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -59,6 +66,20 @@ jobs:
         env:
           DIGEST: ${{ steps.image.outputs.digest }}
         run: |
-          docker buildx imagetools inspect --raw "ghcr.io/araihu/balemoh@$DIGEST" |
-            jq -e '[.manifests[] | select(.platform.os == "linux") | .platform.architecture] | sort == ["amd64", "arm64"]'
-          printf 'Published `ghcr.io/araihu/balemoh@%s`\n' "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          receipt="$RUNNER_TEMP/host-image-receipt"
+          mkdir -p "$receipt"
+          docker buildx imagetools inspect --raw "ghcr.io/araihu/balemoh@$DIGEST" > "$receipt/index.json"
+          jq -e '[.manifests[] | select(.platform.os == "linux") | .platform.architecture] | sort == ["amd64", "arm64"]' "$receipt/index.json"
+          sdk_version=$(awk '$1 == "github.com/araihu/balemoh/plugin-sdk" { print $2; exit }' go.mod)
+          jq -n --arg image "ghcr.io/araihu/balemoh@$DIGEST" --arg commit "$GITHUB_SHA" --arg sdk "$sdk_version" \
+            '{image:$image,sourceCommit:$commit,sdkVersion:$sdk}' > "$receipt/image-pins.json"
+          cat "$receipt/image-pins.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Save publication receipt
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: host-image-receipt-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/host-image-receipt/*.json
+          if-no-files-found: error
+          retention-days: 30

@@ -16,7 +16,7 @@ type Failure struct {
 
 func (e *Failure) Error() string { return e.Code }
 func Fail(code string) *Failure {
-	messages := map[string]string{"invalid_argument": "Invalid plugin input.", "permission_denied": "Plugin query is not granted.", "not_found": "Plugin data was not found.", "conflict": "Plugin state changed. Refresh to retry.", "precondition_failed": "Widget revision changed. Reload before saving.", "precondition_required": "Widget revision is required.", "resource_exhausted": "Plugin capacity exceeded.", "invalid_response": "Plugin response is invalid.", "deadline_exceeded": "Plugin request timed out.", "unavailable": "Plugin data is unavailable.", "collection_failed": "Source collection failed."}
+	messages := map[string]string{"invalid_argument": "Invalid plugin input.", "permission_denied": "Plugin operation is not granted.", "not_found": "Plugin data was not found.", "conflict": "Plugin state changed. Refresh to retry.", "precondition_failed": "Widget revision changed. Reload before saving.", "precondition_required": "Widget revision is required.", "resource_exhausted": "Plugin capacity exceeded.", "invalid_response": "Plugin response is invalid.", "deadline_exceeded": "Plugin request timed out.", "unavailable": "Plugin data is unavailable.", "collection_failed": "Source collection failed."}
 	message, ok := messages[code]
 	if !ok {
 		code = "unavailable"
@@ -63,6 +63,7 @@ type ConnectionDescriptor struct {
 	Connection
 	Status
 	Queries []string `json:"queries"`
+	Actions []string `json:"actions,omitempty"`
 }
 type Descriptor struct {
 	ID             string                 `json:"id"`
@@ -137,7 +138,11 @@ func (s *Service) Descriptors(ctx context.Context) ([]Descriptor, error) {
 		if !state.Ready {
 			queries = []string{}
 		}
-		result[i].Connections = append(result[i].Connections, ConnectionDescriptor{c, state, queries})
+		actions := []string{}
+		if runtime, ok := s.runtime.(ActionRuntime); ok && c.Enabled && state.Ready {
+			actions = runtime.GrantedActions(c.PluginID, c.ID)
+		}
+		result[i].Connections = append(result[i].Connections, ConnectionDescriptor{Connection: c, Status: state, Queries: queries, Actions: actions})
 	}
 	return result, nil
 }

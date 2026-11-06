@@ -1111,6 +1111,89 @@ paths:
       description: Run a declared query for one enabled connection with its configured grants. Queries read the
         cached observation and do not start collection. Input is limited to 64 KiB and host deadlines bound the
         call.
+  /api/v1/plugins/{pluginId}/connections/{connectionId}/actions/{actionId}:
+    post:
+      operationId: ActionPlugin
+      security:
+      - PluginService: []
+      parameters:
+      - name: pluginId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Identifier of the installed plugin declaring this action.
+        example: example.status
+      - name: connectionId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Enabled connection whose explicit grants authorize this action.
+        example: 00000000-0000-4000-8000-000000000001
+      - name: actionId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Declared action identifier returned by the connection descriptor.
+        example: upgrades.request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - input
+              additionalProperties: false
+              properties:
+                input:
+                  type: object
+                  additionalProperties: true
+                  example: {}
+            example:
+              input: {}
+        description: Declared action input object.
+      responses:
+        '200':
+          description: Validated result from synchronous plugin action execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginActionResult'
+              example:
+                data:
+                  count: 2
+        '400':
+          description: Invalid action input
+        '401':
+          description: A valid BFF service credential is required to execute a plugin action.
+        '403':
+          description: The connection is disabled, or the action is unknown or lacks an operation or capability grant.
+        '404':
+          description: No stored plugin connection matches the requested plugin and connection identifiers.
+        '409':
+          description: Action precondition or source revision changed
+        '413':
+          description: Action input exceeds limit
+        '429':
+          description: Plugin action capacity exceeded
+        '502':
+          description: Plugin action result failed host schema validation.
+        '503':
+          description: The service cannot execute a plugin action because required storage or plugin metadata
+            is unavailable.
+        '504':
+          description: Plugin action exceeded the host deadline; its side effect may be unconfirmed
+      tags:
+      - Plugins
+      summary: Execute a plugin action
+      description: Execute a declared action for one enabled connection with both its named operation grant
+        and data.action/v1 capability grant. The host waits for the plugin result within its deadline and
+        validates the response schema. Input is limited to 64 KiB. Durability and idempotency are defined
+        by the plugin, not this route. A timeout or transport failure does not prove that no side effect
+        occurred; reconcile the plugin state before retrying.
   /api/v1/dashboard:
     get:
       operationId: GetDashboard
@@ -7077,13 +7160,19 @@ components:
           $ref: '#/components/schemas/PluginFailure'
         configurationError:
           $ref: '#/components/schemas/PluginFailure'
+        actions:
+          type: array
+          items:
+            type: string
+          example:
+          - upgrades.request
         queries:
           type: array
           items:
             type: string
           example:
           - list
-      description: Connection identity, applied configuration revision, collection state and available query identifiers.
+      description: Connection identity, applied configuration revision, collection state and available query and action identifiers.
       example:
         id: 00000000-0000-4000-8000-000000000001
         key: primary
@@ -7100,6 +7189,8 @@ components:
         lastConfigureAttemptAt: '2026-10-26T12:00:00Z'
         queries:
         - list
+        actions:
+        - upgrades.request
     PluginFailure:
       type: object
       additionalProperties: false
@@ -7122,6 +7213,17 @@ components:
         code: unavailable
         message: Source unavailable
         retryable: true
+    PluginActionResult:
+      description: Schema-validated data returned by a plugin action. Durability is defined by the plugin.
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          example:
+            accepted: true
     PluginQueryResult:
       type: object
       additionalProperties: false

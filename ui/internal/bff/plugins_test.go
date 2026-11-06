@@ -353,3 +353,34 @@ func TestPluginSidebarUsesDeclaredIconsAndSafeFallback(t *testing.T) {
 		})
 	}
 }
+
+func TestNativePluginPostKeepsShellAndRejectsCrossOrigin(t *testing.T) {
+	registry := configuredPreviewRegistry(t, manifest.UIProfile, func(m *manifest.Manifest) { m.Pages[0].Methods = []string{"GET", "POST"} })
+	h, err := NewWithPlugins(&widgetCatalog{}, time.Second, nil, registry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := "/plugins/example.fixture/connections/00000000-0000-4000-8000-000000000001/pages/current"
+	post := func(origin string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("POST", page, strings.NewReader("approved=true"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if origin != "" {
+			r.Header.Set("Origin", origin)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	if w := post("https://other.example"); w.Code != 403 {
+		t.Fatal("cross-origin write admitted", w.Code)
+	}
+	w := post("")
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "<html") || !strings.Contains(w.Body.String(), "Synthetic plugin content") || !strings.Contains(w.Body.String(), "Staging") {
+		t.Fatal("native content lost shell", w.Code)
+	}
+	registry.Close()
+	w = post("")
+	if w.Code != 503 || !strings.Contains(w.Body.String(), "<html") || !strings.Contains(w.Body.String(), "action could not be confirmed") || !strings.Contains(w.Body.String(), "Staging") {
+		t.Fatal("native transport failure lost shell", w.Code)
+	}
+}

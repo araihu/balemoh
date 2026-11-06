@@ -556,7 +556,13 @@ func (r *Registry) handle(ctx context.Context, e *Entry, req ui.Request, placeme
 	if err != nil {
 		return ui.Response{}, err
 	}
-	return child.HandleWithServices(ctx, req, scopedServices{source: r.source, entry: e, grants: grants, requestID: req.RequestID, placement: ui.Placement{ID: placement, ContributionID: req.ContributionID, Options: json.RawMessage(`{}`), Revision: "1"}})
+	req.ActionGrants = []string{}
+	for _, a := range e.Package.Manifest.Actions {
+		if grants[a.ID] {
+			req.ActionGrants = append(req.ActionGrants, a.ID)
+		}
+	}
+	return child.HandleWithServices(ctx, req, scopedServices{source: r.source, entry: e, grants: grants, requestID: req.RequestID, allowActions: req.Method == "POST" && req.ContributionType == "page", placement: ui.Placement{ID: placement, ContributionID: req.ContributionID, Options: json.RawMessage(`{}`), Revision: "1"}})
 }
 func request(e *Entry, kind, id, placement string) ui.Request {
 	return ui.Request{RequestID: uuid.NewV4().String(), PackageDigest: e.Installation.PackageDigest, ConnectionID: e.Installation.ConnectionID, PlacementID: placement, ContributionType: kind, ContributionID: id, Mode: kind, Method: "GET", Locale: "en", Timezone: "UTC", Theme: "goshtoso", ColorScheme: "system", DOMNamespace: e.Package.Manifest.ID + "/" + e.Installation.ConnectionID + "/" + kind + "/" + id + "/" + placement}

@@ -54,7 +54,7 @@ func NewRuntime(ctx context.Context, d *Deployment, records []app.Connection, no
 			}
 		}
 		r.plugins[p.pkg.Manifest.ID] = item
-		if (len(p.pkg.Manifest.Queries) > 0 || p.pkg.Manifest.Declares(notificationPublishCapability)) && len(item.connections) > 0 {
+		if (len(p.pkg.Manifest.Queries) > 0 || len(p.pkg.Manifest.Actions) > 0 || p.pkg.Manifest.Declares(notificationPublishCapability)) && len(item.connections) > 0 {
 			r.wg.Add(1)
 			go r.run(item)
 		}
@@ -196,7 +196,7 @@ func (r *Runtime) CachedStatus(plugin, id string) (app.Status, []string) {
 		return app.Status{State: "unavailable"}, []string{}
 	}
 	state := c.status
-	if len(p.pkg.Manifest.Queries) == 0 && !p.pkg.Manifest.Declares(notificationPublishCapability) {
+	if len(p.pkg.Manifest.Queries)+len(p.pkg.Manifest.Actions) == 0 && !p.pkg.Manifest.Declares(notificationPublishCapability) {
 		return app.Status{Ready: true, State: "unavailable", AppliedRevision: &c.record.Revision}, []string{}
 	}
 	if p.client == nil || p.client.Exited() {
@@ -206,7 +206,13 @@ func (r *Runtime) CachedStatus(plugin, id string) (app.Status, []string) {
 	if !state.Ready || len(p.pkg.Manifest.Queries) == 0 {
 		return state, []string{}
 	}
-	return state, append([]string{}, c.config.grants...)
+	queries := []string{}
+	for _, grant := range c.config.grants {
+		if _, ok := p.pkg.Manifest.Query(grant); ok {
+			queries = append(queries, grant)
+		}
+	}
+	return state, queries
 }
 func (r *Runtime) Query(ctx context.Context, plugin, id, operation string, input json.RawMessage) (app.Result, error) {
 	r.mu.RLock()
