@@ -78,6 +78,9 @@ func validateSchemas(root *os.Root, m Manifest) error {
 	for _, q := range m.Queries {
 		paths = append(paths, q.InputSchema, q.OutputSchema)
 	}
+	for _, a := range m.Actions {
+		paths = append(paths, a.InputSchema, a.OutputSchema)
+	}
 	for _, p := range paths {
 		if _, err := c.Compile("https://balemoh.invalid/" + p); err != nil {
 			return errors.New("invalid or non-local package schema")

@@ -16,6 +16,15 @@ type handler struct {
 	configs map[string]backend.Config
 }
 
+func (h *handler) Action(ctx context.Context, r backend.Request) (backend.ActionResult, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if _, ok := h.configs[r.ConnectionID]; !ok {
+		return backend.ActionResult{}, backend.Fail("not_found")
+	}
+	return backend.ActionResult{Data: json.RawMessage(`{"value":"safe-data"}`)}, nil
+}
+
 func (h *handler) Configure(_ context.Context, c backend.Config) (backend.Status, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

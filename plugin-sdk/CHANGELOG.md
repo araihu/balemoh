@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.1-alpha.4
+
+- Optional manifest actions and `data.action/v1` capability with bounded input/output schemas.
+- Additive Backend.Action and Host.Action RPCs, optional backend.ActionHandler and ui.ActionServices.
+- Action callbacks require a page POST. UIRequest.ActionGrants supplies presentation hints; API checks actual connection grants on every action.
+- Existing query-only handlers and HostServices remain source compatible. No mutation runs through Query.
+
 ## v0.0.1-alpha.3
 
 - Optional `notifications.Message.ServiceID` presentation reference and shared `services.ValidID` validator.

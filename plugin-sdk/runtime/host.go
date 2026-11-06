@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/araihu/balemoh/plugin-sdk/backend"
+	"github.com/araihu/balemoh/plugin-sdk/manifest"
 	pb "github.com/araihu/balemoh/plugin-sdk/protocol/v1alpha1"
 	"github.com/araihu/balemoh/plugin-sdk/ui"
 	"google.golang.org/grpc"
@@ -56,9 +57,11 @@ func (h *hostClient) Placement(ctx context.Context) (ui.Placement, error) {
 
 type hostServer struct {
 	pb.UnimplementedHostServer
-	ctx      context.Context
-	services ui.HostServices
-	slots    chan struct{}
+	ctx           context.Context
+	services      ui.HostServices
+	slots         chan struct{}
+	actionAllowed bool
+	pkg           *manifest.Package
 }
 
 func (h *hostServer) ResolveServices(ctx context.Context, r *pb.ServiceIDs) (*pb.ServiceIdentities, error) {
@@ -135,7 +138,7 @@ func (h *hostServer) Placement(ctx context.Context, _ *emptypb.Empty) (*pb.Place
 	}
 	return &pb.PlacementResult{PlacementId: r.ID, ContributionId: r.ContributionID, OptionsJson: r.Options, Revision: r.Revision}, nil
 }
-func (c *Client) callback(ctx context.Context, services ui.HostServices) (uint32, func(), error) {
+func (c *Client) callback(ctx context.Context, services ui.HostServices, allowAction bool) (uint32, func(), error) {
 	id := c.wire.broker.NextId()
 	ready := make(chan *grpc.Server, 1)
 	done := make(chan struct{})
@@ -143,7 +146,7 @@ func (c *Client) callback(ctx context.Context, services ui.HostServices) (uint32
 		defer close(done)
 		c.wire.broker.AcceptAndServe(id, func(opts []grpc.ServerOption) *grpc.Server {
 			server := grpc.NewServer(append(opts, grpc.MaxRecvMsgSize(maxWireBytes), grpc.MaxSendMsgSize(maxWireBytes))...)
-			pb.RegisterHostServer(server, &hostServer{ctx: ctx, services: services, slots: make(chan struct{}, 4)})
+			pb.RegisterHostServer(server, &hostServer{ctx: ctx, services: services, actionAllowed: allowAction, pkg: c.pkg, slots: make(chan struct{}, 4)})
 			ready <- server
 			return server
 		})
