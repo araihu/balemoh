@@ -1122,14 +1122,14 @@ paths:
         required: true
         schema:
           type: string
-        description: Installed plugin identifier returned by the plugin catalog.
+        description: Identifier of the installed plugin declaring this action.
         example: example.status
       - name: connectionId
         in: path
         required: true
         schema:
           type: string
-        description: Configured connection ID returned by the plugin catalog.
+        description: Enabled connection whose explicit grants authorize this action.
         example: 00000000-0000-4000-8000-000000000001
       - name: actionId
         in: path
@@ -1137,7 +1137,7 @@ paths:
         schema:
           type: string
         description: Declared action identifier returned by the connection descriptor.
-        example: list
+        example: upgrades.request
       requestBody:
         required: true
         content:
@@ -1170,9 +1170,9 @@ paths:
         '401':
           description: A valid BFF service credential is required to execute a plugin action.
         '403':
-          description: Connection disabled or operation not granted
+          description: The connection is disabled or lacks this action's operation or capability grant.
         '404':
-          description: Unknown plugin, connection or operation
+          description: The requested action or its plugin connection was not found.
         '409':
           description: Action precondition or source revision changed
         '413':
@@ -1180,7 +1180,7 @@ paths:
         '429':
           description: Plugin action capacity exceeded
         '502':
-          description: Invalid plugin output
+          description: Plugin action result failed host schema validation.
         '503':
           description: The service cannot execute a plugin action because required storage or plugin metadata
             is unavailable.
@@ -7210,6 +7210,7 @@ components:
         message: Source unavailable
         retryable: true
     PluginActionResult:
+      description: Schema-validated data returned by a plugin action. Durability is defined by the plugin.
       type: object
       additionalProperties: false
       required: [data]
@@ -7217,6 +7218,8 @@ components:
         data:
           type: object
           additionalProperties: true
+          example:
+            accepted: true
     PluginQueryResult:
       type: object
       additionalProperties: false

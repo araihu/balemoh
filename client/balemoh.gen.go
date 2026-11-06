@@ -1218,7 +1218,7 @@ type NotificationSource struct {
 // NotificationSourceKind defines model for NotificationSource.Kind.
 type NotificationSourceKind string
 
-// PluginActionResult defines model for PluginActionResult.
+// PluginActionResult Schema-validated data returned by a plugin action. Durability is defined by the plugin.
 type PluginActionResult struct {
 	Data map[string]interface{} `json:"data"`
 }
