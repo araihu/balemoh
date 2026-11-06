@@ -54,4 +54,17 @@ func TestActionAPIAuthenticationScopeAndReadOnlyQueries(t *testing.T) {
 			t.Fatalf("%s status=%d calls=%d", test.path, w.Code, runtime.calls)
 		}
 	}
+	for _, path := range []string{
+		"/api/v1/plugins/example.plugin/connections/missing/actions/fixture.request",
+		"/api/v1/plugins/missing/connections/connection/actions/fixture.request",
+	} {
+		r := httptest.NewRequest("POST", path, strings.NewReader(`{"input":{}}`))
+		r.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != 404 || runtime.calls != 1 {
+			t.Fatalf("missing connection %s status=%d calls=%d", path, w.Code, runtime.calls)
+		}
+	}
+
 }

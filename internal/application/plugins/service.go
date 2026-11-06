@@ -16,7 +16,7 @@ type Failure struct {
 
 func (e *Failure) Error() string { return e.Code }
 func Fail(code string) *Failure {
-	messages := map[string]string{"invalid_argument": "Invalid plugin input.", "permission_denied": "Plugin query is not granted.", "not_found": "Plugin data was not found.", "conflict": "Plugin state changed. Refresh to retry.", "precondition_failed": "Widget revision changed. Reload before saving.", "precondition_required": "Widget revision is required.", "resource_exhausted": "Plugin capacity exceeded.", "invalid_response": "Plugin response is invalid.", "deadline_exceeded": "Plugin request timed out.", "unavailable": "Plugin data is unavailable.", "collection_failed": "Source collection failed."}
+	messages := map[string]string{"invalid_argument": "Invalid plugin input.", "permission_denied": "Plugin operation is not granted.", "not_found": "Plugin data was not found.", "conflict": "Plugin state changed. Refresh to retry.", "precondition_failed": "Widget revision changed. Reload before saving.", "precondition_required": "Widget revision is required.", "resource_exhausted": "Plugin capacity exceeded.", "invalid_response": "Plugin response is invalid.", "deadline_exceeded": "Plugin request timed out.", "unavailable": "Plugin data is unavailable.", "collection_failed": "Source collection failed."}
 	message, ok := messages[code]
 	if !ok {
 		code = "unavailable"

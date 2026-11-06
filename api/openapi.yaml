@@ -1170,9 +1170,9 @@ paths:
         '401':
           description: A valid BFF service credential is required to execute a plugin action.
         '403':
-          description: The connection is disabled or lacks this action's operation or capability grant.
+          description: The connection is disabled, or the action is unknown or lacks an operation or capability grant.
         '404':
-          description: The requested action or its plugin connection was not found.
+          description: No stored plugin connection matches the requested plugin and connection identifiers.
         '409':
           description: Action precondition or source revision changed
         '413':
@@ -7164,13 +7164,15 @@ components:
           type: array
           items:
             type: string
+          example:
+          - upgrades.request
         queries:
           type: array
           items:
             type: string
           example:
           - list
-      description: Connection identity, applied configuration revision, collection state and available query identifiers.
+      description: Connection identity, applied configuration revision, collection state and available query and action identifiers.
       example:
         id: 00000000-0000-4000-8000-000000000001
         key: primary
@@ -7187,6 +7189,8 @@ components:
         lastConfigureAttemptAt: '2026-10-26T12:00:00Z'
         queries:
         - list
+        actions:
+        - upgrades.request
     PluginFailure:
       type: object
       additionalProperties: false

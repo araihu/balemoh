@@ -1227,7 +1227,7 @@ type PluginCatalog struct {
 	Problems []PluginInstallationProblem `json:"problems"`
 }
 
-// PluginConnection Connection identity, applied configuration revision, collection state and available query identifiers.
+// PluginConnection Connection identity, applied configuration revision, collection state and available query and action identifiers.
 type PluginConnection struct {
 	Actions         *[]string `json:"actions,omitempty"`
 	AppliedRevision *string   `json:"appliedRevision"`
