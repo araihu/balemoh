@@ -1157,7 +1157,7 @@ paths:
         description: Declared action input object.
       responses:
         '200':
-          description: Validated durable action receipt; never waits for source execution
+          description: Validated result from synchronous plugin action execution
           content:
             application/json:
               schema:
@@ -1174,24 +1174,26 @@ paths:
         '404':
           description: Unknown plugin, connection or operation
         '409':
-          description: Observation revision changed
+          description: Action precondition or source revision changed
         '413':
-          description: Query input exceeds limit
+          description: Action input exceeds limit
         '429':
-          description: Plugin query capacity exceeded
+          description: Plugin action capacity exceeded
         '502':
           description: Invalid plugin output
         '503':
           description: The service cannot execute a plugin action because required storage or plugin metadata
             is unavailable.
         '504':
-          description: Plugin query exceeded the host deadline
+          description: Plugin action exceeded the host deadline; its side effect may be unconfirmed
       tags:
       - Plugins
-      summary: Query a plugin observation
-      description: Run a declared query for one enabled connection with its configured grants. Queries read the
-        cached observation and do not start collection. Input is limited to 64 KiB and host deadlines bound the
-        call.
+      summary: Execute a plugin action
+      description: Execute a declared action for one enabled connection with both its named operation grant
+        and data.action/v1 capability grant. The host waits for the plugin result within its deadline and
+        validates the response schema. Input is limited to 64 KiB. Durability and idempotency are defined
+        by the plugin, not this route. A timeout or transport failure does not prove that no side effect
+        occurred; reconcile the plugin state before retrying.
   /api/v1/dashboard:
     get:
       operationId: GetDashboard

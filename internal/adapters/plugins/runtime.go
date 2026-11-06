@@ -54,7 +54,7 @@ func NewRuntime(ctx context.Context, d *Deployment, records []app.Connection, no
 			}
 		}
 		r.plugins[p.pkg.Manifest.ID] = item
-		if (len(p.pkg.Manifest.Queries) > 0 || p.pkg.Manifest.Declares(notificationPublishCapability)) && len(item.connections) > 0 {
+		if (len(p.pkg.Manifest.Queries) > 0 || len(p.pkg.Manifest.Actions) > 0 || p.pkg.Manifest.Declares(notificationPublishCapability)) && len(item.connections) > 0 {
 			r.wg.Add(1)
 			go r.run(item)
 		}

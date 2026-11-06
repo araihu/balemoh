@@ -2086,7 +2086,7 @@ type ServerInterface interface {
 	// List installed plugins
 	// (GET /api/v1/plugins)
 	GetPlugins(w http.ResponseWriter, r *http.Request)
-	// Query a plugin observation
+	// Execute a plugin action
 	// (POST /api/v1/plugins/{pluginId}/connections/{connectionId}/actions/{actionId})
 	ActionPlugin(w http.ResponseWriter, r *http.Request, pluginId string, connectionId string, actionId string)
 	// Query a plugin observation
