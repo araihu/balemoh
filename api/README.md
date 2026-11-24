@@ -21,7 +21,9 @@ GOWORK=off go test ./...
 bash hack/build-site.sh
 ```
 
-The lint helper installs Vacuum v0.30.0 into ignored `bin/`. It runs the default
+The lint helper downloads the official Vacuum v0.30.0 archive into
+`$XDG_CACHE_HOME/balemoh/vacuum` (default `~/.cache/balemoh/vacuum`) and
+checks its SHA-256 against `hack/vacuum.sha256` before each run. It runs the default
 recommended OpenAPI rules plus required operation summaries and descriptions from
 `vacuum.yaml`. Warnings or a quality score below 100/100 fail the command.
 The static build runs the same lint
